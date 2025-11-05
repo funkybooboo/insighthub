@@ -1,4 +1,4 @@
-.PHONY: install test format lint type-check check clean run help
+.PHONY: install test test-unit test-integration test-watch format lint type-check check clean run help server cli health
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -9,8 +9,21 @@ help:  ## Show this help message
 install:  ## Install dependencies
 	poetry install --no-root
 
-test:  ## Run tests with coverage
-	poetry run pytest tests/ -v --cov=src --cov-report=term-missing
+test:  ## Run all tests with coverage
+	@echo "Running all tests..."
+	poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+
+test-unit:  ## Run unit tests only (fast)
+	@echo "Running unit tests..."
+	poetry run pytest tests/unit/ -v
+
+test-integration:  ## Run integration tests with testcontainers (slower)
+	@echo "Running integration tests with testcontainers..."
+	@echo "Note: Docker must be running for testcontainers"
+	poetry run pytest tests/integration/ -v -s
+
+test-watch:  ## Run tests in watch mode (requires pytest-watch)
+	poetry run ptw tests/
 
 format:  ## Format code with black and isort
 	poetry run black src tests
@@ -32,3 +45,12 @@ clean:  ## Clean generated files
 
 run:  ## Run the hello world program
 	poetry run python src/hello.py
+
+server:  ## Run Flask API server on port 5000
+	poetry run python src/api.py
+
+cli:  ## Run RAG CLI (usage: make cli ARGS="command args")
+	poetry run python src/cli.py $(ARGS)
+
+health:  ## Check Flask API server health
+	@curl -s http://localhost:5000/health | grep -q "healthy" && echo "Server is healthy" || echo "Server is not responding"
