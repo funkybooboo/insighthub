@@ -1,4 +1,4 @@
-.PHONY: help dev dev-server dev-client up down check check-server check-client build build-server build-client clean logs
+.PHONY: help up down build build-server build-client clean logs logs-server logs-client
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,32 +6,11 @@ help:  ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev:  ## Start all development services
-	docker compose --profile dev up
-
-dev-server:  ## Start only server in development mode
-	docker compose --profile dev up server-dev
-
-dev-client:  ## Start only client in development mode
-	docker compose --profile dev up client-dev
-
 up:  ## Start production services
 	docker compose up -d
 
 down:  ## Stop all services
 	docker compose down
-
-check:  ## Run quality checks on both packages
-	docker compose --profile check build server-check client-check
-	@echo "All quality checks passed!"
-
-check-server:  ## Run quality checks on server
-	docker compose --profile check build server-check
-	@echo "Server quality checks passed!"
-
-check-client:  ## Run quality checks on client
-	docker compose --profile check build client-check
-	@echo "Client quality checks passed!"
 
 build:  ## Build production images
 	docker compose build
