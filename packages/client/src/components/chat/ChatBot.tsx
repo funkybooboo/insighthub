@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import axios from 'axios';
 
 import type { Message } from './ChatMessages';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
+import apiService from '@/services/api';
 
 import popSound from '@/assets/sounds/pop.mp3';
 import notificationSound from '@/assets/sounds/notification.mp3';
@@ -13,10 +13,6 @@ popAudio.volume = 0.2;
 
 const notificationAudio = new Audio(notificationSound);
 notificationAudio.volume = 0.2;
-
-type ChatReponse = {
-    message: string;
-};
 
 const ChatBot = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -31,20 +27,12 @@ const ChatBot = () => {
             setIsBotTyping(true);
             popAudio.play();
 
-            const { data } = await axios.post<ChatReponse>(
-                '/api/chat',
-                {
-                    prompt,
-                    conversationId: conversationId.current,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+            const response = await apiService.sendChatMessage({
+                message: prompt,
+                conversation_id: conversationId.current,
+            });
 
-            setMessages((prev) => [...prev, { content: data.message, role: 'bot' }]);
+            setMessages((prev) => [...prev, { content: response.answer, role: 'bot' }]);
             notificationAudio.play();
         } catch (error) {
             console.log(error);
