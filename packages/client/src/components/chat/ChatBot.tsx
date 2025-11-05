@@ -44,10 +44,7 @@ const ChatBot = () => {
                 }
             );
 
-            setMessages((prev) => [
-                ...prev,
-                { content: data.message, role: 'bot' },
-            ]);
+            setMessages((prev) => [...prev, { content: data.message, role: 'bot' }]);
             notificationAudio.play();
         } catch (error) {
             console.log(error);
@@ -59,11 +56,7 @@ const ChatBot = () => {
 
     return (
         <div className="flex flex-col h-full">
-            <ChatMessages
-                messages={messages}
-                error={error}
-                isBotTyping={isBotTyping}
-            />
+            <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
             <ChatInput onSubmit={onSubmit} />
         </div>
     );

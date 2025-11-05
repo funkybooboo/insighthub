@@ -27,9 +27,7 @@ export default {
     },
 
     async fetchReviews(productId: number): Promise<GetReviewsResponse> {
-        const { data } = await axios.get<GetReviewsResponse>(
-            `/api/products/${productId}/reviews`
-        );
+        const { data } = await axios.get<GetReviewsResponse>(`/api/products/${productId}/reviews`);
         return data;
     },
 };

@@ -11,9 +11,7 @@ function App() {
         setActiveTab(tab);
     };
 
-    const handleProductIdChange = (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleProductIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setProductId(Number(event.target.value));
     };
 

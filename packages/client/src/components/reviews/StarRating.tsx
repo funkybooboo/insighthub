@@ -12,9 +12,7 @@ const StarRating = ({ value }: Props) => {
 
     return (
         <div className="flex gap-1 text-yellow-500">
-            {placeholders.map((p) =>
-                p <= value ? <FaStar key={p} /> : <FaRegStar key={p} />
-            )}
+            {placeholders.map((p) => (p <= value ? <FaStar key={p} /> : <FaRegStar key={p} />))}
         </div>
     );
 };

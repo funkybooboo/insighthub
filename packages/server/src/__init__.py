@@ -1,0 +1,1 @@
+"""InsightHub server package."""

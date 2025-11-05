@@ -33,9 +33,7 @@ const ReviewList = ({ productId }: Props) => {
     }
 
     if (reviewsQuery.isError) {
-        return (
-            <p className="text-red-500">Could not get reviews. Try again!</p>
-        );
+        return <p className="text-red-500">Could not get reviews. Try again!</p>;
     }
 
     if (!reviewsQuery.data?.reviews.length) {
@@ -66,9 +64,7 @@ const ReviewList = ({ productId }: Props) => {
                             </div>
                         )}
                         {summaryMutation.isError && (
-                            <p className="text-red-500">
-                                Could not summarize reviews. Try Again!
-                            </p>
+                            <p className="text-red-500">Could not summarize reviews. Try Again!</p>
                         )}
                     </div>
                 )}
