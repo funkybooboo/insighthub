@@ -11,6 +11,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!packages/client/src/lib
 lib64/
 parts/
 sdist/
@@ -52,3 +53,5 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+CLAUDE.md
