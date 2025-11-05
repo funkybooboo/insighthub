@@ -70,14 +70,14 @@ poetry run python src/hello.py
 
 ```
 packages/server/
-├── src/               # Source code
-│   ├── __init__.py
-│   └── hello.py       # Hello world example
-├── tests/             # Test files
-│   ├── __init__.py
-│   └── test_hello.py  # Hello world tests
-├── pyproject.toml     # Poetry dependencies and tool configs
-└── poetry.toml        # Poetry settings (venv in project)
++-- src/               # Source code
+|   +-- __init__.py
+|   +-- hello.py       # Hello world example
++-- tests/             # Test files
+|   +-- __init__.py
+|   +-- test_hello.py  # Hello world tests
++-- pyproject.toml     # Poetry dependencies and tool configs
++-- poetry.toml        # Poetry settings (venv in project)
 ```
 
 ## Configuration
