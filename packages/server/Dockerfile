@@ -17,7 +17,7 @@ WORKDIR /app
 FROM base AS development
 
 # Copy dependency files
-COPY pyproject.toml poetry.toml Makefile ./
+COPY pyproject.toml poetry.toml Makefile README.md ./
 
 # Install all dependencies (including dev)
 RUN poetry install --no-root
@@ -39,7 +39,7 @@ RUN make check
 FROM base AS production
 
 # Copy dependency files
-COPY pyproject.toml poetry.toml Makefile ./
+COPY pyproject.toml poetry.toml Makefile README.md ./
 
 # Install production dependencies using make
 RUN poetry install --no-root --only main
