@@ -36,11 +36,7 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                     <div
                         key={index}
                         onCopy={onCopyMessage}
-                        ref={
-                            index === messages.length - 1
-                                ? lastMessageRef
-                                : null
-                        }
+                        ref={index === messages.length - 1 ? lastMessageRef : null}
                         className={`
                         px-3 py-1 rounded-xl
                         ${

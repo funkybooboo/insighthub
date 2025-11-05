@@ -1,36 +1,34 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "rag"
+[tool.poetry]
+name = "insighthub-server"
 version = "0.1.0"
 description = "RAG System with Vector and Graph implementations"
+authors = ["Nate Stott"]
 readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "numpy>=1.24.0",
-    "requests>=2.31.0",
-    "python-dotenv>=1.0.0",
-    "qdrant-client>=1.7.0",
-    "openai>=1.0.0",
-    "sentence-transformers>=2.2.0",
-    "torch>=2.0.0",
-    "tiktoken>=0.5.0",
-]
+packages = [{include = "src"}]
 
-[project.optional-dependencies]
-dev = [
-    "black>=24.0.0",
-    "isort>=5.13.0",
-    "mypy>=1.8.0",
-    "ruff>=0.6.0",
-    "pylint>=3.0.0",
-    "pre-commit>=3.6.0",
-    "types-requests>=2.31.0",
-    "jupyter>=1.0.0",
-    "ipykernel>=6.25.0",
-]
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.24.0"
+requests = "^2.31.0"
+python-dotenv = "^1.0.0"
+qdrant-client = "^1.7.0"
+openai = "^1.0.0"
+sentence-transformers = "^2.2.0"
+torch = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.23.0"
+black = "^24.0.0"
+isort = "^5.13.0"
+mypy = "^1.8.0"
+ruff = "^0.6.0"
+types-requests = "^2.31.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 # Black configuration
 [tool.black]
@@ -61,16 +59,16 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 skip_gitignore = true
-known_first_party = ["rag"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+src_paths = ["src", "tests"]
+known_first_party = ["src"]
 
 # Mypy configuration
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = false
 no_implicit_optional = true
@@ -83,8 +81,6 @@ pretty = true
 show_error_codes = true
 show_error_context = true
 mypy_path = "src"
-namespace_packages = true
-explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -100,6 +96,7 @@ ignore_missing_imports = true
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+src = ["src", "tests"]
 extend-exclude = [
     ".git",
     ".mypy_cache",
@@ -119,52 +116,44 @@ select = [
     "UP",     # pyupgrade
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
-    "TID",    # flake8-tidy-imports
-    "PTH",    # flake8-use-pathlib
 ]
 
 ignore = [
     "E501",   # line too long (handled by black)
     "B008",   # do not perform function calls in argument defaults
-    "B905",   # zip without explicit strict parameter
     "ARG001", # unused function argument
     "ARG002", # unused method argument
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
+"tests/*" = ["ARG001", "ARG002"]  # Allow unused arguments in tests
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-
-# Pylint configuration
-[tool.pylint.main]
-py-version = "3.11"
-ignore-paths = [
-    "^\\.venv/.*$",
-    "^build/.*$",
-    "^dist/.*$",
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
 ]
 
-[tool.pylint.messages_control]
-disable = [
-    "C0111",  # missing-docstring
-    "C0103",  # invalid-name
-    "R0903",  # too-few-public-methods
-    "R0913",  # too-many-arguments
-    "W0212",  # protected-access
-    "C0415",  # import-outside-toplevel
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/.venv/*",
 ]
 
-[tool.pylint.format]
-max-line-length = 100
-
-[tool.pylint.basic]
-good-names = ["i", "j", "k", "ex", "Run", "_", "id", "q", "e", "f", "fp"]
-
-[tool.pylint.design]
-max-args = 10
-max-attributes = 15
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

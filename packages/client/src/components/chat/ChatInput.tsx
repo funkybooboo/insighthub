@@ -12,8 +12,7 @@ type Props = {
 };
 
 const ChatInput = ({ onSubmit }: Props) => {
-    const { register, handleSubmit, reset, formState } =
-        useForm<ChatFormData>();
+    const { register, handleSubmit, reset, formState } = useForm<ChatFormData>();
 
     const handleFormSubmit = handleSubmit((data) => {
         reset({ prompt: '' });
@@ -43,10 +42,7 @@ const ChatInput = ({ onSubmit }: Props) => {
                 placeholder="Ask anything"
                 maxLength={1000}
             />
-            <Button
-                disabled={!formState.isValid}
-                className="rounded-full w-9 h-9"
-            >
+            <Button disabled={!formState.isValid} className="rounded-full w-9 h-9">
                 <FaArrowUp />
             </Button>
         </form>

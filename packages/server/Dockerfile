@@ -1,4 +1,3 @@
-# Use Python 3.11 slim image
 FROM python:3.11-slim
 
 # Set working directory
@@ -8,20 +7,27 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:$PATH"
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy Poetry files
+COPY pyproject.toml poetry.toml ./
 
-# Copy the project
-COPY . .
+# Install dependencies (no dev dependencies in production)
+RUN poetry install --no-root --only main
 
-# Set Python path to include src directory
-ENV PYTHONPATH=/app/src
+# Copy source code
+COPY src/ ./src/
+COPY tests/ ./tests/
 
-# Default command (can be overridden)
-CMD ["python", "src/main.py"]
+# Install the project
+RUN poetry install --only-root
+
+# Expose port (adjust as needed)
+EXPOSE 8000
+
+# Run the application
+CMD ["poetry", "run", "python", "src/hello.py"]

@@ -3,9 +3,7 @@ type DotProps = {
 };
 
 const Dot = ({ className }: DotProps) => (
-    <div
-        className={`w-2 h-2 rounded-full bg-gray-800 animate-pulse ${className}`}
-    />
+    <div className={`w-2 h-2 rounded-full bg-gray-800 animate-pulse ${className}`} />
 );
 
 const TypingIndicator = () => {

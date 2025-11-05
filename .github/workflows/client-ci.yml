@@ -1,0 +1,47 @@
+name: Client CI
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'packages/client/**'
+            - '.github/workflows/client-ci.yml'
+    pull_request:
+        branches:
+            - main
+        paths:
+            - 'packages/client/**'
+            - '.github/workflows/client-ci.yml'
+
+jobs:
+    client-ci:
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: packages/client
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: make install
+
+            - name: Check formatting
+              run: make format-check
+
+            - name: Run linter
+              run: make lint
+
+            - name: Type check and build
+              run: make build
+
+            - name: Run tests
+              run: make test
