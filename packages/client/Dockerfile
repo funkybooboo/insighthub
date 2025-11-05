@@ -1,19 +1,37 @@
-# Build stage
-FROM oven/bun:1 AS builder
+# Base stage with dependencies
+FROM oven/bun:1 AS base
+
+# Install make
+RUN apt-get update && apt-get install -y make && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock* ./
+# Copy package files and Makefile
+COPY package.json bun.lock* Makefile ./
 
-# Install dependencies
-RUN bun install --frozen-lockfile
+# Install dependencies using make
+RUN make install
 
-# Copy source code
+# Development stage
+FROM base AS development
+
+# Copy all source files
 COPY . .
 
-# Build the application
-RUN bun run build
+# Quality check stage - runs make check
+FROM development AS quality
+
+# Run all checks (format-check, lint, build)
+RUN make check
+
+# Build stage
+FROM base AS builder
+
+# Copy all source files
+COPY . .
+
+# Build the application using make
+RUN make build
 
 # Production stage
 FROM nginx:alpine

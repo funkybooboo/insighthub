@@ -24,7 +24,7 @@ def test_greet_empty_name_raises_error() -> None:
         greet("")
 
 
-def test_greet_with_special_characters() -> None:
-    """Test that greet handles special characters."""
-    result = greet("José")
-    assert result == "Hello, José!"
+def test_greet_with_punctuation() -> None:
+    """Test that greet handles punctuation characters."""
+    result = greet("O'Brien")
+    assert result == "Hello, O'Brien!"

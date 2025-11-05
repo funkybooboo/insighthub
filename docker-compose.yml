@@ -1,11 +1,10 @@
-version: '3.8'
-
 services:
-    # Python server
+    # Python server - production build
     server:
         build:
             context: ./packages/server
             dockerfile: Dockerfile
+            target: production
         container_name: insighthub-server
         ports:
             - '8000:8000'
@@ -15,11 +14,12 @@ services:
             - PYTHONUNBUFFERED=1
         restart: unless-stopped
 
-    # React client
+    # React client - production build
     client:
         build:
             context: ./packages/client
             dockerfile: Dockerfile
+            target: production
         container_name: insighthub-client
         ports:
             - '3000:80'
@@ -32,6 +32,7 @@ services:
         build:
             context: ./packages/server
             dockerfile: Dockerfile
+            target: development
         container_name: insighthub-server-dev
         ports:
             - '8000:8000'
@@ -39,19 +40,41 @@ services:
             - ./packages/server:/app
         environment:
             - PYTHONUNBUFFERED=1
-        command: poetry run python src/hello.py
+        command: make run
         profiles:
             - dev
 
     # Development client with hot reload
     client-dev:
-        image: oven/bun:1
+        build:
+            context: ./packages/client
+            dockerfile: Dockerfile
+            target: development
         container_name: insighthub-client-dev
-        working_dir: /app
         ports:
             - '5173:5173'
         volumes:
             - ./packages/client:/app
-        command: bun run dev --host
+        command: make dev
         profiles:
             - dev
+
+    # Quality check for server
+    server-check:
+        build:
+            context: ./packages/server
+            dockerfile: Dockerfile
+            target: quality
+        container_name: insighthub-server-check
+        profiles:
+            - check
+
+    # Quality check for client
+    client-check:
+        build:
+            context: ./packages/client
+            dockerfile: Dockerfile
+            target: quality
+        container_name: insighthub-client-check
+        profiles:
+            - check
