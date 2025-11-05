@@ -3,26 +3,27 @@
 from io import BytesIO
 
 import pytest
-from sqlalchemy.orm import Session
 
+from src.db.interfaces import DocumentRepository, UserRepository
 from src.db.models import User
-from src.db.repository import UserRepository
 from src.services.document_service import DocumentService
-from src.storage.blob_storage import S3BlobStorage
+from src.storage.in_memory import InMemoryBlobStorage
 
 
 @pytest.fixture
-def test_user(db_session: Session) -> User:
+def test_user(user_repository: UserRepository) -> User:
     """Create a test user."""
-    user_repo = UserRepository(db_session)
-    return user_repo.create(username="testuser", email="test@example.com")
+    return user_repository.create(username="testuser", email="test@example.com")
 
 
 def test_upload_document(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User, sample_text_file: BytesIO
+    document_repository: DocumentRepository,
+    blob_storage: InMemoryBlobStorage,
+    test_user: User,
+    sample_text_file: BytesIO,
 ) -> None:
     """Test uploading a document."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(
@@ -41,24 +42,27 @@ def test_upload_document(
 
 
 def test_upload_duplicate_document(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test uploading duplicate document (same hash) creates separate records."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
-    # Upload same document twice
+    # Get the content from the fixture
+    content = sample_text_file.read()
+    sample_text_file.close()
+
+    # Upload same document twice with fresh BytesIO objects
     doc1 = service.upload_document(
         user_id=test_user.id,
         filename="test1.txt",
-        file_obj=sample_text_file,
+        file_obj=BytesIO(content),
         mime_type="text/plain",
     )
 
-    sample_text_file.seek(0)
     doc2 = service.upload_document(
         user_id=test_user.id,
         filename="test2.txt",
-        file_obj=sample_text_file,
+        file_obj=BytesIO(content),
         mime_type="text/plain",
     )
 
@@ -68,10 +72,10 @@ def test_upload_duplicate_document(
 
 
 def test_download_document(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test downloading a document."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     # Upload document
     original_content = sample_text_file.read()
@@ -92,10 +96,10 @@ def test_download_document(
 
 
 def test_extract_text_from_txt(
-    db_session: Session, blob_storage: S3BlobStorage, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_text_file: BytesIO
 ) -> None:
     """Test extracting text from a TXT file."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     text = service.extract_text(sample_text_file, "test.txt")
 
@@ -104,10 +108,10 @@ def test_extract_text_from_txt(
 
 
 def test_extract_text_from_pdf(
-    db_session: Session, blob_storage: S3BlobStorage, sample_pdf_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_pdf_file: BytesIO
 ) -> None:
     """Test extracting text from a PDF file."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     text = service.extract_text(sample_pdf_file, "test.pdf")
 
@@ -116,10 +120,10 @@ def test_extract_text_from_pdf(
 
 
 def test_calculate_file_hash(
-    db_session: Session, blob_storage: S3BlobStorage, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_text_file: BytesIO
 ) -> None:
     """Test calculating file hash."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     hash1 = service.calculate_file_hash(sample_text_file)
 
@@ -132,10 +136,10 @@ def test_calculate_file_hash(
 
 
 def test_list_user_documents(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User
 ) -> None:
     """Test listing user documents."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     # Upload multiple documents
     file1 = BytesIO(b"content 1")
@@ -161,10 +165,10 @@ def test_list_user_documents(
 
 
 def test_delete_document(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test deleting a document."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(
@@ -188,10 +192,10 @@ def test_delete_document(
 
 
 def test_update_document(
-    db_session: Session, blob_storage: S3BlobStorage, test_user: User, sample_text_file: BytesIO
+    document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test updating document metadata."""
-    service = DocumentService(db_session, blob_storage)
+    service = DocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(

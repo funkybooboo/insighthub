@@ -2,18 +2,15 @@
 
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
+from src.db.interfaces import UserRepository
 from src.db.models import User
-from src.db.repository import UserRepository
 
 
 class UserService:
     """Service for user-related business logic."""
 
-    def __init__(self, db: Session):
-        self.db = db
-        self.repository = UserRepository(db)
+    def __init__(self, repository: UserRepository):
+        self.repository = repository
 
     def create_user(
         self, username: str, email: str, full_name: Optional[str] = None

@@ -150,6 +150,9 @@ def test_delete_document(client: FlaskClient) -> None:
     # Delete the document
     response = client.delete(f"/api/documents/{doc_id}")
 
+    if response.status_code != 200:
+        print(f"Delete error response: {response.data.decode()}")
+
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data["message"] == "Document deleted successfully"

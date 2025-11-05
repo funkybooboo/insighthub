@@ -190,7 +190,7 @@ def delete_document(doc_id: int) -> tuple[Response, int]:
             return jsonify({"error": "Document not found"}), 404
 
         # Delete document (including file)
-        doc_service.delete_document(doc_id, delete_file=True)
+        doc_service.delete_document(doc_id, delete_from_storage=True)
 
         # TODO: Remove from RAG system
         # rag_system.remove_document(doc_id)
