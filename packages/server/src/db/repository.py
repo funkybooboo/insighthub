@@ -4,10 +4,16 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from .models import User, Document, ChatSession, ChatMessage
+from .interfaces import (
+    ChatMessageRepository,
+    ChatSessionRepository,
+    DocumentRepository,
+    UserRepository,
+)
+from .models import ChatMessage, ChatSession, Document, User
 
 
-class UserRepository:
+class SqlUserRepository(UserRepository):
     """Repository for User operations."""
 
     def __init__(self, db: Session):
@@ -58,7 +64,7 @@ class UserRepository:
         return False
 
 
-class DocumentRepository:
+class SqlDocumentRepository(DocumentRepository):
     """Repository for Document operations."""
 
     def __init__(self, db: Session):
@@ -130,7 +136,7 @@ class DocumentRepository:
         return False
 
 
-class ChatSessionRepository:
+class SqlChatSessionRepository(ChatSessionRepository):
     """Repository for ChatSession operations."""
 
     def __init__(self, db: Session):
@@ -181,7 +187,7 @@ class ChatSessionRepository:
         return False
 
 
-class ChatMessageRepository:
+class SqlChatMessageRepository(ChatMessageRepository):
     """Repository for ChatMessage operations."""
 
     def __init__(self, db: Session):

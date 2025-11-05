@@ -3,19 +3,18 @@
 import json
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
+from src.db.interfaces import ChatMessageRepository, ChatSessionRepository
 from src.db.models import ChatMessage, ChatSession
-from src.db.repository import ChatMessageRepository, ChatSessionRepository
 
 
 class ChatService:
     """Service for chat-related business logic."""
 
-    def __init__(self, db: Session):
-        self.db = db
-        self.session_repository = ChatSessionRepository(db)
-        self.message_repository = ChatMessageRepository(db)
+    def __init__(
+        self, session_repository: ChatSessionRepository, message_repository: ChatMessageRepository
+    ):
+        self.session_repository = session_repository
+        self.message_repository = message_repository
 
     def create_session(
         self,

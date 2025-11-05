@@ -1,22 +1,22 @@
 """Unit tests for DocumentRepository."""
 
 import pytest
-from sqlalchemy.orm import Session
+
 
 from src.db.models import Document, User
-from src.db.repository import DocumentRepository, UserRepository
+from src.db.interfaces import DocumentRepository, UserRepository
 
 
 @pytest.fixture
-def test_user(db_session: Session) -> User:
+def test_user(document_repository: DocumentRepository) -> User:
     """Create a test user."""
     user_repo = UserRepository(db_session)
     return user_repo.create(username="testuser", email="test@example.com")
 
 
-def test_create_document(db_session: Session, test_user: User) -> None:
+def test_create_document(document_repository: DocumentRepository, test_user: User) -> None:
     """Test creating a new document."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     doc = repo.create(
         user_id=test_user.id,
@@ -37,9 +37,9 @@ def test_create_document(db_session: Session, test_user: User) -> None:
     assert doc.created_at is not None
 
 
-def test_get_document_by_id(db_session: Session, test_user: User) -> None:
+def test_get_document_by_id(document_repository: DocumentRepository, test_user: User) -> None:
     """Test retrieving a document by ID."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     # Create document
     created_doc = repo.create(
@@ -59,9 +59,9 @@ def test_get_document_by_id(db_session: Session, test_user: User) -> None:
     assert retrieved_doc.filename == "test.pdf"
 
 
-def test_get_documents_by_user(db_session: Session, test_user: User) -> None:
+def test_get_documents_by_user(document_repository: DocumentRepository, test_user: User) -> None:
     """Test retrieving all documents for a user."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     # Create multiple documents
     repo.create(
@@ -89,9 +89,9 @@ def test_get_documents_by_user(db_session: Session, test_user: User) -> None:
     assert all(doc.user_id == test_user.id for doc in docs)
 
 
-def test_get_document_by_content_hash(db_session: Session, test_user: User) -> None:
+def test_get_document_by_content_hash(document_repository: DocumentRepository, test_user: User) -> None:
     """Test retrieving a document by content hash."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     # Create document
     repo.create(
@@ -110,9 +110,9 @@ def test_get_document_by_content_hash(db_session: Session, test_user: User) -> N
     assert doc.content_hash == "unique_hash_123"
 
 
-def test_update_document(db_session: Session, test_user: User) -> None:
+def test_update_document(document_repository: DocumentRepository, test_user: User) -> None:
     """Test updating a document."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     # Create document
     doc = repo.create(
@@ -132,9 +132,9 @@ def test_update_document(db_session: Session, test_user: User) -> None:
     assert updated_doc.rag_collection == "test_collection"
 
 
-def test_delete_document(db_session: Session, test_user: User) -> None:
+def test_delete_document(document_repository: DocumentRepository, test_user: User) -> None:
     """Test deleting a document."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     # Create document
     doc = repo.create(
@@ -154,9 +154,9 @@ def test_delete_document(db_session: Session, test_user: User) -> None:
     assert repo.get_by_id(doc_id) is None
 
 
-def test_delete_nonexistent_document(db_session: Session) -> None:
+def test_delete_nonexistent_document(document_repository: DocumentRepository) -> None:
     """Test deleting a document that doesn't exist."""
-    repo = DocumentRepository(db_session)
+    repo = document_repository
 
     result = repo.delete(99999)
 

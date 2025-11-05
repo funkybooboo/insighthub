@@ -5,19 +5,17 @@ from io import BytesIO
 from typing import BinaryIO, Optional
 
 from pypdf import PdfReader
-from sqlalchemy.orm import Session
 
+from src.db.interfaces import DocumentRepository
 from src.db.models import Document
-from src.db.repository import DocumentRepository
 from src.storage.blob_storage import BlobStorage
 
 
 class DocumentService:
     """Service for document-related business logic."""
 
-    def __init__(self, db: Session, blob_storage: BlobStorage):
-        self.db = db
-        self.repository = DocumentRepository(db)
+    def __init__(self, repository: DocumentRepository, blob_storage: BlobStorage):
+        self.repository = repository
         self.blob_storage = blob_storage
 
     def calculate_file_hash(self, file_obj: BinaryIO) -> str:

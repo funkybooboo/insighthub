@@ -1,17 +1,16 @@
 """Unit tests for UserRepository."""
 
 import pytest
-from sqlalchemy.orm import Session
 
+from src.db.interfaces import UserRepository
 from src.db.models import User
-from src.db.repository import UserRepository
 
 pytestmark = [pytest.mark.unit, pytest.mark.database]
 
 
-def test_create_user(db_session: Session) -> None:
+def test_create_user(user_repository: UserRepository) -> None:
     """Test creating a new user."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     user = repo.create(
         username="testuser",
@@ -27,9 +26,9 @@ def test_create_user(db_session: Session) -> None:
     assert user.updated_at is not None
 
 
-def test_get_user_by_id(db_session: Session) -> None:
+def test_get_user_by_id(user_repository: UserRepository) -> None:
     """Test retrieving a user by ID."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create user
     created_user = repo.create(
@@ -45,9 +44,9 @@ def test_get_user_by_id(db_session: Session) -> None:
     assert retrieved_user.username == "testuser"
 
 
-def test_get_user_by_username(db_session: Session) -> None:
+def test_get_user_by_username(user_repository: UserRepository) -> None:
     """Test retrieving a user by username."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create user
     repo.create(username="testuser", email="test@example.com")
@@ -59,9 +58,9 @@ def test_get_user_by_username(db_session: Session) -> None:
     assert user.username == "testuser"
 
 
-def test_get_user_by_email(db_session: Session) -> None:
+def test_get_user_by_email(user_repository: UserRepository) -> None:
     """Test retrieving a user by email."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create user
     repo.create(username="testuser", email="test@example.com")
@@ -73,9 +72,9 @@ def test_get_user_by_email(db_session: Session) -> None:
     assert user.email == "test@example.com"
 
 
-def test_get_all_users(db_session: Session) -> None:
+def test_get_all_users(user_repository: UserRepository) -> None:
     """Test retrieving all users with pagination."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create multiple users
     repo.create(username="user1", email="user1@example.com")
@@ -89,9 +88,9 @@ def test_get_all_users(db_session: Session) -> None:
     assert all(isinstance(user, User) for user in users)
 
 
-def test_update_user(db_session: Session) -> None:
+def test_update_user(user_repository: UserRepository) -> None:
     """Test updating a user."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create user
     user = repo.create(username="testuser", email="test@example.com")
@@ -105,9 +104,9 @@ def test_update_user(db_session: Session) -> None:
     assert updated_user.updated_at >= original_updated_at
 
 
-def test_delete_user(db_session: Session) -> None:
+def test_delete_user(user_repository: UserRepository) -> None:
     """Test deleting a user."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     # Create user
     user = repo.create(username="testuser", email="test@example.com")
@@ -120,9 +119,9 @@ def test_delete_user(db_session: Session) -> None:
     assert repo.get_by_id(user_id) is None
 
 
-def test_delete_nonexistent_user(db_session: Session) -> None:
+def test_delete_nonexistent_user(user_repository: UserRepository) -> None:
     """Test deleting a user that doesn't exist."""
-    repo = UserRepository(db_session)
+    repo = user_repository
 
     result = repo.delete(99999)
 
