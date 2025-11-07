@@ -5,6 +5,8 @@ __pycache__/
 *.so
 .Python
 
+uploads
+
 # Virtual environments
 .venv/
 venv/
@@ -42,6 +44,7 @@ Thumbs.db
 
 # Environment variables
 .env
+.env.test
 .env.local
 .env.*.local
 

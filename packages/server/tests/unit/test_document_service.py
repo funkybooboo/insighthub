@@ -4,10 +4,10 @@ from io import BytesIO
 
 import pytest
 
-from src.db.interfaces import DocumentRepository, UserRepository
-from src.db.models import User
-from src.services.document_service import DocumentService
-from src.storage.in_memory import InMemoryBlobStorage
+from src.blob_storages import InMemoryBlobStorage
+from src.models import User
+from src.repositories import DocumentRepository, UserRepository
+from src.services.document_service import DefaultDocumentService
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def test_upload_document(
     sample_text_file: BytesIO,
 ) -> None:
     """Test uploading a document."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(
@@ -45,7 +45,7 @@ def test_upload_duplicate_document(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test uploading duplicate document (same hash) creates separate records."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Get the content from the fixture
     content = sample_text_file.read()
@@ -75,7 +75,7 @@ def test_download_document(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test downloading a document."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Upload document
     original_content = sample_text_file.read()
@@ -99,7 +99,7 @@ def test_extract_text_from_txt(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_text_file: BytesIO
 ) -> None:
     """Test extracting text from a TXT file."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     text = service.extract_text(sample_text_file, "test.txt")
 
@@ -111,7 +111,7 @@ def test_extract_text_from_pdf(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_pdf_file: BytesIO
 ) -> None:
     """Test extracting text from a PDF file."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     text = service.extract_text(sample_pdf_file, "test.pdf")
 
@@ -123,7 +123,7 @@ def test_calculate_file_hash(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, sample_text_file: BytesIO
 ) -> None:
     """Test calculating file hash."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     hash1 = service.calculate_file_hash(sample_text_file)
 
@@ -139,7 +139,7 @@ def test_list_user_documents(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User
 ) -> None:
     """Test listing user documents."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Upload multiple documents
     file1 = BytesIO(b"content 1")
@@ -168,7 +168,7 @@ def test_delete_document(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test deleting a document."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(
@@ -195,7 +195,7 @@ def test_update_document(
     document_repository: DocumentRepository, blob_storage: InMemoryBlobStorage, test_user: User, sample_text_file: BytesIO
 ) -> None:
     """Test updating document metadata."""
-    service = DocumentService(document_repository, blob_storage)
+    service = DefaultDocumentService(document_repository, blob_storage)
 
     # Upload document
     doc = service.upload_document(

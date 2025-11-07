@@ -17,6 +17,18 @@ poetry install
 
 # Activate virtual environment
 poetry shell
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your local configuration
+
+# Optional: For completely local setup (no cloud services)
+cp .env.local.example .env.local
+# Edit .env.local - this overrides .env
+
+# For running tests, create .env.test
+cp .env.example .env.test
+# Edit .env.test with test-specific configuration
 ```
 
 ## Development Commands
@@ -81,6 +93,35 @@ packages/server/
 ```
 
 ## Configuration
+
+### Environment Variables
+
+The application uses environment variables for configuration:
+
+- **`.env.example`** - Template file showing all available configuration options (committed to git)
+- **`.env.local.example`** - Template for local-only setup with no cloud services (committed to git)
+- **`.env`** - Your local development configuration (gitignored, create from `.env.example`)
+- **`.env.local`** - Local-only overrides (gitignored, optional, create from `.env.local.example`)
+- **`.env.test`** - Test environment configuration (gitignored, create from `.env.example`)
+
+**Setup**:
+1. Copy `.env.example` to `.env`
+2. Update values in `.env` for your local environment
+3. (Optional) For local-only setup: Copy `.env.local.example` to `.env.local`
+4. For tests, copy `.env.example` to `.env.test` and customize test settings
+
+**Config Priority**: `.env.local` > `.env` > environment variables
+
+**Key Configuration Sections**:
+- **Service Types**: Choose implementations for services (default, etc.)
+- **Repository Types**: Choose implementations for repositories (sql, etc.)
+- **Blob Storage**: Choose storage backend (s3, file_system, in_memory)
+- **Database**: PostgreSQL connection string
+- **RAG Settings**: Chunking strategy, embedding model, vector store
+
+**Production**: Use environment variables directly (Docker, Kubernetes, etc.) instead of `.env` files.
+
+### Tool Configuration
 
 All tool configurations are in `pyproject.toml`:
 

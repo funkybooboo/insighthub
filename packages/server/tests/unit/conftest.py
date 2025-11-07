@@ -8,19 +8,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.db.base import Base
-from src.db.factory import (
-    create_chat_message_repository,
-    create_chat_session_repository,
-    create_document_repository,
-    create_user_repository,
-)
-from src.db.interfaces import (
+from src.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
     DocumentRepository,
     UserRepository,
 )
-from src.storage.in_memory import InMemoryBlobStorage
+from src.blob_storages import BlobStorage
+from tests.test_context import UnitTestContext, create_unit_test_context
 
 
 @pytest.fixture(scope="function")
@@ -53,33 +48,39 @@ def db_session(unit_db_engine: object) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function")
-def blob_storage() -> InMemoryBlobStorage:
-    """Create an in-memory blob storage instance for unit tests."""
-    return InMemoryBlobStorage()
+def test_context(db_session: Session) -> UnitTestContext:
+    """Create a test context for unit tests with in-memory implementations."""
+    return create_unit_test_context(db=db_session)
 
 
 @pytest.fixture(scope="function")
-def user_repository(db_session: Session) -> UserRepository:
-    """Create a user repository for unit tests."""
-    return create_user_repository(db_session)
+def blob_storage(test_context: UnitTestContext) -> BlobStorage:
+    """Get blob storage from test context."""
+    return test_context.blob_storage
 
 
 @pytest.fixture(scope="function")
-def document_repository(db_session: Session) -> DocumentRepository:
-    """Create a document repository for unit tests."""
-    return create_document_repository(db_session)
+def user_repository(test_context: UnitTestContext) -> UserRepository:
+    """Get user repository from test context."""
+    return test_context.user_repository
 
 
 @pytest.fixture(scope="function")
-def chat_session_repository(db_session: Session) -> ChatSessionRepository:
-    """Create a chat session repository for unit tests."""
-    return create_chat_session_repository(db_session)
+def document_repository(test_context: UnitTestContext) -> DocumentRepository:
+    """Get document repository from test context."""
+    return test_context.document_repository
 
 
 @pytest.fixture(scope="function")
-def chat_message_repository(db_session: Session) -> ChatMessageRepository:
-    """Create a chat message repository for unit tests."""
-    return create_chat_message_repository(db_session)
+def chat_session_repository(test_context: UnitTestContext) -> ChatSessionRepository:
+    """Get chat session repository from test context."""
+    return test_context.chat_session_repository
+
+
+@pytest.fixture(scope="function")
+def chat_message_repository(test_context: UnitTestContext) -> ChatMessageRepository:
+    """Get chat message repository from test context."""
+    return test_context.chat_message_repository
 
 
 @pytest.fixture

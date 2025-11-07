@@ -1,7 +1,0 @@
-This is a test document for the InsightHub RAG system.
-
-InsightHub is a dual RAG system that implements both Vector RAG and Graph RAG approaches for academic research paper analysis. The system enables users to query academic papers and related Wikipedia content through an AI chatbot with conversational memory.
-
-The Vector RAG implementation uses embedding models to convert text into vectors and stores them in a vector database like Qdrant. When a user queries the system, the query is also converted to a vector and similar documents are retrieved using cosine similarity or other distance metrics.
-
-Graph RAG uses a different approach by extracting entities and relationships from documents using LLMs, storing them in Neo4j, applying Leiden clustering for community detection, and enabling graph traversal-based retrieval.
