@@ -4,10 +4,10 @@ from io import BytesIO
 
 import pytest
 
-from src.storage.blob_storage import S3BlobStorage
+from src.blob_storages import MinioBlobStorage
 
 
-def test_upload_and_download_file(blob_storage: S3BlobStorage) -> None:
+def test_upload_and_download_file(blob_storage: MinioBlobStorage) -> None:
     """Test uploading and downloading a file from blob storage."""
     # Create test file
     test_content = b"This is test content for blob storage"
@@ -25,7 +25,7 @@ def test_upload_and_download_file(blob_storage: S3BlobStorage) -> None:
     assert downloaded_content == test_content
 
 
-def test_file_exists(blob_storage: S3BlobStorage) -> None:
+def test_file_exists(blob_storage: MinioBlobStorage) -> None:
     """Test checking if a file exists in blob storage."""
     # Upload file
     file_obj = BytesIO(b"test content")
@@ -37,7 +37,7 @@ def test_file_exists(blob_storage: S3BlobStorage) -> None:
     assert blob_storage.file_exists("nonexistent/file.txt") is False
 
 
-def test_delete_file(blob_storage: S3BlobStorage) -> None:
+def test_delete_file(blob_storage: MinioBlobStorage) -> None:
     """Test deleting a file from blob storage."""
     # Upload file
     file_obj = BytesIO(b"test content")
@@ -54,7 +54,7 @@ def test_delete_file(blob_storage: S3BlobStorage) -> None:
     assert blob_storage.file_exists(object_name) is False
 
 
-def test_calculate_hash(blob_storage: S3BlobStorage) -> None:
+def test_calculate_hash(blob_storage: MinioBlobStorage) -> None:
     """Test calculating SHA-256 hash of a file."""
     content = b"test content for hashing"
     file_obj = BytesIO(content)
@@ -69,7 +69,7 @@ def test_calculate_hash(blob_storage: S3BlobStorage) -> None:
     assert len(hash1) == 64  # SHA-256 produces 64 character hex string
 
 
-def test_upload_large_file(blob_storage: S3BlobStorage) -> None:
+def test_upload_large_file(blob_storage: MinioBlobStorage) -> None:
     """Test uploading a larger file (1MB)."""
     # Create 1MB file
     large_content = b"x" * (1024 * 1024)
@@ -87,7 +87,7 @@ def test_upload_large_file(blob_storage: S3BlobStorage) -> None:
     assert downloaded == large_content
 
 
-def test_upload_with_nested_path(blob_storage: S3BlobStorage) -> None:
+def test_upload_with_nested_path(blob_storage: MinioBlobStorage) -> None:
     """Test uploading files with nested directory structure."""
     file_obj = BytesIO(b"nested content")
     object_name = "level1/level2/level3/file.txt"
@@ -98,7 +98,7 @@ def test_upload_with_nested_path(blob_storage: S3BlobStorage) -> None:
     assert blob_storage.file_exists(object_name) is True
 
 
-def test_duplicate_upload_overwrites(blob_storage: S3BlobStorage) -> None:
+def test_duplicate_upload_overwrites(blob_storage: MinioBlobStorage) -> None:
     """Test that uploading to same key overwrites the file."""
     object_name = "test/overwrite.txt"
 

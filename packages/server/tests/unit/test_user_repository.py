@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.db.interfaces import UserRepository
-from src.db.models import User
+from src.repositories import UserRepository
+from src.models import User
 
 pytestmark = [pytest.mark.unit, pytest.mark.database]
 

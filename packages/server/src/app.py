@@ -12,9 +12,7 @@ from flask import Flask, g
 from flask_cors import CORS
 
 from src.db.session import get_db, init_db
-from src.routes.chat import chat_bp
-from src.routes.documents import documents_bp
-from src.routes.health import health_bp
+from src.routes import chat_bp, documents_bp, health_bp
 
 # Load environment variables
 load_dotenv()

@@ -3,15 +3,14 @@
 import pytest
 
 
-from src.db.models import Document, User
-from src.db.interfaces import DocumentRepository, UserRepository
+from src.models import Document, User
+from src.repositories import DocumentRepository, UserRepository
 
 
 @pytest.fixture
-def test_user(document_repository: DocumentRepository) -> User:
+def test_user(user_repository: UserRepository) -> User:
     """Create a test user."""
-    user_repo = UserRepository(db_session)
-    return user_repo.create(username="testuser", email="test@example.com")
+    return user_repository.create(username="testuser", email="test@example.com")
 
 
 def test_create_document(document_repository: DocumentRepository, test_user: User) -> None:
