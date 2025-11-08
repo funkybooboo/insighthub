@@ -175,7 +175,9 @@ def run_server(host: str | None = None, port: int | None = None, debug: bool | N
         debug if debug is not None else os.getenv("FLASK_DEBUG", "True").lower() == "true"
     )
 
-    socketio.run(app, host=server_host, port=server_port, debug=server_debug, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app, host=server_host, port=server_port, debug=server_debug, allow_unsafe_werkzeug=True
+    )
 
 
 if __name__ == "__main__":

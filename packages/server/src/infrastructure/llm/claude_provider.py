@@ -198,8 +198,7 @@ class ClaudeLlmProvider(LlmProvider):
             with self.client.messages.stream(
                 model=self.model_name, max_tokens=1024, messages=messages
             ) as stream:
-                for text in stream.text_stream:
-                    yield text
+                yield from stream.text_stream
 
         except Exception as e:
             yield f"Error connecting to Claude: {str(e)}"
