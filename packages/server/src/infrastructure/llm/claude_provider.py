@@ -29,7 +29,9 @@ class ClaudeLlmProvider(LlmProvider):
         """
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self.model_name = model_name
-        self.client = Anthropic(api_key=self.api_key) if ANTHROPIC_AVAILABLE and self.api_key else None
+        self.client = (
+            Anthropic(api_key=self.api_key) if ANTHROPIC_AVAILABLE and self.api_key else None
+        )
 
     def generate_response(self, prompt: str) -> str:
         """
@@ -56,7 +58,10 @@ class ClaudeLlmProvider(LlmProvider):
 
             # Extract text content from response
             if response.content and len(response.content) > 0:
-                return response.content[0].text.strip()
+                content_block = response.content[0]
+                if hasattr(content_block, "text"):
+                    text = str(content_block.text).strip()
+                    return text
             return ""
 
         except Exception as e:
@@ -100,7 +105,10 @@ class ClaudeLlmProvider(LlmProvider):
 
             # Extract text content from response
             if response.content and len(response.content) > 0:
-                return response.content[0].text.strip()
+                content_block = response.content[0]
+                if hasattr(content_block, "text"):
+                    text = str(content_block.text).strip()
+                    return text
             return ""
 
         except Exception as e:

@@ -107,6 +107,8 @@ module = [
     "testcontainers.*",
     "pypdf.*",
     "minio.*",
+    "anthropic.*",
+    "transformers.*",
 ]
 ignore_missing_imports = true
 

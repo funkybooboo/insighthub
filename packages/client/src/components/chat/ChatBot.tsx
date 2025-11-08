@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import type { Message } from './ChatMessages';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
-import FileUpload from '@/components/upload/FileUpload';
+import DocumentManager from '@/components/upload/DocumentManager';
 import apiService from '@/services/api';
 
 import popSound from '@/assets/sounds/pop.mp3';
@@ -48,7 +48,7 @@ const ChatBot = () => {
 
     return (
         <div className="flex flex-col h-full">
-            <FileUpload />
+            <DocumentManager />
             <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
             <ChatInput onSubmit={onSubmit} />
         </div>
