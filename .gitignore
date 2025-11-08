@@ -41,6 +41,7 @@ ENV/
 
 # Environment
 .env
+.secrets
 
 # Docker
 *.log

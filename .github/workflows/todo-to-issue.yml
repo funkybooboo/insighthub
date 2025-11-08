@@ -1,26 +1,31 @@
 name: TODO to Issue
 
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        branches:
-            - main
+  push:
+    branches: main
+  pull_request:
+    branches: main
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
 
 jobs:
-    todo:
-        runs-on: ubuntu-latest
-        permissions:
-            issues: write
-            contents: read
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+  todo-scan:
+    name: Scan for TODOs and create issues
+    runs-on: ubuntu-latest
 
-            - name: TODO to Issue
-              uses: alstr/todo-to-issue-action@v5
-              with:
-                  AUTO_ASSIGN: true
-                  CLOSE_ISSUES: true
-                  AUTO_P: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: TODO to Issue
+        uses: alstr/todo-to-issue-action@v4
+        with:
+          # Auto-close issues when to-do is removed
+          AUTO_ASSIGN: true
+          CLOSE_ISSUES: true
+          # Only create issues on main branch, not PRs
+          AUTO_P: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          # Label for created issues
+          LABEL: 'todo'
