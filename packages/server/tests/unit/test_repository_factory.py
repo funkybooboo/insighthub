@@ -4,15 +4,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm import Session
-
-from src.repositories import (
+from src.domains.chat.repositories import SqlChatMessageRepository, SqlChatSessionRepository
+from src.domains.documents.repositories import SqlDocumentRepository
+from src.domains.users.repositories import SqlUserRepository
+from src.infrastructure.factories import (
     ChatMessageRepositoryType,
     ChatSessionRepositoryType,
     DocumentRepositoryType,
-    SqlChatMessageRepository,
-    SqlChatSessionRepository,
-    SqlDocumentRepository,
-    SqlUserRepository,
     UserRepositoryType,
     create_chat_message_repository,
     create_chat_session_repository,
@@ -84,9 +82,7 @@ class TestChatSessionRepositoryFactory:
 
     def test_create_sql_repository_explicitly(self, mock_db_session: Session) -> None:
         """Test creating SQL chat session repository with explicit type."""
-        repo = create_chat_session_repository(
-            mock_db_session, ChatSessionRepositoryType.SQL
-        )
+        repo = create_chat_session_repository(mock_db_session, ChatSessionRepositoryType.SQL)
 
         assert isinstance(repo, SqlChatSessionRepository)
         assert repo.db == mock_db_session
@@ -108,9 +104,7 @@ class TestChatMessageRepositoryFactory:
 
     def test_create_sql_repository_explicitly(self, mock_db_session: Session) -> None:
         """Test creating SQL chat message repository with explicit type."""
-        repo = create_chat_message_repository(
-            mock_db_session, ChatMessageRepositoryType.SQL
-        )
+        repo = create_chat_message_repository(mock_db_session, ChatMessageRepositoryType.SQL)
 
         assert isinstance(repo, SqlChatMessageRepository)
         assert repo.db == mock_db_session

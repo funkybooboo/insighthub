@@ -1,26 +1,19 @@
 """Test context for dependency injection in tests."""
 
 from sqlalchemy.orm import Session
-
-from src.blob_storages import BlobStorage, InMemoryBlobStorage
-from src.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    DocumentRepository,
-    UserRepository,
+from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
+from src.domains.chat.service import ChatService
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.documents.service import DocumentService
+from src.domains.users.repositories import UserRepository
+from src.domains.users.service import UserService
+from src.infrastructure.factories import (
     create_chat_message_repository,
     create_chat_session_repository,
     create_document_repository,
     create_user_repository,
 )
-from src.services import (
-    ChatService,
-    DocumentService,
-    UserService,
-    create_chat_service,
-    create_document_service,
-    create_user_service,
-)
+from src.infrastructure.storage import BlobStorage, InMemoryBlobStorage
 
 
 class UnitTestContext:
@@ -49,9 +42,15 @@ class UnitTestContext:
         self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(db)
 
         # Initialize services with dependency injection
-        self.user_service: UserService = create_user_service(db)
-        self.document_service: DocumentService = create_document_service(db, self.blob_storage)
-        self.chat_service: ChatService = create_chat_service(db)
+        self.user_service = UserService(repository=self.user_repository)
+        self.document_service = DocumentService(
+            repository=self.document_repository,
+            blob_storage=self.blob_storage,
+        )
+        self.chat_service = ChatService(
+            session_repository=self.chat_session_repository,
+            message_repository=self.chat_message_repository,
+        )
 
 
 class IntegrationTestContext:
@@ -80,9 +79,15 @@ class IntegrationTestContext:
         self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(db)
 
         # Initialize services with dependency injection
-        self.user_service: UserService = create_user_service(db)
-        self.document_service: DocumentService = create_document_service(db, self.blob_storage)
-        self.chat_service: ChatService = create_chat_service(db)
+        self.user_service = UserService(repository=self.user_repository)
+        self.document_service = DocumentService(
+            repository=self.document_repository,
+            blob_storage=self.blob_storage,
+        )
+        self.chat_service = ChatService(
+            session_repository=self.chat_session_repository,
+            message_repository=self.chat_message_repository,
+        )
 
 
 def create_unit_test_context(db: Session) -> UnitTestContext:

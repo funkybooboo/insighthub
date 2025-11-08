@@ -7,25 +7,35 @@ This document describes the PostgreSQL database integration for InsightHub.
 The codebase follows a clean layered architecture:
 
 ```
-rag/                    # RAG library (vector/graph implementations)
-db/
-  +-- base.py           # Base classes and mixins
-  +-- session.py        # Database connection and session management
-  +-- repository.py     # Data access layer (repositories)
-  +-- models/           # SQLAlchemy models
-      +-- user.py
-      +-- document.py
-      +-- chat_session.py
-      +-- chat_message.py
-services/               # Business logic layer
-  +-- user_service.py
-  +-- document_service.py
-  +-- chat_service.py
-routes/                 # API endpoints
-  +-- health.py
-  +-- documents.py
-  +-- chat.py
-app.py                  # Flask application factory
+domains/                # Feature-based domains
+  +-- chat/
+      +-- models.py       # ChatSession, ChatMessage models
+      +-- repositories.py # Data access layer
+      +-- service.py      # Business logic
+      +-- routes.py       # API endpoints
+      +-- commands.py     # CLI commands
+  +-- documents/
+      +-- models.py       # Document model
+      +-- repositories.py # Data access layer
+      +-- service.py      # Business logic
+      +-- routes.py       # API endpoints
+      +-- commands.py     # CLI commands
+  +-- users/
+      +-- models.py       # User model
+      +-- repositories.py # Data access layer
+      +-- service.py      # Business logic
+  +-- health/
+      +-- routes.py       # Health check endpoints
+infrastructure/         # Cross-cutting concerns
+  +-- database/
+      +-- base.py         # Base classes and mixins
+      +-- session.py      # Database connection
+  +-- storage/
+      +-- blob_storage.py # Blob storage implementations
+  +-- factories/
+      +-- repository_factory.py # Repository creation
+api.py                  # Flask application factory
+cli.py                  # CLI commands entry point
 ```
 
 ## Database Schema
@@ -147,25 +157,22 @@ poetry run pytest tests/integration/
 The service layer encapsulates business logic and can be used by both API routes and CLI:
 
 ```python
-from sqlalchemy.orm import Session
-from services.document_service import DocumentService
+from src.infrastructure.database import get_db
+from src.context import AppContext
 
 # In API route or CLI
-db = get_db_session()
-doc_service = DocumentService(db)
+db = next(get_db())
+context = AppContext(db)
 
-# Create document
-doc = doc_service.create_document(
+# Use document service through context
+result = context.document_service.process_document_upload(
     user_id=1,
     filename="paper.pdf",
-    file_path="/uploads/paper.pdf",
-    file_size=1024,
-    mime_type="application/pdf",
-    content_hash="abc123..."
+    file_obj=file_object
 )
 
 # List documents
-docs = doc_service.list_user_documents(user_id=1)
+docs = context.document_service.list_user_documents(user_id=1)
 ```
 
 ## RAG Integration
@@ -174,7 +181,12 @@ The RAG library remains independent and is used by the service layer:
 
 ```python
 from rag.factory import create_rag
-from services.document_service import DocumentService
+from src.context import AppContext
+from src.infrastructure.database import get_db
+
+# Create context
+db = next(get_db())
+context = AppContext(db)
 
 # Create RAG instance
 rag = create_rag(
@@ -185,9 +197,9 @@ rag = create_rag(
 )
 
 # Process document
-text = doc_service.extract_text(file_path, filename)
+text = context.document_service.extract_text(file_obj, filename)
 chunk_count = rag.add_documents([{"text": text, "metadata": {"doc_id": doc.id}}])
 
 # Update document with RAG info
-doc_service.update_document(doc.id, chunk_count=chunk_count, rag_collection="insighthub")
+context.document_service.update_document(doc.id, chunk_count=chunk_count, rag_collection="insighthub")
 ```

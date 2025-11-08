@@ -101,9 +101,7 @@ class ApiService {
      * Delete a document by ID
      */
     async deleteDocument(docId: number): Promise<{ message: string }> {
-        const { data } = await this.client.delete<{ message: string }>(
-            `/api/documents/${docId}`
-        );
+        const { data } = await this.client.delete<{ message: string }>(`/api/documents/${docId}`);
         return data;
     }
 }

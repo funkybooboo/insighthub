@@ -53,5 +53,9 @@ RUN poetry install --only-root
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["poetry", "run", "python", "src/hello.py"]
+# Set environment variables for Flask
+ENV FLASK_HOST=0.0.0.0
+ENV FLASK_PORT=8000
+
+# Run the Flask API server
+CMD ["poetry", "run", "python", "src/api.py"]

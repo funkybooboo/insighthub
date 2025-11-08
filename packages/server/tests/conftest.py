@@ -1,26 +1,22 @@
 """Pytest configuration and shared fixtures."""
 
-import os
+from collections.abc import Generator
 from io import BytesIO
-from typing import Any, Generator
+from typing import Any
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from src import config
+from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.users.repositories import UserRepository
+from src.infrastructure.database.base import Base
+from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 from testcontainers.minio import MinioContainer
 from testcontainers.postgres import PostgresContainer
 
-from src import config
-from src.blob_storages import BlobStorage, MinioBlobStorage
-from src.db.base import Base
-from src.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    DocumentRepository,
-    UserRepository,
-)
 from tests.test_context import IntegrationTestContext, create_integration_test_context
-
 
 # ============================================================================
 # Pytest Skip Helpers
@@ -146,7 +142,8 @@ def db_session(db_engine: Any) -> Generator[Session, None, None]:
 @pytest.fixture(scope="function")
 def test_database_url(postgres_container: PostgresContainer) -> str:
     """Get the database URL for testing."""
-    return postgres_container.get_connection_url()
+    url: str = postgres_container.get_connection_url()
+    return url
 
 
 @pytest.fixture(scope="function")

@@ -2,15 +2,16 @@
 
 from sqlalchemy.orm import Session
 
-from src.blob_storages import BlobStorage, create_blob_storage
-from src.services import (
-    ChatService,
-    DocumentService,
-    UserService,
-    create_chat_service,
-    create_document_service,
-    create_user_service,
+from src.domains.chat.service import ChatService
+from src.domains.documents.service import DocumentService
+from src.domains.users.service import UserService
+from src.infrastructure.factories import (
+    create_chat_message_repository,
+    create_chat_session_repository,
+    create_document_repository,
+    create_user_repository,
 )
+from src.infrastructure.storage import BlobStorage, create_blob_storage
 
 
 class AppContext:
@@ -29,10 +30,20 @@ class AppContext:
         # Initialize blob storage
         self.blob_storage = blob_storage if blob_storage is not None else create_blob_storage()
 
+        # Create repositories
+        user_repo = create_user_repository(db)
+        document_repo = create_document_repository(db)
+        session_repo = create_chat_session_repository(db)
+        message_repo = create_chat_message_repository(db)
+
         # Initialize services with dependency injection
-        self.user_service: UserService = create_user_service(db)
-        self.document_service: DocumentService = create_document_service(db, self.blob_storage)
-        self.chat_service: ChatService = create_chat_service(db)
+        self.user_service = UserService(repository=user_repo)
+        self.document_service = DocumentService(
+            repository=document_repo, blob_storage=self.blob_storage
+        )
+        self.chat_service = ChatService(
+            session_repository=session_repo, message_repository=message_repo
+        )
 
 
 def create_app_context(db: Session) -> AppContext:

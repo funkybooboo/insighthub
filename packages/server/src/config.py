@@ -33,11 +33,6 @@ DATABASE_URL: Final[str] = os.getenv(
     "DATABASE_URL", "postgresql://insighthub:insighthub_dev@localhost:5432/insighthub"
 )
 
-# Service Implementation Configuration
-USER_SERVICE_TYPE: Final[str] = os.getenv("USER_SERVICE_TYPE", "default")
-DOCUMENT_SERVICE_TYPE: Final[str] = os.getenv("DOCUMENT_SERVICE_TYPE", "default")
-CHAT_SERVICE_TYPE: Final[str] = os.getenv("CHAT_SERVICE_TYPE", "default")
-
 # Repository Implementation Configuration
 USER_REPOSITORY_TYPE: Final[str] = os.getenv("USER_REPOSITORY_TYPE", "sql")
 DOCUMENT_REPOSITORY_TYPE: Final[str] = os.getenv("DOCUMENT_REPOSITORY_TYPE", "sql")

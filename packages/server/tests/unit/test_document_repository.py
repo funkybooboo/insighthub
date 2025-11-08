@@ -1,10 +1,10 @@
 """Unit tests for DocumentRepository."""
 
 import pytest
-
-
-from src.models import Document, User
-from src.repositories import DocumentRepository, UserRepository
+from src.domains.documents.models import Document
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.users.models import User
+from src.domains.users.repositories import UserRepository
 
 
 @pytest.fixture
@@ -88,7 +88,9 @@ def test_get_documents_by_user(document_repository: DocumentRepository, test_use
     assert all(doc.user_id == test_user.id for doc in docs)
 
 
-def test_get_document_by_content_hash(document_repository: DocumentRepository, test_user: User) -> None:
+def test_get_document_by_content_hash(
+    document_repository: DocumentRepository, test_user: User
+) -> None:
     """Test retrieving a document by content hash."""
     repo = document_repository
 
