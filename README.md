@@ -141,6 +141,10 @@ bun run lint     # ESLint
 bun test         # Run tests
 ```
 
+**GitHub Actions** (CI/CD):
+- All PRs must pass formatting, linting, type-checking, and tests
+- Run workflows locally with `act` (see [docs/github-actions.md](docs/github-actions.md))
+
 ## Configuration
 
 Copy `packages/server/.env.example` to `.env` and configure:
