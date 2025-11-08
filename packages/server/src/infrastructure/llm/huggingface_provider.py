@@ -1,6 +1,7 @@
 """Hugging Face LLM provider implementation."""
 
 import os
+from collections.abc import Generator
 
 import requests
 
@@ -137,3 +138,21 @@ class HuggingFaceLlmProvider(LlmProvider):
     def get_model_name(self) -> str:
         """Get the name of the model being used."""
         return self.model_name
+
+    def chat_stream(
+        self, message: str, conversation_history: list[dict[str, str]] | None = None
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming chat response with optional conversation history.
+
+        Args:
+            message: Current user message
+            conversation_history: Optional list of previous messages
+
+        Yields:
+            Chunks of generated response text
+        """
+        # HuggingFace doesn't support streaming in the same way
+        # Fall back to returning the full response as a single chunk
+        full_response = self.chat(message, conversation_history)
+        yield full_response

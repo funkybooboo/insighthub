@@ -1,5 +1,8 @@
 """Ollama LLM provider implementation."""
 
+import json
+from collections.abc import Generator
+
 import requests
 
 from src.config import OLLAMA_BASE_URL, OLLAMA_LLM_MODEL
@@ -114,3 +117,54 @@ class OllamaLlmProvider(LlmProvider):
     def get_model_name(self) -> str:
         """Get the name of the model being used."""
         return self.model_name
+
+    def chat_stream(
+        self, message: str, conversation_history: list[dict[str, str]] | None = None
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming chat response with optional conversation history.
+
+        Args:
+            message: Current user message
+            conversation_history: Optional list of previous messages
+
+        Yields:
+            Chunks of generated response text
+        """
+        # Build prompt with conversation history
+        if conversation_history:
+            prompt_parts = []
+            for msg in conversation_history[-10:]:  # Keep last 10 messages for context
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if role == "user":
+                    prompt_parts.append(f"User: {content}")
+                else:
+                    prompt_parts.append(f"Assistant: {content}")
+            prompt_parts.append(f"User: {message}")
+            prompt_parts.append("Assistant:")
+            prompt = "\n".join(prompt_parts)
+        else:
+            prompt = message
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "stream": True,
+                },
+                timeout=60,
+                stream=True,
+            )
+            response.raise_for_status()
+
+            for line in response.iter_lines():
+                if line:
+                    chunk = json.loads(line)
+                    if "response" in chunk:
+                        yield chunk["response"]
+
+        except requests.exceptions.RequestException as e:
+            yield f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
