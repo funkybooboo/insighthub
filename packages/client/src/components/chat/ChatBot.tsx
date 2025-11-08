@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
-import type { Message } from './ChatMessages';
+import type { RootState } from '@/store';
+import {
+    createSession,
+    addMessageToSession,
+    updateMessageInSession,
+    setSessionBackendId,
+    setActiveSession,
+} from '@/store/slices/chatSlice';
+import type { Message } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
 import DocumentManager from '@/components/upload/DocumentManager';
 import socketService from '@/services/socket';
+import apiService from '@/services/api';
 
 import popSound from '@/assets/sounds/pop.mp3';
 import notificationSound from '@/assets/sounds/notification.mp3';
@@ -16,11 +26,39 @@ const notificationAudio = new Audio(notificationSound);
 notificationAudio.volume = 0.2;
 
 const ChatBot = () => {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const dispatch = useDispatch();
+    const { sessions, activeSessionId } = useSelector((state: RootState) => state.chat);
     const [isBotTyping, setIsBotTyping] = useState(false);
     const [error, setError] = useState('');
-    const sessionId = useRef<number | undefined>(undefined);
+    const currentBotMessageId = useRef<string | null>(null);
     const currentBotMessage = useRef<string>('');
+
+    // Get active session
+    const activeSession = sessions.find((s) => s.id === activeSessionId);
+
+    // Create initial session if none exists
+    useEffect(() => {
+        if (!activeSessionId && sessions.length === 0) {
+            const newSessionId = `session-${Date.now()}`;
+            dispatch(createSession({ id: newSessionId }));
+        } else if (!activeSessionId && sessions.length > 0) {
+            // Set the first session as active if there's no active session
+            dispatch(setActiveSession(sessions[0].id));
+        }
+    }, [activeSessionId, sessions, dispatch]);
+
+    // Load documents on mount
+    useEffect(() => {
+        const loadDocuments = async () => {
+            try {
+                await apiService.listDocuments();
+            } catch (error) {
+                console.error('Error loading documents on mount:', error);
+            }
+        };
+
+        loadDocuments();
+    }, []);
 
     useEffect(() => {
         // Connect to socket on mount
@@ -32,34 +70,55 @@ const ChatBot = () => {
         });
 
         socketService.onChatChunk((data) => {
+            if (!activeSessionId) return;
+
             // Append chunk to current bot message
             currentBotMessage.current += data.chunk;
 
             // Stop typing indicator on first chunk
             setIsBotTyping(false);
 
-            // Update the last message (bot message) with accumulated content
-            setMessages((prev) => {
-                const newMessages = [...prev];
-                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'bot') {
-                    newMessages[newMessages.length - 1] = {
-                        ...newMessages[newMessages.length - 1],
+            // Create or update bot message in session
+            if (currentBotMessageId.current) {
+                dispatch(
+                    updateMessageInSession({
+                        sessionId: activeSessionId,
+                        messageId: currentBotMessageId.current,
                         content: currentBotMessage.current,
-                    };
-                } else {
-                    // First chunk - add new bot message
-                    newMessages.push({ content: currentBotMessage.current, role: 'bot' });
-                }
-                return newMessages;
-            });
+                    })
+                );
+            } else {
+                // First chunk - add new bot message
+                currentBotMessageId.current = `msg-${Date.now()}`;
+                const botMessage: Message = {
+                    id: currentBotMessageId.current,
+                    content: currentBotMessage.current,
+                    role: 'bot',
+                    timestamp: Date.now(),
+                };
+                dispatch(
+                    addMessageToSession({
+                        sessionId: activeSessionId,
+                        message: botMessage,
+                    })
+                );
+            }
         });
 
         socketService.onChatComplete((data) => {
-            // Store session_id for subsequent messages
-            sessionId.current = data.session_id;
+            if (!activeSessionId) return;
+
+            // Store backend session_id in Redux
+            dispatch(
+                setSessionBackendId({
+                    sessionId: activeSessionId,
+                    backendSessionId: data.session_id,
+                })
+            );
 
             // Reset current message buffer
             currentBotMessage.current = '';
+            currentBotMessageId.current = null;
 
             // Stop typing indicator
             setIsBotTyping(false);
@@ -73,6 +132,7 @@ const ChatBot = () => {
             setError(data.error);
             setIsBotTyping(false);
             currentBotMessage.current = '';
+            currentBotMessageId.current = null;
         });
 
         socketService.onDisconnected(() => {
@@ -84,17 +144,34 @@ const ChatBot = () => {
             socketService.removeAllListeners();
             socketService.disconnect();
         };
-    }, []);
+    }, [activeSessionId, dispatch]);
 
     const onSubmit = async ({ prompt }: ChatFormData) => {
+        if (!activeSessionId) {
+            console.error('No active session');
+            return;
+        }
+
         try {
             setError('');
 
-            // Add user message to UI
-            setMessages((prev) => [...prev, { content: prompt, role: 'user' }]);
+            // Add user message to session
+            const userMessage: Message = {
+                id: `msg-${Date.now()}`,
+                content: prompt,
+                role: 'user',
+                timestamp: Date.now(),
+            };
+            dispatch(
+                addMessageToSession({
+                    sessionId: activeSessionId,
+                    message: userMessage,
+                })
+            );
 
             // Reset current bot message buffer
             currentBotMessage.current = '';
+            currentBotMessageId.current = null;
 
             // Set typing indicator
             setIsBotTyping(true);
@@ -105,7 +182,7 @@ const ChatBot = () => {
             // Send message via socket
             socketService.sendMessage({
                 message: prompt,
-                session_id: sessionId.current,
+                session_id: activeSession?.sessionId,
             });
         } catch (error) {
             console.error('Error sending message:', error);
@@ -113,6 +190,12 @@ const ChatBot = () => {
             setIsBotTyping(false);
         }
     };
+
+    // Convert Message[] to the format expected by ChatMessages component
+    const messages = activeSession?.messages.map((msg) => ({
+        content: msg.content,
+        role: msg.role,
+    })) || [];
 
     return (
         <div className="flex flex-col h-full">
