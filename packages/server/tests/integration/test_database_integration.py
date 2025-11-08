@@ -1,21 +1,15 @@
 """Integration tests for database operations with PostgreSQL testcontainer."""
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from src.models import ChatMessage, ChatSession, Document, User
-from src.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    DocumentRepository,
-    UserRepository,
-)
+from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.users.repositories import UserRepository
 
 
 def test_user_document_relationship(
-    user_repository: UserRepository,
-    document_repository: DocumentRepository,
-    db_session: Session
+    user_repository: UserRepository, document_repository: DocumentRepository, db_session: Session
 ) -> None:
     """Test the relationship between users and documents."""
     # Create user
@@ -49,8 +43,7 @@ def test_user_document_relationship(
 
 
 def test_cascade_delete_user_documents(
-    user_repository: UserRepository,
-    document_repository: DocumentRepository
+    user_repository: UserRepository, document_repository: DocumentRepository
 ) -> None:
     """Test that deleting a user cascades to their documents."""
     # Create user and document
@@ -76,19 +69,15 @@ def test_chat_session_message_relationship(
     user_repository: UserRepository,
     chat_session_repository: ChatSessionRepository,
     chat_message_repository: ChatMessageRepository,
-    db_session: Session
+    db_session: Session,
 ) -> None:
     """Test the relationship between chat sessions and messages."""
     # Create user and session
     user = user_repository.create(username="testuser", email="test@example.com")
-    session = chat_session_repository.create(
-        user_id=user.id, title="Test Chat", rag_type="vector"
-    )
+    session = chat_session_repository.create(user_id=user.id, title="Test Chat", rag_type="vector")
 
     # Create messages
-    msg1 = chat_message_repository.create(
-        session_id=session.id, role="user", content="Hello"
-    )
+    msg1 = chat_message_repository.create(session_id=session.id, role="user", content="Hello")
     msg2 = chat_message_repository.create(
         session_id=session.id, role="assistant", content="Hi there!"
     )
@@ -105,15 +94,13 @@ def test_chat_session_message_relationship(
 def test_cascade_delete_session_messages(
     user_repository: UserRepository,
     chat_session_repository: ChatSessionRepository,
-    chat_message_repository: ChatMessageRepository
+    chat_message_repository: ChatMessageRepository,
 ) -> None:
     """Test that deleting a session cascades to its messages."""
     # Create user, session, and message
     user = user_repository.create(username="testuser", email="test@example.com")
     session = chat_session_repository.create(user_id=user.id)
-    msg = chat_message_repository.create(
-        session_id=session.id, role="user", content="Test"
-    )
+    msg = chat_message_repository.create(session_id=session.id, role="user", content="Test")
     msg_id = msg.id
 
     # Delete session
@@ -123,30 +110,26 @@ def test_cascade_delete_session_messages(
     assert chat_message_repository.get_by_id(msg_id) is None
 
 
-def test_unique_constraints(
-    user_repository: UserRepository,
-    db_session: Session
-) -> None:
+def test_unique_constraints(user_repository: UserRepository, db_session: Session) -> None:
     """Test that unique constraints are enforced."""
     # Create first user
     user_repository.create(username="testuser", email="test@example.com")
 
     # Try to create user with same username
-    with pytest.raises(Exception):  # SQLAlchemy will raise IntegrityError
+    with pytest.raises(IntegrityError):
         user_repository.create(username="testuser", email="other@example.com")
         db_session.commit()
 
     db_session.rollback()
 
     # Try to create user with same email
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError):
         user_repository.create(username="otheruser", email="test@example.com")
         db_session.commit()
 
 
 def test_document_content_hash_index(
-    user_repository: UserRepository,
-    document_repository: DocumentRepository
+    user_repository: UserRepository, document_repository: DocumentRepository
 ) -> None:
     """Test that content_hash is indexed for fast lookups."""
     # Create user
@@ -193,6 +176,7 @@ def test_timestamp_auto_update(user_repository: UserRepository) -> None:
 
     # Update user
     import time
+
     time.sleep(0.1)  # Small delay to ensure timestamp difference
     updated_user = user_repository.update(user.id, full_name="New Name")
 

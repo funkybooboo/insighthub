@@ -1,16 +1,16 @@
 """Integration tests for FileSystemBlobStorage with real file operations."""
 
 import tempfile
+from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 
 import pytest
-
-from src.blob_storages import FileSystemBlobStorage
+from src.infrastructure.storage import FileSystemBlobStorage
 
 
 @pytest.fixture
-def temp_storage_dir() -> Path:
+def temp_storage_dir() -> Generator[Path, None, None]:
     """Create a temporary directory for storage tests."""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)
@@ -25,9 +25,7 @@ def storage(temp_storage_dir: Path) -> FileSystemBlobStorage:
 class TestFileSystemBlobStorageIntegration:
     """Integration tests for FileSystemBlobStorage."""
 
-    def test_full_upload_download_delete_workflow(
-        self, storage: FileSystemBlobStorage
-    ) -> None:
+    def test_full_upload_download_delete_workflow(self, storage: FileSystemBlobStorage) -> None:
         """Test complete workflow: upload, download, verify, delete."""
         # Upload
         file_content = b"Integration test document content"
@@ -76,9 +74,7 @@ class TestFileSystemBlobStorageIntegration:
         assert len(downloaded_content) == len(large_content)
         assert downloaded_content == large_content
 
-    def test_concurrent_operations_on_different_files(
-        self, storage: FileSystemBlobStorage
-    ) -> None:
+    def test_concurrent_operations_on_different_files(self, storage: FileSystemBlobStorage) -> None:
         """Test multiple operations on different files work correctly."""
         files = {
             "file1.txt": b"Content 1",
@@ -92,7 +88,7 @@ class TestFileSystemBlobStorageIntegration:
             storage.upload_file(BytesIO(content), name)
 
         # Verify all exist
-        for name in files.keys():
+        for name in files:
             assert storage.file_exists(name)
 
         # Download and verify all
@@ -108,9 +104,7 @@ class TestFileSystemBlobStorageIntegration:
         for name in ["file2.txt", "dir/file3.txt", "dir/subdir/file4.txt"]:
             assert storage.file_exists(name)
 
-    def test_special_characters_in_filename(
-        self, storage: FileSystemBlobStorage
-    ) -> None:
+    def test_special_characters_in_filename(self, storage: FileSystemBlobStorage) -> None:
         """Test handling filenames with special characters."""
         special_names = [
             "file with spaces.txt",
@@ -127,9 +121,7 @@ class TestFileSystemBlobStorageIntegration:
             assert storage.download_file(name) == content
             storage.delete_file(name)
 
-    def test_hash_consistency_across_operations(
-        self, storage: FileSystemBlobStorage
-    ) -> None:
+    def test_hash_consistency_across_operations(self, storage: FileSystemBlobStorage) -> None:
         """Test that hash calculation is consistent across multiple operations."""
         file_content = b"Consistent hash test content"
         file_obj = BytesIO(file_content)
@@ -192,9 +184,7 @@ class TestFileSystemBlobStorageIntegration:
         assert downloaded == binary_content
         assert len(downloaded) == 256
 
-    def test_storage_isolation_between_instances(
-        self, temp_storage_dir: Path
-    ) -> None:
+    def test_storage_isolation_between_instances(self, temp_storage_dir: Path) -> None:
         """Test that different storage instances with same base path access same files."""
         storage1 = FileSystemBlobStorage(base_path=str(temp_storage_dir))
         storage2 = FileSystemBlobStorage(base_path=str(temp_storage_dir))

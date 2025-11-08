@@ -1,16 +1,16 @@
 """Unit tests for FileSystemBlobStorage."""
 
 import tempfile
+from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 
 import pytest
-
-from src.blob_storages import FileSystemBlobStorage
+from src.infrastructure.storage import FileSystemBlobStorage
 
 
 @pytest.fixture
-def temp_storage_dir() -> Path:
+def temp_storage_dir() -> Generator[Path, None, None]:
     """Create a temporary directory for storage tests."""
     with tempfile.TemporaryDirectory() as tmpdir:
         yield Path(tmpdir)

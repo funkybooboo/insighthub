@@ -1,9 +1,8 @@
 """Unit tests for UserRepository."""
 
 import pytest
-
-from src.repositories import UserRepository
-from src.models import User
+from src.domains.users.models import User
+from src.domains.users.repositories import UserRepository
 
 pytestmark = [pytest.mark.unit, pytest.mark.database]
 
@@ -12,11 +11,7 @@ def test_create_user(user_repository: UserRepository) -> None:
     """Test creating a new user."""
     repo = user_repository
 
-    user = repo.create(
-        username="testuser",
-        email="test@example.com",
-        full_name="Test User"
-    )
+    user = repo.create(username="testuser", email="test@example.com", full_name="Test User")
 
     assert user.id is not None
     assert user.username == "testuser"
@@ -31,10 +26,7 @@ def test_get_user_by_id(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    created_user = repo.create(
-        username="testuser",
-        email="test@example.com"
-    )
+    created_user = repo.create(username="testuser", email="test@example.com")
 
     # Retrieve user
     retrieved_user = repo.get_by_id(created_user.id)

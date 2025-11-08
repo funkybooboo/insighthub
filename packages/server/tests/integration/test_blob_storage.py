@@ -2,9 +2,7 @@
 
 from io import BytesIO
 
-import pytest
-
-from src.blob_storages import MinioBlobStorage
+from src.infrastructure.storage import MinioBlobStorage
 
 
 def test_upload_and_download_file(blob_storage: MinioBlobStorage) -> None:

@@ -1,25 +1,23 @@
 """Unit test fixtures using dummy implementations."""
 
+from collections.abc import Generator
 from io import BytesIO
-from typing import Generator
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.users.repositories import UserRepository
+from src.infrastructure.database.base import Base
+from src.infrastructure.storage import BlobStorage
 
-from src.db.base import Base
-from src.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    DocumentRepository,
-    UserRepository,
-)
-from src.blob_storages import BlobStorage
 from tests.test_context import UnitTestContext, create_unit_test_context
 
 
 @pytest.fixture(scope="function")
-def unit_db_engine() -> Generator[object, None, None]:
+def unit_db_engine() -> Generator[Engine, None, None]:
     """Create an in-memory SQLite database engine for unit tests."""
     # Use SQLite in-memory database
     engine = create_engine("sqlite:///:memory:", echo=False)
@@ -35,8 +33,9 @@ def unit_db_engine() -> Generator[object, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_session(unit_db_engine: object) -> Generator[Session, None, None]:
+def db_session(unit_db_engine: Engine) -> Generator[Session, None, None]:
     """Create a database session for unit tests."""
+
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=unit_db_engine)
     session = SessionLocal()
 
