@@ -1,6 +1,7 @@
 """Anthropic Claude LLM provider implementation."""
 
 import os
+from collections.abc import Generator
 
 from .llm import LlmProvider
 
@@ -157,3 +158,48 @@ class ClaudeLlmProvider(LlmProvider):
     def get_model_name(self) -> str:
         """Get the name of the model being used."""
         return self.model_name
+
+    def chat_stream(
+        self, message: str, conversation_history: list[dict[str, str]] | None = None
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming chat response with optional conversation history.
+
+        Args:
+            message: Current user message
+            conversation_history: Optional list of previous messages
+
+        Yields:
+            Chunks of generated response text
+        """
+        if not ANTHROPIC_AVAILABLE:
+            yield "Anthropic library not installed. Please run: pip install anthropic"
+            return
+
+        if not self.client:
+            yield "Anthropic API key not configured. Please set ANTHROPIC_API_KEY in environment."
+            return
+
+        try:
+            # Build messages array
+            messages = []
+
+            # Add conversation history
+            if conversation_history:
+                for msg in conversation_history[-10:]:
+                    role = msg.get("role", "user")
+                    content = msg.get("content", "")
+                    messages.append({"role": role, "content": content})
+
+            # Add current message
+            messages.append({"role": "user", "content": message})
+
+            # Call Claude with streaming
+            with self.client.messages.stream(
+                model=self.model_name, max_tokens=1024, messages=messages
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
+
+        except Exception as e:
+            yield f"Error connecting to Claude: {str(e)}"

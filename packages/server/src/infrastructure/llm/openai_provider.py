@@ -1,5 +1,7 @@
 """OpenAI LLM provider implementation."""
 
+from collections.abc import Generator
+
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -132,3 +134,51 @@ class OpenAiLlmProvider(LlmProvider):
     def get_model_name(self) -> str:
         """Get the name of the model being used."""
         return self.model_name
+
+    def chat_stream(
+        self, message: str, conversation_history: list[dict[str, str]] | None = None
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming chat response with optional conversation history.
+
+        Args:
+            message: Current user message
+            conversation_history: Optional list of previous messages
+
+        Yields:
+            Chunks of generated response text
+        """
+        if not self.client:
+            yield "OpenAI API key not configured. Please set OPENAI_API_KEY in environment."
+            return
+
+        try:
+            # Build messages array
+            messages: list[ChatCompletionMessageParam] = []
+
+            # Add conversation history
+            if conversation_history:
+                for msg in conversation_history[-10:]:
+                    role_str = msg.get("role", "user")
+                    content_str = msg.get("content", "")
+                    if role_str == "user":
+                        messages.append({"role": "user", "content": content_str})
+                    elif role_str == "assistant":
+                        messages.append({"role": "assistant", "content": content_str})
+                    elif role_str == "system":
+                        messages.append({"role": "system", "content": content_str})
+
+            # Add current message
+            messages.append({"role": "user", "content": message})
+
+            # Call OpenAI with streaming
+            stream = self.client.chat.completions.create(
+                model=self.model_name, messages=messages, temperature=0.7, stream=True
+            )
+
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+
+        except Exception as e:
+            yield f"Error connecting to OpenAI: {str(e)}"

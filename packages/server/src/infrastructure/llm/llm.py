@@ -1,6 +1,7 @@
 """Base LLM interface for multiple providers."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 
 
 class LlmProvider(ABC):
@@ -31,6 +32,23 @@ class LlmProvider(ABC):
 
         Returns:
             Generated response text
+        """
+        pass
+
+    @abstractmethod
+    def chat_stream(
+        self, message: str, conversation_history: list[dict[str, str]] | None = None
+    ) -> Generator[str, None, None]:
+        """
+        Generate a streaming chat response with optional conversation history.
+
+        Args:
+            message: Current user message
+            conversation_history: Optional list of previous messages
+                                 Each message is {"role": "user"|"assistant", "content": "..."}
+
+        Yields:
+            Chunks of generated response text
         """
         pass
 
