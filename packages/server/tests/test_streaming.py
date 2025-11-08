@@ -2,32 +2,33 @@
 """Test script for Socket.IO streaming functionality."""
 
 import time
+
 from socketio import Client
 
 # Create a Socket.IO client
-sio = Client()
+sio: Client = Client()
 
 # Track received chunks
-chunks_received = []
-full_response = ""
+chunks_received: list[object] = []
+full_response: str = ""
 
 
 @sio.on("connected")
-def on_connected(data):
+def on_connected(data: dict[str, object]) -> None:
     print(f"Connected to server: {data}")
 
 
 @sio.on("chat_chunk")
-def on_chat_chunk(data):
+def on_chat_chunk(data: dict[str, object]) -> None:
     chunk = data.get("chunk", "")
     chunks_received.append(chunk)
     print(f"Received chunk ({len(chunks_received)}): {chunk!r}")
 
 
 @sio.on("chat_complete")
-def on_chat_complete(data):
+def on_chat_complete(data: dict[str, object]) -> None:
     global full_response
-    full_response = data.get("full_response", "")
+    full_response = str(data.get("full_response", ""))
     print(f"\nChat complete! Session ID: {data.get('session_id')}")
     print(f"Total chunks received: {len(chunks_received)}")
     print(f"Full response length: {len(full_response)}")
@@ -35,11 +36,11 @@ def on_chat_complete(data):
 
 
 @sio.on("error")
-def on_error(data):
+def on_error(data: dict[str, object]) -> None:
     print(f"Error: {data.get('error')}")
 
 
-def test_streaming():
+def test_streaming() -> None:
     """Test the streaming chat functionality."""
     print("Connecting to server at http://localhost:5000...")
 
