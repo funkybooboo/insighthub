@@ -1,20 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-
-export interface Message {
-    id: string;
-    text: string;
-    sender: 'user' | 'bot';
-    timestamp: number;
-}
-
-interface ChatState {
-    messages: Message[];
-    isLoading: boolean;
-}
+import type { ChatSession, ChatState, Message } from '@/types/chat';
+import { chatStorage } from '@/lib/chatStorage';
 
 const initialState: ChatState = {
-    messages: [],
+    sessions: chatStorage.loadSessions(),
+    activeSessionId: null,
     isLoading: false,
 };
 
@@ -22,17 +13,90 @@ const chatSlice = createSlice({
     name: 'chat',
     initialState,
     reducers: {
-        addMessage: (state, action: PayloadAction<Message>) => {
-            state.messages.push(action.payload);
+        createSession: (state, action: PayloadAction<{ id: string; title?: string }>) => {
+            const newSession: ChatSession = {
+                id: action.payload.id,
+                title: action.payload.title || 'New Chat',
+                messages: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            state.sessions.unshift(newSession);
+            state.activeSessionId = newSession.id;
+            chatStorage.saveSessions(state.sessions);
+        },
+        setActiveSession: (state, action: PayloadAction<string>) => {
+            state.activeSessionId = action.payload;
+        },
+        addMessageToSession: (
+            state,
+            action: PayloadAction<{ sessionId: string; message: Message }>
+        ) => {
+            const session = state.sessions.find((s) => s.id === action.payload.sessionId);
+            if (session) {
+                session.messages.push(action.payload.message);
+                session.updatedAt = Date.now();
+
+                // Auto-generate title from first user message
+                if (session.title === 'New Chat' && action.payload.message.role === 'user') {
+                    session.title =
+                        action.payload.message.content.slice(0, 50) +
+                        (action.payload.message.content.length > 50 ? '...' : '');
+                }
+
+                chatStorage.saveSessions(state.sessions);
+            }
+        },
+        updateMessageInSession: (
+            state,
+            action: PayloadAction<{ sessionId: string; messageId: string; content: string }>
+        ) => {
+            const session = state.sessions.find((s) => s.id === action.payload.sessionId);
+            if (session) {
+                const message = session.messages.find((m) => m.id === action.payload.messageId);
+                if (message) {
+                    message.content = action.payload.content;
+                    session.updatedAt = Date.now();
+                    chatStorage.saveSessions(state.sessions);
+                }
+            }
+        },
+        setSessionBackendId: (
+            state,
+            action: PayloadAction<{ sessionId: string; backendSessionId: number }>
+        ) => {
+            const session = state.sessions.find((s) => s.id === action.payload.sessionId);
+            if (session) {
+                session.sessionId = action.payload.backendSessionId;
+                chatStorage.saveSessions(state.sessions);
+            }
+        },
+        deleteSession: (state, action: PayloadAction<string>) => {
+            state.sessions = state.sessions.filter((s) => s.id !== action.payload);
+            if (state.activeSessionId === action.payload) {
+                state.activeSessionId = state.sessions.length > 0 ? state.sessions[0].id : null;
+            }
+            chatStorage.saveSessions(state.sessions);
         },
         setLoading: (state, action: PayloadAction<boolean>) => {
             state.isLoading = action.payload;
         },
-        clearMessages: (state) => {
-            state.messages = [];
+        clearAllSessions: (state) => {
+            state.sessions = [];
+            state.activeSessionId = null;
+            chatStorage.clearSessions();
         },
     },
 });
 
-export const { addMessage, setLoading, clearMessages } = chatSlice.actions;
+export const {
+    createSession,
+    setActiveSession,
+    addMessageToSession,
+    updateMessageInSession,
+    setSessionBackendId,
+    deleteSession,
+    setLoading,
+    clearAllSessions,
+} = chatSlice.actions;
 export default chatSlice.reducer;
