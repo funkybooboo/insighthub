@@ -74,3 +74,17 @@ QDRANT_COLLECTION_NAME: Final[str] = os.getenv("QDRANT_COLLECTION_NAME", "insigh
 
 # OpenAI Configuration
 OPENAI_API_KEY: Final[str] = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL: Final[str] = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+
+# Anthropic Configuration
+ANTHROPIC_API_KEY: Final[str] = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL: Final[str] = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+
+# Hugging Face Configuration
+HUGGINGFACE_API_KEY: Final[str] = os.getenv("HUGGINGFACE_API_KEY", "")
+HUGGINGFACE_MODEL: Final[str] = os.getenv(
+    "HUGGINGFACE_MODEL", "meta-llama/Llama-3.2-3B-Instruct"
+)
+
+# LLM Provider Selection
+LLM_PROVIDER: Final[str] = os.getenv("LLM_PROVIDER", "ollama")

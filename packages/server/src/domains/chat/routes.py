@@ -35,12 +35,33 @@ def chat() -> tuple[Response, int]:
         # Get user
         user = g.app_context.user_service.get_or_create_default_user()
 
-        # Process chat message using service orchestration method
-        chat_response = g.app_context.chat_service.process_chat_message(
+        # Get or create session to retrieve conversation history
+        session = g.app_context.chat_service.get_or_create_session(
             user_id=user.id,
-            message=user_message,
             session_id=int(session_id) if session_id else None,
-            rag_type=rag_type,
+            first_message=user_message,
+        )
+
+        # Get conversation history from this session
+        messages = g.app_context.chat_service.list_session_messages(session.id)
+        conversation_history = [
+            {"role": msg.role, "content": msg.content} for msg in messages[-10:]
+        ]
+
+        # Generate LLM response
+        llm_answer = g.app_context.llm_provider.chat(user_message, conversation_history)
+
+        # Store user message
+        g.app_context.chat_service.create_message(
+            session_id=session.id, role="user", content=user_message
+        )
+
+        # Store assistant response
+        g.app_context.chat_service.create_message(
+            session_id=session.id,
+            role="assistant",
+            content=llm_answer,
+            metadata={"rag_type": rag_type},
         )
 
         # Get document count for response
@@ -48,16 +69,9 @@ def chat() -> tuple[Response, int]:
 
         # Format response
         response = {
-            "answer": chat_response.answer,
-            "context": [
-                {
-                    "text": ctx.text,
-                    "score": ctx.score,
-                    "metadata": ctx.metadata,
-                }
-                for ctx in chat_response.context
-            ],
-            "session_id": chat_response.session_id,
+            "answer": llm_answer,
+            "context": [],  # No RAG context for now
+            "session_id": session.id,
             "documents_count": len(documents),
         }
 
