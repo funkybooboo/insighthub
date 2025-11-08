@@ -8,7 +8,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export interface ChatRequest {
     message: string;
-    conversation_id?: string;
+    session_id?: number;
+    rag_type?: string;
 }
 
 export interface ChatContext {
@@ -20,15 +21,17 @@ export interface ChatContext {
 export interface ChatResponse {
     answer: string;
     context: ChatContext[];
-    conversation_id: string;
+    session_id: number;
     documents_count: number;
 }
 
 export interface Document {
     id: number;
     filename: string;
-    text_length: number;
-    type: string;
+    file_size: number;
+    mime_type: string;
+    chunk_count?: number;
+    created_at: string;
 }
 
 export interface UploadResponse {
@@ -72,7 +75,7 @@ class ApiService {
         const formData = new FormData();
         formData.append('file', file);
 
-        const { data } = await this.client.post<UploadResponse>('/api/upload', formData, {
+        const { data } = await this.client.post<UploadResponse>('/api/documents/upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },

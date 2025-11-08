@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import type { Message } from './ChatMessages';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
+import FileUpload from '@/components/upload/FileUpload';
 import apiService from '@/services/api';
 
 import popSound from '@/assets/sounds/pop.mp3';
@@ -18,7 +19,7 @@ const ChatBot = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isBotTyping, setIsBotTyping] = useState(false);
     const [error, setError] = useState('');
-    const conversationId = useRef(crypto.randomUUID());
+    const sessionId = useRef<number | undefined>(undefined);
 
     const onSubmit = async ({ prompt }: ChatFormData) => {
         try {
@@ -29,8 +30,11 @@ const ChatBot = () => {
 
             const response = await apiService.sendChatMessage({
                 message: prompt,
-                conversation_id: conversationId.current,
+                session_id: sessionId.current,
             });
+
+            // Store the session_id for subsequent messages
+            sessionId.current = response.session_id;
 
             setMessages((prev) => [...prev, { content: response.answer, role: 'bot' }]);
             notificationAudio.play();
@@ -44,6 +48,7 @@ const ChatBot = () => {
 
     return (
         <div className="flex flex-col h-full">
+            <FileUpload />
             <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
             <ChatInput onSubmit={onSubmit} />
         </div>

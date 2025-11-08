@@ -11,6 +11,7 @@ from src.infrastructure.factories import (
     create_document_repository,
     create_user_repository,
 )
+from src.infrastructure.llm import create_llm_provider
 from src.infrastructure.storage import BlobStorage, create_blob_storage
 
 
@@ -29,6 +30,9 @@ class AppContext:
 
         # Initialize blob storage
         self.blob_storage = blob_storage if blob_storage is not None else create_blob_storage()
+
+        # Initialize LLM provider using factory
+        self.llm_provider = create_llm_provider()
 
         # Create repositories
         user_repo = create_user_repository(db)

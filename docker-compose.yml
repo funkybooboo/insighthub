@@ -38,6 +38,46 @@ services:
             retries: 5
         restart: unless-stopped
 
+    # Ollama LLM service
+    ollama:
+        image: ollama/ollama:latest
+        container_name: insighthub-ollama
+        ports:
+            - '11434:11434'
+        volumes:
+            - ollama_data:/root/.ollama
+        healthcheck:
+            test: ['CMD', 'ollama', 'list']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        restart: unless-stopped
+
+    # Ollama setup - pulls required models
+    ollama-setup:
+        image: ollama/ollama:latest
+        container_name: insighthub-ollama-setup
+        depends_on:
+            ollama:
+                condition: service_healthy
+        environment:
+            - OLLAMA_HOST=ollama:11434
+        entrypoint: /bin/sh
+        command:
+            - -c
+            - |
+                echo "Waiting for Ollama API to be ready..."
+                until ollama list > /dev/null 2>&1; do
+                    echo "Waiting for Ollama service..."
+                    sleep 2
+                done
+                echo "Ollama is ready. Pulling llama3.2:1b model..."
+                ollama pull llama3.2:1b
+                echo "Pulling nomic-embed-text model..."
+                ollama pull nomic-embed-text
+                echo "Models pulled successfully"
+        restart: on-failure
+
     # Python server - production build
     server:
         build:
@@ -46,20 +86,27 @@ services:
             target: production
         container_name: insighthub-server
         ports:
-            - '8000:8000'
+            - '5000:8000'
         volumes:
             - ./packages/server/src:/app/src
         environment:
             - PYTHONUNBUFFERED=1
             - DATABASE_URL=postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+            - BLOB_STORAGE_TYPE=s3
             - S3_ENDPOINT_URL=http://minio:9000
             - S3_ACCESS_KEY=insighthub
             - S3_SECRET_KEY=insighthub_dev_secret
             - S3_BUCKET_NAME=documents
+            - LLM_PROVIDER=ollama
+            - OLLAMA_BASE_URL=http://ollama:11434
+            - OLLAMA_LLM_MODEL=llama3.2:1b
+            - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
         depends_on:
             postgres:
                 condition: service_healthy
             minio:
+                condition: service_healthy
+            ollama:
                 condition: service_healthy
         restart: unless-stopped
 
@@ -79,3 +126,4 @@ services:
 volumes:
     postgres_data:
     minio_data:
+    ollama_data:

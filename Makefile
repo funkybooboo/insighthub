@@ -1,4 +1,4 @@
-.PHONY: help up down build build-server build-client clean logs logs-server logs-client
+.PHONY: help up up-dev up-infra down build build-server build-client clean logs logs-server logs-client logs-ollama logs-postgres logs-minio
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -6,8 +6,17 @@ help:  ## Show this help message
 	@echo 'Available targets:'
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-up:  ## Start production services
+up:  ## Start all production services
 	docker compose up -d
+
+up-dev:  ## Start development infrastructure only (Postgres, MinIO, Ollama)
+	docker compose up -d postgres minio ollama
+	@echo "Waiting for Ollama to be healthy..."
+	@docker compose up ollama-setup
+	@echo "Infrastructure services started. Run server and client manually for development."
+
+up-infra:  ## Start infrastructure services (alias for up-dev)
+	$(MAKE) up-dev
 
 down:  ## Stop all services
 	docker compose down
@@ -34,3 +43,12 @@ logs-server:  ## Show server logs
 
 logs-client:  ## Show client logs
 	docker compose logs -f client
+
+logs-ollama:  ## Show Ollama logs
+	docker compose logs -f ollama
+
+logs-postgres:  ## Show Postgres logs
+	docker compose logs -f postgres
+
+logs-minio:  ## Show MinIO logs
+	docker compose logs -f minio
