@@ -48,12 +48,15 @@ class OllamaLlmProvider(LlmProvider):
             response.raise_for_status()
 
             result = response.json()
-            answer = result.get("response", "").strip()
+            answer_raw = result.get("response", "")
+            answer: str = str(answer_raw).strip() if answer_raw else ""
 
             return answer
 
         except requests.exceptions.RequestException as e:
-            return f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
+            return (
+                f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
+            )
 
     def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
         """

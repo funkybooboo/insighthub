@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import apiService from '@/services/api';
 
-const FileUpload = () => {
+interface FileUploadProps {
+    onUploadSuccess?: () => void;
+}
+
+const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -34,6 +38,9 @@ const FileUpload = () => {
 
             // Clear the input
             event.target.value = '';
+
+            // Notify parent component
+            onUploadSuccess?.();
         } catch (err) {
             console.error('Upload error:', err);
             setError('Failed to upload file. Please try again.');

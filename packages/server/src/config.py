@@ -82,9 +82,7 @@ ANTHROPIC_MODEL: Final[str] = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20
 
 # Hugging Face Configuration
 HUGGINGFACE_API_KEY: Final[str] = os.getenv("HUGGINGFACE_API_KEY", "")
-HUGGINGFACE_MODEL: Final[str] = os.getenv(
-    "HUGGINGFACE_MODEL", "meta-llama/Llama-3.2-3B-Instruct"
-)
+HUGGINGFACE_MODEL: Final[str] = os.getenv("HUGGINGFACE_MODEL", "meta-llama/Llama-3.2-3B-Instruct")
 
 # LLM Provider Selection
 LLM_PROVIDER: Final[str] = os.getenv("LLM_PROVIDER", "ollama")

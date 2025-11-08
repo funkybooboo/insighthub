@@ -1,6 +1,7 @@
 """OpenAI LLM provider implementation."""
 
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from src.config import OPENAI_API_KEY
 
@@ -68,14 +69,20 @@ class OpenAiLlmProvider(LlmProvider):
 
         try:
             # Build messages array
-            messages = []
+            messages: list[ChatCompletionMessageParam] = []
 
             # Add conversation history
             if conversation_history:
                 for msg in conversation_history[-10:]:  # Keep last 10 messages
-                    role = msg.get("role", "user")
-                    content = msg.get("content", "")
-                    messages.append({"role": role, "content": content})
+                    role_str = msg.get("role", "user")
+                    content_str = msg.get("content", "")
+                    # OpenAI expects specific role types - create properly typed messages
+                    if role_str == "user":
+                        messages.append({"role": "user", "content": content_str})
+                    elif role_str == "assistant":
+                        messages.append({"role": "assistant", "content": content_str})
+                    elif role_str == "system":
+                        messages.append({"role": "system", "content": content_str})
 
             # Add current message
             messages.append({"role": "user", "content": message})

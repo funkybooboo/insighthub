@@ -60,9 +60,11 @@ class HuggingFaceLlmProvider(LlmProvider):
             # Handle different response formats
             if isinstance(result, list) and len(result) > 0:
                 if isinstance(result[0], dict) and "generated_text" in result[0]:
-                    return result[0]["generated_text"].strip()
+                    text_raw = result[0]["generated_text"]
+                    return str(text_raw).strip() if text_raw else ""
             elif isinstance(result, dict) and "generated_text" in result:
-                return result["generated_text"].strip()
+                text_raw = result["generated_text"]
+                return str(text_raw).strip() if text_raw else ""
 
             return str(result)
 
