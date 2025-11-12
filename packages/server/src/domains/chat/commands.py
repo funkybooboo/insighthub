@@ -1,11 +1,14 @@
 """Chat CLI commands."""
 
 import argparse
+import logging
 import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.context import AppContext
+
+logger = logging.getLogger(__name__)
 
 
 def send_chat_message(
@@ -22,6 +25,7 @@ def send_chat_message(
     Returns:
         Dictionary with answer, context, and session info
     """
+    logger.info(f"CLI chat message: session_id={session_id}, message_length={len(message)}")
     user = context.user_service.get_or_create_default_user()
 
     # Process chat message using service orchestration method
@@ -34,6 +38,11 @@ def send_chat_message(
 
     # Get document count
     documents = context.document_service.list_user_documents(user.id)
+
+    logger.info(
+        f"CLI chat message processed: session_id={chat_response.session_id}, "
+        f"documents_count={len(documents)}, context_chunks={len(chat_response.context)}"
+    )
 
     return {
         "answer": chat_response.answer,
@@ -60,8 +69,11 @@ def list_sessions(context: "AppContext") -> dict[str, int | list[dict[str, str |
     Returns:
         Dictionary with sessions list and count
     """
+    logger.info("CLI listing chat sessions")
     user = context.user_service.get_or_create_default_user()
     sessions = context.chat_service.list_user_sessions(user.id)
+
+    logger.info(f"CLI chat sessions listed: count={len(sessions)}")
 
     return {
         "sessions": [
@@ -132,6 +144,7 @@ def cmd_sessions(context: "AppContext", args: argparse.Namespace) -> None:
 
 def cmd_interactive(context: "AppContext", args: argparse.Namespace) -> None:
     """Start an interactive chat session."""
+    logger.info("CLI starting interactive chat session")
     print("Interactive Chat Session")
     print("Type 'quit' or 'exit' to end the session")
     print("-" * 80)
@@ -143,6 +156,7 @@ def cmd_interactive(context: "AppContext", args: argparse.Namespace) -> None:
             message = input("\nYou: ").strip()
 
             if message.lower() in ["quit", "exit"]:
+                logger.info(f"CLI interactive chat session ended: session_id={session_id}")
                 print("Goodbye!")
                 break
 
@@ -157,9 +171,12 @@ def cmd_interactive(context: "AppContext", args: argparse.Namespace) -> None:
                 result_session_id = result.get("session_id")
                 if isinstance(result_session_id, int):
                     session_id = result_session_id
+                    logger.debug(f"CLI interactive session established: session_id={session_id}")
 
         except KeyboardInterrupt:
+            logger.info(f"CLI interactive chat session interrupted: session_id={session_id}")
             print("\nGoodbye!")
             break
         except Exception as e:
+            logger.error(f"CLI interactive chat error: {str(e)}", exc_info=True)
             print(f"Error: {e}", file=sys.stderr)

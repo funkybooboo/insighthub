@@ -48,6 +48,38 @@ export interface HealthResponse {
     status: string;
 }
 
+export interface SignupRequest {
+    username: string;
+    email: string;
+    password: string;
+    full_name?: string;
+}
+
+export interface LoginRequest {
+    username: string;
+    password: string;
+}
+
+export interface AuthResponse {
+    access_token: string;
+    token_type: string;
+    user: {
+        id: number;
+        username: string;
+        email: string;
+        full_name: string | null;
+        created_at: string;
+    };
+}
+
+export interface UserResponse {
+    id: number;
+    username: string;
+    email: string;
+    full_name: string | null;
+    created_at: string;
+}
+
 class ApiService {
     private client: AxiosInstance;
 
@@ -58,6 +90,28 @@ class ApiService {
                 'Content-Type': 'application/json',
             },
         });
+
+        this.client.interceptors.request.use(
+            (config) => {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                return config;
+            },
+            (error) => Promise.reject(error),
+        );
+
+        this.client.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                }
+                return Promise.reject(error);
+            },
+        );
     }
 
     /**
@@ -105,6 +159,38 @@ class ApiService {
      */
     async deleteDocument(docId: number): Promise<{ message: string }> {
         const { data } = await this.client.delete<{ message: string }>(`/api/documents/${docId}`);
+        return data;
+    }
+
+    /**
+     * Sign up a new user
+     */
+    async signup(request: SignupRequest): Promise<AuthResponse> {
+        const { data } = await this.client.post<AuthResponse>('/api/auth/signup', request);
+        return data;
+    }
+
+    /**
+     * Login a user
+     */
+    async login(request: LoginRequest): Promise<AuthResponse> {
+        const { data } = await this.client.post<AuthResponse>('/api/auth/login', request);
+        return data;
+    }
+
+    /**
+     * Logout the current user
+     */
+    async logout(): Promise<{ message: string }> {
+        const { data } = await this.client.post<{ message: string }>('/api/auth/logout');
+        return data;
+    }
+
+    /**
+     * Get current user information
+     */
+    async getCurrentUser(): Promise<UserResponse> {
+        const { data } = await this.client.get<UserResponse>('/api/auth/me');
         return data;
     }
 }

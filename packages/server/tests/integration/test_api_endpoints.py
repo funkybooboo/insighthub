@@ -75,6 +75,44 @@ def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
+@pytest.fixture(scope="function")
+def test_user(app: Flask) -> Generator[Any, None, None]:
+    """Create a test user for authentication."""
+    from src.domains.users.models import User
+    from src.infrastructure.database import get_db
+
+    db = next(get_db())
+    user = User(
+        username="test_user",
+        email="test@example.com",
+        full_name="Test User",
+    )
+    user.set_password("test_password")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    yield user
+
+    db.delete(user)
+    db.commit()
+    db.close()
+
+
+@pytest.fixture(scope="function")
+def test_token(test_user: Any) -> str:
+    """Create a JWT token for the test user."""
+    from src.infrastructure.auth import create_access_token
+
+    return create_access_token(test_user.id)
+
+
+@pytest.fixture(scope="function")
+def auth_headers(test_token: str) -> dict[str, str]:
+    """Create authentication headers with Bearer token."""
+    return {"Authorization": f"Bearer {test_token}"}
+
+
 def test_heartbeat(client: FlaskClient) -> None:
     """Test heartbeat endpoint."""
     response = client.get("/heartbeat")
@@ -91,14 +129,17 @@ def test_health(client: FlaskClient) -> None:
     assert data["status"] == "healthy"
 
 
-def test_upload_document(client: FlaskClient) -> None:
+def test_upload_document(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test uploading a document."""
     # Create test file
     file_content = b"This is a test document"
     file_data = {"file": (BytesIO(file_content), "test.txt", "text/plain")}
 
     response = client.post(
-        "/api/documents/upload", data=file_data, content_type="multipart/form-data"
+        "/api/documents/upload",
+        data=file_data,
+        content_type="multipart/form-data",
+        headers=auth_headers
     )
 
     if response.status_code != 201:
@@ -111,12 +152,15 @@ def test_upload_document(client: FlaskClient) -> None:
     assert data["document"]["filename"] == "test.txt"
 
 
-def test_upload_invalid_file_type(client: FlaskClient) -> None:
+def test_upload_invalid_file_type(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test uploading an invalid file type."""
     file_data = {"file": (BytesIO(b"content"), "test.exe", "application/x-executable")}
 
     response = client.post(
-        "/api/documents/upload", data=file_data, content_type="multipart/form-data"
+        "/api/documents/upload",
+        data=file_data,
+        content_type="multipart/form-data",
+        headers=auth_headers
     )
 
     assert response.status_code == 400
@@ -124,18 +168,23 @@ def test_upload_invalid_file_type(client: FlaskClient) -> None:
     assert "error" in data
 
 
-def test_upload_no_file(client: FlaskClient) -> None:
+def test_upload_no_file(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test uploading without a file."""
-    response = client.post("/api/documents/upload", data={}, content_type="multipart/form-data")
+    response = client.post(
+        "/api/documents/upload",
+        data={},
+        content_type="multipart/form-data",
+        headers=auth_headers
+    )
 
     assert response.status_code == 400
     data = json.loads(response.data)
     assert "error" in data
 
 
-def test_list_documents(client: FlaskClient) -> None:
+def test_list_documents(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test listing documents."""
-    response = client.get("/api/documents")
+    response = client.get("/api/documents", headers=auth_headers)
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -144,18 +193,21 @@ def test_list_documents(client: FlaskClient) -> None:
     assert isinstance(data["documents"], list)
 
 
-def test_delete_document(client: FlaskClient) -> None:
+def test_delete_document(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test deleting a document."""
     # First, upload a document
     file_data = {"file": (BytesIO(b"test content"), "test.txt", "text/plain")}
     upload_response = client.post(
-        "/api/documents/upload", data=file_data, content_type="multipart/form-data"
+        "/api/documents/upload",
+        data=file_data,
+        content_type="multipart/form-data",
+        headers=auth_headers
     )
     upload_data = json.loads(upload_response.data)
     doc_id = upload_data["document"]["id"]
 
     # Delete the document
-    response = client.delete(f"/api/documents/{doc_id}")
+    response = client.delete(f"/api/documents/{doc_id}", headers=auth_headers)
 
     if response.status_code != 200:
         print(f"Delete error response: {response.data.decode()}")
@@ -165,20 +217,25 @@ def test_delete_document(client: FlaskClient) -> None:
     assert data["message"] == "Document deleted successfully"
 
 
-def test_delete_nonexistent_document(client: FlaskClient) -> None:
+def test_delete_nonexistent_document(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test deleting a nonexistent document."""
-    response = client.delete("/api/documents/99999")
+    response = client.delete("/api/documents/99999", headers=auth_headers)
 
     assert response.status_code == 404
     data = json.loads(response.data)
     assert "error" in data
 
 
-def test_chat_endpoint(client: FlaskClient) -> None:
+def test_chat_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test chat endpoint."""
     chat_data = {"message": "What is RAG?", "rag_type": "vector"}
 
-    response = client.post("/api/chat", data=json.dumps(chat_data), content_type="application/json")
+    response = client.post(
+        "/api/chat",
+        data=json.dumps(chat_data),
+        content_type="application/json",
+        headers=auth_headers
+    )
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -187,21 +244,29 @@ def test_chat_endpoint(client: FlaskClient) -> None:
     assert "session_id" in data
 
 
-def test_chat_no_message(client: FlaskClient) -> None:
+def test_chat_no_message(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test chat endpoint without a message."""
-    response = client.post("/api/chat", data=json.dumps({}), content_type="application/json")
+    response = client.post(
+        "/api/chat",
+        data=json.dumps({}),
+        content_type="application/json",
+        headers=auth_headers
+    )
 
     assert response.status_code == 400
     data = json.loads(response.data)
     assert "error" in data
 
 
-def test_chat_with_session(client: FlaskClient) -> None:
+def test_chat_with_session(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test chat endpoint with existing session."""
     # First message to create session
     chat_data1 = {"message": "Hello"}
     response1 = client.post(
-        "/api/chat", data=json.dumps(chat_data1), content_type="application/json"
+        "/api/chat",
+        data=json.dumps(chat_data1),
+        content_type="application/json",
+        headers=auth_headers
     )
     data1 = json.loads(response1.data)
     session_id = data1["session_id"]
@@ -209,7 +274,10 @@ def test_chat_with_session(client: FlaskClient) -> None:
     # Second message with session ID
     chat_data2 = {"message": "Follow up question", "session_id": session_id}
     response2 = client.post(
-        "/api/chat", data=json.dumps(chat_data2), content_type="application/json"
+        "/api/chat",
+        data=json.dumps(chat_data2),
+        content_type="application/json",
+        headers=auth_headers
     )
 
     assert response2.status_code == 200
@@ -217,9 +285,9 @@ def test_chat_with_session(client: FlaskClient) -> None:
     assert data2["session_id"] == session_id
 
 
-def test_list_sessions(client: FlaskClient) -> None:
+def test_list_sessions(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test listing chat sessions."""
-    response = client.get("/api/sessions")
+    response = client.get("/api/sessions", headers=auth_headers)
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -228,18 +296,21 @@ def test_list_sessions(client: FlaskClient) -> None:
     assert isinstance(data["sessions"], list)
 
 
-def test_get_session_messages(client: FlaskClient) -> None:
+def test_get_session_messages(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test getting messages for a session."""
     # Create a session with a message
     chat_data = {"message": "Test message"}
     chat_response = client.post(
-        "/api/chat", data=json.dumps(chat_data), content_type="application/json"
+        "/api/chat",
+        data=json.dumps(chat_data),
+        content_type="application/json",
+        headers=auth_headers
     )
     chat_data_response = json.loads(chat_response.data)
     session_id = chat_data_response["session_id"]
 
     # Get messages for the session
-    response = client.get(f"/api/sessions/{session_id}/messages")
+    response = client.get(f"/api/sessions/{session_id}/messages", headers=auth_headers)
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -248,21 +319,27 @@ def test_get_session_messages(client: FlaskClient) -> None:
     assert len(data["messages"]) >= 2  # User message + assistant response
 
 
-def test_upload_duplicate_document(client: FlaskClient) -> None:
+def test_upload_duplicate_document(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test uploading the same document twice (deduplication)."""
     file_content = b"Duplicate content"
 
     # Upload first time
     file_data1 = {"file": (BytesIO(file_content), "test1.txt", "text/plain")}
     response1 = client.post(
-        "/api/documents/upload", data=file_data1, content_type="multipart/form-data"
+        "/api/documents/upload",
+        data=file_data1,
+        content_type="multipart/form-data",
+        headers=auth_headers
     )
     json.loads(response1.data)
 
     # Upload second time with same content
     file_data2 = {"file": (BytesIO(file_content), "test2.txt", "text/plain")}
     response2 = client.post(
-        "/api/documents/upload", data=file_data2, content_type="multipart/form-data"
+        "/api/documents/upload",
+        data=file_data2,
+        content_type="multipart/form-data",
+        headers=auth_headers
     )
     json.loads(response2.data)
 

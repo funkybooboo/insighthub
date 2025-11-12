@@ -57,3 +57,16 @@ class InvalidUsernameError(ValidationError):
         super().__init__(f"Invalid username '{username}': {reason}")
         self.username = username
         self.reason = reason
+
+
+class UserAuthenticationError(ValidationError):
+    """Raised when user authentication fails."""
+
+    def __init__(self, message: str = "Authentication failed"):
+        """
+        Initialize user authentication error.
+
+        Args:
+            message: The error message
+        """
+        super().__init__(message)

@@ -12,13 +12,23 @@ from flask import Flask, g
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
+from src import config
 from src.context import AppContext
+from src.domains.auth.routes import auth_bp
 from src.domains.chat.routes import chat_bp
 from src.domains.chat.socket_handlers import handle_chat_message
 from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
 from src.infrastructure.database import get_db, init_db
 from src.infrastructure.errors import register_error_handlers
+from src.infrastructure.logging_config import setup_logging
+from src.infrastructure.middleware import (
+    PerformanceMonitoringMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    RequestValidationMiddleware,
+    SecurityHeadersMiddleware,
+)
 from src.infrastructure.socket import SocketHandler
 
 # Load environment variables
@@ -36,22 +46,69 @@ def create_app() -> Flask:
         Flask: Configured Flask application
     """
     app = Flask(__name__)
-    CORS(app)
+
+    # CORS configuration
+    CORS(
+        app,
+        origins=os.getenv("CORS_ORIGINS", "*").split(","),
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    )
 
     # Configuration from environment variables
-    app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
-    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
+    app.config["UPLOAD_FOLDER"] = config.UPLOAD_FOLDER
+    app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
+    app.config["DEBUG"] = config.FLASK_DEBUG
+
+    # Set up structured logging (stdout/stderr only)
+    setup_logging(app, log_level=os.getenv("LOG_LEVEL", "INFO"))
+
+    # Initialize middleware (order matters!)
+    # 1. Security headers (first, to add headers to all responses)
+    SecurityHeadersMiddleware(app)
+
+    # 2. Request validation (validate before processing)
+    RequestValidationMiddleware(
+        app,
+        max_content_length=config.MAX_CONTENT_LENGTH,
+    )
+
+    # 3. Rate limiting (after validation, before business logic)
+    rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    RateLimitMiddleware(
+        app,
+        requests_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
+        requests_per_hour=int(os.getenv("RATE_LIMIT_PER_HOUR", "1000")),
+        enabled=rate_limit_enabled,
+    )
+
+    # 4. Request logging (log after rate limiting)
+    RequestLoggingMiddleware(app)
+
+    # 5. Performance monitoring (monitor everything)
+    performance_monitoring = PerformanceMonitoringMiddleware(
+        app,
+        slow_request_threshold=float(os.getenv("SLOW_REQUEST_THRESHOLD", "1.0")),
+        enable_stats=os.getenv("ENABLE_PERFORMANCE_STATS", "true").lower() == "true",
+    )
+
+    # Store performance monitoring instance for access in routes
+    app.performance_monitoring = performance_monitoring  # type: ignore
 
     # Initialize database
     try:
         init_db()
+        app.logger.info("Database initialized successfully")
     except Exception as e:
-        print(f"Warning: Could not initialize database: {e}")
+        app.logger.error(f"Could not initialize database: {e}")
 
     # Register blueprints
     app.register_blueprint(health_bp)
+    app.register_blueprint(auth_bp)
     app.register_blueprint(documents_bp)
     app.register_blueprint(chat_bp)
+    app.logger.info("All blueprints registered")
 
     # Initialize SocketIO with the app
     socketio.init_app(app)
@@ -59,9 +116,11 @@ def create_app() -> Flask:
     # Initialize socket handler and register domain event handlers
     socket_handler = SocketHandler(socketio)
     socket_handler.register_event("chat_message", handle_chat_message)
+    app.logger.info("Socket.IO initialized")
 
     # Register centralized error handlers
     register_error_handlers(app)
+    app.logger.info("Error handlers registered")
 
     # Database session and application context management
     @app.before_request

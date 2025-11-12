@@ -7,6 +7,8 @@ from flask import Blueprint, Response, g, jsonify, request
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
+from src.infrastructure.auth import get_current_user, require_auth
+
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 
 # Configuration
@@ -17,6 +19,7 @@ UPLOAD_FOLDER.mkdir(exist_ok=True)
 
 
 @documents_bp.route("/upload", methods=["POST"])
+@require_auth
 def upload_document() -> tuple[Response, int]:
     """
     Upload a document (PDF or TXT) to the system.
@@ -47,8 +50,8 @@ def upload_document() -> tuple[Response, int]:
     file.save(str(file_path))
 
     try:
-        # Get user
-        user = g.app_context.user_service.get_or_create_default_user()
+        # Get authenticated user
+        user = get_current_user()
 
         # Use service method that handles validation, upload, and DTO conversion
         with open(file_path, "rb") as f:
@@ -70,6 +73,7 @@ def upload_document() -> tuple[Response, int]:
 
 
 @documents_bp.route("", methods=["GET"])
+@require_auth
 def list_documents() -> tuple[Response, int]:
     """
     List all uploaded documents.
@@ -77,7 +81,7 @@ def list_documents() -> tuple[Response, int]:
     Returns:
         JSON response with list of documents
     """
-    user = g.app_context.user_service.get_or_create_default_user()
+    user = get_current_user()
 
     # Use service method that returns DTO
     response_dto = g.app_context.document_service.list_user_documents_as_dto(user.id)
@@ -86,6 +90,7 @@ def list_documents() -> tuple[Response, int]:
 
 
 @documents_bp.route("/<int:doc_id>", methods=["DELETE"])
+@require_auth
 def delete_document(doc_id: int) -> tuple[Response, int]:
     """
     Delete a document by ID.

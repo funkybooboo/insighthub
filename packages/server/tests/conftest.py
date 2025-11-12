@@ -207,6 +207,37 @@ def sample_text_file() -> BytesIO:
 
 
 @pytest.fixture
+def test_user(db_session: Session) -> Any:
+    """Create a test user for authentication."""
+    from src.domains.users.models import User
+
+    user = User(
+        username="test_user",
+        email="test@example.com",
+        full_name="Test User",
+    )
+    user.set_password("test_password")
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def test_token(test_user: Any) -> str:
+    """Create a JWT token for the test user."""
+    from src.infrastructure.auth import create_access_token
+
+    return create_access_token(test_user.id)
+
+
+@pytest.fixture
+def auth_headers(test_token: str) -> dict[str, str]:
+    """Create authentication headers with Bearer token."""
+    return {"Authorization": f"Bearer {test_token}"}
+
+
+@pytest.fixture
 def sample_pdf_file() -> BytesIO:
     """Create a sample PDF file for testing."""
     # Minimal valid PDF

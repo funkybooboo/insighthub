@@ -2,10 +2,13 @@
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from src.infrastructure.auth import get_current_user, require_auth
+
 chat_bp = Blueprint("chat", __name__, url_prefix="/api")
 
 
 @chat_bp.route("/chat", methods=["POST"])
+@require_auth
 def chat() -> tuple[Response, int]:
     """
     Handle chat messages and return responses from the RAG system.
@@ -34,8 +37,8 @@ def chat() -> tuple[Response, int]:
     session_id = data.get("session_id")
     rag_type = data.get("rag_type", "vector")
 
-    # Get user
-    user = g.app_context.user_service.get_or_create_default_user()
+    # Get authenticated user
+    user = get_current_user()
 
     # Get document count for response
     documents = g.app_context.document_service.list_user_documents(user.id)
@@ -54,6 +57,7 @@ def chat() -> tuple[Response, int]:
 
 
 @chat_bp.route("/sessions", methods=["GET"])
+@require_auth
 def list_sessions() -> tuple[Response, int]:
     """
     List all chat sessions for the current user.
@@ -61,7 +65,7 @@ def list_sessions() -> tuple[Response, int]:
     Returns:
         JSON response with list of chat sessions
     """
-    user = g.app_context.user_service.get_or_create_default_user()
+    user = get_current_user()
 
     # Use service method that returns DTO
     response_dto = g.app_context.chat_service.list_user_sessions_as_dto(user.id)
@@ -70,6 +74,7 @@ def list_sessions() -> tuple[Response, int]:
 
 
 @chat_bp.route("/sessions/<int:session_id>/messages", methods=["GET"])
+@require_auth
 def get_session_messages(session_id: int) -> tuple[Response, int]:
     """
     Get all messages for a specific chat session.
