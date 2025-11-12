@@ -1,12 +1,15 @@
 """Document CLI commands."""
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.context import AppContext
+
+logger = logging.getLogger(__name__)
 
 
 def upload_document(context: "AppContext", file_path: Path) -> dict[str, str | int]:
@@ -24,11 +27,15 @@ def upload_document(context: "AppContext", file_path: Path) -> dict[str, str | i
         FileNotFoundError: If file doesn't exist
         ValueError: If file type is unsupported
     """
+    logger.info(f"CLI document upload initiated: file_path={file_path}")
+
     if not file_path.exists():
+        logger.warning(f"CLI document upload failed: file not found (path={file_path})")
         raise FileNotFoundError(f"File not found: {file_path}")
 
     extension = file_path.suffix.lower().lstrip(".")
     if extension not in ["pdf", "txt"]:
+        logger.warning(f"CLI document upload failed: unsupported file type (extension={extension})")
         raise ValueError(f"Unsupported file type: {extension}. Only PDF and TXT allowed.")
 
     # Get user
@@ -41,6 +48,11 @@ def upload_document(context: "AppContext", file_path: Path) -> dict[str, str | i
             filename=file_path.name,
             file_obj=f,
         )
+
+    logger.info(
+        f"CLI document upload completed: doc_id={result.document.id}, filename={result.document.filename}, "
+        f"file_size={result.document.file_size}, is_duplicate={result.is_duplicate}"
+    )
 
     return {
         "id": result.document.id,
@@ -61,8 +73,11 @@ def list_documents(context: "AppContext") -> dict[str, int | list[dict[str, str 
     Returns:
         Dictionary with documents list and count
     """
+    logger.info("CLI listing documents")
     user = context.user_service.get_or_create_default_user()
     documents = context.document_service.list_user_documents(user.id)
+
+    logger.info(f"CLI documents listed: count={len(documents)}")
 
     return {
         "documents": [
@@ -94,9 +109,12 @@ def delete_document(context: "AppContext", doc_id: int) -> dict[str, str]:
     Raises:
         ValueError: If document not found
     """
+    logger.info(f"CLI document deletion initiated: doc_id={doc_id}")
+
     # Check if document exists
     document = context.document_service.get_document_by_id(doc_id)
     if not document:
+        logger.warning(f"CLI document deletion failed: document not found (doc_id={doc_id})")
         raise ValueError(f"Document with ID {doc_id} not found")
 
     # Delete document (including from blob storage)
@@ -104,6 +122,8 @@ def delete_document(context: "AppContext", doc_id: int) -> dict[str, str]:
 
     # TODO: Remove from RAG system
     # rag.remove_document(doc_id)
+
+    logger.info(f"CLI document deleted: doc_id={doc_id}, filename={document.filename}")
 
     return {"message": f"Document {doc_id} deleted successfully"}
 

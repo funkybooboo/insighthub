@@ -11,12 +11,16 @@ def test_create_user(user_repository: UserRepository) -> None:
     """Test creating a new user."""
     repo = user_repository
 
-    user = repo.create(username="testuser", email="test@example.com", full_name="Test User")
+    user = repo.create(
+        username="testuser", email="test@example.com", password="password123", full_name="Test User"
+    )
 
     assert user.id is not None
     assert user.username == "testuser"
     assert user.email == "test@example.com"
     assert user.full_name == "Test User"
+    assert user.password_hash is not None
+    assert user.check_password("password123")
     assert user.created_at is not None
     assert user.updated_at is not None
 
@@ -26,7 +30,7 @@ def test_get_user_by_id(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    created_user = repo.create(username="testuser", email="test@example.com")
+    created_user = repo.create(username="testuser", email="test@example.com", password="password123")
 
     # Retrieve user
     retrieved_user = repo.get_by_id(created_user.id)
@@ -41,7 +45,7 @@ def test_get_user_by_username(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    repo.create(username="testuser", email="test@example.com")
+    repo.create(username="testuser", email="test@example.com", password="password123")
 
     # Retrieve user
     user = repo.get_by_username("testuser")
@@ -55,7 +59,7 @@ def test_get_user_by_email(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    repo.create(username="testuser", email="test@example.com")
+    repo.create(username="testuser", email="test@example.com", password="password123")
 
     # Retrieve user
     user = repo.get_by_email("test@example.com")
@@ -69,9 +73,9 @@ def test_get_all_users(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create multiple users
-    repo.create(username="user1", email="user1@example.com")
-    repo.create(username="user2", email="user2@example.com")
-    repo.create(username="user3", email="user3@example.com")
+    repo.create(username="user1", email="user1@example.com", password="password123")
+    repo.create(username="user2", email="user2@example.com", password="password123")
+    repo.create(username="user3", email="user3@example.com", password="password123")
 
     # Get all users
     users = repo.get_all(skip=0, limit=10)
@@ -85,7 +89,7 @@ def test_update_user(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    user = repo.create(username="testuser", email="test@example.com")
+    user = repo.create(username="testuser", email="test@example.com", password="password123")
     original_updated_at = user.updated_at
 
     # Update user
@@ -101,7 +105,7 @@ def test_delete_user(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    user = repo.create(username="testuser", email="test@example.com")
+    user = repo.create(username="testuser", email="test@example.com", password="password123")
     user_id = user.id
 
     # Delete user

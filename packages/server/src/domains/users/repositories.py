@@ -11,8 +11,10 @@ class UserRepository(ABC):
     """Interface for User repository operations."""
 
     @abstractmethod
-    def create(self, username: str, email: str, full_name: str | None = None) -> User:
-        """Create a new user."""
+    def create(
+        self, username: str, email: str, password: str, full_name: str | None = None
+    ) -> User:
+        """Create a new user with hashed password."""
         pass
 
     @abstractmethod
@@ -58,9 +60,12 @@ class SqlUserRepository(UserRepository):
         """
         self.db = db
 
-    def create(self, username: str, email: str, full_name: str | None = None) -> User:
-        """Create a new user."""
+    def create(
+        self, username: str, email: str, password: str, full_name: str | None = None
+    ) -> User:
+        """Create a new user with hashed password."""
         user = User(username=username, email=email, full_name=full_name)
+        user.set_password(password)
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)

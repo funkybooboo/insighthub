@@ -1,6 +1,7 @@
 """Chat service implementation."""
 
 import json
+import logging
 from collections.abc import Generator
 from dataclasses import dataclass
 
@@ -16,6 +17,8 @@ from .exceptions import ChatSessionNotFoundError, EmptyMessageError
 from .mappers import ChatMapper
 from .models import ChatMessage, ChatSession
 from .repositories import ChatMessageRepository, ChatSessionRepository
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -65,6 +68,7 @@ class ChatService:
             EmptyMessageError: If message is empty or whitespace
         """
         if not message or not message.strip():
+            logger.warning("Chat message validation failed: empty message")
             raise EmptyMessageError()
 
     def create_session(
@@ -90,7 +94,10 @@ class ChatService:
         if not title and first_message:
             title = first_message[:50] + "..." if len(first_message) > 50 else first_message
 
-        return self.session_repository.create(user_id=user_id, title=title, rag_type=rag_type)
+        logger.info(f"Creating chat session: user_id={user_id}, rag_type={rag_type}, title={title}")
+        session = self.session_repository.create(user_id=user_id, title=title, rag_type=rag_type)
+        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}")
+        return session
 
     def get_session_by_id(self, session_id: int) -> ChatSession | None:
         """Get chat session by ID."""
@@ -108,7 +115,13 @@ class ChatService:
 
     def delete_session(self, session_id: int) -> bool:
         """Delete chat session by ID."""
-        return self.session_repository.delete(session_id)
+        logger.info(f"Deleting chat session: session_id={session_id}")
+        result = self.session_repository.delete(session_id)
+        if result:
+            logger.info(f"Chat session deleted: session_id={session_id}")
+        else:
+            logger.warning(f"Chat session deletion failed: session_id={session_id} not found")
+        return result
 
     def create_message(
         self,
@@ -181,6 +194,11 @@ class ChatService:
         Returns:
             ChatResponse with answer, context, and message records
         """
+        logger.info(
+            f"Processing chat message: user_id={user_id}, session_id={session_id}, "
+            f"message_length={len(message)}, rag_type={rag_type}"
+        )
+
         # Get or create session
         session = self.get_or_create_session(
             user_id=user_id,
@@ -194,6 +212,7 @@ class ChatService:
             role="user",
             content=message,
         )
+        logger.debug(f"User message stored: message_id={user_message.id}, session_id={session.id}")
 
         # TODO: Query RAG system
         # from src.rag.factory import create_rag
@@ -221,6 +240,12 @@ class ChatService:
                 "context_chunks": len(context_chunks),
                 "rag_type": rag_type,
             },
+        )
+        logger.debug(f"Assistant message stored: message_id={assistant_message.id}, session_id={session.id}")
+
+        logger.info(
+            f"Chat message processed: user_id={user_id}, session_id={session.id}, "
+            f"context_chunks={len(context_chunks)}"
         )
 
         return ChatResponse(
@@ -260,6 +285,11 @@ class ChatService:
         Yields:
             StreamEvent objects with chunk data or completion metadata
         """
+        logger.info(
+            f"Starting streaming chat: user_id={user_id}, session_id={session_id}, "
+            f"message_length={len(message)}, rag_type={rag_type}"
+        )
+
         # Get or create session
         session = self.get_or_create_session(
             user_id=user_id,
@@ -270,6 +300,7 @@ class ChatService:
         # Get conversation history
         messages = self.list_session_messages(session.id)
         conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
+        logger.debug(f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}")
 
         # Store user message
         self.create_message(
@@ -285,10 +316,18 @@ class ChatService:
         # before calling llm_provider.chat_stream()
 
         # Stream LLM response
+        logger.debug(f"Starting LLM streaming: session_id={session.id}")
         full_response = ""
+        chunk_count = 0
         for chunk in llm_provider.chat_stream(message, conversation_history):
             full_response += chunk
+            chunk_count += 1
             yield StreamEvent.chunk(chunk)
+
+        logger.debug(
+            f"LLM streaming completed: session_id={session.id}, chunks={chunk_count}, "
+            f"response_length={len(full_response)}"
+        )
 
         # Store assistant response
         self.create_message(
@@ -296,6 +335,11 @@ class ChatService:
             role="assistant",
             content=full_response,
             metadata={"rag_type": rag_type},
+        )
+
+        logger.info(
+            f"Streaming chat completed: user_id={user_id}, session_id={session.id}, "
+            f"response_length={len(full_response)}"
         )
 
         # Send completion event
@@ -331,6 +375,11 @@ class ChatService:
         Returns:
             ChatResponseDTO ready for JSON serialization
         """
+        logger.info(
+            f"Processing chat with LLM: user_id={user_id}, session_id={session_id}, "
+            f"message_length={len(message)}, rag_type={rag_type}, documents_count={documents_count}"
+        )
+
         # Get or create session
         session = self.get_or_create_session(
             user_id=user_id,
@@ -341,6 +390,7 @@ class ChatService:
         # Get conversation history
         messages = self.list_session_messages(session.id)
         conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
+        logger.debug(f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}")
 
         # TODO: RAG INTEGRATION - Retrieval for Chat
         # Before generating LLM response, retrieve relevant context from RAG system
@@ -365,7 +415,9 @@ class ChatService:
         # 6. Store context metadata in message for later analysis
 
         # Generate LLM response
+        logger.debug(f"Generating LLM response: session_id={session.id}")
         llm_answer = llm_provider.chat(message, conversation_history)
+        logger.debug(f"LLM response generated: session_id={session.id}, response_length={len(llm_answer)}")
 
         # Store user message
         self.create_message(
@@ -380,6 +432,11 @@ class ChatService:
             role="assistant",
             content=llm_answer,
             metadata={"rag_type": rag_type},
+        )
+
+        logger.info(
+            f"Chat processed with LLM: user_id={user_id}, session_id={session.id}, "
+            f"response_length={len(llm_answer)}"
         )
 
         # Build response DTO
