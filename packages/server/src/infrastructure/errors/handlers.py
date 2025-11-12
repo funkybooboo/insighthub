@@ -1,6 +1,6 @@
 """Flask error handlers for centralized exception handling."""
 
-from flask import Flask, jsonify
+from flask import Flask
 from werkzeug.exceptions import HTTPException
 
 from .base import DomainException
@@ -43,9 +43,7 @@ def register_error_handlers(app: Flask) -> None:
         Returns:
             Tuple of (error dict, status code)
         """
-        response = ErrorResponse.from_exception(
-            error, error.code if error.code else 500
-        )
+        response = ErrorResponse.from_exception(error, error.code if error.code else 500)
         return response.to_dict(), error.code if error.code else 500
 
     @app.errorhandler(Exception)

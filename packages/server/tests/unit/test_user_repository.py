@@ -30,7 +30,9 @@ def test_get_user_by_id(user_repository: UserRepository) -> None:
     repo = user_repository
 
     # Create user
-    created_user = repo.create(username="testuser", email="test@example.com", password="password123")
+    created_user = repo.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
 
     # Retrieve user
     retrieved_user = repo.get_by_id(created_user.id)

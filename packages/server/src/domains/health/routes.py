@@ -29,7 +29,7 @@ def metrics() -> tuple[Response, int]:
 
     # Add performance statistics if available
     if hasattr(current_app, "performance_monitoring"):
-        perf_monitor = current_app.performance_monitoring  # type: ignore
+        perf_monitor = current_app.performance_monitoring
         metrics_data["performance"] = perf_monitor.get_stats()
 
     return jsonify(metrics_data), 200

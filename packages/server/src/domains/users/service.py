@@ -86,7 +86,9 @@ class UserService:
             raise UserAuthenticationError("Invalid username or password")
 
         if not user.check_password(password):
-            logger.warning(f"Authentication failed: invalid password (username={username}, user_id={user.id})")
+            logger.warning(
+                f"Authentication failed: invalid password (username={username}, user_id={user.id})"
+            )
             raise UserAuthenticationError("Invalid username or password")
 
         logger.info(f"User authenticated successfully: user_id={user.id}, username={username}")
@@ -120,6 +122,10 @@ class UserService:
             logger.warning(f"Registration failed: email already exists (email={email})")
             raise UserAlreadyExistsError(f"Email '{email}' already exists")
 
-        user = self.create_user(username=username, email=email, password=password, full_name=full_name)
-        logger.info(f"User registered successfully: user_id={user.id}, username={username}, email={email}")
+        user = self.create_user(
+            username=username, email=email, password=password, full_name=full_name
+        )
+        logger.info(
+            f"User registered successfully: user_id={user.id}, username={username}, email={email}"
+        )
         return user

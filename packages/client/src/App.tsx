@@ -5,7 +5,7 @@ import SignupForm from './components/auth/SignupForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
 import ChatSidebar from './components/chat/ChatSidebar';
-import { RootState } from './store';
+import type { RootState } from './store';
 
 import UserMenu from './components/auth/UserMenu';
 

@@ -1,6 +1,6 @@
 """Authentication routes."""
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, Response, g, jsonify, request
 from jwt.exceptions import InvalidTokenError
 
 from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
@@ -10,7 +10,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
 @auth_bp.route("/signup", methods=["POST"])
-def signup() -> tuple[dict[str, str], int]:
+def signup() -> tuple[Response, int]:
     """
     Register a new user.
 
@@ -78,7 +78,7 @@ def signup() -> tuple[dict[str, str], int]:
 
 
 @auth_bp.route("/login", methods=["POST"])
-def login() -> tuple[dict[str, str], int]:
+def login() -> tuple[Response, int]:
     """
     Authenticate a user and return a JWT token.
 
@@ -137,7 +137,7 @@ def login() -> tuple[dict[str, str], int]:
 
 
 @auth_bp.route("/me", methods=["GET"])
-def get_me() -> tuple[dict[str, str | int], int]:
+def get_me() -> tuple[Response, int]:
     """
     Get the current authenticated user's information.
 
@@ -173,7 +173,7 @@ def get_me() -> tuple[dict[str, str | int], int]:
 
 
 @auth_bp.route("/logout", methods=["POST"])
-def logout() -> tuple[dict[str, str], int]:
+def logout() -> tuple[Response, int]:
     """
     Logout endpoint (client-side token removal).
 

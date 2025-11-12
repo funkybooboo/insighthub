@@ -4,7 +4,6 @@ from typing import Any
 
 from flask import current_app
 from flask_socketio import emit
-
 from src.context import AppContext
 from src.infrastructure.database import get_db
 
