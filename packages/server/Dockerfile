@@ -22,9 +22,11 @@ COPY pyproject.toml poetry.toml Makefile README.md ./
 # Install all dependencies (including dev)
 RUN poetry install --no-root
 
-# Copy source code
+# Copy source code and migrations
 COPY src/ ./src/
 COPY tests/ ./tests/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
 
 # Install the project
 RUN poetry install --only-root
@@ -44,8 +46,10 @@ COPY pyproject.toml poetry.toml Makefile README.md ./
 # Install production dependencies using make
 RUN poetry install --no-root --only main
 
-# Copy source code
+# Copy source code and migrations
 COPY src/ ./src/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
 
 # Install the project
 RUN poetry install --only-root
@@ -57,5 +61,5 @@ EXPOSE 8000
 ENV FLASK_HOST=0.0.0.0
 ENV FLASK_PORT=8000
 
-# Run the Flask API server
-CMD ["poetry", "run", "python", "src/api.py"]
+# Run migrations and start the Flask API server
+CMD ["sh", "-c", "poetry run alembic upgrade head && poetry run python src/api.py"]
