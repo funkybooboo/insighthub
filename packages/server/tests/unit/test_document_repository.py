@@ -10,7 +10,9 @@ from src.domains.users.repositories import UserRepository
 @pytest.fixture
 def test_user(user_repository: UserRepository) -> User:
     """Create a test user."""
-    return user_repository.create(username="testuser", email="test@example.com")
+    return user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
 
 
 def test_create_document(document_repository: DocumentRepository, test_user: User) -> None:

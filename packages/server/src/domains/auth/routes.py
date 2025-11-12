@@ -2,7 +2,6 @@
 
 from flask import Blueprint, Response, g, jsonify, request
 from jwt.exceptions import InvalidTokenError
-
 from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.infrastructure.auth import create_access_token, get_current_user
 

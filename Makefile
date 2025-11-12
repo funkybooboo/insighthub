@@ -1,4 +1,4 @@
-.PHONY: help up up-dev up-infra down build build-server build-client clean logs logs-server logs-client logs-ollama logs-postgres logs-minio
+.PHONY: help up up-dev up-infra down build build-server build-client clean check logs logs-server logs-client logs-ollama logs-postgres logs-minio
 
 help:  ## Show this help message
 	@echo 'Usage: make [target]'
@@ -34,6 +34,13 @@ clean:  ## Remove all containers, images, and volumes
 	docker compose down -v --rmi all
 	cd packages/server && make clean
 	cd packages/client && make clean
+
+check:  ## Run all checks for both client and server
+	@echo "Running server checks..."
+	cd packages/server && make check
+	@echo "\nRunning client checks..."
+	cd packages/client && make check
+	@echo "\nAll checks passed!"
 
 logs:  ## Show logs from all services
 	docker compose logs -f

@@ -40,8 +40,8 @@ check: format lint type-check test  ## Run all checks (format, lint, type-check,
 
 clean:  ## Clean generated files
 	rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
 run:  ## Run the hello world program
 	poetry run python src/hello.py

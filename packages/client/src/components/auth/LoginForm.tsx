@@ -41,14 +41,8 @@ export default function LoginForm() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
                 <div className="flex flex-col items-center">
-                    <img
-                        src="/logo.png"
-                        alt="InsightHub"
-                        className="h-32 mb-8"
-                    />
-                    <h2 className="text-3xl font-bold text-center text-gray-900">
-                        Sign in
-                    </h2>
+                    <img src="/logo.png" alt="InsightHub" className="h-32 mb-8" />
+                    <h2 className="text-3xl font-bold text-center text-gray-900">Sign in</h2>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && (

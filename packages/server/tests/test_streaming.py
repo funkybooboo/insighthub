@@ -3,7 +3,7 @@
 
 import time
 
-from socketio import Client
+from socketio import Client  # type: ignore[import-untyped]
 
 # Create a Socket.IO client
 sio: Client = Client()

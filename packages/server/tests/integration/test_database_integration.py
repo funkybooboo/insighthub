@@ -13,7 +13,9 @@ def test_user_document_relationship(
 ) -> None:
     """Test the relationship between users and documents."""
     # Create user
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
 
     # Create documents for user
     doc1 = document_repository.create(
@@ -47,7 +49,9 @@ def test_cascade_delete_user_documents(
 ) -> None:
     """Test that deleting a user cascades to their documents."""
     # Create user and document
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
     doc = document_repository.create(
         user_id=user.id,
         filename="doc.pdf",
@@ -73,7 +77,9 @@ def test_chat_session_message_relationship(
 ) -> None:
     """Test the relationship between chat sessions and messages."""
     # Create user and session
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
     session = chat_session_repository.create(user_id=user.id, title="Test Chat", rag_type="vector")
 
     # Create messages
@@ -98,7 +104,9 @@ def test_cascade_delete_session_messages(
 ) -> None:
     """Test that deleting a session cascades to its messages."""
     # Create user, session, and message
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
     session = chat_session_repository.create(user_id=user.id)
     msg = chat_message_repository.create(session_id=session.id, role="user", content="Test")
     msg_id = msg.id
@@ -113,18 +121,22 @@ def test_cascade_delete_session_messages(
 def test_unique_constraints(user_repository: UserRepository, db_session: Session) -> None:
     """Test that unique constraints are enforced."""
     # Create first user
-    user_repository.create(username="testuser", email="test@example.com")
+    user_repository.create(username="testuser", email="test@example.com", password="password123")
 
     # Try to create user with same username
     with pytest.raises(IntegrityError):
-        user_repository.create(username="testuser", email="other@example.com")
+        user_repository.create(
+            username="testuser", email="other@example.com", password="password123"
+        )
         db_session.commit()
 
     db_session.rollback()
 
     # Try to create user with same email
     with pytest.raises(IntegrityError):
-        user_repository.create(username="otheruser", email="test@example.com")
+        user_repository.create(
+            username="otheruser", email="test@example.com", password="password123"
+        )
         db_session.commit()
 
 
@@ -133,7 +145,9 @@ def test_document_content_hash_index(
 ) -> None:
     """Test that content_hash is indexed for fast lookups."""
     # Create user
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
 
     # Create documents with same content hash
     hash_value = "identical_content_hash"
@@ -157,7 +171,9 @@ def test_pagination(user_repository: UserRepository) -> None:
     """Test pagination works correctly."""
     # Create 10 users
     for i in range(10):
-        user_repository.create(username=f"user{i}", email=f"user{i}@example.com")
+        user_repository.create(
+            username=f"user{i}", email=f"user{i}@example.com", password="password123"
+        )
 
     # Test pagination
     page1 = user_repository.get_all(skip=0, limit=5)
@@ -171,7 +187,9 @@ def test_pagination(user_repository: UserRepository) -> None:
 def test_timestamp_auto_update(user_repository: UserRepository) -> None:
     """Test that updated_at is automatically updated."""
     # Create user
-    user = user_repository.create(username="testuser", email="test@example.com")
+    user = user_repository.create(
+        username="testuser", email="test@example.com", password="password123"
+    )
     original_updated_at = user.updated_at
 
     # Update user
