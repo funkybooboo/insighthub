@@ -1,8 +1,19 @@
 """Chat service implementation."""
 
 import json
+from collections.abc import Generator
 from dataclasses import dataclass
 
+from src.infrastructure.llm.llm import LlmProvider
+
+from .dtos import (
+    ChatResponse as ChatResponseDTO,
+    SessionListResponse,
+    SessionMessagesResponse,
+    StreamEvent,
+)
+from .exceptions import ChatSessionNotFoundError, EmptyMessageError
+from .mappers import ChatMapper
 from .models import ChatMessage, ChatSession
 from .repositories import ChatMessageRepository, ChatSessionRepository
 
@@ -42,6 +53,19 @@ class ChatService:
         """
         self.session_repository = session_repository
         self.message_repository = message_repository
+
+    def validate_message(self, message: str) -> None:
+        """
+        Validate chat message content.
+
+        Args:
+            message: The message to validate
+
+        Raises:
+            EmptyMessageError: If message is empty or whitespace
+        """
+        if not message or not message.strip():
+            raise EmptyMessageError()
 
     def create_session(
         self,
@@ -205,4 +229,199 @@ class ChatService:
             session_id=session.id,
             user_message=user_message,
             assistant_message=assistant_message,
+        )
+
+    def stream_chat_response(
+        self,
+        user_id: int,
+        message: str,
+        llm_provider: LlmProvider,
+        session_id: int | None = None,
+        rag_type: str = "vector",
+    ) -> Generator[StreamEvent, None, None]:
+        """
+        Stream a chat response with full session management.
+
+        This method handles the complete workflow for streaming chat:
+        - Get or create session
+        - Build conversation history
+        - Store user message
+        - Stream LLM response
+        - Store assistant response
+        - Emit stream events
+
+        Args:
+            user_id: ID of the user sending the message
+            message: The user's message
+            llm_provider: LLM provider for generating responses
+            session_id: Optional existing session ID
+            rag_type: Type of RAG to use (vector or graph)
+
+        Yields:
+            StreamEvent objects with chunk data or completion metadata
+        """
+        # Get or create session
+        session = self.get_or_create_session(
+            user_id=user_id,
+            session_id=session_id,
+            first_message=message,
+        )
+
+        # Get conversation history
+        messages = self.list_session_messages(session.id)
+        conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
+
+        # Store user message
+        self.create_message(
+            session_id=session.id,
+            role="user",
+            content=message,
+        )
+
+        # TODO: RAG INTEGRATION - Retrieval for Streaming Chat
+        # Same as non-streaming chat - retrieve relevant context before streaming
+        # See process_chat_message_with_llm() for detailed implementation steps
+        # Key difference: Context should be prepended to conversation_history
+        # before calling llm_provider.chat_stream()
+
+        # Stream LLM response
+        full_response = ""
+        for chunk in llm_provider.chat_stream(message, conversation_history):
+            full_response += chunk
+            yield StreamEvent.chunk(chunk)
+
+        # Store assistant response
+        self.create_message(
+            session_id=session.id,
+            role="assistant",
+            content=full_response,
+            metadata={"rag_type": rag_type},
+        )
+
+        # Send completion event
+        yield StreamEvent.complete(session_id=session.id, full_response=full_response)
+
+    def process_chat_message_with_llm(
+        self,
+        user_id: int,
+        message: str,
+        llm_provider: LlmProvider,
+        session_id: int | None = None,
+        rag_type: str = "vector",
+        documents_count: int = 0,
+    ) -> ChatResponseDTO:
+        """
+        Process a chat message and return a DTO (non-streaming).
+
+        This method handles the complete chat workflow:
+        - Get or create session
+        - Build conversation history
+        - Generate LLM response
+        - Store messages
+        - Return formatted response
+
+        Args:
+            user_id: ID of the user sending the message
+            message: The user's message
+            llm_provider: LLM provider for generating responses
+            session_id: Optional existing session ID
+            rag_type: Type of RAG to use (vector or graph)
+            documents_count: Number of documents available for context
+
+        Returns:
+            ChatResponseDTO ready for JSON serialization
+        """
+        # Get or create session
+        session = self.get_or_create_session(
+            user_id=user_id,
+            session_id=session_id,
+            first_message=message,
+        )
+
+        # Get conversation history
+        messages = self.list_session_messages(session.id)
+        conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
+
+        # TODO: RAG INTEGRATION - Retrieval for Chat
+        # Before generating LLM response, retrieve relevant context from RAG system
+        #
+        # Implementation steps:
+        # 1. Import RAG system: from src.rag.factory import create_rag
+        # 2. Initialize RAG with appropriate type:
+        #    rag = create_rag(
+        #        rag_type=rag_type,  # "vector" or "graph"
+        #        embedding_type="ollama",
+        #        ...
+        #    )
+        # 3. Retrieve relevant chunks:
+        #    rag_results = rag.retrieve(query=message, top_k=5)
+        # 4. Format context for LLM:
+        #    context_str = "\n\n".join([
+        #        f"[{i+1}] {chunk['text']}"
+        #        for i, chunk in enumerate(rag_results)
+        #    ])
+        # 5. Prepend context to conversation or use system message:
+        #    system_message = f"Use the following context to answer:\n{context_str}"
+        # 6. Store context metadata in message for later analysis
+
+        # Generate LLM response
+        llm_answer = llm_provider.chat(message, conversation_history)
+
+        # Store user message
+        self.create_message(
+            session_id=session.id,
+            role="user",
+            content=message,
+        )
+
+        # Store assistant response
+        self.create_message(
+            session_id=session.id,
+            role="assistant",
+            content=llm_answer,
+            metadata={"rag_type": rag_type},
+        )
+
+        # Build response DTO
+        return ChatResponseDTO(
+            answer=llm_answer,
+            context=[],  # No RAG context for now
+            session_id=session.id,
+            documents_count=documents_count,
+        )
+
+    def list_user_sessions_as_dto(self, user_id: int) -> SessionListResponse:
+        """
+        List all sessions for a user as a DTO.
+
+        Args:
+            user_id: The user ID
+
+        Returns:
+            SessionListResponse DTO ready for JSON serialization
+        """
+        sessions = self.list_user_sessions(user_id)
+        session_dtos = ChatMapper.sessions_to_dtos(sessions)
+
+        return SessionListResponse(
+            sessions=session_dtos,
+            count=len(session_dtos),
+        )
+
+    def list_session_messages_as_dto(self, session_id: int) -> SessionMessagesResponse:
+        """
+        List all messages for a session as a DTO.
+
+        Args:
+            session_id: The session ID
+
+        Returns:
+            SessionMessagesResponse DTO ready for JSON serialization
+        """
+        messages = self.list_session_messages(session_id)
+        message_dtos = ChatMapper.messages_to_dtos(messages)
+
+        return SessionMessagesResponse(
+            messages=message_dtos,
+            count=len(message_dtos),
         )

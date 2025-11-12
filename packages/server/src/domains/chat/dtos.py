@@ -119,3 +119,24 @@ class SessionMessagesResponse:
             "messages": [msg.to_dict() for msg in self.messages],
             "count": self.count,
         }
+
+
+@dataclass
+class StreamEvent:
+    """Event emitted during streaming chat responses."""
+
+    event_type: str
+    data: dict[str, str | int]
+
+    @staticmethod
+    def chunk(chunk: str) -> "StreamEvent":
+        """Create a chunk event."""
+        return StreamEvent(event_type="chunk", data={"chunk": chunk})
+
+    @staticmethod
+    def complete(session_id: int, full_response: str) -> "StreamEvent":
+        """Create a completion event."""
+        return StreamEvent(
+            event_type="complete",
+            data={"session_id": session_id, "full_response": full_response},
+        )
