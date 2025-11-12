@@ -155,6 +155,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
 "tests/*" = ["ARG001", "ARG002"]  # Allow unused arguments in tests
+"tests/conftest.py" = ["E402"]  # Allow imports after environment setup
 
 # Pytest configuration
 [tool.pytest.ini_options]

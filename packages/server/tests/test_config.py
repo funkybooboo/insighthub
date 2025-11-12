@@ -12,6 +12,8 @@ from typing import Final
 class TestDatabaseConfig:
     """Configuration for test database connections."""
 
+    __test__ = False  # Tell pytest this is not a test class
+
     # PostgreSQL container settings (for integration tests)
     POSTGRES_IMAGE: str = "postgres:16-alpine"
     POSTGRES_USER: str = "test_user"
@@ -25,6 +27,8 @@ class TestDatabaseConfig:
 @dataclass(frozen=True)
 class TestBlobStorageConfig:
     """Configuration for test blob storage."""
+
+    __test__ = False  # Tell pytest this is not a test class
 
     # MinIO container settings (for integration tests)
     MINIO_IMAGE: str = "minio/minio:latest"
@@ -40,6 +44,8 @@ class TestBlobStorageConfig:
 class TestServiceConfig:
     """Configuration for test service instances."""
 
+    __test__ = False  # Tell pytest this is not a test class
+
     # Default service types for tests
     USER_SERVICE_TYPE: str = "default"
     DOCUMENT_SERVICE_TYPE: str = "default"
@@ -49,6 +55,8 @@ class TestServiceConfig:
 @dataclass(frozen=True)
 class TestRepositoryConfig:
     """Configuration for test repository instances."""
+
+    __test__ = False  # Tell pytest this is not a test class
 
     # Default repository types for tests
     USER_REPOSITORY_TYPE: str = "sql"
@@ -60,6 +68,8 @@ class TestRepositoryConfig:
 @dataclass(frozen=True)
 class TestDataConfig:
     """Configuration for test data and fixtures."""
+
+    __test__ = False  # Tell pytest this is not a test class
 
     # Sample user data
     SAMPLE_USERNAME: str = "test_user"
@@ -88,6 +98,8 @@ DATA_CONFIG: Final[TestDataConfig] = TestDataConfig()
 class TestMarkers:
     """Pytest markers for categorizing tests."""
 
+    __test__ = False  # Tell pytest this is not a test class
+
     UNIT: str = "unit"  # Fast tests with no external dependencies
     INTEGRATION: str = "integration"  # Tests with Docker containers
     SLOW: str = "slow"  # Tests that take more than 1 second
@@ -98,6 +110,8 @@ class TestMarkers:
 # Test timeout settings (in seconds)
 class TestTimeouts:
     """Timeout configuration for different test types."""
+
+    __test__ = False  # Tell pytest this is not a test class
 
     UNIT_TEST_TIMEOUT: int = 5  # Unit tests should complete quickly
     INTEGRATION_TEST_TIMEOUT: int = 30  # Integration tests may take longer

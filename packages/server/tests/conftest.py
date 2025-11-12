@@ -1,13 +1,24 @@
 """Pytest configuration and shared fixtures."""
 
+# IMPORTANT: Load test environment configuration BEFORE importing any src modules
+# This must be at the very top to ensure config values are loaded before src.config is imported
+from dotenv import load_dotenv
+
+load_dotenv(".env.test", override=True)
+
+# Now safe to import src modules which will use the test configuration
+import os
 from collections.abc import Generator
 from io import BytesIO
 from typing import Any
 
 import pytest
+from flask import Flask
+from flask.testing import FlaskClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from src import config
+from src.api import create_app
 from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
 from src.domains.documents.repositories import DocumentRepository
 from src.domains.users.repositories import UserRepository
@@ -144,6 +155,24 @@ def test_database_url(postgres_container: PostgresContainer) -> str:
     """Get the database URL for testing."""
     url: str = postgres_container.get_connection_url()
     return url
+
+
+@pytest.fixture(scope="function")
+def app(postgres_container: PostgresContainer, blob_storage: BlobStorage) -> Flask:
+    """Create Flask app for testing with test database."""
+    # Set up database URL from testcontainer
+    os.environ["DATABASE_URL"] = postgres_container.get_connection_url()
+
+    # Create app (BLOB_STORAGE_TYPE already set at module level)
+    test_app = create_app()
+    test_app.config["TESTING"] = True
+    return test_app
+
+
+@pytest.fixture(scope="function")
+def client(app: Flask) -> FlaskClient:
+    """Create Flask test client."""
+    return app.test_client()
 
 
 @pytest.fixture(scope="function")
