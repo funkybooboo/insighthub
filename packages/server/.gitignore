@@ -44,8 +44,6 @@ Thumbs.db
 
 # Environment variables
 .env
-.env.test
-.env
 .env.*.local
 
 # Build
