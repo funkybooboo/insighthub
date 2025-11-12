@@ -1,6 +1,6 @@
 """Type definitions for RAG system."""
 
-from typing import TypedDict, Literal
+from typing import Literal, TypedDict
 
 
 class Document(TypedDict, total=False):
