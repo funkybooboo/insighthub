@@ -19,9 +19,9 @@ export default function UserMenu() {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center space-x-3">
-                <img src="/insighthub.png" alt="InsightHub" className="w-10 h-10 rounded-lg" />
+                <img src="/logo.png" alt="InsightHub" className="h-8" />
                 <div>
                     <div className="font-medium text-gray-900">{user?.username || 'User'}</div>
                     <div className="text-sm text-gray-500">{user?.email || ''}</div>

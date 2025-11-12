@@ -61,9 +61,9 @@ export default function SignupForm() {
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
                 <div className="flex flex-col items-center">
                     <img
-                        src="/insighthub.png"
+                        src="/logo.png"
                         alt="InsightHub"
-                        className="w-20 h-20 mb-4 rounded-xl"
+                        className="h-32 mb-8"
                     />
                     <h2 className="text-3xl font-bold text-center text-gray-900">
                         Create your account
