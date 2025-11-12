@@ -90,3 +90,6 @@ LLM_PROVIDER: Final[str] = os.getenv("LLM_PROVIDER", "ollama")
 # JWT Configuration
 JWT_SECRET_KEY: Final[str] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 JWT_EXPIRE_MINUTES: Final[int] = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
+
+# CORS Configuration
+CORS_ORIGINS: Final[str] = os.getenv("CORS_ORIGINS", "*")

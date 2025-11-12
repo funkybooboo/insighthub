@@ -50,7 +50,7 @@ def create_app() -> Flask:
     # CORS configuration
     CORS(
         app,
-        origins=os.getenv("CORS_ORIGINS", "*").split(","),
+        origins=config.CORS_ORIGINS.split(","),
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
