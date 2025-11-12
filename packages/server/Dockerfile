@@ -54,6 +54,10 @@ COPY alembic.ini ./
 # Install the project
 RUN poetry install --only-root
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Expose port
 EXPOSE 8000
 
@@ -61,5 +65,5 @@ EXPOSE 8000
 ENV FLASK_HOST=0.0.0.0
 ENV FLASK_PORT=8000
 
-# Run migrations and start the Flask API server
-CMD ["sh", "-c", "poetry run alembic upgrade head && poetry run python src/api.py"]
+# Use entrypoint script
+ENTRYPOINT ["./docker-entrypoint.sh"]

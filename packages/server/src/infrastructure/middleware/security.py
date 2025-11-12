@@ -4,6 +4,8 @@ import logging
 
 from flask import Flask, Response
 
+from src import config
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +37,14 @@ class SecurityHeadersMiddleware:
 
     def _default_config(self) -> dict[str, str]:
         """Get default security headers configuration."""
+        # Allow connections to configured CORS origins for WebSocket and API calls
+        connect_src = "'self'"
+        if config.CORS_ORIGINS != "*":
+            connect_src += " " + " ".join(config.CORS_ORIGINS.split(","))
+        else:
+            # In development, allow connections to common localhost ports
+            connect_src += " http://localhost:* ws://localhost:* wss://localhost:*"
+
         return {
             # Prevent clickjacking attacks
             "X-Frame-Options": "DENY",
@@ -49,7 +59,7 @@ class SecurityHeadersMiddleware:
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data: https:; "
                 "font-src 'self' data:; "
-                "connect-src 'self'"
+                f"connect-src {connect_src}"
             ),
             # Control referrer information
             "Referrer-Policy": "strict-origin-when-cross-origin",
