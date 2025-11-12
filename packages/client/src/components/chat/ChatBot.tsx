@@ -192,10 +192,11 @@ const ChatBot = () => {
     };
 
     // Convert Message[] to the format expected by ChatMessages component
-    const messages = activeSession?.messages.map((msg) => ({
-        content: msg.content,
-        role: msg.role,
-    })) || [];
+    const messages =
+        activeSession?.messages.map((msg) => ({
+            content: msg.content,
+            role: msg.role,
+        })) || [];
 
     return (
         <div className="flex flex-col h-full">

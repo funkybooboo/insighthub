@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from flask import Flask, Request, jsonify, request
+from flask import Flask, jsonify, request
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class RequestValidationMiddleware:
             return None
 
     def _contains_path_traversal(self, path: str) -> bool:
-        """
+        r"""
         Check if the path contains path traversal patterns.
 
         Looks for patterns like ../, ..\, etc.

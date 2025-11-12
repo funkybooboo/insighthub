@@ -23,7 +23,7 @@ export default function LoginForm() {
                 setCredentials({
                     user: response.user,
                     token: response.access_token,
-                }),
+                })
             );
             navigate('/');
         } catch (err: unknown) {
@@ -40,8 +40,15 @@ export default function LoginForm() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
             <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
-                <div>
-                    <h2 className="text-3xl font-bold text-center text-gray-900">Sign in to InsightHub</h2>
+                <div className="flex flex-col items-center">
+                    <img
+                        src="/insighthub.png"
+                        alt="InsightHub"
+                        className="w-20 h-20 mb-4 rounded-xl"
+                    />
+                    <h2 className="text-3xl font-bold text-center text-gray-900">
+                        Sign in
+                    </h2>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && (
@@ -51,7 +58,10 @@ export default function LoginForm() {
                     )}
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                            <label
+                                htmlFor="username"
+                                className="block text-sm font-medium text-gray-700"
+                            >
                                 Username
                             </label>
                             <input
@@ -65,7 +75,10 @@ export default function LoginForm() {
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                            <label
+                                htmlFor="password"
+                                className="block text-sm font-medium text-gray-700"
+                            >
                                 Password
                             </label>
                             <input

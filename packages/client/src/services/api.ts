@@ -99,7 +99,7 @@ class ApiService {
                 }
                 return config;
             },
-            (error) => Promise.reject(error),
+            (error) => Promise.reject(error)
         );
 
         this.client.interceptors.response.use(
@@ -110,7 +110,7 @@ class ApiService {
                     window.location.href = '/login';
                 }
                 return Promise.reject(error);
-            },
+            }
         );
     }
 

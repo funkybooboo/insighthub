@@ -21,6 +21,7 @@ class DocumentUploadResult:
     text_length: int
     is_duplicate: bool
 
+
 ALLOWED_EXTENSIONS = {"txt", "pdf"}
 
 
@@ -105,7 +106,7 @@ class DocumentService:
         except DocumentProcessingError:
             raise
         except Exception as e:
-            raise DocumentProcessingError(filename, str(e))
+            raise DocumentProcessingError(filename, str(e)) from e
 
     def upload_document(
         self,

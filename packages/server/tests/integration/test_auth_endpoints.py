@@ -3,7 +3,6 @@
 import json
 from typing import Any
 
-import pytest
 from flask.testing import FlaskClient
 
 
@@ -16,7 +15,9 @@ def test_signup(client: FlaskClient) -> None:
         "full_name": "New User",
     }
 
-    response = client.post("/api/auth/signup", data=json.dumps(signup_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
+    )
 
     assert response.status_code == 201
     data = json.loads(response.data)
@@ -34,7 +35,9 @@ def test_signup_duplicate_username(client: FlaskClient, test_user: Any) -> None:
         "password": "password123",
     }
 
-    response = client.post("/api/auth/signup", data=json.dumps(signup_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
+    )
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -49,7 +52,9 @@ def test_signup_duplicate_email(client: FlaskClient, test_user: Any) -> None:
         "password": "password123",
     }
 
-    response = client.post("/api/auth/signup", data=json.dumps(signup_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
+    )
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -64,7 +69,9 @@ def test_signup_short_password(client: FlaskClient) -> None:
         "password": "12345",  # Only 5 characters
     }
 
-    response = client.post("/api/auth/signup", data=json.dumps(signup_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
+    )
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -75,7 +82,9 @@ def test_login(client: FlaskClient, test_user: Any) -> None:
     """Test user login."""
     login_data = {"username": "test_user", "password": "test_password"}
 
-    response = client.post("/api/auth/login", data=json.dumps(login_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/login", data=json.dumps(login_data), content_type="application/json"
+    )
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -88,7 +97,9 @@ def test_login_wrong_password(client: FlaskClient, test_user: Any) -> None:
     """Test login with wrong password."""
     login_data = {"username": "test_user", "password": "wrongpassword"}
 
-    response = client.post("/api/auth/login", data=json.dumps(login_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/login", data=json.dumps(login_data), content_type="application/json"
+    )
 
     assert response.status_code == 401
     data = json.loads(response.data)
@@ -99,7 +110,9 @@ def test_login_nonexistent_user(client: FlaskClient) -> None:
     """Test login with nonexistent user."""
     login_data = {"username": "nonexistent", "password": "password123"}
 
-    response = client.post("/api/auth/login", data=json.dumps(login_data), content_type="application/json")
+    response = client.post(
+        "/api/auth/login", data=json.dumps(login_data), content_type="application/json"
+    )
 
     assert response.status_code == 401
     data = json.loads(response.data)

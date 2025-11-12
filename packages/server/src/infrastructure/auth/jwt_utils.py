@@ -3,7 +3,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any
+from typing import cast
 
 import jwt
 from flask import g, request
@@ -31,11 +31,13 @@ def create_access_token(user_id: int) -> str:
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {"user_id": user_id, "exp": expire}
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    logger.info(f"Created access token for user_id={user_id}, expires in {ACCESS_TOKEN_EXPIRE_MINUTES} minutes")
+    logger.info(
+        f"Created access token for user_id={user_id}, expires in {ACCESS_TOKEN_EXPIRE_MINUTES} minutes"
+    )
     return token
 
 
-def decode_access_token(token: str) -> dict[str, Any]:
+def decode_access_token(token: str) -> dict[str, int]:
     """
     Decode and validate a JWT access token.
 
@@ -43,21 +45,21 @@ def decode_access_token(token: str) -> dict[str, Any]:
         token: The JWT token to decode
 
     Returns:
-        dict: The decoded payload
+        dict: The decoded payload containing user_id and expiration
 
     Raises:
         InvalidTokenError: If the token is invalid or expired
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = cast(dict[str, int], jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]))
         logger.debug(f"Successfully decoded token for user_id={payload.get('user_id')}")
         return payload
     except ExpiredSignatureError:
         logger.warning("Token decode failed: token has expired")
-        raise InvalidTokenError("Token has expired")
+        raise InvalidTokenError("Token has expired") from None
     except Exception as e:
         logger.warning(f"Token decode failed: {str(e)}")
-        raise InvalidTokenError("Invalid token")
+        raise InvalidTokenError("Invalid token") from e
 
 
 def get_current_user() -> User:
@@ -83,7 +85,7 @@ def get_current_user() -> User:
         logger.warning("Authentication failed: invalid token payload (no user_id)")
         raise InvalidTokenError("Invalid token payload")
 
-    user = g.app_context.user_service.get_user_by_id(user_id)
+    user = cast(User | None, g.app_context.user_service.get_user_by_id(user_id))
     if not user:
         logger.warning(f"Authentication failed: user not found (user_id={user_id})")
         raise InvalidTokenError("User not found")

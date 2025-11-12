@@ -4,6 +4,7 @@ import json
 import os
 from collections.abc import Generator
 from io import BytesIO
+from typing import Any
 
 import pytest
 from flask import Flask
@@ -139,7 +140,7 @@ def test_upload_document(client: FlaskClient, auth_headers: dict[str, str]) -> N
         "/api/documents/upload",
         data=file_data,
         content_type="multipart/form-data",
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     if response.status_code != 201:
@@ -160,7 +161,7 @@ def test_upload_invalid_file_type(client: FlaskClient, auth_headers: dict[str, s
         "/api/documents/upload",
         data=file_data,
         content_type="multipart/form-data",
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     assert response.status_code == 400
@@ -171,10 +172,7 @@ def test_upload_invalid_file_type(client: FlaskClient, auth_headers: dict[str, s
 def test_upload_no_file(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test uploading without a file."""
     response = client.post(
-        "/api/documents/upload",
-        data={},
-        content_type="multipart/form-data",
-        headers=auth_headers
+        "/api/documents/upload", data={}, content_type="multipart/form-data", headers=auth_headers
     )
 
     assert response.status_code == 400
@@ -201,7 +199,7 @@ def test_delete_document(client: FlaskClient, auth_headers: dict[str, str]) -> N
         "/api/documents/upload",
         data=file_data,
         content_type="multipart/form-data",
-        headers=auth_headers
+        headers=auth_headers,
     )
     upload_data = json.loads(upload_response.data)
     doc_id = upload_data["document"]["id"]
@@ -234,7 +232,7 @@ def test_chat_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> Non
         "/api/chat",
         data=json.dumps(chat_data),
         content_type="application/json",
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     assert response.status_code == 200
@@ -247,10 +245,7 @@ def test_chat_endpoint(client: FlaskClient, auth_headers: dict[str, str]) -> Non
 def test_chat_no_message(client: FlaskClient, auth_headers: dict[str, str]) -> None:
     """Test chat endpoint without a message."""
     response = client.post(
-        "/api/chat",
-        data=json.dumps({}),
-        content_type="application/json",
-        headers=auth_headers
+        "/api/chat", data=json.dumps({}), content_type="application/json", headers=auth_headers
     )
 
     assert response.status_code == 400
@@ -266,7 +261,7 @@ def test_chat_with_session(client: FlaskClient, auth_headers: dict[str, str]) ->
         "/api/chat",
         data=json.dumps(chat_data1),
         content_type="application/json",
-        headers=auth_headers
+        headers=auth_headers,
     )
     data1 = json.loads(response1.data)
     session_id = data1["session_id"]
@@ -277,7 +272,7 @@ def test_chat_with_session(client: FlaskClient, auth_headers: dict[str, str]) ->
         "/api/chat",
         data=json.dumps(chat_data2),
         content_type="application/json",
-        headers=auth_headers
+        headers=auth_headers,
     )
 
     assert response2.status_code == 200
@@ -304,7 +299,7 @@ def test_get_session_messages(client: FlaskClient, auth_headers: dict[str, str])
         "/api/chat",
         data=json.dumps(chat_data),
         content_type="application/json",
-        headers=auth_headers
+        headers=auth_headers,
     )
     chat_data_response = json.loads(chat_response.data)
     session_id = chat_data_response["session_id"]
@@ -329,7 +324,7 @@ def test_upload_duplicate_document(client: FlaskClient, auth_headers: dict[str, 
         "/api/documents/upload",
         data=file_data1,
         content_type="multipart/form-data",
-        headers=auth_headers
+        headers=auth_headers,
     )
     json.loads(response1.data)
 
@@ -339,7 +334,7 @@ def test_upload_duplicate_document(client: FlaskClient, auth_headers: dict[str, 
         "/api/documents/upload",
         data=file_data2,
         content_type="multipart/form-data",
-        headers=auth_headers
+        headers=auth_headers,
     )
     json.loads(response2.data)
 

@@ -7,13 +7,9 @@ from dataclasses import dataclass
 
 from src.infrastructure.llm.llm import LlmProvider
 
-from .dtos import (
-    ChatResponse as ChatResponseDTO,
-    SessionListResponse,
-    SessionMessagesResponse,
-    StreamEvent,
-)
-from .exceptions import ChatSessionNotFoundError, EmptyMessageError
+from .dtos import ChatResponse as ChatResponseDTO
+from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
+from .exceptions import EmptyMessageError
 from .mappers import ChatMapper
 from .models import ChatMessage, ChatSession
 from .repositories import ChatMessageRepository, ChatSessionRepository
@@ -241,7 +237,9 @@ class ChatService:
                 "rag_type": rag_type,
             },
         )
-        logger.debug(f"Assistant message stored: message_id={assistant_message.id}, session_id={session.id}")
+        logger.debug(
+            f"Assistant message stored: message_id={assistant_message.id}, session_id={session.id}"
+        )
 
         logger.info(
             f"Chat message processed: user_id={user_id}, session_id={session.id}, "
@@ -299,8 +297,12 @@ class ChatService:
 
         # Get conversation history
         messages = self.list_session_messages(session.id)
-        conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
-        logger.debug(f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}")
+        conversation_history = [
+            {"role": msg.role, "content": msg.content} for msg in messages[-10:]
+        ]
+        logger.debug(
+            f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}"
+        )
 
         # Store user message
         self.create_message(
@@ -389,8 +391,12 @@ class ChatService:
 
         # Get conversation history
         messages = self.list_session_messages(session.id)
-        conversation_history = [{"role": msg.role, "content": msg.content} for msg in messages[-10:]]
-        logger.debug(f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}")
+        conversation_history = [
+            {"role": msg.role, "content": msg.content} for msg in messages[-10:]
+        ]
+        logger.debug(
+            f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}"
+        )
 
         # TODO: RAG INTEGRATION - Retrieval for Chat
         # Before generating LLM response, retrieve relevant context from RAG system
@@ -417,7 +423,9 @@ class ChatService:
         # Generate LLM response
         logger.debug(f"Generating LLM response: session_id={session.id}")
         llm_answer = llm_provider.chat(message, conversation_history)
-        logger.debug(f"LLM response generated: session_id={session.id}, response_length={len(llm_answer)}")
+        logger.debug(
+            f"LLM response generated: session_id={session.id}, response_length={len(llm_answer)}"
+        )
 
         # Store user message
         self.create_message(

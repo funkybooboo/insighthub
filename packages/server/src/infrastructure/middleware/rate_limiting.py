@@ -133,8 +133,4 @@ class RateLimitMiddleware:
             return 0
 
         current_time = time.time()
-        return sum(
-            count
-            for ts, count in self.request_counts[ip]
-            if current_time - ts < window
-        )
+        return sum(count for ts, count in self.request_counts[ip] if current_time - ts < window)

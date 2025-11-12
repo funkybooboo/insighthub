@@ -1,7 +1,6 @@
 """Chat routes."""
 
 from flask import Blueprint, Response, g, jsonify, request
-
 from src.infrastructure.auth import get_current_user, require_auth
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/api")
