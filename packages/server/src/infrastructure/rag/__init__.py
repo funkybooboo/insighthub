@@ -1,16 +1,16 @@
 """RAG (Retrieval-Augmented Generation) infrastructure."""
 
-from infrastructure.rag.rag import Rag
 from infrastructure.rag.factory import create_rag
+from infrastructure.rag.rag import Rag
 from infrastructure.rag.types import (
-    Document,
     Chunk,
-    SearchResult,
-    RetrievalResult,
-    QueryResult,
     ChunkerConfig,
-    RagStats,
+    Document,
+    QueryResult,
     RagConfig,
+    RagStats,
+    RetrievalResult,
+    SearchResult,
 )
 
 __all__ = [
