@@ -7,6 +7,7 @@ A dual RAG (Retrieval-Augmented Generation) system for academic research paper a
 ## Features
 
 - **Dual RAG Implementation**: Compare Vector RAG and Graph RAG approaches
+- **Real-time Streaming**: Token-by-token LLM response streaming via WebSocket
 - **Fully Local**: Runs entirely on your machine using Docker (Ollama + Qdrant)
 - **React Frontend**: Modern chatbot interface with conversational memory
 - **Modular Architecture**: Pluggable components (embeddings, chunking, vector stores)
@@ -27,7 +28,7 @@ The system follows a modular RAG pipeline:
 
 **Frontend**: React 19 + TypeScript + Vite + TailwindCSS + Redux Toolkit
 
-**Backend**: Python 3.11+ with FastAPI
+**Backend**: Python 3.11+ with Flask + Socket.IO
 - **Vector RAG**: Qdrant + Ollama (nomic-embed-text + llama3.2)
 - **Graph RAG**: Neo4j + Leiden clustering (in development)
 - **Chunking**: Character, sentence, and word-based strategies
@@ -75,29 +76,18 @@ bun install && bun run dev
 ## Usage Example
 
 ```python
-from src.rag.factory import create_rag
+from src.infrastructure.rag.factory import create_rag
 
 # Create RAG instance
-rag = create_rag(
-    rag_type="vector",
-    chunking_strategy="sentence",
-    embedding_type="ollama",
-    vector_store_type="qdrant",
-    ollama_base_url="http://localhost:11434",
-    chunk_size=500,
-    chunk_overlap=50
-)
-
-# Add documents
-documents = [{
-    "text": "Your research paper content...",
-    "metadata": {"title": "Paper Title", "year": 2024}
-}]
-rag.add_documents(documents)
-
-# Query
-result = rag.query("What are the key findings?", top_k=5)
-print(result['answer'])
+rag = create_rag({
+    "rag_type": "vector",
+    "chunking_strategy": "sentence",
+    "embedding_type": "ollama",
+    "vector_store_type": "qdrant",
+    "ollama_base_url": "http://localhost:11434",
+    "chunk_size": 500,
+    "chunk_overlap": 50
+})
 ```
 
 See `packages/server/src/main.py` for a complete demo.
@@ -114,11 +104,14 @@ insighthub/
 │   │       └── store/       # Redux state
 │   └── server/              # Python RAG backend
 │       ├── src/
-│       │   ├── rag/         # RAG implementations (vector_rag.py, factory.py)
-│       │   ├── chunking/    # Chunking strategies (character, sentence, word)
-│       │   ├── embeddings/  # Embedding models (ollama, openai)
-│       │   ├── stores/      # Vector/graph stores (qdrant, in_memory)
-│       │   └── main.py      # Demo application
+│       │   ├── infrastructure/rag/  # RAG implementations and components
+│       │   │   ├── chunking/        # Chunking strategies
+│       │   │   ├── embeddings/      # Embedding models (ollama, openai)
+│       │   │   ├── vector_stores/   # Vector stores (qdrant, in_memory)
+│       │   │   ├── factory.py       # RAG factory
+│       │   │   └── rag.py           # Base RAG interface
+│       │   ├── domains/             # Domain logic (chat, documents, auth)
+│       │   └── infrastructure/      # Infrastructure services
 │       └── tests/           # Unit and integration tests
 ├── docs/                    # Documentation
 ├── docker-compose.yml       # Service orchestration
