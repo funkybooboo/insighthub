@@ -1,0 +1,99 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - poetry install --no-root
+
+  test:
+    desc: Run all tests with coverage
+    cmds:
+      - cmd: echo "Running all tests..."
+        silent: true
+      - poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+
+  test-unit:
+    desc: Run unit tests only (fast)
+    cmds:
+      - cmd: echo "Running unit tests..."
+        silent: true
+      - poetry run pytest tests/unit/ -v
+
+  test-integration:
+    desc: Run integration tests with testcontainers (slower)
+    cmds:
+      - cmd: echo "Running integration tests with testcontainers..."
+        silent: true
+      - cmd: 'echo "Note: Docker must be running for testcontainers"'
+        silent: true
+      - poetry run pytest tests/integration/ -v -s
+
+  test-watch:
+    desc: Run tests in watch mode (requires pytest-watch)
+    cmds:
+      - poetry run ptw tests/
+
+  format:
+    desc: Format code with black, isort, and ruff
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+      - poetry run ruff check src tests --fix
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - poetry run ruff check src tests
+
+  type-check:
+    desc: Run mypy type checker
+    cmds:
+      - poetry run mypy src tests
+
+  check:
+    desc: Run all checks (format, lint, type-check, test)
+    cmds:
+      - task: format
+      - task: lint
+      - task: type-check
+      - task: test
+
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      - find . -type f -name "*.pyc" -delete 2>/dev/null || true
+
+  run:
+    desc: Run the CLI (alias for cli task)
+    cmds:
+      - task: cli
+
+  server:
+    desc: Run Flask API server on port 5000
+    cmds:
+      - poetry run python src/api.py
+
+  cli:
+    desc: 'Run RAG CLI (usage: task cli -- command args)'
+    cmds:
+      - poetry run python src/cli.py {{.CLI_ARGS}}
+
+  health:
+    desc: Check Flask API server health
+    cmds:
+      - |
+        if curl -s http://localhost:5000/health | grep -q "healthy"; then
+          echo "Server is healthy"
+        else
+          echo "Server is not responding"
+        fi
+    silent: true

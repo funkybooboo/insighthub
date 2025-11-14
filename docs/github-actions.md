@@ -1,120 +1,113 @@
 # GitHub Actions
 
-This document explains the GitHub Actions workflows in this project and how to run them locally using `act`.
+CI/CD workflows and local testing with `act`.
 
 ## Workflows
 
-### Client CI (.github/workflows/client-ci.yml)
+### Client CI
+**File**: `.github/workflows/client-ci.yml`
 
-Runs on every push/PR affecting `packages/client/`:
-- Formatting check with Prettier
-- Linting with ESLint
-- TypeScript compilation and production build
-- Unit tests with Bun
+Runs on push/PR affecting `packages/client/` or root `Taskfile.yml`:
+- Install Task runner
+- Format check (Prettier)
+- Lint (ESLint)
+- TypeScript compilation and build
+- Unit tests
 
-### Server CI (.github/workflows/server-ci.yml)
+All checks use Task commands.
 
-Runs on every push/PR affecting `packages/server/`:
-- Code formatting check with Black
-- Linting with Ruff
-- Type checking with mypy (strict mode)
-- Unit and integration tests with pytest
-- Code coverage reporting with Codecov
+### Server CI
+**File**: `.github/workflows/server-ci.yml`
 
-### TODO to Issue (.github/workflows/todo-to-issue.yml)
+Runs on push/PR affecting `packages/server/` or root `Taskfile.yml`:
+- Install Task runner
+- Format check (Black)
+- Lint (Ruff)
+- Type check (mypy strict)
+- Unit and integration tests
+- Code coverage (Codecov)
 
-Automatically creates GitHub issues from TODO comments in code:
+All checks use Task commands.
+
+### TODO to Issue
+**File**: `.github/workflows/todo-to-issue.yml`
+
+Automatically creates GitHub issues from TODO comments:
 ```typescript
-// TODO: Add authentication to this endpoint
-// TODO(username): Refactor this component
-// TODO: [P1] Fix critical bug in query handling
+// TODO: Add authentication
+// TODO(username): Refactor component
+// TODO: [P1] Fix critical bug
 ```
 
-Issues are auto-assigned to commit authors and closed when TODOs are removed.
+Issues auto-assigned to commit authors, closed when TODOs removed.
 
-## Running Workflows Locally with act
+## Local Testing with act
 
-[act](https://github.com/nektos/act) allows you to run GitHub Actions workflows locally in Docker containers.
+[act](https://github.com/nektos/act) runs GitHub Actions locally in Docker.
 
 ### Installation
 
 ```bash
-# On Linux
+# Linux
 curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 
-# On macOS
+# macOS
 brew install act
 
-# On Windows
+# Windows
 choco install act-cli
 ```
 
 ### Setup
 
-1. Create a `.secrets` file in the project root (this file is gitignored):
+1. Create `.secrets` file (gitignored):
    ```bash
    cp .secrets.example .secrets
    ```
 
-2. Edit `.secrets` and add your GitHub personal access token:
+2. Add GitHub token:
    ```
    GITHUB_TOKEN=ghp_your_token_here
    ```
 
-   To create a GitHub personal access token:
-   - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-   - Click "Generate new token (classic)"
-   - Select scopes: `repo` (full control of private repositories)
-   - Copy the token and paste it into `.secrets`
+   Create token at: GitHub Settings > Developer settings > Personal access tokens
+   Required scope: `repo`
 
 ### Usage
 
-Run all workflows:
 ```bash
+# Run all workflows
 act
-```
 
-Run a specific workflow:
-```bash
+# Specific workflow
 act -W .github/workflows/client-ci.yml
-```
 
-Run a specific job:
-```bash
+# Specific job
 act -j client-ci
-```
 
-List available workflows:
-```bash
+# List workflows
 act -l
-```
 
-Dry run (don't execute, just show what would run):
-```bash
+# Dry run
 act -n
 ```
 
 ### Troubleshooting
 
-#### TODO to Issue workflow fails with "Bad credentials"
+**"Bad credentials" error**: Create `.secrets` file with valid `GITHUB_TOKEN` (needs `repo` scope)
 
-Make sure you have created the `.secrets` file with a valid `GITHUB_TOKEN`. The token needs `repo` scope to access the GitHub API.
+**Slow execution**: First run downloads Docker images. Server CI installs PyTorch with CUDA (5-10 min)
 
-#### Workflows run slowly
+**Disk space**: Clean up with `docker system prune -a`
 
-The first time you run `act`, it downloads Docker images which can take several minutes. Subsequent runs are much faster. The Server CI workflow installs many Python packages (especially PyTorch with CUDA) which can take 5-10 minutes.
+## Best Practices
 
-#### Out of disk space
-
-`act` creates Docker containers and images which can consume significant disk space. Clean up with:
-```bash
-docker system prune -a
-```
-
-## CI/CD Best Practices
-
-- All checks must pass before merging PRs
-- The `main` branch is protected and requires status checks to pass
-- Format code before committing: `bun run format` (client) or `poetry run black .` (server)
-- Run linters locally: `bun run lint` (client) or `poetry run ruff check .` (server)
-- Run tests locally before pushing: `bun test` (client) or `poetry run pytest` (server)
+- All checks must pass before merging
+- Main branch is protected, requires status checks
+- Run locally before pushing:
+  ```bash
+  task format  # Format code
+  task lint    # Run linter
+  task test    # Run tests
+  task check   # All checks
+  ```

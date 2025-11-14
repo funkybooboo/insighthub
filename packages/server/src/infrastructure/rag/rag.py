@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from infrastructure.rag.types import Document, QueryResult, RagStats, RetrievalResult
+from src.infrastructure.rag.types import Document, QueryResult, RagStats, RetrievalResult
 
 
 class Rag(ABC):

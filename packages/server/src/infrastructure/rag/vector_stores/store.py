@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from infrastructure.rag.types import SearchResult
+from src.infrastructure.rag.types import SearchResult
 
 
 class VectorStore(ABC):

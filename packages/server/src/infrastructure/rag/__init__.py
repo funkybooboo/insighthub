@@ -1,8 +1,8 @@
 """RAG (Retrieval-Augmented Generation) infrastructure."""
 
-from infrastructure.rag.factory import create_rag
-from infrastructure.rag.rag import Rag
-from infrastructure.rag.types import (
+from src.infrastructure.rag.factory import create_rag
+from src.infrastructure.rag.rag import Rag
+from src.infrastructure.rag.types import (
     Chunk,
     ChunkerConfig,
     Document,

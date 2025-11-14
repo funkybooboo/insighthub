@@ -74,37 +74,37 @@ To run it will be a simple `docker compose up` so the only dependency you need t
 
 I used chatgpt to generate the following schedule, I read through it, made my edits and it seems reasonable.
 
-### Week 1 (Nov 8-14): Infrastructure & VectorRAG
+### Week 1 (Nov 8-14): Infrastructure & VectorRAG ✅ COMPLETED
 - **Nov 8-9**: Set up development environment
-  - Docker containers for Neo4j and Pinecone
-  - Configure MCP servers
-  - Set up Python environment with dependencies (LangChain, Beeai, etc.)
-  
+  - Docker containers for Qdrant, Ollama, PostgreSQL
+  - Configure Python environment with Poetry
+  - Set up modular RAG architecture with dependency injection
+
 - **Nov 10-12**: Build VectorRAG pipeline
-  - Implement document ingestion (PDF parsing)
-  - Create embedding pipeline using chosen model
-  - Set up Pinecone vector database
-  - Implement basic retrieval functionality
-  
+  - Implement document ingestion and chunking strategies
+  - Create embedding pipeline with Ollama (nomic-embed-text)
+  - Set up Qdrant vector database integration
+  - Implement retrieval and generation with multiple LLM providers
+
 - **Nov 13-14**: Test VectorRAG
-  - Load test paper into system
+  - Load test documents into system
   - Verify embeddings and retrieval quality
-  - Debug and fix issues
+  - Debug and optimize performance
 
-**Deliverable**: Working VectorRAG system that can ingest a paper and answer basic questions
+**Deliverable**: Complete VectorRAG system with CLI, API, and streaming chat
 
-### Week 2 (Nov 15-21): GraphRAG & Wikipedia Integration
+### Week 2 (Nov 15-21): GraphRAG & Wikipedia Integration 🚧 IN PROGRESS
 - **Nov 15-17**: Build GraphRAG pipeline
   - Implement LLM-based entity extraction
   - Set up Neo4j graph database
   - Create graph construction from extracted entities
   - Apply Leiden clustering algorithm
-  
+
 - **Nov 18-19**: Wikipedia MCP integration
   - Connect Wikipedia MCP server
   - Implement dynamic knowledge retrieval
   - Add fetched content to both databases
-  
+
 - **Nov 20-21**: Test GraphRAG
   - Compare retrieval quality with VectorRAG
   - Verify graph structure and clustering
@@ -130,8 +130,38 @@ I used chatgpt to generate the following schedule, I read through it, made my ed
 
 **Deliverable**: Complete system with both RAG approaches, chatbot interface, and comparative analysis
 
-## 5. Risks: 
+## 5. Current Status & Progress
 
-I am quite busy with school and work but I feel that because this is related to my thesis I can cutout time to work on it. 
+**Completed (Week 1)**:
+- ✅ Full Vector RAG implementation with modular architecture
+- ✅ Real-time streaming chat via Socket.IO
+- ✅ React frontend with document management
+- ✅ CLI and REST API interfaces
+- ✅ Docker containerization with Make integration
+- ✅ Multiple LLM provider support (Ollama, OpenAI, Claude)
+- ✅ Comprehensive testing (unit + integration)
+- ✅ CI/CD with GitHub Actions
 
-I do feel that this is a lot of work and there are a lot of unknowns. I will have to learn a lot and work hard but it will be worth it in the end.
+**In Progress (Week 2)**:
+- 🚧 Graph RAG implementation with Neo4j
+- 🚧 Wikipedia MCP integration
+- 🚧 Comparative analysis framework
+
+## 6. Risks & Challenges
+
+**Technical Challenges**:
+- Graph RAG implementation complexity (entity extraction, graph construction)
+- Neo4j integration and Cypher query optimization
+- MCP server setup and Wikipedia API integration
+- Performance comparison between Vector vs Graph approaches
+
+**Timeline Risks**:
+- Learning curve for graph databases and clustering algorithms
+- Integration complexity with multiple new components
+- Potential scope creep with advanced features
+
+**Mitigation**:
+- Modular architecture allows incremental development
+- Existing Vector RAG provides working baseline
+- Docker simplifies dependency management
+- Comprehensive testing ensures stability

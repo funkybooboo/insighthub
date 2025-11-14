@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from infrastructure.rag.types import Chunk, ChunkerConfig
+from src.infrastructure.rag.types import Chunk, ChunkerConfig
 
 
 class Chunker(ABC):
