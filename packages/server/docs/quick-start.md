@@ -26,13 +26,13 @@ cp .env.example .env
 
 ```bash
 # Run all tests
-make test
+task test
 
 # Run only unit tests (fast, no Docker needed)
-make test-unit
+task test-unit
 
 # Run integration tests (requires Docker)
-make test-integration
+task test-integration
 ```
 
 ### What Happens During Integration Tests
@@ -69,23 +69,23 @@ Edit code in `src/` directory:
 
 ```bash
 # Fast feedback with unit tests
-make test-unit
+task test-unit
 
 # Full validation with integration tests
-make test-integration
+task test-integration
 ```
 
 ### 3. Format and Lint
 
 ```bash
 # Auto-format code
-make format
+task format
 
 # Check types
-make type-check
+task type-check
 
 # Run all checks
-make check
+task check
 ```
 
 ### 4. Run Server Locally
@@ -95,7 +95,7 @@ make check
 docker compose up postgres minio
 
 # Run Flask server
-make server
+task server
 
 # In another terminal, test it
 curl http://localhost:5000/health
@@ -120,21 +120,21 @@ tests/
 
 ```bash
 # Testing
-make test                   # All tests with coverage
-make test-unit              # Unit tests only
-make test-integration       # Integration tests only
+task test                   # All tests with coverage
+task test-unit              # Unit tests only
+task test-integration       # Integration tests only
 
 # Code Quality
-make format                 # Format code
-make lint                   # Run linter
-make type-check             # Type check
-make check                  # All quality checks
+task format                 # Format code
+task lint                   # Run linter
+task type-check             # Type check
+task check                  # All quality checks
 
 # Development
-make install                # Install dependencies
-make server                 # Run API server
-make clean                  # Clean generated files
-make help                   # Show all commands
+task install                # Install dependencies
+task server                 # Run API server
+task clean                  # Clean generated files
+task --list                 # Show all commands
 ```
 
 ## Viewing Test Coverage
@@ -224,13 +224,13 @@ vim src/services/new_feature.py
 vim tests/unit/test_new_feature.py
 
 # 3. Run tests
-make test-unit
+task test-unit
 
 # 4. Format code
-make format
+task format
 
 # 5. Run full validation
-make check
+task check
 
 # 6. Commit
 git add .

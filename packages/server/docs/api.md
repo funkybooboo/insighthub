@@ -187,14 +187,21 @@ VITE_API_URL=http://localhost:5000
 
 ## Architecture
 
-The API is designed to be loosely coupled with the RAG system:
+The API is designed with clean architecture principles:
 
-- **api.py**: Flask REST endpoints
+- **api.py**: Flask application factory with REST endpoints and WebSocket support
 - **cli.py**: Direct CLI interface (no HTTP)
-- **TODO**: RAG system integration (currently using mock responses)
+- **domains/**: Feature-based business logic (chat, documents, auth, health)
+- **infrastructure/**: Cross-cutting concerns (RAG, database, storage, LLM)
 
-The API currently stores documents in memory. Future integration with the RAG system will add:
-- Vector/Graph RAG implementations
-- Embedding generation
-- Similarity search
-- LLM-based answer generation
+### RAG Integration
+
+The system includes full RAG integration:
+
+- **Vector RAG**: Complete implementation with Qdrant vector database
+- **Embedding Generation**: Multiple providers (Ollama, OpenAI, Sentence Transformers)
+- **Chunking Strategies**: Character, sentence, and word-based chunking
+- **LLM Providers**: Ollama, OpenAI, Claude, HuggingFace support
+- **Real-time Streaming**: WebSocket-based token streaming via Socket.IO
+- **Document Storage**: PostgreSQL for metadata, blob storage for files
+- **Conversation Memory**: Persistent chat sessions with context

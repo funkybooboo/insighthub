@@ -1,208 +1,153 @@
 # InsightHub
 
-A dual RAG (Retrieval-Augmented Generation) system for academic research paper analysis, comparing Vector RAG and Graph RAG approaches.
-
-**Core Goal**: Enable users to query academic papers and Wikipedia content through an AI chatbot, comparing Vector RAG vs Graph RAG performance.
+A dual RAG system comparing Vector RAG and Graph RAG for academic research paper analysis.
 
 ## Features
 
-- **Dual RAG Implementation**: Compare Vector RAG and Graph RAG approaches
-- **Real-time Streaming**: Token-by-token LLM response streaming via WebSocket
-- **Fully Local**: Runs entirely on your machine using Docker (Ollama + Qdrant)
-- **React Frontend**: Modern chatbot interface with conversational memory
-- **Modular Architecture**: Pluggable components (embeddings, chunking, vector stores)
-- **Multiple Chunking Strategies**: Character, sentence, and word-based options
-- **Graph RAG**: Entity extraction and community detection (in development)
-
-## Architecture
-
-The system follows a modular RAG pipeline:
-
-1. **Ingestion**: Documents -> Chunker -> Chunks with metadata
-2. **Embedding**: Chunks -> Ollama (nomic-embed-text) -> Vectors
-3. **Storage**: Vectors -> Qdrant (Vector) or Neo4j (Graph)
-4. **Retrieval**: Query -> Similarity/Graph Search -> Top-K results
-5. **Generation**: Query + Context -> Ollama (llama3.2) -> Answer
+- Vector RAG with document chunking, embedding, and retrieval
+- Real-time streaming via Socket.IO WebSocket
+- Fully local (Ollama + Qdrant + PostgreSQL)
+- React frontend with chat interface
+- Modular architecture with pluggable components
+- Multiple LLM providers (Ollama, OpenAI, Claude, HuggingFace)
+- CLI and REST API interfaces
 
 ## Tech Stack
 
-**Frontend**: React 19 + TypeScript + Vite + TailwindCSS + Redux Toolkit
-
-**Backend**: Python 3.11+ with Flask + Socket.IO
-- **Vector RAG**: Qdrant + Ollama (nomic-embed-text + llama3.2)
-- **Graph RAG**: Neo4j + Leiden clustering (in development)
-- **Chunking**: Character, sentence, and word-based strategies
+**Frontend**: React 19 + TypeScript + Vite + TailwindCSS + Redux
+**Backend**: Python 3.11 + Flask + SQLAlchemy + Socket.IO
+**Infrastructure**: PostgreSQL, Qdrant, Ollama, MinIO
+**Tools**: Docker, Poetry, Bun, Task
 
 ## Quick Start
 
 ### Prerequisites
 
 - Docker & Docker Compose
-- Node.js 18+ and Bun (for frontend development)
-- Python 3.11+ (for backend development)
-- ~4GB disk space for models
-- ~8GB RAM recommended
+- [Task](https://taskfile.dev): `sh -c "$(curl --location https://taskfile.dev/install.sh)"`
+- 4GB disk space, 8GB RAM recommended
 
-### Running the Full System
+### Production
 
 ```bash
-docker-compose up
+task build && task up
+# Access: http://localhost:3000
 ```
 
-This will start all services (Ollama, Qdrant, Neo4j, backend, frontend) and automatically pull required models. First run takes ~5 minutes to download models (2.5GB).
+### Development
 
-### Development Setup
-
-**Backend**:
+**Containerized (hot-reload)**:
 ```bash
-cd packages/server
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+task build-dev && task up-dev
+# Server: http://localhost:5000
+# Client: http://localhost:3000
 ```
 
-**Frontend**:
+**Local + Infrastructure**:
 ```bash
-cd packages/client
-bun install && bun run dev
+task up-infra
+
+# Terminal 1
+cd packages/server && poetry install && task server
+
+# Terminal 2
+cd packages/client && bun install && task dev
 ```
 
-**Services**:
-- **Backend API**: http://localhost:8000
-- **Frontend**: http://localhost:5173
-- **Qdrant**: http://localhost:6333 (UI: http://localhost:6334)
-- **Ollama**: http://localhost:11434
-- **Jupyter**: http://localhost:8888 (run: `docker-compose --profile dev up jupyter`)
+## Key Commands
 
-## Usage Example
-
-```python
-from src.infrastructure.rag.factory import create_rag
-
-# Create RAG instance
-rag = create_rag({
-    "rag_type": "vector",
-    "chunking_strategy": "sentence",
-    "embedding_type": "ollama",
-    "vector_store_type": "qdrant",
-    "ollama_base_url": "http://localhost:11434",
-    "chunk_size": 500,
-    "chunk_overlap": 50
-})
+```bash
+task --list          # Show all commands
+task up              # Start production
+task up-dev          # Start development
+task up-infra        # Infrastructure only
+task down            # Stop all
+task check           # Run quality checks
+task logs-server-dev # View server logs
+task clean           # Remove containers/volumes
 ```
-
-See `packages/server/src/main.py` for a complete demo.
 
 ## Project Structure
 
 ```
 insighthub/
 ├── packages/
-│   ├── client/              # React frontend (Vite + TypeScript)
-│   │   └── src/
-│   │       ├── components/  # UI components
-│   │       ├── lib/         # Utilities
-│   │       └── store/       # Redux state
-│   └── server/              # Python RAG backend
-│       ├── src/
-│       │   ├── infrastructure/rag/  # RAG implementations and components
-│       │   │   ├── chunking/        # Chunking strategies
-│       │   │   ├── embeddings/      # Embedding models (ollama, openai)
-│       │   │   ├── vector_stores/   # Vector stores (qdrant, in_memory)
-│       │   │   ├── factory.py       # RAG factory
-│       │   │   └── rag.py           # Base RAG interface
-│       │   ├── domains/             # Domain logic (chat, documents, auth)
-│       │   └── infrastructure/      # Infrastructure services
-│       └── tests/           # Unit and integration tests
-├── docs/                    # Documentation
+│   ├── server/              # Python RAG backend
+│   │   ├── src/
+│   │   │   ├── infrastructure/rag/  # RAG implementations
+│   │   │   ├── domains/             # Business logic
+│   │   │   └── api.py               # Flask app
+│   │   └── tests/           # Unit & integration tests
+│   └── client/              # React frontend
+│       └── src/
+│           ├── components/  # UI components
+│           └── store/       # Redux state
 ├── docker-compose.yml       # Service orchestration
-└── Makefile                 # Development commands
+└── Taskfile.yml             # Task commands
 ```
 
 ## Code Quality
 
-**Python** (packages/server/):
 ```bash
-make check       # Run all checks (format, lint, type-check, test)
-make format      # Format code (black + isort)
-pytest -v        # Run tests
-```
+# Server
+cd packages/server
+task format      # Auto-format code
+task test        # Run tests
+task check       # All checks
 
-**TypeScript** (packages/client/):
-```bash
-bun run format   # Format code (prettier)
-bun run lint     # ESLint
-bun test         # Run tests
+# Client
+cd packages/client
+task format      # Prettier
+task lint        # ESLint
+task check       # All checks
 ```
-
-**GitHub Actions** (CI/CD):
-- All PRs must pass formatting, linting, type-checking, and tests
-- Run workflows locally with `act` (see [docs/github-actions.md](docs/github-actions.md))
 
 ## Configuration
 
-Copy `packages/server/.env.example` to `.env` and configure:
+Environment variables in `.env`:
 
 ```bash
-# Ollama
+# LLM
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_LLM_MODEL=llama3.2
+OLLAMA_LLM_MODEL=llama3.2:1b
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 
-# Qdrant
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
+# Database
+DATABASE_URL=postgresql://insighthub:password@localhost:5432/insighthub
 
-# Chunking
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
-CHUNK_STRATEGY=sentence
-
-# RAG
-RAG_TOP_K=5
+# Storage
+BLOB_STORAGE_TYPE=s3
+S3_ENDPOINT_URL=http://localhost:9000
 ```
-
-## Development Status
-
-**Phase 1: Vector RAG** - Complete
-- Modular architecture with dependency injection
-- Multiple chunking strategies (character, sentence, word)
-- Ollama + Qdrant integration
-
-**Phase 2: Graph RAG + Frontend** - In Progress
-- Neo4j integration and Leiden clustering
-- React chatbot with conversational memory (Mem0)
-- Vector vs Graph RAG comparison framework
-
-**Phase 3: Advanced Features** - Planned
-- Hybrid search, evaluation metrics, PDF parsing
-
-## Vector RAG vs Graph RAG
-
-| Aspect | Vector RAG | Graph RAG |
-|--------|------------|-----------|
-| **Retrieval** | Similarity search | Graph traversal + clustering |
-| **Context** | Fixed chunks | Entity relationships |
-| **Best For** | Factual retrieval | Complex reasoning |
-| **Speed** | Fast | Slower |
 
 ## Troubleshooting
 
-**Ollama connection refused**: `docker-compose restart ollama`
-
-**Model not found**:
 ```bash
-docker exec ollama ollama pull nomic-embed-text
-docker exec ollama ollama pull llama3.2
+# Services not starting
+task ps && task logs
+
+# Database issues
+task down && docker volume rm insighthub_postgres_data && task up-dev
+
+# Port conflicts
+lsof -i :5000 && lsof -i :3000
+
+# Hot-reload not working
+task restart-dev
+
+# Pull models manually
+docker compose exec ollama ollama pull llama3.2:1b
 ```
 
-**Port already in use**: `lsof -i :8000` then `kill -9 <PID>`
+See [docs/docker.md](docs/docker.md) for details.
 
-**Module not found**:
-```bash
-cd packages/client && bun install
-cd packages/server && pip install -r requirements.txt
-```
+## Documentation
+
+- [Docker Setup](docs/docker.md)
+- [Task Commands](docs/taskfile-setup.md)
+- [Architecture](docs/architecture.md)
+- [Contributing](docs/contributing.md)
 
 ## License
 
-GPL License
+GPL-3.0

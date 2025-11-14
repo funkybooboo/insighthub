@@ -1,6 +1,27 @@
 # InsightHub Server
 
-Python backend for the InsightHub RAG system implementing both Vector RAG and Graph RAG approaches.
+Python backend for the InsightHub RAG system, providing a complete API for document management, chat with RAG, and real-time streaming responses.
+
+## Features
+
+- **Vector RAG Implementation**: Document ingestion, chunking, embedding, and retrieval
+- **Real-time Streaming**: WebSocket-based token streaming for chat responses
+- **Document Management**: Upload, store, and query PDF/text documents
+- **Chat Sessions**: Persistent conversation memory with context
+- **Multiple LLM Providers**: Ollama, OpenAI, Claude, HuggingFace support
+- **Modular Architecture**: Pluggable components (embeddings, chunking, vector stores)
+- **REST API**: Full CRUD operations for documents and chat
+- **CLI Interface**: Command-line tools for document management and chat
+- **Database Integration**: PostgreSQL with SQLAlchemy ORM
+
+## Tech Stack
+
+- **Python 3.11+** with FastAPI/Flask
+- **SQLAlchemy** for database ORM
+- **Socket.IO** for real-time communication
+- **Poetry** for dependency management
+- **Pytest** for testing
+- **Docker** for containerization
 
 ## Setup
 
@@ -8,10 +29,13 @@ Python backend for the InsightHub RAG system implementing both Vector RAG and Gr
 
 - Python 3.11+
 - Poetry
+- PostgreSQL (or Docker for local development)
 
 ### Installation
 
 ```bash
+cd packages/server
+
 # Install dependencies
 poetry install
 
@@ -33,6 +57,24 @@ cp .env.example .env.test
 
 ## Development Commands
 
+### Running the Application
+
+```bash
+# Start the API server
+poetry run python -m src.api
+
+# Start with CLI interface
+poetry run python -m src.cli --help
+
+# Available CLI commands:
+poetry run python -m src.cli upload <file>     # Upload a document
+poetry run python -m src.cli list              # List all documents
+poetry run python -m src.cli delete <doc_id>   # Delete a document
+poetry run python -m src.cli chat <message>    # Send a chat message
+poetry run python -m src.cli sessions          # List chat sessions
+poetry run python -m src.cli interactive       # Start interactive chat
+```
+
 ### Testing
 
 ```bash
@@ -42,8 +84,9 @@ poetry run pytest
 # Run tests with coverage
 poetry run pytest --cov=src --cov-report=html
 
-# Run specific test file
-poetry run pytest tests/test_hello.py
+# Run specific test categories
+poetry run pytest tests/unit/      # Unit tests only
+poetry run pytest tests/integration/  # Integration tests only
 
 # Run tests in watch mode
 poetry run pytest-watch
@@ -65,31 +108,44 @@ poetry run ruff check src tests
 poetry run mypy src tests
 
 # Run all checks
-poetry run black src tests && \
-poetry run isort src tests && \
-poetry run ruff check src tests && \
-poetry run mypy src tests
-```
-
-### Running the Application
-
-```bash
-# Run hello world example
-poetry run python src/hello.py
+task check  # From packages/server/ directory
 ```
 
 ## Project Structure
 
 ```
 packages/server/
-+-- src/               # Source code
-|   +-- __init__.py
-|   +-- hello.py       # Hello world example
-+-- tests/             # Test files
-|   +-- __init__.py
-|   +-- test_hello.py  # Hello world tests
-+-- pyproject.toml     # Poetry dependencies and tool configs
-+-- poetry.toml        # Poetry settings (venv in project)
+├── src/                    # Source code
+│   ├── domains/           # Business logic domains
+│   │   ├── auth/          # User authentication
+│   │   ├── chat/          # Chat and conversation management
+│   │   ├── documents/     # Document upload and management
+│   │   ├── health/        # Health check endpoints
+│   │   └── users/         # User management
+│   ├── infrastructure/    # Infrastructure services
+│   │   ├── auth/          # JWT authentication
+│   │   ├── database/      # Database connection and session management
+│   │   ├── errors/        # Error handling and DTOs
+│   │   ├── factories/     # Service factories
+│   │   ├── llm/           # LLM provider implementations
+│   │   ├── middleware/    # Flask middleware (logging, security, etc.)
+│   │   ├── rag/           # RAG implementations and components
+│   │   │   ├── chunking/  # Text chunking strategies
+│   │   │   ├── embeddings/# Embedding model providers
+│   │   │   └── vector_stores/  # Vector database implementations
+│   │   ├── socket/        # WebSocket/Socket.IO handlers
+│   │   └── storage/       # File/blob storage backends
+│   ├── api.py             # Flask application factory
+│   ├── cli.py             # Command-line interface
+│   ├── config.py          # Application configuration
+│   └── context.py         # Application context with services
+├── tests/                 # Test files
+│   ├── unit/              # Unit tests with dummy implementations
+│   ├── integration/       # Integration tests with real services
+│   └── conftest.py        # Test configuration
+├── pyproject.toml         # Poetry dependencies and tool configs
+├── poetry.toml            # Poetry settings (venv in project)
+└── README.md              # This file
 ```
 
 ## Configuration

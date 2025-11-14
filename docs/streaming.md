@@ -1,122 +1,103 @@
 # Socket.IO Streaming Implementation
 
-This document describes the WebSocket streaming implementation for real-time LLM response streaming in InsightHub.
+WebSocket streaming for real-time LLM response streaming.
 
 ## Overview
 
-The implementation uses Socket.IO to establish a bidirectional WebSocket connection between the React frontend and Python Flask backend, enabling real-time streaming of LLM responses token-by-token as they are generated.
+Socket.IO enables bidirectional WebSocket connections for token-by-token LLM response streaming from Flask backend to React frontend.
 
-## Architecture
+## Backend (Python/Flask)
 
-### Backend (Python/Flask)
+### Dependencies
+- `python-socketio` (v5.14.3)
+- `flask-socketio` (v5.5.1)
 
-#### 1. Dependencies Added
-- `python-socketio` (v5.14.3): Core Socket.IO server library
-- `flask-socketio` (v5.5.1): Flask integration for Socket.IO
+### LLM Provider Interface
 
-#### 2. LLM Provider Interface Enhancement
-
-**File**: `packages/server/src/infrastructure/llm/llm.py`
-
-Added streaming support to the `LlmProvider` abstract class:
+Added streaming to `LlmProvider` (`src/infrastructure/llm/llm.py`):
 
 ```python
 @abstractmethod
 def chat_stream(
     self, message: str, conversation_history: list[dict[str, str]] | None = None
 ) -> Generator[str, None, None]:
-    """
-    Generate a streaming chat response with optional conversation history.
-
-    Yields:
-        Chunks of generated response text
-    """
+    """Yields chunks of generated response text."""
     pass
 ```
 
-#### 3. Provider Implementations
+### Provider Implementations
 
-**Ollama Provider** (`packages/server/src/infrastructure/llm/ollama.py`):
-- Streams responses from Ollama API using `stream=True`
-- Yields chunks as they arrive from the model
+- **Ollama**: Streams via `stream=True` parameter
+- **OpenAI**: Uses streaming API with delta content
+- **Claude**: Uses Anthropic streaming API with context manager
+- **HuggingFace**: Falls back to full response (no native streaming)
 
-**OpenAI Provider** (`packages/server/src/infrastructure/llm/openai_provider.py`):
-- Uses OpenAI's streaming API
-- Yields delta content from stream chunks
+### Flask Application
 
-**Claude Provider** (`packages/server/src/infrastructure/llm/claude_provider.py`):
-- Uses Anthropic's streaming API with context manager
-- Yields text from `stream.text_stream`
+**File**: `src/api.py`
 
-**HuggingFace Provider** (`packages/server/src/infrastructure/llm/huggingface_provider.py`):
-- Falls back to full response (HuggingFace Inference API doesn't support streaming in the same way)
+Socket.IO events:
+- `connect`: Client connection confirmation
+- `disconnect`: Client disconnection
+- `chat_message`: Main streaming handler
 
-#### 4. Flask Application Updates
+**Flow**:
+1. Client connects, receives `connected` event
+2. Client sends `chat_message` with query
+3. Server creates/retrieves session, stores message
+4. Streams response via `chat_chunk` events
+5. Stores complete response
+6. Sends `chat_complete` event with session ID
+7. Errors handled via `error` event
 
-**File**: `packages/server/src/api.py`
+## Frontend (React/TypeScript)
 
-- Initialized Flask-SocketIO with CORS support
-- Added Socket.IO event handlers:
-  - `connect`: Handles client connections
-  - `disconnect`: Handles client disconnections
-  - `chat_message`: Main handler for streaming chat messages
+### Dependencies
+- `socket.io-client` (v4.8.1)
 
-**Key Flow**:
-1. Client connects and receives `connected` event
-2. Client sends `chat_message` with user query
-3. Server:
-   - Creates/retrieves chat session
-   - Stores user message in database
-   - Streams LLM response via `chat_chunk` events
-   - Stores complete assistant response
-   - Sends `chat_complete` event with session ID
-4. Error handling via `error` event
+### Socket Service
 
-### Frontend (React/TypeScript)
+**File**: `src/services/socket.ts`
 
-#### 1. Dependencies Added
-- `socket.io-client` (v4.8.1): Socket.IO client library
-
-#### 2. Socket Service
-
-**File**: `packages/client/src/services/socket.ts`
-
-Created a `SocketService` class that manages:
-- Connection/disconnection to Socket.IO server
-- Event emission (sending messages)
-- Event listeners (receiving chunks, completions, errors)
-- Connection state management
+`SocketService` class manages:
+- Connection/disconnection
+- Event emission and listening
+- Connection state
 
 **Key Methods**:
-- `connect()`: Establish WebSocket connection
-- `sendMessage(data)`: Send chat message to server
-- `onChatChunk(callback)`: Listen for streaming chunks
-- `onChatComplete(callback)`: Listen for completion events
-- `onError(callback)`: Listen for error events
+- `connect()`: Establish connection
+- `sendMessage(data)`: Send chat message
+- `onChatChunk(callback)`: Listen for chunks
+- `onChatComplete(callback)`: Listen for completion
+- `onError(callback)`: Listen for errors
 
-#### 3. ChatBot Component Updates
+### ChatBot Component
 
-**File**: `packages/client/src/components/chat/ChatBot.tsx`
+**File**: `src/components/chat/ChatBot.tsx`
 
-**Changes**:
-- Replaced Axios HTTP calls with Socket.IO streaming
-- Added `useEffect` hook to manage socket lifecycle:
-  - Connects on mount
-  - Sets up event listeners
-  - Cleans up on unmount
-- Streaming UX:
-  - Accumulates chunks in `currentBotMessage` ref
-  - Updates UI in real-time as chunks arrive
-  - Plays notification sound on completion
-  - Maintains typing indicator during streaming
+Replaced HTTP calls with Socket.IO streaming:
+- `useEffect` manages socket lifecycle
+- Accumulates chunks in ref
+- Real-time UI updates
+- Typing indicator during streaming
 
-**Message Flow**:
+**Flow**:
 1. User submits message
-2. Add user message to UI immediately
-3. Show typing indicator
-4. Send message via Socket.IO
-5. Receive chunks and update bot message in real-time
-6. On completion, hide typing indicator and play sound
+2. Add message to UI, show typing indicator
+3. Send via Socket.IO
+4. Receive chunks, update in real-time
+5. On completion, hide indicator, play sound
+
+## Socket.IO Events
+
+**Client to Server**:
+- `chat_message`: Send chat message with context
+
+**Server to Client**:
+- `connected`: Connection confirmation
+- `chat_chunk`: LLM response token
+- `chat_complete`: Response done with full text and session ID
+- `error`: Error message
 
 ## Testing
 
@@ -124,80 +105,58 @@ Created a `SocketService` class that manages:
 
 **File**: `test_streaming.py`
 
-A standalone Python script that:
-- Connects to the Socket.IO server
-- Sends a test message ("What is Python?")
-- Receives and displays streaming chunks
-- Prints completion statistics
+Standalone script that:
+- Connects to Socket.IO server
+- Sends test message
+- Receives and displays chunks
+- Prints statistics
 
-**Test Results**:
-- Successfully received 234 chunks
-- Streaming worked end-to-end
-- Real-time token-by-token delivery confirmed
+### Running
 
-### Running the Application
+```bash
+# Backend
+cd packages/server && poetry run python -m src.api
 
-1. Start the backend:
-   ```bash
-   cd packages/server
-   poetry run python -m src.api
-   ```
+# Frontend
+cd packages/client && bun run dev
 
-2. Start the frontend:
-   ```bash
-   cd packages/client
-   bun run dev
-   ```
-
-3. Access the app at `http://localhost:5173`
+# Access: http://localhost:5173
+```
 
 ## Key Features
 
-1. **Real-time Streaming**: Tokens appear in the UI as they are generated by the LLM
-2. **Conversation History**: Session management preserves context across messages
-3. **Error Handling**: Graceful error handling with user-friendly messages
-4. **Connection Management**: Automatic reconnection and connection state tracking
-5. **Multiple LLM Support**: Works with Ollama, OpenAI, Claude, and HuggingFace
+1. **Real-time Streaming**: Tokens appear as generated
+2. **Conversation History**: Session management preserves context
+3. **Error Handling**: Graceful errors with user-friendly messages
+4. **Connection Management**: Auto-reconnection and state tracking
+5. **Multiple LLM Support**: Ollama, OpenAI, Claude, HuggingFace
 
-## Technical Details
+## Database Integration
 
-### Socket.IO Events
-
-**Client to Server**:
-- `chat_message`: Send a chat message with session context
-
-**Server to Client**:
-- `connected`: Connection confirmation
-- `chat_chunk`: Single token/chunk of LLM response
-- `chat_complete`: Response completed with full text and session ID
-- `error`: Error message
-
-### Database Integration
-
-- User messages stored before streaming begins
-- Assistant responses stored after streaming completes
-- Session management maintains conversation continuity
+- User messages stored before streaming
+- Assistant responses stored after completion
+- Session management for continuity
 - Metadata includes RAG type and chunk count
 
-### Performance Considerations
+## Performance
 
-- Chunks are streamed immediately as they arrive from the LLM
-- No buffering on the server side
-- Client accumulates chunks efficiently using refs
-- Minimal re-renders using state updates only when chunks arrive
+- Immediate streaming from LLM
+- No server-side buffering
+- Efficient client-side accumulation with refs
+- Minimal re-renders
 
 ## Future Enhancements
 
-1. Add progress indicators (tokens/sec, estimated time remaining)
-2. Support for canceling in-progress requests
+1. Progress indicators (tokens/sec, time remaining)
+2. Request cancellation
 3. Retry logic for failed connections
 4. Message queuing for offline scenarios
-5. Typing indicators showing other users in the same session
-6. RAG context streaming (show retrieved documents as they're processed)
+5. Multi-user typing indicators
+6. RAG context streaming
 
 ## Compatibility
 
 - **Python**: 3.11+
-- **Node**: Compatible with Bun runtime
+- **Node**: Bun runtime compatible
 - **Browsers**: Modern browsers with WebSocket support
 - **Transport**: WebSocket primary, polling fallback
