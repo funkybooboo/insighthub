@@ -163,10 +163,7 @@ describe('UserMenu', () => {
                 expect(window.location.href).toBe('/login');
             });
 
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                'Logout error:',
-                expect.any(Error)
-            );
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Logout error:', expect.any(Error));
 
             consoleErrorSpy.mockRestore();
         });
@@ -233,9 +230,7 @@ describe('UserMenu', () => {
 
             renderUserMenu(longUsernameUser);
 
-            expect(
-                screen.getByText('verylongusernamethatmightbreakthelayout')
-            ).toBeInTheDocument();
+            expect(screen.getByText('verylongusernamethatmightbreakthelayout')).toBeInTheDocument();
         });
 
         it('should handle very long email', () => {

@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import Flask
+
 from src.infrastructure.middleware.monitoring import PerformanceMonitoringMiddleware
 
 

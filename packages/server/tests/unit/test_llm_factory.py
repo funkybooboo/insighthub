@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from src.infrastructure.llm.claude_provider import ClaudeLlmProvider
 from src.infrastructure.llm.factory import create_llm_provider, get_available_providers
 from src.infrastructure.llm.huggingface_provider import HuggingFaceLlmProvider

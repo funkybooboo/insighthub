@@ -1,6 +1,7 @@
 """Unit tests for UserRepository."""
 
 import pytest
+
 from src.domains.users.models import User
 from src.domains.users.repositories import UserRepository
 

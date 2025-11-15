@@ -1,6 +1,7 @@
 """Unit tests for UserService."""
 
 import pytest
+
 from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.domains.users.models import User
 from src.domains.users.repositories import UserRepository

@@ -1,6 +1,7 @@
 """Test context for dependency injection in tests."""
 
 from sqlalchemy.orm import Session
+
 from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
 from src.domains.chat.service import ChatService
 from src.domains.documents.repositories import DocumentRepository

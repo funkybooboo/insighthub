@@ -153,13 +153,9 @@ export const ShiftEnterNewline: Story = {
         const canvas = within(canvasElement);
         const textarea = canvas.getByPlaceholderText(/ask anything/i);
 
-        await userEvent.type(
-            textarea,
-            'First line{Shift>}{Enter}{/Shift}Second line',
-            {
-                delay: 50,
-            }
-        );
+        await userEvent.type(textarea, 'First line{Shift>}{Enter}{/Shift}Second line', {
+            delay: 50,
+        });
 
         // Should not submit
         expect(args.onSubmit).not.toHaveBeenCalled();

@@ -5,6 +5,7 @@ from collections.abc import Generator
 from datetime import datetime
 
 import pytest
+
 from src.domains.chat.exceptions import EmptyMessageError
 from src.domains.chat.models import ChatMessage, ChatSession
 from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository

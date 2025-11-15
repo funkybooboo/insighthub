@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm import Session
+
 from src.domains.chat.repositories import SqlChatMessageRepository, SqlChatSessionRepository
 from src.domains.documents.repositories import SqlDocumentRepository
 from src.domains.users.repositories import SqlUserRepository

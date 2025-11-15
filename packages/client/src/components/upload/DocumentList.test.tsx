@@ -48,18 +48,14 @@ describe('DocumentList', () => {
 
     describe('Loading State', () => {
         it('should show loading state initially', () => {
-            vi.mocked(apiService.listDocuments).mockImplementationOnce(
-                () => new Promise(() => {})
-            );
+            vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
             render(<DocumentList />);
 
             expect(screen.getByText('Loading documents...')).toBeInTheDocument();
         });
 
         it('should show loading spinner while loading', () => {
-            vi.mocked(apiService.listDocuments).mockImplementationOnce(
-                () => new Promise(() => {})
-            );
+            vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
             const { container } = render(<DocumentList />);
 
             const spinner = container.querySelector('.animate-spin');
@@ -86,9 +82,7 @@ describe('DocumentList', () => {
             render(<DocumentList />);
 
             expect(await screen.findByText('No documents uploaded')).toBeInTheDocument();
-            expect(
-                screen.getByText('Upload a PDF or TXT file to get started')
-            ).toBeInTheDocument();
+            expect(screen.getByText('Upload a PDF or TXT file to get started')).toBeInTheDocument();
         });
 
         it('should show empty state icon', async () => {
@@ -381,9 +375,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(
-                new Error('Delete failed')
-            );
+            vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(new Error('Delete failed'));
             render(<DocumentList />);
 
             await waitFor(() => {
@@ -393,9 +385,7 @@ describe('DocumentList', () => {
             const deleteButtons = screen.getAllByTitle('Delete document');
             await user.click(deleteButtons[0]);
 
-            expect(
-                await screen.findByText('Failed to delete "document1.pdf"')
-            ).toBeInTheDocument();
+            expect(await screen.findByText('Failed to delete "document1.pdf"')).toBeInTheDocument();
             expect(consoleErrorSpy).toHaveBeenCalledWith(
                 'Error deleting document:',
                 expect.any(Error)
@@ -430,9 +420,7 @@ describe('DocumentList', () => {
     describe('Error Handling', () => {
         it('should show error state when loading fails', async () => {
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.listDocuments).mockRejectedValueOnce(
-                new Error('Network error')
-            );
+            vi.mocked(apiService.listDocuments).mockRejectedValueOnce(new Error('Network error'));
             render(<DocumentList />);
 
             expect(await screen.findByText('Failed to load documents')).toBeInTheDocument();
@@ -446,9 +434,7 @@ describe('DocumentList', () => {
 
         it('should show retry button on error', async () => {
             vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.listDocuments).mockRejectedValueOnce(
-                new Error('Network error')
-            );
+            vi.mocked(apiService.listDocuments).mockRejectedValueOnce(new Error('Network error'));
             render(<DocumentList />);
 
             expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument();
@@ -479,9 +465,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(
-                new Error('Delete failed')
-            );
+            vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(new Error('Delete failed'));
             render(<DocumentList />);
 
             await waitFor(() => {
@@ -663,9 +647,7 @@ describe('DocumentList', () => {
         });
 
         it('should show loading spinner with accessible text', () => {
-            vi.mocked(apiService.listDocuments).mockImplementationOnce(
-                () => new Promise(() => {})
-            );
+            vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
             render(<DocumentList />);
 
             const loadingText = screen.getByText('Loading documents...');

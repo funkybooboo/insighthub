@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from jwt.exceptions import InvalidTokenError
+
 from src.infrastructure.auth.jwt_utils import create_access_token, decode_access_token
 
 
@@ -105,6 +106,7 @@ class TestDecodeAccessToken:
     def test_decode_access_token_wrong_secret(self) -> None:
         """Test decoding token with wrong secret."""
         import jwt
+
         from src.infrastructure.auth.jwt_utils import ALGORITHM
 
         payload = {"user_id": 1, "exp": datetime.utcnow() + timedelta(minutes=60)}

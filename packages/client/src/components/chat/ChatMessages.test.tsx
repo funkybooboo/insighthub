@@ -25,9 +25,7 @@ describe('ChatMessages', () => {
 
     describe('Rendering', () => {
         it('should render all messages', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText('Hello, how are you?')).toBeInTheDocument();
             expect(screen.getByText('I am doing well, thank you!')).toBeInTheDocument();
@@ -42,9 +40,7 @@ describe('ChatMessages', () => {
         });
 
         it('should apply correct styling to user messages', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const userMessage = screen.getByText('Hello, how are you?').closest('div');
             expect(userMessage).toHaveClass('bg-blue-600');
@@ -53,30 +49,22 @@ describe('ChatMessages', () => {
         });
 
         it('should apply correct styling to bot messages', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
-            const botMessage = screen
-                .getByText('I am doing well, thank you!')
-                .closest('div');
+            const botMessage = screen.getByText('I am doing well, thank you!').closest('div');
             expect(botMessage).toHaveClass('bg-gray-100');
             expect(botMessage).toHaveClass('text-black');
             expect(botMessage).toHaveClass('self-start');
         });
 
         it('should render typing indicator when bot is typing', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={true} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={true} />);
 
             expect(screen.getByTestId('typing-indicator')).toBeInTheDocument();
         });
 
         it('should not render typing indicator when bot is not typing', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             expect(screen.queryByTestId('typing-indicator')).not.toBeInTheDocument();
         });
@@ -96,9 +84,7 @@ describe('ChatMessages', () => {
         });
 
         it('should not render error message when error is empty', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             expect(screen.queryByText(/failed/i)).not.toBeInTheDocument();
         });
@@ -111,13 +97,7 @@ describe('ChatMessages', () => {
                 { content: '**Bold text**', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={messagesWithMarkdown}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={messagesWithMarkdown} error="" isBotTyping={false} />);
 
             // react-markdown renders heading as h1
             expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Heading');
@@ -128,13 +108,7 @@ describe('ChatMessages', () => {
                 { content: '- Item 1\n- Item 2\n- Item 3', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={messagesWithList}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={messagesWithList} error="" isBotTyping={false} />);
 
             expect(screen.getByText('Item 1')).toBeInTheDocument();
             expect(screen.getByText('Item 2')).toBeInTheDocument();
@@ -142,17 +116,9 @@ describe('ChatMessages', () => {
         });
 
         it('should render markdown code blocks', () => {
-            const messagesWithCode: Message[] = [
-                { content: '`inline code`', role: 'bot' },
-            ];
+            const messagesWithCode: Message[] = [{ content: '`inline code`', role: 'bot' }];
 
-            render(
-                <ChatMessages
-                    messages={messagesWithCode}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={messagesWithCode} error="" isBotTyping={false} />);
 
             expect(screen.getByText('inline code')).toBeInTheDocument();
         });
@@ -162,13 +128,7 @@ describe('ChatMessages', () => {
                 { content: '[OpenAI](https://openai.com)', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={messagesWithLink}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={messagesWithLink} error="" isBotTyping={false} />);
 
             const link = screen.getByRole('link', { name: 'OpenAI' });
             expect(link).toBeInTheDocument();
@@ -184,13 +144,7 @@ describe('ChatMessages', () => {
                 { content: 'Third message', role: 'user' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={orderedMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={orderedMessages} error="" isBotTyping={false} />);
 
             const messages = screen.getAllByText(/message/i);
             expect(messages[0]).toHaveTextContent('First message');
@@ -201,13 +155,7 @@ describe('ChatMessages', () => {
         it('should handle single message', () => {
             const singleMessage: Message[] = [{ content: 'Only message', role: 'user' }];
 
-            render(
-                <ChatMessages
-                    messages={singleMessage}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={singleMessage} error="" isBotTyping={false} />);
 
             expect(screen.getByText('Only message')).toBeInTheDocument();
         });
@@ -218,13 +166,7 @@ describe('ChatMessages', () => {
                 { content: 'Same text', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={duplicateContent}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={duplicateContent} error="" isBotTyping={false} />);
 
             const messages = screen.getAllByText('Same text');
             expect(messages).toHaveLength(2);
@@ -239,13 +181,7 @@ describe('ChatMessages', () => {
             const longMessage = 'a'.repeat(1000);
             const messagesWithLong: Message[] = [{ content: longMessage, role: 'bot' }];
 
-            render(
-                <ChatMessages
-                    messages={messagesWithLong}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={messagesWithLong} error="" isBotTyping={false} />);
 
             expect(screen.getByText(longMessage)).toBeInTheDocument();
         });
@@ -255,25 +191,15 @@ describe('ChatMessages', () => {
                 { content: 'Test <html> & "quotes"', role: 'user' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={specialMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={specialMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText(/Test.*html.*quotes/)).toBeInTheDocument();
         });
 
         it('should handle messages with emojis', () => {
-            const emojiMessages: Message[] = [
-                { content: 'Hello 👋 World 🌍', role: 'bot' },
-            ];
+            const emojiMessages: Message[] = [{ content: 'Hello 👋 World 🌍', role: 'bot' }];
 
-            render(
-                <ChatMessages messages={emojiMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={emojiMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText('Hello 👋 World 🌍')).toBeInTheDocument();
         });
@@ -283,13 +209,7 @@ describe('ChatMessages', () => {
                 { content: 'Line 1\nLine 2\nLine 3', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={multilineMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={multilineMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText(/Line 1/)).toBeInTheDocument();
             expect(screen.getByText(/Line 2/)).toBeInTheDocument();
@@ -300,9 +220,7 @@ describe('ChatMessages', () => {
     describe('Copy Functionality', () => {
         it('should handle copy event with selected text', async () => {
             const user = userEvent.setup();
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const message = screen.getByText('Hello, how are you?');
 
@@ -331,16 +249,11 @@ describe('ChatMessages', () => {
             message.parentElement?.dispatchEvent(copyEvent);
 
             expect(preventDefaultSpy).toHaveBeenCalled();
-            expect(clipboardData.setData).toHaveBeenCalledWith(
-                'text/plain',
-                'Hello, how are you?'
-            );
+            expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello, how are you?');
         });
 
         it('should handle copy event with no selection', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const message = screen.getByText('Hello, how are you?');
 
@@ -371,9 +284,7 @@ describe('ChatMessages', () => {
         });
 
         it('should trim whitespace from selection', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const message = screen.getByText('Hello, how are you?');
 
@@ -397,18 +308,13 @@ describe('ChatMessages', () => {
 
             message.parentElement?.dispatchEvent(copyEvent);
 
-            expect(clipboardData.setData).toHaveBeenCalledWith(
-                'text/plain',
-                'Hello, how are you?'
-            );
+            expect(clipboardData.setData).toHaveBeenCalledWith('text/plain', 'Hello, how are you?');
         });
     });
 
     describe('Scroll Behavior', () => {
         it('should have scrollIntoView reference on last message', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const lastMessage = screen.getByText('Can you help me with something?');
             expect(lastMessage).toBeInTheDocument();
@@ -424,9 +330,7 @@ describe('ChatMessages', () => {
                 { content: 'New message', role: 'bot' },
             ];
 
-            rerender(
-                <ChatMessages messages={newMessages} error="" isBotTyping={false} />
-            );
+            rerender(<ChatMessages messages={newMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText('New message')).toBeInTheDocument();
         });
@@ -435,21 +339,13 @@ describe('ChatMessages', () => {
     describe('Error Handling', () => {
         it('should display multiple types of errors', () => {
             const { rerender } = render(
-                <ChatMessages
-                    messages={mockMessages}
-                    error="Network error"
-                    isBotTyping={false}
-                />
+                <ChatMessages messages={mockMessages} error="Network error" isBotTyping={false} />
             );
 
             expect(screen.getByText('Network error')).toBeInTheDocument();
 
             rerender(
-                <ChatMessages
-                    messages={mockMessages}
-                    error="Server error"
-                    isBotTyping={false}
-                />
+                <ChatMessages messages={mockMessages} error="Server error" isBotTyping={false} />
             );
 
             expect(screen.getByText('Server error')).toBeInTheDocument();
@@ -458,11 +354,7 @@ describe('ChatMessages', () => {
 
         it('should display error alongside messages', () => {
             render(
-                <ChatMessages
-                    messages={mockMessages}
-                    error="Error occurred"
-                    isBotTyping={false}
-                />
+                <ChatMessages messages={mockMessages} error="Error occurred" isBotTyping={false} />
             );
 
             expect(screen.getByText('Hello, how are you?')).toBeInTheDocument();
@@ -471,11 +363,7 @@ describe('ChatMessages', () => {
 
         it('should display error with typing indicator', () => {
             render(
-                <ChatMessages
-                    messages={mockMessages}
-                    error="Error occurred"
-                    isBotTyping={true}
-                />
+                <ChatMessages messages={mockMessages} error="Error occurred" isBotTyping={true} />
             );
 
             expect(screen.getByTestId('typing-indicator')).toBeInTheDocument();
@@ -485,13 +373,7 @@ describe('ChatMessages', () => {
         it('should handle very long error messages', () => {
             const longError = 'Error: '.repeat(100);
 
-            render(
-                <ChatMessages
-                    messages={mockMessages}
-                    error={longError}
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={mockMessages} error={longError} isBotTyping={false} />);
 
             expect(screen.getByText(longError)).toBeInTheDocument();
         });
@@ -501,9 +383,7 @@ describe('ChatMessages', () => {
         it('should handle empty content messages', () => {
             const emptyMessages: Message[] = [{ content: '', role: 'user' }];
 
-            render(
-                <ChatMessages messages={emptyMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={emptyMessages} error="" isBotTyping={false} />);
 
             // Empty message should still render a div
             const containers = screen.getAllByRole('generic');
@@ -513,13 +393,7 @@ describe('ChatMessages', () => {
         it('should handle whitespace-only messages', () => {
             const whitespaceMessages: Message[] = [{ content: '   ', role: 'bot' }];
 
-            render(
-                <ChatMessages
-                    messages={whitespaceMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={whitespaceMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText('   ')).toBeInTheDocument();
         });
@@ -532,13 +406,7 @@ describe('ChatMessages', () => {
                 { content: 'Bot 2', role: 'bot' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={alternatingMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={alternatingMessages} error="" isBotTyping={false} />);
 
             expect(screen.getByText('User 1')).toBeInTheDocument();
             expect(screen.getByText('Bot 1')).toBeInTheDocument();
@@ -553,13 +421,7 @@ describe('ChatMessages', () => {
                 { content: 'User message 3', role: 'user' },
             ];
 
-            render(
-                <ChatMessages
-                    messages={consecutiveMessages}
-                    error=""
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={consecutiveMessages} error="" isBotTyping={false} />);
 
             const messages = screen.getAllByText(/User message/);
             expect(messages).toHaveLength(3);
@@ -571,9 +433,7 @@ describe('ChatMessages', () => {
 
     describe('Accessibility', () => {
         it('should have visible message content', () => {
-            render(
-                <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
-            );
+            render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             mockMessages.forEach((message) => {
                 const element = screen.getByText(message.content);
@@ -582,13 +442,7 @@ describe('ChatMessages', () => {
         });
 
         it('should have visible error messages', () => {
-            render(
-                <ChatMessages
-                    messages={mockMessages}
-                    error="Test error"
-                    isBotTyping={false}
-                />
-            );
+            render(<ChatMessages messages={mockMessages} error="Test error" isBotTyping={false} />);
 
             const errorElement = screen.getByText('Test error');
             expect(errorElement).toBeVisible();

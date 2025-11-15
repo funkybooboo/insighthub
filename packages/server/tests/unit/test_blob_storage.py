@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+
 from src.infrastructure.storage.file_system_blob_storage import FileSystemBlobStorage
 from src.infrastructure.storage.in_memory_blob_storage import InMemoryBlobStorage
 
