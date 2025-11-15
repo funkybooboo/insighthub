@@ -56,7 +56,7 @@ describe('LoginForm', () => {
         it('should render login form with all elements', () => {
             renderLoginForm();
 
-            expect(screen.getByText('Sign in')).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
             expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
             expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
@@ -295,7 +295,7 @@ describe('LoginForm', () => {
             });
 
             expect(submitButton).not.toBeDisabled();
-            expect(screen.getByText(/sign in/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
         });
     });
 

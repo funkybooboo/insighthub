@@ -566,7 +566,7 @@ describe('SignupForm', () => {
 
             await user.type(usernameInput, 'testuser');
             await user.type(emailInput, 'test@example.com');
-            await user.type(fullNameInput, '');
+            // Leave fullNameInput empty by not typing anything
             await user.type(passwordInput, 'password123');
             await user.type(confirmPasswordInput, 'password123');
             await user.click(submitButton);
@@ -603,12 +603,17 @@ describe('SignupForm', () => {
             const user = userEvent.setup();
             renderSignupForm();
 
+            const usernameInput = screen.getByLabelText(/username/i);
+            const emailInput = screen.getByLabelText(/^email$/i);
             const passwordInput = screen.getByLabelText(/^password$/i);
             const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
             const submitButton = screen.getByRole('button', { name: /sign up/i });
 
-            await user.type(passwordInput, 'pass1');
-            await user.type(confirmPasswordInput, 'pass2');
+            // Fill in all required fields but with mismatched passwords
+            await user.type(usernameInput, 'testuser');
+            await user.type(emailInput, 'test@example.com');
+            await user.type(passwordInput, 'password123');
+            await user.type(confirmPasswordInput, 'password456');
             await user.click(submitButton);
 
             const errorMessage = await screen.findByText('Passwords do not match');
