@@ -40,3 +40,37 @@ global.ResizeObserver = class ResizeObserver {
     observe() {}
     unobserve() {}
 } as unknown as typeof ResizeObserver;
+
+// Mock localStorage if not already available
+if (typeof localStorage === 'undefined') {
+    const localStorageMock = (() => {
+        let store: Record<string, string> = {};
+
+        return {
+            getItem: (key: string) => {
+                return store[key] || null;
+            },
+            setItem: (key: string, value: string) => {
+                store[key] = value.toString();
+            },
+            removeItem: (key: string) => {
+                delete store[key];
+            },
+            clear: () => {
+                store = {};
+            },
+            key: (index: number): string | null => {
+                const keys = Object.keys(store);
+                return keys[index] || null;
+            },
+            get length() {
+                return Object.keys(store).length;
+            },
+        };
+    })();
+
+    Object.defineProperty(globalThis, 'localStorage', {
+        value: localStorageMock,
+        writable: true,
+    });
+}
