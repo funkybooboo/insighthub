@@ -190,16 +190,43 @@ VITE_ENABLE_DEBUG=true
 
 ## Testing
 
+See [TESTING.md](../../TESTING.md) for the complete testing guide.
+
+### Quick Test Commands
+
 ```bash
-# Run tests
-bun run test
+# Unit Tests (Vitest)
+task test                  # Run all unit tests
+task test:watch            # Watch mode
+task test:coverage         # With coverage report
+task test:ui               # Interactive UI
 
-# Run tests in watch mode
-bun run test --watch
+# E2E Tests (Playwright)
+task test:e2e              # Run E2E tests
+task test:e2e:ui           # Interactive UI mode
+task test:e2e:headed       # See browser in action
 
-# Run tests with coverage
-bun run test --coverage
+# Component Documentation (Storybook)
+task storybook             # Run Storybook dev server (http://localhost:6006)
+task storybook:build       # Build static Storybook
 ```
+
+### Test Coverage
+
+**Current Stats**: 319 tests passing across 12 test files
+
+**Coverage Thresholds**:
+
+- Lines: 80%
+- Functions: 80%
+- Branches: 80%
+- Statements: 80%
+
+**Test Files**:
+
+- Unit tests: `src/**/*.test.tsx`
+- E2E tests: `e2e/**/*.spec.ts`
+- Stories: `src/**/*.stories.tsx`
 
 ## Docker Integration
 
