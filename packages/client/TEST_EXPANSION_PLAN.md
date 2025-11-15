@@ -1,6 +1,7 @@
 # Test Expansion Plan - Client
 
 ## Current Status (✅ Excellent)
+
 - **Unit Tests**: 319 tests passing (100%)
 - **Coverage**: 97% statements, 94.28% branches, 100% functions
 - **Code Quality**: 0 lint errors, 0 type errors
@@ -10,6 +11,7 @@
 ### 1. 🎭 Missing Storybook Stories (High Priority)
 
 **Components without stories:**
+
 - [ ] `ChatBot.tsx` - Main chat interface component
 - [ ] `ChatSidebar.tsx` - Session management sidebar
 - [ ] `ProtectedRoute.tsx` - Auth guard component
@@ -17,6 +19,7 @@
 - [ ] `SignupForm.stories.tsx` - Needs to be created
 
 **Benefits:**
+
 - Visual documentation for developers
 - Interactive component playground
 - Visual regression testing base
@@ -25,6 +28,7 @@
 ### 2. 🔄 Integration Tests (High Priority)
 
 **User Flows to Test:**
+
 - [ ] Complete signup → login → chat flow
 - [ ] Document upload → chat with context flow
 - [ ] Session creation → message exchange → session switch flow
@@ -32,6 +36,7 @@
 - [ ] WebSocket reconnection scenarios
 
 **Test File Structure:**
+
 ```
 tests/integration/
 ├── auth-flow.integration.test.tsx
@@ -44,6 +49,7 @@ tests/integration/
 ### 3. 🎯 E2E Tests with Playwright (High Priority)
 
 **Critical User Journeys:**
+
 - [ ] New user signup and first chat
 - [ ] Returning user login and session restoration
 - [ ] Document upload and RAG query
@@ -51,6 +57,7 @@ tests/integration/
 - [ ] Mobile responsive behavior
 
 **Test File Structure:**
+
 ```
 e2e/
 ├── auth/
@@ -73,6 +80,7 @@ e2e/
 ### 4. 📡 Additional Bruno API Tests (Medium Priority)
 
 **Missing API Test Scenarios:**
+
 - [ ] Rate limiting tests
 - [ ] Concurrent request handling
 - [ ] Large file upload scenarios
@@ -81,6 +89,7 @@ e2e/
 - [ ] API version compatibility tests
 
 **Test File Structure:**
+
 ```
 bruno/
 ├── Documents/
@@ -100,6 +109,7 @@ bruno/
 ### 5. 🎨 Visual Regression Tests (Medium Priority)
 
 **Using Playwright + Percy/Chromatic:**
+
 - [ ] Component visual snapshots
 - [ ] Responsive design breakpoints
 - [ ] Theme variations (if applicable)
@@ -108,6 +118,7 @@ bruno/
 ### 6. ⚡ Performance Tests (Medium Priority)
 
 **Areas to Test:**
+
 - [ ] Component render performance
 - [ ] Large message list virtualization
 - [ ] WebSocket message throughput
@@ -115,6 +126,7 @@ bruno/
 - [ ] Core Web Vitals (LCP, FID, CLS)
 
 **Test File Structure:**
+
 ```
 tests/performance/
 ├── component-render.perf.test.ts
@@ -125,6 +137,7 @@ tests/performance/
 ### 7. ♿ Accessibility Tests (Medium Priority)
 
 **Using @axe-core/playwright:**
+
 - [ ] Keyboard navigation tests
 - [ ] Screen reader compatibility
 - [ ] ARIA labels verification
@@ -132,6 +145,7 @@ tests/performance/
 - [ ] Focus management tests
 
 **Test File Structure:**
+
 ```
 tests/accessibility/
 ├── keyboard-navigation.a11y.test.ts
@@ -142,31 +156,34 @@ tests/accessibility/
 ## Implementation Priority
 
 ### Phase 1: Critical Path (Week 1)
+
 1. **Storybook stories** for missing components
 2. **E2E tests** for core user journeys
 3. **Integration tests** for auth and chat flows
 
 ### Phase 2: Quality Enhancement (Week 2)
+
 4. **Bruno API tests** for edge cases
 5. **Visual regression** baseline
 6. **Accessibility audits**
 
 ### Phase 3: Optimization (Week 3)
+
 7. **Performance benchmarks**
 8. **Load testing**
 9. **Test infrastructure improvements**
 
 ## Estimated Test Count After Expansion
 
-| Test Type | Current | Target | Increase |
-|-----------|---------|--------|----------|
-| Unit Tests | 319 | 350 | +31 |
-| Storybook Stories | 7 | 12 | +5 |
-| Integration Tests | 0 | 15 | +15 |
-| E2E Tests | 0 | 25 | +25 |
-| Bruno API Tests | ~20 | 40 | +20 |
-| A11y Tests | 0 | 10 | +10 |
-| **TOTAL** | **346** | **452** | **+106** |
+| Test Type         | Current | Target  | Increase |
+| ----------------- | ------- | ------- | -------- |
+| Unit Tests        | 319     | 350     | +31      |
+| Storybook Stories | 7       | 12      | +5       |
+| Integration Tests | 0       | 15      | +15      |
+| E2E Tests         | 0       | 25      | +25      |
+| Bruno API Tests   | ~20     | 40      | +20      |
+| A11y Tests        | 0       | 10      | +10      |
+| **TOTAL**         | **346** | **452** | **+106** |
 
 ## Success Metrics
 

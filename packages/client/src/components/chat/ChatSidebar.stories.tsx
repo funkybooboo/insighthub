@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import ChatSidebar from './ChatSidebar';
@@ -20,19 +20,28 @@ const meta: Meta<typeof ChatSidebar> = {
 
             // Add mock sessions based on story
             if (context.name === 'With Multiple Sessions') {
-                store.dispatch(createSession({ id: 'session-1', title: 'TypeScript Best Practices' }));
+                store.dispatch(
+                    createSession({ id: 'session-1', title: 'TypeScript Best Practices' })
+                );
                 store.dispatch(
                     addMessageToSession({
                         sessionId: 'session-1',
-                        message: { role: 'user', content: 'What are TypeScript best practices?' },
+                        message: {
+                            id: '1',
+                            role: 'user',
+                            content: 'What are TypeScript best practices?',
+                            timestamp: Date.now(),
+                        },
                     })
                 );
                 store.dispatch(
                     addMessageToSession({
                         sessionId: 'session-1',
                         message: {
+                            id: '2',
                             role: 'bot',
                             content: 'Here are some TypeScript best practices...',
+                            timestamp: Date.now(),
                         },
                     })
                 );
@@ -41,7 +50,12 @@ const meta: Meta<typeof ChatSidebar> = {
                 store.dispatch(
                     addMessageToSession({
                         sessionId: 'session-2',
-                        message: { role: 'user', content: 'Explain React hooks' },
+                        message: {
+                            id: '3',
+                            role: 'user',
+                            content: 'Explain React hooks',
+                            timestamp: Date.now(),
+                        },
                     })
                 );
 
@@ -51,7 +65,12 @@ const meta: Meta<typeof ChatSidebar> = {
                 store.dispatch(
                     addMessageToSession({
                         sessionId: 'session-1',
-                        message: { role: 'user', content: 'Hello!' },
+                        message: {
+                            id: '4',
+                            role: 'user',
+                            content: 'Hello!',
+                            timestamp: Date.now(),
+                        },
                     })
                 );
             }

@@ -29,7 +29,7 @@ export default defineConfig({
             },
         },
         include: ['**/*.{test,spec}.{ts,tsx}'],
-        exclude: ['node_modules', 'dist', '.storybook', 'storybook-static'],
+        exclude: ['node_modules', 'dist', '.storybook', 'storybook-static', 'e2e'],
     },
     resolve: {
         alias: {

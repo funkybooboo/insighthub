@@ -24,7 +24,7 @@ test.describe('User Signup Flow', () => {
         await expect(page).toHaveURL('/chat');
 
         // Verify user menu shows username
-        await expect(page.locator(`text=${testuser${timestamp}}`)).toBeVisible();
+        await expect(page.locator(`text=testuser${timestamp}`)).toBeVisible();
     });
 
     test('should show validation error for mismatched passwords', async ({ page }) => {
