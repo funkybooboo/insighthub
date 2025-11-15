@@ -376,9 +376,11 @@ describe('ChatMessages', () => {
             render(<ChatMessages messages={mockMessages} error={longError} isBotTyping={false} />);
 
             // Check that error text is present (partial match since it might be normalized)
-            expect(screen.getByText((content, element) => {
-                return element?.textContent === longError;
-            })).toBeInTheDocument();
+            expect(
+                screen.getByText((content, element) => {
+                    return element?.textContent === longError;
+                })
+            ).toBeInTheDocument();
         });
     });
 

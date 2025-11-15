@@ -559,14 +559,14 @@ describe('SignupForm', () => {
 
             const usernameInput = screen.getByLabelText(/username/i);
             const emailInput = screen.getByLabelText(/^email$/i);
-            const fullNameInput = screen.getByLabelText(/full name/i);
+            // Full name input exists but we leave it empty by not typing anything
             const passwordInput = screen.getByLabelText(/^password$/i);
             const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
             const submitButton = screen.getByRole('button', { name: /sign up/i });
 
             await user.type(usernameInput, 'testuser');
             await user.type(emailInput, 'test@example.com');
-            // Leave fullNameInput empty by not typing anything
+            // Leave full name empty by not typing anything
             await user.type(passwordInput, 'password123');
             await user.type(confirmPasswordInput, 'password123');
             await user.click(submitButton);
