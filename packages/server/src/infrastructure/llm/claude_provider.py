@@ -2,11 +2,13 @@
 
 import os
 from collections.abc import Generator
+from typing import cast
 
 from .llm import LlmProvider
 
 try:
     from anthropic import Anthropic
+    from anthropic.types import MessageParam
 
     ANTHROPIC_AVAILABLE = True
 except ImportError:
@@ -87,17 +89,20 @@ class ClaudeLlmProvider(LlmProvider):
 
         try:
             # Build messages array
-            messages = []
+            messages: list[MessageParam] = []
 
             # Add conversation history
             if conversation_history:
                 for msg in conversation_history[-10:]:  # Keep last 10 messages
-                    role = msg.get("role", "user")
-                    content = msg.get("content", "")
-                    messages.append({"role": role, "content": content})
+                    role_str = msg.get("role", "user")
+                    content_str = msg.get("content", "")
+                    if role_str in ("user", "assistant"):
+                        messages.append(
+                            cast(MessageParam, {"role": role_str, "content": content_str})
+                        )
 
             # Add current message
-            messages.append({"role": "user", "content": message})
+            messages.append(cast(MessageParam, {"role": "user", "content": message}))
 
             # Call Claude
             response = self.client.messages.create(
@@ -182,17 +187,20 @@ class ClaudeLlmProvider(LlmProvider):
 
         try:
             # Build messages array
-            messages = []
+            messages: list[MessageParam] = []
 
             # Add conversation history
             if conversation_history:
                 for msg in conversation_history[-10:]:
-                    role = msg.get("role", "user")
-                    content = msg.get("content", "")
-                    messages.append({"role": role, "content": content})
+                    role_str = msg.get("role", "user")
+                    content_str = msg.get("content", "")
+                    if role_str in ("user", "assistant"):
+                        messages.append(
+                            cast(MessageParam, {"role": role_str, "content": content_str})
+                        )
 
             # Add current message
-            messages.append({"role": "user", "content": message})
+            messages.append(cast(MessageParam, {"role": "user", "content": message}))
 
             # Call Claude with streaming
             with self.client.messages.stream(
