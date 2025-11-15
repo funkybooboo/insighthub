@@ -40,13 +40,14 @@ tasks:
     test:
         desc: Run tests
         cmds:
-            - bun test
+            - bun run test:run
 
     check:
-        desc: Run all checks (format-check, lint, build)
+        desc: Run all checks (format-check, lint, test, build)
         cmds:
             - task: format-check
             - task: lint
+            - task: test
             - task: build
 
     clean:
