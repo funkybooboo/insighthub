@@ -1,10 +1,9 @@
 """Tests for CLI document commands."""
 
 import argparse
-import sys
 from pathlib import Path
 from typing import cast
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
