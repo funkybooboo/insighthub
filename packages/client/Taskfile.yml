@@ -38,9 +38,49 @@ tasks:
             - bun run format:check
 
     test:
-        desc: Run tests
+        desc: Run unit tests
         cmds:
             - bun run test:run
+
+    test:watch:
+        desc: Run unit tests in watch mode
+        cmds:
+            - bun run test
+
+    test:coverage:
+        desc: Run unit tests with coverage report
+        cmds:
+            - bun run test:coverage
+
+    test:ui:
+        desc: Run tests with Vitest UI
+        cmds:
+            - bun run test:ui
+
+    test:e2e:
+        desc: Run E2E tests with Playwright
+        cmds:
+            - npx playwright test
+
+    test:e2e:ui:
+        desc: Run E2E tests with Playwright UI mode
+        cmds:
+            - npx playwright test --ui
+
+    test:e2e:headed:
+        desc: Run E2E tests in headed mode (see browser)
+        cmds:
+            - npx playwright test --headed
+
+    storybook:
+        desc: Run Storybook development server
+        cmds:
+            - bun run storybook
+
+    storybook:build:
+        desc: Build Storybook for production
+        cmds:
+            - bun run build-storybook
 
     check:
         desc: Run all checks (format-check, lint, test, build)
@@ -53,7 +93,7 @@ tasks:
     clean:
         desc: Clean generated files
         cmds:
-            - rm -rf node_modules dist .vite
+            - rm -rf node_modules dist .vite coverage storybook-static playwright-report test-results
             - find . -type f -name "*.log" -delete
 
     preview:

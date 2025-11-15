@@ -86,6 +86,25 @@ insighthub/
 └── Taskfile.yml             # Task commands
 ```
 
+## Testing
+
+See [TESTING.md](TESTING.md) for the complete testing guide.
+
+### Quick Test Commands
+
+```bash
+# Client Tests
+cd packages/client
+task test              # Unit tests (319 passing)
+task test:e2e          # E2E tests (Playwright)
+task storybook         # Component documentation
+
+# Server Tests
+cd packages/server
+task test              # Unit tests with coverage
+task test:api          # Bruno API tests
+```
+
 ## Code Quality
 
 ```bash
@@ -143,6 +162,7 @@ See [docs/docker.md](docs/docker.md) for details.
 
 ## Documentation
 
+- [Testing Guide](TESTING.md) - Comprehensive testing documentation
 - [Docker Setup](docs/docker.md)
 - [Task Commands](docs/taskfile-setup.md)
 - [Architecture](docs/architecture.md)

@@ -77,19 +77,34 @@ poetry run python -m src.cli interactive       # Start interactive chat
 
 ### Testing
 
+See [TESTING.md](../../TESTING.md) for the complete testing guide.
+
 ```bash
-# Run all tests
-poetry run pytest
+# Unit Tests (Pytest)
+task test                  # All tests with coverage
+task test-unit             # Unit tests only (fast)
+task test-integration      # Integration tests (requires Docker)
+task test-watch            # Watch mode
 
-# Run tests with coverage
-poetry run pytest --cov=src --cov-report=html
+# API Tests (Bruno)
+task test:api              # Run Bruno API tests (requires Bruno CLI)
+task test:api:verbose      # With verbose output
 
-# Run specific test categories
-poetry run pytest tests/unit/      # Unit tests only
-poetry run pytest tests/integration/  # Integration tests only
+# Using Poetry directly
+poetry run pytest                           # Run all tests
+poetry run pytest --cov=src --cov-report=html  # With coverage
+poetry run pytest tests/unit/               # Unit tests only
+poetry run pytest tests/integration/        # Integration tests only
+```
 
-# Run tests in watch mode
-poetry run pytest-watch
+**Prerequisites for API Tests**:
+```bash
+# Install Bruno CLI globally
+npm install -g @usebruno/cli
+
+# Make sure server is running
+task server  # In one terminal
+task test:api  # In another terminal
 ```
 
 ### Code Quality

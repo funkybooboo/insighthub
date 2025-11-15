@@ -97,3 +97,23 @@ tasks:
           echo "Server is not responding"
         fi
     silent: true
+
+  test:api:
+    desc: 'Run Bruno API tests (requires: npm install -g @usebruno/cli)'
+    cmds:
+      - cmd: echo "Running Bruno API tests..."
+        silent: true
+      - cmd: |
+          if ! command -v bru &> /dev/null; then
+            echo "Error: Bruno CLI not found. Install with: npm install -g @usebruno/cli"
+            exit 1
+          fi
+        silent: true
+      - bru run --env local bruno/
+
+  test:api:verbose:
+    desc: 'Run Bruno API tests with verbose output'
+    cmds:
+      - cmd: echo "Running Bruno API tests (verbose)..."
+        silent: true
+      - bru run --env local --verbose bruno/
