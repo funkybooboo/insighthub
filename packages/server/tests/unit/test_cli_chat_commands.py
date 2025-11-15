@@ -1,7 +1,6 @@
 """Tests for CLI chat commands."""
 
 import argparse
-import sys
 from typing import cast
 from unittest.mock import MagicMock, Mock, patch
 
