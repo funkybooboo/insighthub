@@ -55,4 +55,14 @@ data/
 .DS_Store
 Thumbs.db
 
+# Test coverage
+coverage/
+htmlcov/
+.coverage
+*.lcov
+lcov.info
+
+# Storybook
+storybook-static/
+
 CLAUDE.md

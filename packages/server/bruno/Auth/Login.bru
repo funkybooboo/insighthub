@@ -1,0 +1,43 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "password": "SecurePass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isDefined
+  res.body.token_type: eq bearer
+}
+
+tests {
+  test("should login and return token", function() {
+    expect(res.status).to.equal(200);
+    const data = res.getBody();
+    expect(data).to.have.property('access_token');
+    expect(data).to.have.property('token_type');
+    expect(data.token_type).to.equal('bearer');
+    expect(data).to.have.property('user');
+  });
+}
+
+script:post-response {
+  // Save token for subsequent requests
+  if (res.status === 200) {
+    const data = res.getBody();
+    bru.setEnvVar("authToken", data.access_token);
+  }
+}
