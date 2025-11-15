@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import FileUpload from './FileUpload';
 import apiService from '../../services/api';
 
@@ -22,7 +21,8 @@ describe('FileUpload', () => {
     const uploadFile = (input: HTMLInputElement, file: File) => {
         Object.defineProperty(input, 'files', {
             value: [file],
-            writable: false,
+            writable: true,
+            configurable: true,
         });
         fireEvent.change(input);
     };
@@ -88,7 +88,6 @@ describe('FileUpload', () => {
         });
 
         it('should accept PDF files', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -112,7 +111,6 @@ describe('FileUpload', () => {
         });
 
         it('should accept TXT files', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -136,7 +134,6 @@ describe('FileUpload', () => {
         });
 
         it('should reject files larger than 16MB', async () => {
-            const user = userEvent.setup();
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;
@@ -152,7 +149,6 @@ describe('FileUpload', () => {
         });
 
         it('should accept files exactly at 16MB limit', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -166,9 +162,14 @@ describe('FileUpload', () => {
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;
-            const maxContent = new Uint8Array(16 * 1024 * 1024); // Exactly 16MB
-            const file = new File([maxContent], 'max-size.pdf', {
+            // Create a smaller file but with size property set to exactly 16MB
+            const file = new File(['content'], 'max-size.pdf', {
                 type: 'application/pdf',
+            });
+            // Override the size property to simulate 16MB
+            Object.defineProperty(file, 'size', {
+                value: 16 * 1024 * 1024,
+                writable: false,
             });
 
             uploadFile(input, file);
@@ -179,7 +180,6 @@ describe('FileUpload', () => {
         });
 
         it('should clear previous errors when uploading new valid file', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -218,7 +218,6 @@ describe('FileUpload', () => {
 
     describe('Upload Process', () => {
         it('should show uploading state during upload', async () => {
-            const user = userEvent.setup();
             let resolveUpload: (value: unknown) => void;
             const uploadPromise = new Promise((resolve) => {
                 resolveUpload = resolve;
@@ -251,7 +250,6 @@ describe('FileUpload', () => {
         });
 
         it('should disable input during upload', async () => {
-            const user = userEvent.setup();
             let resolveUpload: (value: unknown) => void;
             const uploadPromise = new Promise((resolve) => {
                 resolveUpload = resolve;
@@ -284,7 +282,6 @@ describe('FileUpload', () => {
         });
 
         it('should show success message after successful upload', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -308,7 +305,6 @@ describe('FileUpload', () => {
         });
 
         it('should clear input value after successful upload', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -334,7 +330,6 @@ describe('FileUpload', () => {
         });
 
         it('should call onUploadSuccess callback after successful upload', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -358,7 +353,6 @@ describe('FileUpload', () => {
         });
 
         it('should not call onUploadSuccess if callback not provided', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -384,7 +378,6 @@ describe('FileUpload', () => {
         });
 
         it('should handle upload error', async () => {
-            const user = userEvent.setup();
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(new Error('Network error'));
             render(<FileUpload />);
@@ -403,7 +396,6 @@ describe('FileUpload', () => {
         });
 
         it('should re-enable input after upload error', async () => {
-            const user = userEvent.setup();
             vi.spyOn(console, 'error').mockImplementation(() => {});
             vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(new Error('Upload failed'));
             render(<FileUpload />);
@@ -419,7 +411,6 @@ describe('FileUpload', () => {
         });
 
         it('should handle multiple consecutive uploads', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument)
                 .mockResolvedValueOnce({
                     document: {
@@ -485,7 +476,6 @@ describe('FileUpload', () => {
         });
 
         it('should handle very small files', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -509,7 +499,6 @@ describe('FileUpload', () => {
         });
 
         it('should handle files with special characters in filename', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,
@@ -535,7 +524,6 @@ describe('FileUpload', () => {
         });
 
         it('should clear success message when uploading new file', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument)
                 .mockResolvedValueOnce({
                     document: {
@@ -598,7 +586,6 @@ describe('FileUpload', () => {
         });
 
         it('should have visible error messages', async () => {
-            const user = userEvent.setup();
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;
@@ -611,7 +598,6 @@ describe('FileUpload', () => {
         });
 
         it('should have visible success messages', async () => {
-            const user = userEvent.setup();
             vi.mocked(apiService.uploadDocument).mockResolvedValueOnce({
                 document: {
                     id: 1,

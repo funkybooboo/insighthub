@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -284,7 +284,9 @@ describe('ChatSidebar', () => {
             expect(activeSession?.textContent).toContain('Second Chat');
 
             // Find the inactive session (with bg-white)
-            const inactiveSessions = container.querySelectorAll('.bg-white.rounded-lg.cursor-pointer');
+            const inactiveSessions = container.querySelectorAll(
+                '.bg-white.rounded-lg.cursor-pointer'
+            );
             expect(inactiveSessions.length).toBeGreaterThan(0);
             const inactiveSession = Array.from(inactiveSessions).find((el) =>
                 el.textContent?.includes('First Chat')
