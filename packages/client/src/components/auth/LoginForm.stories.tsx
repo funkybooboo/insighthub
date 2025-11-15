@@ -97,7 +97,6 @@ export const LoadingState: Story = {
 };
 
 export const ValidationError: Story = {
-    name: 'Validation Error',
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         const submitButton = canvas.getByRole('button', { name: /sign in/i });
@@ -112,7 +111,6 @@ export const ValidationError: Story = {
 };
 
 export const KeyboardNavigation: Story = {
-    name: 'Keyboard Navigation',
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         const usernameInput = canvas.getByLabelText(/username/i);

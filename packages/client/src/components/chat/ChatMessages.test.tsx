@@ -4,7 +4,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import ChatMessages, { type Message } from './ChatMessages';
 
 // Mock TypingIndicator component
@@ -219,7 +218,6 @@ describe('ChatMessages', () => {
 
     describe('Copy Functionality', () => {
         it('should handle copy event with selected text', async () => {
-            const user = userEvent.setup();
             render(<ChatMessages messages={mockMessages} error="" isBotTyping={false} />);
 
             const message = screen.getByText('Hello, how are you?');
