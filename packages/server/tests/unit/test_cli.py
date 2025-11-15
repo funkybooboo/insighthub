@@ -233,13 +233,15 @@ class TestMain:
     @patch("src.cli.cmd_upload")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "upload", "test.pdf"])
-    def test_main_closes_client_on_exception(self, mock_cli_client_class: MagicMock, mock_cmd_upload: MagicMock) -> None:
+    def test_main_closes_client_on_exception(
+        self, mock_cli_client_class: MagicMock, mock_cmd_upload: MagicMock
+    ) -> None:
         """Test that main() closes client even when command raises exception."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
-        mock_cmd_upload.side_effect = Exception("Test error")
+        mock_cmd_upload.side_effect = RuntimeError("Test error")
 
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError, match="Test error"):
             main()
 
         mock_client.close.assert_called_once()
