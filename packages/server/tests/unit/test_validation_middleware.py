@@ -4,6 +4,7 @@ import json
 
 import pytest
 from flask import Flask
+
 from src.infrastructure.middleware.validation import RequestValidationMiddleware
 
 

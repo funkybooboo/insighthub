@@ -40,9 +40,7 @@ describe('FileUpload', () => {
         it('should render default help text', () => {
             render(<FileUpload />);
 
-            expect(
-                screen.getByText('Upload PDF or TXT files (max 16MB)')
-            ).toBeInTheDocument();
+            expect(screen.getByText('Upload PDF or TXT files (max 16MB)')).toBeInTheDocument();
         });
 
         it('should render upload icon', () => {
@@ -137,9 +135,7 @@ describe('FileUpload', () => {
 
             await user.upload(input, file);
 
-            expect(
-                await screen.findByText('File size must be less than 16MB')
-            ).toBeInTheDocument();
+            expect(await screen.findByText('File size must be less than 16MB')).toBeInTheDocument();
             expect(apiService.uploadDocument).not.toHaveBeenCalled();
         });
 
@@ -313,9 +309,9 @@ describe('FileUpload', () => {
             });
             render(<FileUpload />);
 
-            const input = screen.getByText('Upload Document').querySelector(
-                'input'
-            )! as HTMLInputElement;
+            const input = screen
+                .getByText('Upload Document')
+                .querySelector('input')! as HTMLInputElement;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
             await user.upload(input, file);
@@ -378,9 +374,7 @@ describe('FileUpload', () => {
         it('should handle upload error', async () => {
             const user = userEvent.setup();
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(
-                new Error('Network error')
-            );
+            vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(new Error('Network error'));
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;
@@ -391,10 +385,7 @@ describe('FileUpload', () => {
             expect(
                 await screen.findByText('Failed to upload file. Please try again.')
             ).toBeInTheDocument();
-            expect(consoleErrorSpy).toHaveBeenCalledWith(
-                'Upload error:',
-                expect.any(Error)
-            );
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Upload error:', expect.any(Error));
 
             consoleErrorSpy.mockRestore();
         });
@@ -402,9 +393,7 @@ describe('FileUpload', () => {
         it('should re-enable input after upload error', async () => {
             const user = userEvent.setup();
             vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(
-                new Error('Upload failed')
-            );
+            vi.mocked(apiService.uploadDocument).mockRejectedValueOnce(new Error('Upload failed'));
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;

@@ -65,8 +65,7 @@ export const WithHelpText: Story = {
     parameters: {
         docs: {
             description: {
-                story:
-                    'Help text is displayed when there are no messages or errors, showing accepted file types and size limit.',
+                story: 'Help text is displayed when there are no messages or errors, showing accepted file types and size limit.',
             },
         },
     },
@@ -84,8 +83,7 @@ export const SuccessMessage: Story = {
     parameters: {
         docs: {
             description: {
-                story:
-                    'After successful upload, a green success message is displayed with the filename.',
+                story: 'After successful upload, a green success message is displayed with the filename.',
             },
         },
     },
@@ -129,8 +127,7 @@ export const ErrorMessage: Story = {
     parameters: {
         docs: {
             description: {
-                story:
-                    'Error messages are displayed in red when validation fails or upload errors occur.',
+                story: 'Error messages are displayed in red when validation fails or upload errors occur.',
             },
         },
     },
@@ -158,9 +155,7 @@ export const ErrorMessage: Story = {
                     </label>
 
                     <div className="flex-1">
-                        <p className="text-sm text-red-600">
-                            Only PDF and TXT files are allowed
-                        </p>
+                        <p className="text-sm text-red-600">Only PDF and TXT files are allowed</p>
                     </div>
                 </div>
             </div>
@@ -173,8 +168,7 @@ export const UploadingState: Story = {
     parameters: {
         docs: {
             description: {
-                story:
-                    'During upload, the button shows "Uploading..." text and the file input is disabled.',
+                story: 'During upload, the button shows "Uploading..." text and the file input is disabled.',
             },
         },
     },
@@ -202,9 +196,7 @@ export const UploadingState: Story = {
                     </label>
 
                     <div className="flex-1">
-                        <p className="text-sm text-gray-500">
-                            Upload PDF or TXT files (max 16MB)
-                        </p>
+                        <p className="text-sm text-gray-500">Upload PDF or TXT files (max 16MB)</p>
                     </div>
                 </div>
             </div>
@@ -258,8 +250,7 @@ export const AcceptedFileTypes: Story = {
     parameters: {
         docs: {
             description: {
-                story:
-                    'The file input only accepts .pdf and .txt files as specified in the accept attribute.',
+                story: 'The file input only accepts .pdf and .txt files as specified in the accept attribute.',
             },
         },
     },

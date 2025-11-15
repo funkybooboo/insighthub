@@ -114,10 +114,7 @@ describe('SignupForm', () => {
             expect(screen.getByLabelText(/username/i)).toHaveAttribute('type', 'text');
             expect(screen.getByLabelText(/^email$/i)).toHaveAttribute('type', 'email');
             expect(screen.getByLabelText(/^password$/i)).toHaveAttribute('type', 'password');
-            expect(screen.getByLabelText(/confirm password/i)).toHaveAttribute(
-                'type',
-                'password'
-            );
+            expect(screen.getByLabelText(/confirm password/i)).toHaveAttribute('type', 'password');
         });
     });
 
@@ -441,9 +438,7 @@ describe('SignupForm', () => {
             await user.type(confirmPasswordInput, 'password123');
             await user.click(submitButton);
 
-            expect(
-                await screen.findByText('Signup failed. Please try again.')
-            ).toBeInTheDocument();
+            expect(await screen.findByText('Signup failed. Please try again.')).toBeInTheDocument();
             expect(mockNavigate).not.toHaveBeenCalled();
         });
 

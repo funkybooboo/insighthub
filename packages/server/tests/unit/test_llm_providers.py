@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
+
 from src.infrastructure.llm.claude_provider import ClaudeLlmProvider
 from src.infrastructure.llm.ollama import OllamaLlmProvider
 from src.infrastructure.llm.openai_provider import OpenAiLlmProvider

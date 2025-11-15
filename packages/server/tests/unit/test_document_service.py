@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import BinaryIO
 
 import pytest
+
 from src.domains.documents.exceptions import (
     DocumentNotFoundError,
     DocumentProcessingError,

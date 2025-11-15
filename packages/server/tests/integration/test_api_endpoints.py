@@ -9,10 +9,11 @@ from typing import Any
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-from src.api import create_app
-from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 from testcontainers.minio import MinioContainer
 from testcontainers.postgres import PostgresContainer
+
+from src.api import create_app
+from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 
 
 @pytest.fixture(scope="function")
@@ -52,6 +53,7 @@ def app(
     # Override blob storage in app context to use test blob storage
     # This is cleaner than modifying environment variables at runtime
     from flask import g
+
     from src.context import AppContext
     from src.infrastructure.database import get_db
 

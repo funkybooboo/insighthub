@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 from pypdf import PdfReader
+
 from src.infrastructure.storage import BlobStorage
 
 from .dtos import DocumentListResponse, DocumentUploadResponse

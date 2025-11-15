@@ -42,7 +42,14 @@ describe('ChatSidebar', () => {
             }
         });
 
-        return { store, ...render(<Provider store={store}><ChatSidebar /></Provider>) };
+        return {
+            store,
+            ...render(
+                <Provider store={store}>
+                    <ChatSidebar />
+                </Provider>
+            ),
+        };
     };
 
     beforeEach(() => {
@@ -299,9 +306,7 @@ describe('ChatSidebar', () => {
             const deleteButton = screen.getByTitle('Delete chat');
             await user.click(deleteButton);
 
-            expect(mockConfirm).toHaveBeenCalledWith(
-                'Are you sure you want to delete this chat?'
-            );
+            expect(mockConfirm).toHaveBeenCalledWith('Are you sure you want to delete this chat?');
         });
 
         it('should delete session when confirmed', async () => {

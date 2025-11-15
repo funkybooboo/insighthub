@@ -135,7 +135,7 @@ export const WithCodeBlocks: Story = {
             {
                 role: 'bot',
                 content:
-                    'Here\'s a simple React component:\n\n```tsx\nimport React from \'react\';\n\ninterface Props {\n  name: string;\n}\n\nconst Greeting: React.FC<Props> = ({ name }) => {\n  return <h1>Hello, {name}!</h1>;\n};\n\nexport default Greeting;\n```',
+                    "Here's a simple React component:\n\n```tsx\nimport React from 'react';\n\ninterface Props {\n  name: string;\n}\n\nconst Greeting: React.FC<Props> = ({ name }) => {\n  return <h1>Hello, {name}!</h1>;\n};\n\nexport default Greeting;\n```",
             },
         ],
         error: '',
@@ -171,13 +171,13 @@ export const LongConversation: Story = {
             {
                 role: 'bot',
                 content:
-                    'Sure! Here\'s a simple example of supervised learning:\n\n```python\nfrom sklearn.linear_model import LinearRegression\n\n# Training data\nX = [[1], [2], [3], [4]]\ny = [2, 4, 6, 8]\n\n# Create and train model\nmodel = LinearRegression()\nmodel.fit(X, y)\n\n# Make prediction\nprint(model.predict([[5]]))  # Output: [10]\n```',
+                    "Sure! Here's a simple example of supervised learning:\n\n```python\nfrom sklearn.linear_model import LinearRegression\n\n# Training data\nX = [[1], [2], [3], [4]]\ny = [2, 4, 6, 8]\n\n# Create and train model\nmodel = LinearRegression()\nmodel.fit(X, y)\n\n# Make prediction\nprint(model.predict([[5]]))  # Output: [10]\n```",
             },
-            { role: 'user', content: 'That\'s very helpful, thank you!' },
+            { role: 'user', content: "That's very helpful, thank you!" },
             {
                 role: 'bot',
                 content:
-                    'You\'re welcome! Feel free to ask if you have any more questions about machine learning.',
+                    "You're welcome! Feel free to ask if you have any more questions about machine learning.",
             },
         ],
         error: '',
@@ -191,8 +191,8 @@ export const WithEmojis: Story = {
         messages: [
             { role: 'user', content: 'Hello! 👋' },
             { role: 'bot', content: 'Hi there! 😊 How can I help you today?' },
-            { role: 'user', content: 'I\'m learning to code! 💻' },
-            { role: 'bot', content: 'That\'s awesome! 🎉 Keep up the great work! 🚀' },
+            { role: 'user', content: "I'm learning to code! 💻" },
+            { role: 'bot', content: "That's awesome! 🎉 Keep up the great work! 🚀" },
         ],
         error: '',
         isBotTyping: false,

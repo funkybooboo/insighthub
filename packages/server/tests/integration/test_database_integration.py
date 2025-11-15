@@ -3,6 +3,7 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
 from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
 from src.domains.documents.repositories import DocumentRepository
 from src.domains.users.repositories import UserRepository

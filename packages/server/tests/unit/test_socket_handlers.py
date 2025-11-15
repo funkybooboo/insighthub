@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from flask import Flask
 from flask_socketio import SocketIO
+
 from src.infrastructure.socket.socket_handler import SocketHandler
 
 
