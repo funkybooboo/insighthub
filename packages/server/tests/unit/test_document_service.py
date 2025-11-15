@@ -1,0 +1,517 @@
+"""Unit tests for DocumentService."""
+
+import io
+from datetime import datetime
+from typing import BinaryIO
+
+import pytest
+from src.domains.documents.exceptions import (
+    DocumentNotFoundError,
+    DocumentProcessingError,
+    InvalidFileTypeError,
+)
+from src.domains.documents.models import Document
+from src.domains.documents.repositories import DocumentRepository
+from src.domains.documents.service import DocumentService
+from src.infrastructure.storage.blob_storage import BlobStorage
+
+
+class FakeBlobStorage(BlobStorage):
+    """Fake blob storage for testing."""
+
+    def __init__(self) -> None:
+        """Initialize with in-memory storage."""
+        self.storage: dict[str, bytes] = {}
+
+    def upload_file(self, file_obj: BinaryIO, blob_key: str) -> str:
+        """Upload a file to in-memory storage."""
+        file_obj.seek(0)
+        self.storage[blob_key] = file_obj.read()
+        return blob_key
+
+    def download_file(self, blob_key: str) -> bytes:
+        """Download a file from in-memory storage."""
+        if blob_key not in self.storage:
+            raise FileNotFoundError(f"Blob not found: {blob_key}")
+        return self.storage[blob_key]
+
+    def delete_file(self, blob_key: str) -> bool:
+        """Delete a file from in-memory storage."""
+        if blob_key in self.storage:
+            del self.storage[blob_key]
+            return True
+        return False
+
+    def file_exists(self, blob_key: str) -> bool:
+        """Check if file exists."""
+        return blob_key in self.storage
+
+    def list_files(self, prefix: str | None = None) -> list[str]:
+        """List all files with optional prefix filter."""
+        if prefix:
+            return [key for key in self.storage if key.startswith(prefix)]
+        return list(self.storage.keys())
+
+    def calculate_hash(self, file_obj: BinaryIO) -> str:
+        """Calculate hash of file."""
+        import hashlib
+
+        file_obj.seek(0)
+        content = file_obj.read()
+        file_obj.seek(0)
+        return hashlib.sha256(content).hexdigest()
+
+
+class FakeDocumentRepository(DocumentRepository):
+    """Fake document repository for testing."""
+
+    def __init__(self) -> None:
+        """Initialize with in-memory storage."""
+        self.documents: dict[int, Document] = {}
+        self.next_id = 1
+
+    def create(
+        self,
+        user_id: int,
+        filename: str,
+        file_path: str,
+        file_size: int,
+        mime_type: str,
+        content_hash: str,
+        chunk_count: int | None = None,
+        rag_collection: str | None = None,
+    ) -> Document:
+        """Create a new document."""
+        doc = Document(
+            id=self.next_id,
+            user_id=user_id,
+            filename=filename,
+            file_path=file_path,
+            file_size=file_size,
+            mime_type=mime_type,
+            content_hash=content_hash,
+            chunk_count=chunk_count,
+            rag_collection=rag_collection,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        self.documents[doc.id] = doc
+        self.next_id += 1
+        return doc
+
+    def get_by_id(self, document_id: int) -> Document | None:
+        """Get document by ID."""
+        return self.documents.get(document_id)
+
+    def get_by_content_hash(self, content_hash: str) -> Document | None:
+        """Get document by content hash."""
+        for doc in self.documents.values():
+            if doc.content_hash == content_hash:
+                return doc
+        return None
+
+    def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
+        """Get all documents for a user."""
+        user_docs = [doc for doc in self.documents.values() if doc.user_id == user_id]
+        return user_docs[skip : skip + limit]
+
+    def get_all(self, skip: int = 0, limit: int = 100) -> list[Document]:
+        """Get all documents."""
+        all_docs = list(self.documents.values())
+        return all_docs[skip : skip + limit]
+
+    def update(self, document_id: int, **kwargs: str | int) -> Document | None:
+        """Update document fields."""
+        doc = self.documents.get(document_id)
+        if not doc:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(doc, key):
+                setattr(doc, key, value)
+
+        return doc
+
+    def delete(self, document_id: int) -> bool:
+        """Delete document by ID."""
+        if document_id in self.documents:
+            del self.documents[document_id]
+            return True
+        return False
+
+
+@pytest.fixture
+def fake_repository() -> FakeDocumentRepository:
+    """Provide a fake repository."""
+    return FakeDocumentRepository()
+
+
+@pytest.fixture
+def fake_storage() -> FakeBlobStorage:
+    """Provide a fake blob storage."""
+    return FakeBlobStorage()
+
+
+@pytest.fixture
+def service(
+    fake_repository: FakeDocumentRepository, fake_storage: FakeBlobStorage
+) -> DocumentService:
+    """Provide a DocumentService with fake dependencies."""
+    return DocumentService(repository=fake_repository, blob_storage=fake_storage)
+
+
+class TestFilenameValidation:
+    """Tests for filename validation."""
+
+    def test_validate_txt_file(self, service: DocumentService) -> None:
+        """Test validating a txt file."""
+        service.validate_filename("document.txt")
+
+    def test_validate_pdf_file(self, service: DocumentService) -> None:
+        """Test validating a pdf file."""
+        service.validate_filename("document.pdf")
+
+    def test_validate_uppercase_extension(self, service: DocumentService) -> None:
+        """Test validating file with uppercase extension."""
+        service.validate_filename("document.PDF")
+
+    def test_validate_invalid_extension(self, service: DocumentService) -> None:
+        """Test validating file with invalid extension."""
+        with pytest.raises(InvalidFileTypeError):
+            service.validate_filename("document.docx")
+
+    def test_validate_no_extension(self, service: DocumentService) -> None:
+        """Test validating file without extension."""
+        with pytest.raises(InvalidFileTypeError):
+            service.validate_filename("document")
+
+    def test_validate_empty_filename(self, service: DocumentService) -> None:
+        """Test validating empty filename."""
+        with pytest.raises(InvalidFileTypeError):
+            service.validate_filename("")
+
+    def test_validate_none_filename(self, service: DocumentService) -> None:
+        """Test validating None filename."""
+        with pytest.raises(InvalidFileTypeError):
+            service.validate_filename(None)
+
+
+class TestTextExtraction:
+    """Tests for text extraction."""
+
+    def test_extract_text_from_txt(self, service: DocumentService) -> None:
+        """Test extracting text from txt file."""
+        content = b"Hello, world!"
+        file_obj = io.BytesIO(content)
+
+        text = service.extract_text_from_txt(file_obj)
+        assert text == "Hello, world!"
+
+    def test_extract_text_from_txt_unicode(self, service: DocumentService) -> None:
+        """Test extracting text with unicode characters."""
+        content = b"Hello, world with unicode"
+        file_obj = io.BytesIO(content)
+
+        text = service.extract_text_from_txt(file_obj)
+        assert "Hello, world" in text
+
+    def test_extract_text_unsupported_type(self, service: DocumentService) -> None:
+        """Test extracting text from unsupported file type."""
+        file_obj = io.BytesIO(b"content")
+
+        with pytest.raises(DocumentProcessingError):
+            service.extract_text(file_obj, "document.docx")
+
+
+class TestFileHashing:
+    """Tests for file hashing."""
+
+    def test_calculate_file_hash(self, service: DocumentService) -> None:
+        """Test calculating file hash."""
+        content = b"Hello, world!"
+        file_obj = io.BytesIO(content)
+
+        hash1 = service.calculate_file_hash(file_obj)
+        file_obj.seek(0)
+        hash2 = service.calculate_file_hash(file_obj)
+
+        assert hash1 == hash2
+        assert len(hash1) == 64
+
+    def test_different_content_different_hash(self, service: DocumentService) -> None:
+        """Test that different content produces different hash."""
+        file_obj1 = io.BytesIO(b"Content 1")
+        file_obj2 = io.BytesIO(b"Content 2")
+
+        hash1 = service.calculate_file_hash(file_obj1)
+        hash2 = service.calculate_file_hash(file_obj2)
+
+        assert hash1 != hash2
+
+
+class TestDocumentUpload:
+    """Tests for document upload."""
+
+    def test_upload_document_success(self, service: DocumentService) -> None:
+        """Test successful document upload."""
+        content = b"Test document content"
+        file_obj = io.BytesIO(content)
+
+        document = service.upload_document(
+            user_id=1,
+            filename="test.txt",
+            file_obj=file_obj,
+            mime_type="text/plain",
+        )
+
+        assert document.id == 1
+        assert document.user_id == 1
+        assert document.filename == "test.txt"
+        assert document.file_size == len(content)
+        assert document.mime_type == "text/plain"
+        assert len(document.content_hash) == 64
+
+    def test_upload_document_with_rag_metadata(self, service: DocumentService) -> None:
+        """Test uploading document with RAG metadata."""
+        content = b"Test document content"
+        file_obj = io.BytesIO(content)
+
+        document = service.upload_document(
+            user_id=1,
+            filename="test.txt",
+            file_obj=file_obj,
+            mime_type="text/plain",
+            chunk_count=5,
+            rag_collection="test_collection",
+        )
+
+        assert document.chunk_count == 5
+        assert document.rag_collection == "test_collection"
+
+    def test_upload_stores_in_blob_storage(
+        self, service: DocumentService, fake_storage: FakeBlobStorage
+    ) -> None:
+        """Test that upload stores file in blob storage."""
+        content = b"Test document content"
+        file_obj = io.BytesIO(content)
+
+        service.upload_document(
+            user_id=1,
+            filename="test.txt",
+            file_obj=file_obj,
+            mime_type="text/plain",
+        )
+
+        assert len(fake_storage.storage) == 1
+
+
+class TestProcessDocumentUpload:
+    """Tests for process_document_upload orchestration."""
+
+    def test_process_document_upload_new_file(self, service: DocumentService) -> None:
+        """Test processing upload for new file."""
+        content = b"Test document content"
+        file_obj = io.BytesIO(content)
+
+        result = service.process_document_upload(user_id=1, filename="test.txt", file_obj=file_obj)
+
+        assert result.document.filename == "test.txt"
+        assert result.text_length == len(content)
+        assert result.is_duplicate is False
+
+    def test_process_document_upload_duplicate(self, service: DocumentService) -> None:
+        """Test processing upload for duplicate file."""
+        content = b"Test document content"
+
+        file_obj1 = io.BytesIO(content)
+        result1 = service.process_document_upload(
+            user_id=1, filename="test.txt", file_obj=file_obj1
+        )
+
+        file_obj2 = io.BytesIO(content)
+        result2 = service.process_document_upload(
+            user_id=1, filename="test.txt", file_obj=file_obj2
+        )
+
+        assert result2.is_duplicate is True
+        assert result1.document.id == result2.document.id
+
+
+class TestDocumentDownload:
+    """Tests for document download."""
+
+    def test_download_document_success(self, service: DocumentService) -> None:
+        """Test successful document download."""
+        content = b"Test document content"
+        file_obj = io.BytesIO(content)
+
+        document = service.upload_document(
+            user_id=1,
+            filename="test.txt",
+            file_obj=file_obj,
+            mime_type="text/plain",
+        )
+
+        downloaded = service.download_document(document.id)
+        assert downloaded == content
+
+    def test_download_document_not_found(self, service: DocumentService) -> None:
+        """Test downloading non-existent document."""
+        result = service.download_document(999)
+        assert result is None
+
+
+class TestDocumentRetrieval:
+    """Tests for document retrieval."""
+
+    def test_get_document_by_id(self, service: DocumentService) -> None:
+        """Test getting document by ID."""
+        content = b"Test content"
+        file_obj = io.BytesIO(content)
+
+        created = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        document = service.get_document_by_id(created.id)
+        assert document is not None
+        assert document.id == created.id
+
+    def test_get_document_by_id_not_found(self, service: DocumentService) -> None:
+        """Test getting non-existent document by ID."""
+        document = service.get_document_by_id(999)
+        assert document is None
+
+    def test_get_document_by_hash(self, service: DocumentService) -> None:
+        """Test getting document by content hash."""
+        content = b"Test content"
+        file_obj = io.BytesIO(content)
+
+        created = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        document = service.get_document_by_hash(created.content_hash)
+        assert document is not None
+        assert document.content_hash == created.content_hash
+
+
+class TestListUserDocuments:
+    """Tests for listing user documents."""
+
+    def test_list_user_documents_empty(self, service: DocumentService) -> None:
+        """Test listing documents for user with no documents."""
+        documents = service.list_user_documents(user_id=1)
+        assert len(documents) == 0
+
+    def test_list_user_documents_multiple(self, service: DocumentService) -> None:
+        """Test listing multiple documents for user."""
+        for i in range(3):
+            file_obj = io.BytesIO(f"Content {i}".encode())
+            service.upload_document(
+                user_id=1, filename=f"test{i}.txt", file_obj=file_obj, mime_type="text/plain"
+            )
+
+        documents = service.list_user_documents(user_id=1)
+        assert len(documents) == 3
+
+    def test_list_user_documents_filters_by_user(self, service: DocumentService) -> None:
+        """Test that listing filters by user ID."""
+        file_obj1 = io.BytesIO(b"Content 1")
+        service.upload_document(
+            user_id=1, filename="test1.txt", file_obj=file_obj1, mime_type="text/plain"
+        )
+
+        file_obj2 = io.BytesIO(b"Content 2")
+        service.upload_document(
+            user_id=2, filename="test2.txt", file_obj=file_obj2, mime_type="text/plain"
+        )
+
+        user1_docs = service.list_user_documents(user_id=1)
+        user2_docs = service.list_user_documents(user_id=2)
+
+        assert len(user1_docs) == 1
+        assert len(user2_docs) == 1
+        assert user1_docs[0].user_id == 1
+        assert user2_docs[0].user_id == 2
+
+
+class TestDocumentUpdate:
+    """Tests for updating documents."""
+
+    def test_update_document_success(self, service: DocumentService) -> None:
+        """Test updating document fields."""
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        updated = service.update_document(doc.id, chunk_count=10)
+        assert updated is not None
+        assert updated.chunk_count == 10
+
+    def test_update_document_not_found(self, service: DocumentService) -> None:
+        """Test updating non-existent document."""
+        result = service.update_document(999, chunk_count=10)
+        assert result is None
+
+
+class TestDocumentDeletion:
+    """Tests for deleting documents."""
+
+    def test_delete_document_success(self, service: DocumentService) -> None:
+        """Test deleting a document."""
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        result = service.delete_document(doc.id, delete_from_storage=True)
+        assert result is True
+        assert service.get_document_by_id(doc.id) is None
+
+    def test_delete_document_removes_from_storage(
+        self, service: DocumentService, fake_storage: FakeBlobStorage
+    ) -> None:
+        """Test that deletion removes file from storage."""
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        assert len(fake_storage.storage) == 1
+        service.delete_document(doc.id, delete_from_storage=True)
+        assert len(fake_storage.storage) == 0
+
+    def test_delete_document_without_storage_cleanup(
+        self, service: DocumentService, fake_storage: FakeBlobStorage
+    ) -> None:
+        """Test deleting document without storage cleanup."""
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        assert len(fake_storage.storage) == 1
+        service.delete_document(doc.id, delete_from_storage=False)
+        assert len(fake_storage.storage) == 1
+
+    def test_delete_document_not_found(self, service: DocumentService) -> None:
+        """Test deleting non-existent document."""
+        result = service.delete_document(999)
+        assert result is False
+
+    def test_delete_document_with_validation_success(self, service: DocumentService) -> None:
+        """Test deleting document with validation."""
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        service.delete_document_with_validation(doc.id)
+        assert service.get_document_by_id(doc.id) is None
+
+    def test_delete_document_with_validation_not_found(self, service: DocumentService) -> None:
+        """Test deleting non-existent document with validation."""
+        with pytest.raises(DocumentNotFoundError):
+            service.delete_document_with_validation(999)
