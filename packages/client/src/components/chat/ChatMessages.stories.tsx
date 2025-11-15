@@ -45,7 +45,6 @@ export const Empty: Story = {
 };
 
 export const SingleUserMessage: Story = {
-    name: 'Single User Message',
     args: {
         messages: [{ role: 'user', content: 'Hello!' }],
         error: '',
@@ -54,7 +53,6 @@ export const SingleUserMessage: Story = {
 };
 
 export const SingleBotMessage: Story = {
-    name: 'Single Bot Message',
     args: {
         messages: [{ role: 'bot', content: 'Hello! How can I help you today?' }],
         error: '',
@@ -163,7 +161,6 @@ export const WithLists: Story = {
 };
 
 export const LongConversation: Story = {
-    name: 'Long Conversation',
     args: {
         messages: [
             ...sampleMessages,
@@ -228,7 +225,6 @@ export const ErrorAndTyping: Story = {
 };
 
 export const VeryLongMessage: Story = {
-    name: 'Very Long Message',
     args: {
         messages: [
             {

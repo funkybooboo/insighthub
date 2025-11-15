@@ -43,7 +43,6 @@ export const WithText: Story = {
 };
 
 export const WithMultilineText: Story = {
-    name: 'With Multiline Text',
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         const textarea = canvas.getByPlaceholderText(/ask anything/i);
@@ -61,7 +60,6 @@ export const WithMultilineText: Story = {
 };
 
 export const WithLongText: Story = {
-    name: 'With Long Text',
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         const textarea = canvas.getByPlaceholderText(/ask anything/i);
@@ -166,7 +164,6 @@ export const ShiftEnterNewline: Story = {
 };
 
 export const MaxLengthValidation: Story = {
-    name: 'Max Length Validation',
     parameters: {
         docs: {
             description: {

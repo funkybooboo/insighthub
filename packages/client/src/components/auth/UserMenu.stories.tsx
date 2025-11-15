@@ -7,9 +7,8 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { within, userEvent, expect } from '@storybook/test';
 import UserMenu from './UserMenu';
-import authReducer, { setCredentials } from '../../store/slices/authSlice';
+import authReducer, { setCredentials, type User } from '../../store/slices/authSlice';
 import chatReducer from '../../store/slices/chatSlice';
-import type { User } from '../../types/auth';
 
 // Create a store with user data
 const createMockStore = (user: User | null = null) => {
@@ -64,7 +63,6 @@ export const Default: Story = {
 };
 
 export const WithLongUsername: Story = {
-    name: 'With Long Username',
     decorators: [
         (Story) => (
             <Provider
@@ -81,7 +79,6 @@ export const WithLongUsername: Story = {
 };
 
 export const WithoutFullName: Story = {
-    name: 'Without Full Name',
     decorators: [
         (Story) => (
             <Provider

@@ -40,7 +40,6 @@ export const Default: Story = {
 };
 
 export const HoverState: Story = {
-    name: 'Hover State',
     parameters: {
         docs: {
             description: {
@@ -61,7 +60,6 @@ export const HoverState: Story = {
 };
 
 export const WithHelpText: Story = {
-    name: 'With Help Text',
     parameters: {
         docs: {
             description: {
@@ -246,7 +244,6 @@ export const FileSizeError: Story = {
 };
 
 export const AcceptedFileTypes: Story = {
-    name: 'Accepted File Types',
     parameters: {
         docs: {
             description: {
