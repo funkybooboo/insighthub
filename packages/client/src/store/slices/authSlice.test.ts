@@ -93,7 +93,10 @@ describe('authSlice', () => {
 
             const newToken = 'new-token-456';
 
-            const state = authReducer(initialState, setCredentials({ user: newUser, token: newToken }));
+            const state = authReducer(
+                initialState,
+                setCredentials({ user: newUser, token: newToken })
+            );
 
             expect(state.user).toEqual(newUser);
             expect(state.token).toBe(newToken);
