@@ -1,0 +1,33 @@
+meta {
+  name: Send Message Very Long Prompt
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "prompt": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(100),
+    "session_id": "test-session"
+  }
+}
+
+assert {
+  res.status: in [200, 400]
+}
+
+tests {
+  test("should handle very long prompts", function() {
+    const status = res.getStatus();
+    expect([200, 400]).to.include(status);
+  });
+}
