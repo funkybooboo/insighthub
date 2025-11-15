@@ -1,0 +1,29 @@
+meta {
+  name: Signup Invalid Email
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "email": "invalid-email",
+    "password": "password123"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should return 400 for invalid email", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

@@ -1,0 +1,29 @@
+meta {
+  name: Upload Invalid File Type
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/documents/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:multipart-form {
+  file: @file(image.jpg)
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should reject non-PDF/TXT files", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+}
