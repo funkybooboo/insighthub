@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from '@storybook/test';
 import { BrowserRouter } from 'react-router-dom';
 import SignupForm from './SignupForm';
@@ -38,9 +38,7 @@ export const Default: Story = {};
 export const PreFilled: Story = {
     play: async ({ canvasElement }) => {
         const canvas = canvasElement;
-        const usernameInput = canvas.querySelector(
-            'input[name="username"]'
-        ) as HTMLInputElement;
+        const usernameInput = canvas.querySelector('input[name="username"]') as HTMLInputElement;
         const emailInput = canvas.querySelector('input[name="email"]') as HTMLInputElement;
         const fullNameInput = canvas.querySelector('input[name="fullName"]') as HTMLInputElement;
 
