@@ -2,8 +2,8 @@
  * Component tests for FileUpload
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FileUpload from './FileUpload';
 import apiService from '../../services/api';
@@ -18,8 +18,21 @@ vi.mock('../../services/api', () => ({
 describe('FileUpload', () => {
     const mockOnUploadSuccess = vi.fn();
 
+    // Helper function to simulate file upload
+    const uploadFile = (input: HTMLInputElement, file: File) => {
+        Object.defineProperty(input, 'files', {
+            value: [file],
+            writable: false,
+        });
+        fireEvent.change(input);
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     describe('Rendering', () => {
@@ -61,13 +74,12 @@ describe('FileUpload', () => {
 
     describe('File Validation', () => {
         it('should reject non-PDF/TXT files', async () => {
-            const user = userEvent.setup();
             render(<FileUpload />);
 
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.jpg', { type: 'image/jpeg' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(
                 await screen.findByText('Only PDF and TXT files are allowed')
@@ -92,7 +104,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(apiService.uploadDocument).toHaveBeenCalledWith(file);
@@ -116,7 +128,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.txt', { type: 'text/plain' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(apiService.uploadDocument).toHaveBeenCalledWith(file);
@@ -133,7 +145,7 @@ describe('FileUpload', () => {
                 type: 'application/pdf',
             });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(await screen.findByText('File size must be less than 16MB')).toBeInTheDocument();
             expect(apiService.uploadDocument).not.toHaveBeenCalled();
@@ -159,7 +171,7 @@ describe('FileUpload', () => {
                 type: 'application/pdf',
             });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(apiService.uploadDocument).toHaveBeenCalledWith(file);
@@ -184,7 +196,7 @@ describe('FileUpload', () => {
 
             // Upload invalid file
             const invalidFile = new File(['content'], 'test.jpg', { type: 'image/jpeg' });
-            await user.upload(input, invalidFile);
+            uploadFile(input, invalidFile);
 
             expect(
                 await screen.findByText('Only PDF and TXT files are allowed')
@@ -194,7 +206,7 @@ describe('FileUpload', () => {
             const validFile = new File(['content'], 'valid.pdf', {
                 type: 'application/pdf',
             });
-            await user.upload(input, validFile);
+            uploadFile(input, validFile);
 
             await waitFor(() => {
                 expect(
@@ -218,7 +230,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(screen.getByText('Uploading...')).toBeInTheDocument();
 
@@ -251,7 +263,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(input).toBeDisabled();
 
@@ -288,7 +300,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'success.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(
                 await screen.findByText('File "success.pdf" uploaded successfully!')
@@ -314,7 +326,7 @@ describe('FileUpload', () => {
                 .querySelector('input')! as HTMLInputElement;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(input.value).toBe('');
@@ -338,7 +350,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(mockOnUploadSuccess).toHaveBeenCalledTimes(1);
@@ -362,7 +374,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(
@@ -380,7 +392,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(
                 await screen.findByText('Failed to upload file. Please try again.')
@@ -399,7 +411,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(input).not.toBeDisabled();
@@ -437,7 +449,7 @@ describe('FileUpload', () => {
             const file1 = new File(['content1'], 'file1.pdf', {
                 type: 'application/pdf',
             });
-            await user.upload(input, file1);
+            uploadFile(input, file1);
 
             await waitFor(() => {
                 expect(mockOnUploadSuccess).toHaveBeenCalledTimes(1);
@@ -447,7 +459,7 @@ describe('FileUpload', () => {
             const file2 = new File(['content2'], 'file2.pdf', {
                 type: 'application/pdf',
             });
-            await user.upload(input, file2);
+            uploadFile(input, file2);
 
             await waitFor(() => {
                 expect(mockOnUploadSuccess).toHaveBeenCalledTimes(2);
@@ -489,7 +501,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['a'], 'tiny.txt', { type: 'text/plain' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             await waitFor(() => {
                 expect(apiService.uploadDocument).toHaveBeenCalledWith(file);
@@ -515,7 +527,7 @@ describe('FileUpload', () => {
                 type: 'application/pdf',
             });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             expect(
                 await screen.findByText('File "file @#$%.pdf" uploaded successfully!')
@@ -553,7 +565,7 @@ describe('FileUpload', () => {
             const file1 = new File(['content1'], 'first.pdf', {
                 type: 'application/pdf',
             });
-            await user.upload(input, file1);
+            uploadFile(input, file1);
 
             expect(
                 await screen.findByText('File "first.pdf" uploaded successfully!')
@@ -563,7 +575,7 @@ describe('FileUpload', () => {
             const file2 = new File(['content2'], 'second.pdf', {
                 type: 'application/pdf',
             });
-            await user.upload(input, file2);
+            uploadFile(input, file2);
 
             await waitFor(() => {
                 expect(
@@ -592,7 +604,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.jpg', { type: 'image/jpeg' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             const errorMessage = await screen.findByText('Only PDF and TXT files are allowed');
             expect(errorMessage).toBeVisible();
@@ -615,7 +627,7 @@ describe('FileUpload', () => {
             const input = screen.getByText('Upload Document').querySelector('input')!;
             const file = new File(['content'], 'test.pdf', { type: 'application/pdf' });
 
-            await user.upload(input, file);
+            uploadFile(input, file);
 
             const successMessage = await screen.findByText(
                 'File "test.pdf" uploaded successfully!'
