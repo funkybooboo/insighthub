@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create app directory and user
 RUN groupadd -r app && useradd -r -g app -m app
 WORKDIR /app
+RUN chown -R app:app /app
 
 # ============================================================================
 # Dependencies Stage - Install node modules
@@ -20,7 +21,7 @@ WORKDIR /app
 FROM base AS dependencies
 
 # Copy package files
-COPY --chown=app:app package.json bun.lockb ./
+COPY --chown=app:app package.json bun.lock ./
 
 # Install dependencies
 USER app
@@ -79,14 +80,25 @@ RUN addgroup -g 101 -S nginx 2>/dev/null || true \
 # Copy built assets from builder
 COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration (optional - customize as needed)
-# COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx default.conf /etc/nginx/conf.d/default.conf
 
 # Copy and set permissions for entrypoint
 COPY --chown=nginx:nginx --chmod=755 docker-entrypoint.sh /usr/local/bin/
 
-# Create directory for runtime config
-RUN mkdir -p /usr/share/nginx/html && chown -R nginx:nginx /usr/share/nginx/html
+# Create directory for runtime config and ensure nginx can write to it
+RUN mkdir -p /usr/share/nginx/html && chown -R nginx:nginx /usr/share/nginx/html \
+    && mkdir -p /tmp/nginx && chown -R nginx:nginx /tmp/nginx \
+    && mkdir -p /var/cache/nginx/client_temp \
+    && mkdir -p /var/cache/nginx/proxy_temp \
+    && mkdir -p /var/cache/nginx/fastcgi_temp \
+    && mkdir -p /var/cache/nginx/uwsgi_temp \
+    && mkdir -p /var/cache/nginx/scgi_temp \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chmod -R 755 /var/cache/nginx \
+    && mkdir -p /var/run && chown -R nginx:nginx /var/run \
+    && mkdir -p /var/log/nginx && chown -R nginx:nginx /var/log/nginx
 
 # Expose port
 EXPOSE 80

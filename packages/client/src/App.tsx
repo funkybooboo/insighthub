@@ -5,19 +5,18 @@ import SignupForm from './components/auth/SignupForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
 import ChatSidebar from './components/chat/ChatSidebar';
-import type { RootState } from './store';
-
 import UserMenu from './components/auth/UserMenu';
+import type { RootState } from './store';
 
 function MainApp() {
     return (
-        <div className="h-screen flex flex-col">
+        <div className="h-screen flex flex-col bg-gray-50">
             <UserMenu />
             <div className="flex-1 flex overflow-hidden">
                 <ChatSidebar />
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <main className="flex-1 flex flex-col overflow-hidden bg-white">
                     <ChatBot />
-                </div>
+                </main>
             </div>
         </div>
     );

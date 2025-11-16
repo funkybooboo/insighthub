@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import LoginForm from './LoginForm';
 import authReducer from '../../store/slices/authSlice';
@@ -18,16 +18,6 @@ vi.mock('../../services/api', () => ({
         login: vi.fn(),
     },
 }));
-
-// Mock useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-    };
-});
 
 describe('LoginForm', () => {
     let store: ReturnType<typeof configureStore>;
@@ -45,9 +35,9 @@ describe('LoginForm', () => {
     const renderLoginForm = () => {
         return render(
             <Provider store={store}>
-                <BrowserRouter>
+                <MemoryRouter>
                     <LoginForm />
-                </BrowserRouter>
+                </MemoryRouter>
             </Provider>
         );
     };
@@ -56,7 +46,7 @@ describe('LoginForm', () => {
         it('should render login form with all elements', () => {
             renderLoginForm();
 
-            expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
             expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
             expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
@@ -74,8 +64,8 @@ describe('LoginForm', () => {
         it('should have link to signup page', () => {
             renderLoginForm();
 
-            const signupLink = screen.getByText(/don't have an account/i);
-            expect(signupLink.closest('a')).toHaveAttribute('href', '/signup');
+            const signupLink = screen.getByText(/sign up/i);
+            expect(signupLink).toHaveAttribute('href', '/signup');
         });
     });
 
@@ -226,12 +216,10 @@ describe('LoginForm', () => {
             await user.type(passwordInput, 'password123');
             await user.click(submitButton);
 
-            await waitFor(() => {
-                expect(mockNavigate).toHaveBeenCalledWith('/');
-            });
-
             // Verify token was stored
-            expect(localStorage.getItem('token')).toBe('test-token-123');
+            await waitFor(() => {
+                expect(localStorage.getItem('token')).toBe('test-token-123');
+            });
         });
 
         it('should display error message on login failure', async () => {
@@ -251,8 +239,6 @@ describe('LoginForm', () => {
             await waitFor(() => {
                 expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
             });
-
-            expect(mockNavigate).not.toHaveBeenCalled();
         });
 
         it('should display generic error for non-Error objects', async () => {

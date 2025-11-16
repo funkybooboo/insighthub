@@ -88,17 +88,11 @@ describe('UserMenu', () => {
             expect(logoutButton).toBeInTheDocument();
         });
 
-        it('should display default username when user is null', () => {
+        it('should display logo and title when user is null', () => {
             renderUserMenu(null);
 
-            expect(screen.getByText('User')).toBeInTheDocument();
-        });
-
-        it('should display empty email when user is null', () => {
-            renderUserMenu(null);
-
-            const emailElement = screen.getByText('User').nextElementSibling;
-            expect(emailElement).toHaveTextContent('');
+            expect(screen.getByText('InsightHub')).toBeInTheDocument();
+            expect(screen.getByAltText('InsightHub')).toBeInTheDocument();
         });
 
         it('should render user without full_name', () => {

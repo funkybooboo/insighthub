@@ -19,20 +19,24 @@ export default function UserMenu() {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-            <div className="flex items-center space-x-3">
-                <img src="/logo.png" alt="InsightHub" className="h-12" />
-                <div>
-                    <div className="font-medium text-gray-900">{user?.username || 'User'}</div>
-                    <div className="text-sm text-gray-500">{user?.email || ''}</div>
-                </div>
+        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-3">
+                <img src="/logo.png" alt="InsightHub" className="h-10 w-10 object-contain" />
+                <h1 className="text-xl font-semibold text-gray-900">InsightHub</h1>
             </div>
-            <button
-                onClick={handleLogout}
-                className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-                Logout
-            </button>
-        </div>
+            <div className="flex items-center gap-4">
+                <div className="text-right hidden sm:block">
+                    <div className="text-sm font-medium text-gray-900">{user?.username}</div>
+                    {user?.email && <div className="text-xs text-gray-500">{user.email}</div>}
+                </div>
+                <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Logout"
+                >
+                    Logout
+                </button>
+            </div>
+        </header>
     );
 }

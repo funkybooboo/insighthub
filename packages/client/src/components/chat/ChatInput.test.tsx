@@ -18,7 +18,7 @@ describe('ChatInput', () => {
         it('should render textarea with placeholder', () => {
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             expect(textarea).toBeInTheDocument();
         });
 
@@ -32,7 +32,7 @@ describe('ChatInput', () => {
         it('should have correct textarea attributes', () => {
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             expect(textarea).toHaveAttribute('maxLength', '1000');
             // autoFocus is a React prop, check that element exists instead
             expect(textarea).toBeInTheDocument();
@@ -51,7 +51,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'Hello');
@@ -63,7 +63,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, '   ');
@@ -76,7 +76,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, '   ');
@@ -88,7 +88,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             // Type spaces
@@ -104,7 +104,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i) as HTMLTextAreaElement;
+            const textarea = screen.getByPlaceholderText(/ask me anything/i) as HTMLTextAreaElement;
 
             const longText = 'a'.repeat(1001);
             await user.type(textarea, longText);
@@ -119,7 +119,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'What is AI?');
@@ -135,7 +135,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'Test message');
@@ -148,7 +148,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'Test');
@@ -161,7 +161,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
 
             await user.type(textarea, 'Quick question');
             await user.keyboard('{Enter}');
@@ -175,7 +175,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
 
             await user.type(textarea, 'First line');
             await user.keyboard('{Shift>}{Enter}{/Shift}');
@@ -189,7 +189,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
 
             await user.type(textarea, 'First message');
             await user.keyboard('{Enter}');
@@ -218,7 +218,7 @@ describe('ChatInput', () => {
         it('should focus textarea on mount', () => {
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             expect(textarea).toHaveFocus();
         });
 
@@ -226,7 +226,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
 
             await user.type(textarea, 'Line 1{Shift>}{Enter}{/Shift}Line 2');
 
@@ -237,7 +237,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'Test');
@@ -254,7 +254,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             const longText = 'a'.repeat(999);
@@ -270,7 +270,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             const specialText = 'Test with <html> & "quotes" and \'apostrophes\'';
@@ -286,7 +286,7 @@ describe('ChatInput', () => {
             const user = userEvent.setup();
             render(<ChatInput onSubmit={mockOnSubmit} />);
 
-            const textarea = screen.getByPlaceholderText(/ask anything/i);
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
             const button = screen.getByRole('button');
 
             await user.type(textarea, 'Hello 👋 World 🌍');
@@ -311,7 +311,7 @@ describe('ChatInput', () => {
 
             const textarea = screen.getByRole('textbox');
             expect(textarea).toBeInTheDocument();
-            expect(textarea).toHaveAttribute('placeholder', 'Ask anything');
+            expect(textarea).toHaveAttribute('placeholder', 'Ask me anything...');
         });
 
         it('should have accessible button', () => {
