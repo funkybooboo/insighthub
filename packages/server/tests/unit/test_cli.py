@@ -6,7 +6,16 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.cli import CLIClient, cmd_chat, cmd_delete, cmd_interactive, cmd_list, cmd_sessions, cmd_upload, main
+from src.cli import (
+    CLIClient,
+    cmd_chat,
+    cmd_delete,
+    cmd_interactive,
+    cmd_list,
+    cmd_sessions,
+    cmd_upload,
+    main,
+)
 
 
 @pytest.fixture
@@ -65,7 +74,9 @@ class TestCommandHandlers:
     """Tests for command handler delegation."""
 
     @patch("src.cli.doc_commands.cmd_upload")
-    def test_cmd_upload_delegates(self, mock_doc_upload: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_upload_delegates(
+        self, mock_doc_upload: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace
+    ) -> None:
         """Test that cmd_upload delegates to document commands."""
         mock_args.file = "test.pdf"
 
@@ -74,14 +85,18 @@ class TestCommandHandlers:
         mock_doc_upload.assert_called_once_with(mock_cli_client.context, mock_args)
 
     @patch("src.cli.doc_commands.cmd_list")
-    def test_cmd_list_delegates(self, mock_doc_list: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_list_delegates(
+        self, mock_doc_list: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace
+    ) -> None:
         """Test that cmd_list delegates to document commands."""
         cmd_list(mock_cli_client, mock_args)
 
         mock_doc_list.assert_called_once_with(mock_cli_client.context, mock_args)
 
     @patch("src.cli.doc_commands.cmd_delete")
-    def test_cmd_delete_delegates(self, mock_doc_delete: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_delete_delegates(
+        self, mock_doc_delete: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace
+    ) -> None:
         """Test that cmd_delete delegates to document commands."""
         mock_args.doc_id = 1
 
@@ -90,7 +105,9 @@ class TestCommandHandlers:
         mock_doc_delete.assert_called_once_with(mock_cli_client.context, mock_args)
 
     @patch("src.cli.chat_commands.cmd_chat")
-    def test_cmd_chat_delegates(self, mock_chat_chat: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_chat_delegates(
+        self, mock_chat_chat: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace
+    ) -> None:
         """Test that cmd_chat delegates to chat commands."""
         mock_args.message = "test question"
 
@@ -99,14 +116,24 @@ class TestCommandHandlers:
         mock_chat_chat.assert_called_once_with(mock_cli_client.context, mock_args)
 
     @patch("src.cli.chat_commands.cmd_sessions")
-    def test_cmd_sessions_delegates(self, mock_chat_sessions: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_sessions_delegates(
+        self,
+        mock_chat_sessions: MagicMock,
+        mock_cli_client: MagicMock,
+        mock_args: argparse.Namespace,
+    ) -> None:
         """Test that cmd_sessions delegates to chat commands."""
         cmd_sessions(mock_cli_client, mock_args)
 
         mock_chat_sessions.assert_called_once_with(mock_cli_client.context, mock_args)
 
     @patch("src.cli.chat_commands.cmd_interactive")
-    def test_cmd_interactive_delegates(self, mock_chat_interactive: MagicMock, mock_cli_client: MagicMock, mock_args: argparse.Namespace) -> None:
+    def test_cmd_interactive_delegates(
+        self,
+        mock_chat_interactive: MagicMock,
+        mock_cli_client: MagicMock,
+        mock_args: argparse.Namespace,
+    ) -> None:
         """Test that cmd_interactive delegates to chat commands."""
         cmd_interactive(mock_cli_client, mock_args)
 
@@ -130,7 +157,9 @@ class TestMain:
     @patch("src.cli.cmd_upload")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "upload", "test.pdf"])
-    def test_main_upload_command(self, mock_cli_client_class: MagicMock, mock_cmd_upload: MagicMock) -> None:
+    def test_main_upload_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_upload: MagicMock
+    ) -> None:
         """Test that main() executes upload command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -145,7 +174,9 @@ class TestMain:
     @patch("src.cli.cmd_list")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "list"])
-    def test_main_list_command(self, mock_cli_client_class: MagicMock, mock_cmd_list: MagicMock) -> None:
+    def test_main_list_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_list: MagicMock
+    ) -> None:
         """Test that main() executes list command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -158,7 +189,9 @@ class TestMain:
     @patch("src.cli.cmd_delete")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "delete", "1"])
-    def test_main_delete_command(self, mock_cli_client_class: MagicMock, mock_cmd_delete: MagicMock) -> None:
+    def test_main_delete_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_delete: MagicMock
+    ) -> None:
         """Test that main() executes delete command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -173,7 +206,9 @@ class TestMain:
     @patch("src.cli.cmd_chat")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "chat", "test question"])
-    def test_main_chat_command(self, mock_cli_client_class: MagicMock, mock_cmd_chat: MagicMock) -> None:
+    def test_main_chat_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_chat: MagicMock
+    ) -> None:
         """Test that main() executes chat command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -188,7 +223,9 @@ class TestMain:
     @patch("src.cli.cmd_chat")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "chat", "test", "--session-id", "5", "--show-context"])
-    def test_main_chat_with_options(self, mock_cli_client_class: MagicMock, mock_cmd_chat: MagicMock) -> None:
+    def test_main_chat_with_options(
+        self, mock_cli_client_class: MagicMock, mock_cmd_chat: MagicMock
+    ) -> None:
         """Test that main() handles chat command with options."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -205,7 +242,9 @@ class TestMain:
     @patch("src.cli.cmd_sessions")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "sessions"])
-    def test_main_sessions_command(self, mock_cli_client_class: MagicMock, mock_cmd_sessions: MagicMock) -> None:
+    def test_main_sessions_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_sessions: MagicMock
+    ) -> None:
         """Test that main() executes sessions command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
@@ -218,7 +257,9 @@ class TestMain:
     @patch("src.cli.cmd_interactive")
     @patch("src.cli.CLIClient")
     @patch("src.cli.sys.argv", ["cli.py", "interactive"])
-    def test_main_interactive_command(self, mock_cli_client_class: MagicMock, mock_cmd_interactive: MagicMock) -> None:
+    def test_main_interactive_command(
+        self, mock_cli_client_class: MagicMock, mock_cmd_interactive: MagicMock
+    ) -> None:
         """Test that main() executes interactive command."""
         mock_client = Mock()
         mock_cli_client_class.return_value = mock_client
