@@ -120,14 +120,12 @@ class TestMain:
     @patch("src.cli.sys.argv", ["cli.py"])
     def test_main_no_command_shows_help(self, mock_cli_client_class: MagicMock) -> None:
         """Test that main() shows help when no command is provided."""
-        mock_client = Mock()
-        mock_cli_client_class.return_value = mock_client
-
         with pytest.raises(SystemExit) as exc_info:
             main()
 
         assert exc_info.value.code == 1
-        mock_client.close.assert_called_once()
+        # Client should not be created when no command is provided
+        mock_cli_client_class.assert_not_called()
 
     @patch("src.cli.cmd_upload")
     @patch("src.cli.CLIClient")
