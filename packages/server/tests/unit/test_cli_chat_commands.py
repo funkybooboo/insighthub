@@ -83,7 +83,9 @@ class TestSendChatMessage:
             rag_type="vector",
         )
 
-    def test_send_chat_message_context_structure(self, mock_context: MagicMock, mock_user: Mock) -> None:
+    def test_send_chat_message_context_structure(
+        self, mock_context: MagicMock, mock_user: Mock
+    ) -> None:
         """Test that context is properly formatted."""
         mock_context.user_service.get_or_create_default_user.return_value = mock_user
 
@@ -159,7 +161,9 @@ class TestCmdChat:
 
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.print")
-    def test_cmd_chat_success(self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_chat_success(
+        self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_chat with successful message."""
         args = argparse.Namespace(message="test question", session_id=None, show_context=False)
         mock_send_message.return_value = {
@@ -178,7 +182,9 @@ class TestCmdChat:
 
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.print")
-    def test_cmd_chat_with_context(self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_chat_with_context(
+        self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_chat with show_context flag."""
         args = argparse.Namespace(message="question", session_id=None, show_context=True)
         mock_send_message.return_value = {
@@ -198,7 +204,9 @@ class TestCmdChat:
 
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.print")
-    def test_cmd_chat_with_session_id(self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_chat_with_session_id(
+        self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_chat with session_id argument."""
         args = argparse.Namespace(message="question", session_id=5, show_context=False)
         mock_send_message.return_value = {
@@ -214,7 +222,9 @@ class TestCmdChat:
 
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.print")
-    def test_cmd_chat_error(self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_chat_error(
+        self, mock_print: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_chat with error."""
         args = argparse.Namespace(message="question", session_id=None, show_context=False)
         mock_send_message.side_effect = Exception("Test error")
@@ -230,7 +240,9 @@ class TestCmdSessions:
 
     @patch("src.domains.chat.commands.list_sessions")
     @patch("builtins.print")
-    def test_cmd_sessions_with_sessions(self, mock_print: MagicMock, mock_list_sessions: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_sessions_with_sessions(
+        self, mock_print: MagicMock, mock_list_sessions: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_sessions with existing sessions."""
         args = argparse.Namespace()
         mock_list_sessions.return_value = {
@@ -253,7 +265,9 @@ class TestCmdSessions:
 
     @patch("src.domains.chat.commands.list_sessions")
     @patch("builtins.print")
-    def test_cmd_sessions_empty(self, mock_print: MagicMock, mock_list_sessions: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_sessions_empty(
+        self, mock_print: MagicMock, mock_list_sessions: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_sessions with no sessions."""
         args = argparse.Namespace()
         mock_list_sessions.return_value = {"sessions": [], "count": 0}
@@ -270,7 +284,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=["hello", "quit"])
     @patch("builtins.print")
-    def test_cmd_interactive_basic(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_basic(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test basic interactive chat session."""
         args = argparse.Namespace()
         mock_send_message.return_value = {
@@ -290,7 +310,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=["exit"])
     @patch("builtins.print")
-    def test_cmd_interactive_exit_command(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_exit_command(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test exiting with 'exit' command."""
         args = argparse.Namespace()
 
@@ -303,7 +329,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=["", "   ", "test", "quit"])
     @patch("builtins.print")
-    def test_cmd_interactive_empty_messages(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_empty_messages(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test that empty messages are skipped."""
         args = argparse.Namespace()
         mock_send_message.return_value = {
@@ -321,7 +353,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=["first", "second", "quit"])
     @patch("builtins.print")
-    def test_cmd_interactive_session_persistence(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_session_persistence(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test that session ID persists across messages."""
         args = argparse.Namespace()
         mock_send_message.side_effect = [
@@ -352,7 +390,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=KeyboardInterrupt())
     @patch("builtins.print")
-    def test_cmd_interactive_keyboard_interrupt(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_keyboard_interrupt(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test handling keyboard interrupt (Ctrl+C)."""
         args = argparse.Namespace()
 
@@ -364,7 +408,13 @@ class TestCmdInteractive:
     @patch("src.domains.chat.commands.send_chat_message")
     @patch("builtins.input", side_effect=["test", "quit"])
     @patch("builtins.print")
-    def test_cmd_interactive_error_handling(self, mock_print: MagicMock, mock_input: MagicMock, mock_send_message: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_interactive_error_handling(
+        self,
+        mock_print: MagicMock,
+        mock_input: MagicMock,
+        mock_send_message: MagicMock,
+        mock_context: MagicMock,
+    ) -> None:
         """Test error handling during interactive session."""
         args = argparse.Namespace()
         mock_send_message.side_effect = Exception("Test error")

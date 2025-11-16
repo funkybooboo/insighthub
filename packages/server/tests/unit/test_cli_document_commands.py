@@ -31,7 +31,9 @@ def mock_user() -> Mock:
 class TestUploadDocument:
     """Tests for upload_document function."""
 
-    def test_upload_document_success(self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path) -> None:
+    def test_upload_document_success(
+        self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path
+    ) -> None:
         """Test successful document upload."""
         # Create a temporary PDF file
         test_file = tmp_path / "test.pdf"
@@ -57,7 +59,9 @@ class TestUploadDocument:
         assert result["status"] == "uploaded"
         mock_context.document_service.process_document_upload.assert_called_once()
 
-    def test_upload_document_duplicate(self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path) -> None:
+    def test_upload_document_duplicate(
+        self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path
+    ) -> None:
         """Test uploading a duplicate document."""
         test_file = tmp_path / "test.pdf"
         test_file.write_bytes(b"fake pdf content")
@@ -81,7 +85,9 @@ class TestUploadDocument:
         with pytest.raises(FileNotFoundError, match="File not found"):
             commands.upload_document(mock_context, non_existent_file)
 
-    def test_upload_document_unsupported_file_type(self, mock_context: MagicMock, tmp_path: Path) -> None:
+    def test_upload_document_unsupported_file_type(
+        self, mock_context: MagicMock, tmp_path: Path
+    ) -> None:
         """Test upload with unsupported file type."""
         test_file = tmp_path / "test.exe"
         test_file.write_bytes(b"fake executable")
@@ -89,7 +95,9 @@ class TestUploadDocument:
         with pytest.raises(ValueError, match="Unsupported file type"):
             commands.upload_document(mock_context, test_file)
 
-    def test_upload_document_accepts_txt_files(self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path) -> None:
+    def test_upload_document_accepts_txt_files(
+        self, mock_context: MagicMock, mock_user: Mock, tmp_path: Path
+    ) -> None:
         """Test that TXT files are accepted."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("test content")
@@ -168,7 +176,9 @@ class TestDeleteDocument:
         result = commands.delete_document(mock_context, 1)
 
         assert "deleted successfully" in result["message"]
-        mock_context.document_service.delete_document.assert_called_once_with(1, delete_from_storage=True)
+        mock_context.document_service.delete_document.assert_called_once_with(
+            1, delete_from_storage=True
+        )
 
     def test_delete_document_not_found(self, mock_context: MagicMock) -> None:
         """Test deleting non-existent document."""
@@ -183,7 +193,9 @@ class TestCmdUpload:
 
     @patch("src.domains.documents.commands.upload_document")
     @patch("builtins.print")
-    def test_cmd_upload_success(self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_upload_success(
+        self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_upload with successful upload."""
         args = argparse.Namespace(file="test.pdf")
         mock_upload_doc.return_value = {
@@ -204,7 +216,9 @@ class TestCmdUpload:
 
     @patch("src.domains.documents.commands.upload_document")
     @patch("builtins.print")
-    def test_cmd_upload_duplicate(self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_upload_duplicate(
+        self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_upload with duplicate document."""
         args = argparse.Namespace(file="test.pdf")
         mock_upload_doc.return_value = {
@@ -221,7 +235,9 @@ class TestCmdUpload:
 
     @patch("src.domains.documents.commands.upload_document")
     @patch("builtins.print")
-    def test_cmd_upload_file_not_found(self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_upload_file_not_found(
+        self, mock_print: MagicMock, mock_upload_doc: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_upload with non-existent file."""
         args = argparse.Namespace(file="nonexistent.pdf")
         mock_upload_doc.side_effect = FileNotFoundError("File not found")
@@ -237,7 +253,9 @@ class TestCmdList:
 
     @patch("src.domains.documents.commands.list_documents")
     @patch("builtins.print")
-    def test_cmd_list_with_documents(self, mock_print: MagicMock, mock_list_docs: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_list_with_documents(
+        self, mock_print: MagicMock, mock_list_docs: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_list with documents."""
         args = argparse.Namespace()
         mock_list_docs.return_value = {
@@ -261,7 +279,9 @@ class TestCmdList:
 
     @patch("src.domains.documents.commands.list_documents")
     @patch("builtins.print")
-    def test_cmd_list_no_documents(self, mock_print: MagicMock, mock_list_docs: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_list_no_documents(
+        self, mock_print: MagicMock, mock_list_docs: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_list with no documents."""
         args = argparse.Namespace()
         mock_list_docs.return_value = {"documents": [], "count": 0}
@@ -277,7 +297,9 @@ class TestCmdDelete:
 
     @patch("src.domains.documents.commands.delete_document")
     @patch("builtins.print")
-    def test_cmd_delete_success(self, mock_print: MagicMock, mock_delete_doc: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_delete_success(
+        self, mock_print: MagicMock, mock_delete_doc: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_delete with successful deletion."""
         args = argparse.Namespace(doc_id=1)
         mock_delete_doc.return_value = {"message": "Document 1 deleted successfully"}
@@ -289,7 +311,9 @@ class TestCmdDelete:
 
     @patch("src.domains.documents.commands.delete_document")
     @patch("builtins.print")
-    def test_cmd_delete_not_found(self, mock_print: MagicMock, mock_delete_doc: MagicMock, mock_context: MagicMock) -> None:
+    def test_cmd_delete_not_found(
+        self, mock_print: MagicMock, mock_delete_doc: MagicMock, mock_context: MagicMock
+    ) -> None:
         """Test cmd_delete with non-existent document."""
         args = argparse.Namespace(doc_id=999)
         mock_delete_doc.side_effect = ValueError("Document not found")
