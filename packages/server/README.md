@@ -130,37 +130,37 @@ task check  # From packages/server/ directory
 
 ```
 packages/server/
-├── src/                    # Source code
-│   ├── domains/           # Business logic domains
-│   │   ├── auth/          # User authentication
-│   │   ├── chat/          # Chat and conversation management
-│   │   ├── documents/     # Document upload and management
-│   │   ├── health/        # Health check endpoints
-│   │   └── users/         # User management
-│   ├── infrastructure/    # Infrastructure services
-│   │   ├── auth/          # JWT authentication
-│   │   ├── database/      # Database connection and session management
-│   │   ├── errors/        # Error handling and DTOs
-│   │   ├── factories/     # Service factories
-│   │   ├── llm/           # LLM provider implementations
-│   │   ├── middleware/    # Flask middleware (logging, security, etc.)
-│   │   ├── rag/           # RAG implementations and components
-│   │   │   ├── chunking/  # Text chunking strategies
-│   │   │   ├── embeddings/# Embedding model providers
-│   │   │   └── vector_stores/  # Vector database implementations
-│   │   ├── socket/        # WebSocket/Socket.IO handlers
-│   │   └── storage/       # File/blob storage backends
-│   ├── api.py             # Flask application factory
-│   ├── cli.py             # Command-line interface
-│   ├── config.py          # Application configuration
-│   └── context.py         # Application context with services
-├── tests/                 # Test files
-│   ├── unit/              # Unit tests with dummy implementations
-│   ├── integration/       # Integration tests with real services
-│   └── conftest.py        # Test configuration
-├── pyproject.toml         # Poetry dependencies and tool configs
-├── poetry.toml            # Poetry settings (venv in project)
-└── README.md              # This file
++-- src/                    # Source code
+|   +-- domains/           # Business logic domains
+|   |   +-- auth/          # User authentication
+|   |   +-- chat/          # Chat and conversation management
+|   |   +-- documents/     # Document upload and management
+|   |   +-- health/        # Health check endpoints
+|   |   +-- users/         # User management
+|   +-- infrastructure/    # Infrastructure services
+|   |   +-- auth/          # JWT authentication
+|   |   +-- database/      # Database connection and session management
+|   |   +-- errors/        # Error handling and DTOs
+|   |   +-- factories/     # Service factories
+|   |   +-- llm/           # LLM provider implementations
+|   |   +-- middleware/    # Flask middleware (logging, security, etc.)
+|   |   +-- rag/           # RAG implementations and components
+|   |   |   +-- chunking/  # Text chunking strategies
+|   |   |   +-- embeddings/# Embedding model providers
+|   |   |   +-- vector_stores/  # Vector database implementations
+|   |   +-- socket/        # WebSocket/Socket.IO handlers
+|   |   +-- storage/       # File/blob storage backends
+|   +-- api.py             # Flask application factory
+|   +-- cli.py             # Command-line interface
+|   +-- config.py          # Application configuration
+|   +-- context.py         # Application context with services
++-- tests/                 # Test files
+|   +-- unit/              # Unit tests with dummy implementations
+|   +-- integration/       # Integration tests with real services
+|   +-- conftest.py        # Test configuration
++-- pyproject.toml         # Poetry dependencies and tool configs
++-- poetry.toml            # Poetry settings (venv in project)
++-- README.md              # This file
 ```
 
 ## Configuration

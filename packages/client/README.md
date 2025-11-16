@@ -64,36 +64,36 @@ bun run test         # Run tests (when available)
 
 ```
 packages/client/
-├── src/
-│   ├── components/          # React components
-│   │   ├── auth/           # Authentication components
-│   │   ├── chat/           # Chat interface components
-│   │   │   ├── ChatBot.tsx      # Main chat component
-│   │   │   ├── ChatInput.tsx    # Message input
-│   │   │   ├── ChatMessages.tsx # Message display
-│   │   │   └── ChatSidebar.tsx  # Session management
-│   │   ├── ui/             # Reusable UI components
-│   │   └── upload/         # Document upload components
-│   ├── lib/                # Utilities and helpers
-│   │   ├── utils.ts        # General utilities
-│   │   └── chatStorage.ts  # Local storage helpers
-│   ├── services/           # API and external service integrations
-│   │   ├── api.ts          # REST API client
-│   │   └── socket.ts       # WebSocket/Socket.IO client
-│   ├── store/              # Redux state management
-│   │   ├── slices/         # Redux slices
-│   │   │   ├── authSlice.ts
-│   │   │   └── chatSlice.ts
-│   │   ├── hooks.ts        # Typed hooks
-│   │   └── index.ts        # Store configuration
-│   ├── types/              # TypeScript type definitions
-│   │   └── chat.ts         # Chat-related types
-│   ├── App.tsx             # Main application component
-│   ├── main.tsx            # Application entry point
-│   └── vite-env.d.ts       # Vite type definitions
-├── public/                 # Static assets
-├── index.html              # HTML template
-└── package.json            # Dependencies and scripts
++-- src/
+|   +-- components/          # React components
+|   |   +-- auth/           # Authentication components
+|   |   +-- chat/           # Chat interface components
+|   |   |   +-- ChatBot.tsx      # Main chat component
+|   |   |   +-- ChatInput.tsx    # Message input
+|   |   |   +-- ChatMessages.tsx # Message display
+|   |   |   +-- ChatSidebar.tsx  # Session management
+|   |   +-- ui/             # Reusable UI components
+|   |   +-- upload/         # Document upload components
+|   +-- lib/                # Utilities and helpers
+|   |   +-- utils.ts        # General utilities
+|   |   +-- chatStorage.ts  # Local storage helpers
+|   +-- services/           # API and external service integrations
+|   |   +-- api.ts          # REST API client
+|   |   +-- socket.ts       # WebSocket/Socket.IO client
+|   +-- store/              # Redux state management
+|   |   +-- slices/         # Redux slices
+|   |   |   +-- authSlice.ts
+|   |   |   +-- chatSlice.ts
+|   |   +-- hooks.ts        # Typed hooks
+|   |   +-- index.ts        # Store configuration
+|   +-- types/              # TypeScript type definitions
+|   |   +-- chat.ts         # Chat-related types
+|   +-- App.tsx             # Main application component
+|   +-- main.tsx            # Application entry point
+|   +-- vite-env.d.ts       # Vite type definitions
++-- public/                 # Static assets
++-- index.html              # HTML template
++-- package.json            # Dependencies and scripts
 ```
 
 ## Key Components
