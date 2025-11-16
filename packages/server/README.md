@@ -77,7 +77,7 @@ poetry run python -m src.cli interactive       # Start interactive chat
 
 ### Testing
 
-See [TESTING.md](../../TESTING.md) for the complete testing guide.
+See [testing guide](../../docs/testing.md) for the complete testing guide.
 
 ```bash
 # Unit Tests (Pytest)

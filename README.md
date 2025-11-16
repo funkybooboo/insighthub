@@ -88,7 +88,7 @@ insighthub/
 
 ## Testing
 
-See [TESTING.md](TESTING.md) for the complete testing guide.
+See [testing guide](docs/testing.md) for the complete testing guide.
 
 ### Quick Test Commands
 
@@ -162,7 +162,7 @@ See [docs/docker.md](docs/docker.md) for details.
 
 ## Documentation
 
-- [Testing Guide](TESTING.md) - Comprehensive testing documentation
+- [Testing Guide](docs/testing.md) - Comprehensive testing documentation
 - [Docker Setup](docs/docker.md)
 - [Task Commands](docs/taskfile-setup.md)
 - [Architecture](docs/architecture.md)
