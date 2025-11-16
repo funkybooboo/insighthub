@@ -51,7 +51,9 @@ class TestSendChatMessage:
         assert result["answer"] == "Test answer"
         assert result["session_id"] == 1
         assert result["documents_count"] == 2
-        assert len(result["context"]) == 2
+        context = result["context"]
+        assert isinstance(context, list)
+        assert len(context) == 2
         mock_context.chat_service.process_chat_message.assert_called_once_with(
             user_id=1,
             message="test question",
@@ -99,10 +101,12 @@ class TestSendChatMessage:
 
         result = commands.send_chat_message(mock_context, "question")
 
-        assert len(result["context"]) == 1
-        assert result["context"][0]["text"] == "Test context"
-        assert result["context"][0]["score"] == 0.95
-        assert result["context"][0]["metadata"] == {"doc_id": "123"}
+        context = result["context"]
+        assert isinstance(context, list)
+        assert len(context) == 1
+        assert context[0]["text"] == "Test context"
+        assert context[0]["score"] == 0.95
+        assert context[0]["metadata"] == {"doc_id": "123"}
 
 
 class TestListSessions:
@@ -131,11 +135,13 @@ class TestListSessions:
         result = commands.list_sessions(mock_context)
 
         assert result["count"] == 2
-        assert len(result["sessions"]) == 2
-        assert result["sessions"][0]["id"] == 1
-        assert result["sessions"][0]["title"] == "Session 1"
-        assert result["sessions"][1]["id"] == 2
-        assert result["sessions"][1]["title"] == ""  # None converted to empty string
+        sessions = result["sessions"]
+        assert isinstance(sessions, list)
+        assert len(sessions) == 2
+        assert sessions[0]["id"] == 1
+        assert sessions[0]["title"] == "Session 1"
+        assert sessions[1]["id"] == 2
+        assert sessions[1]["title"] == ""  # None converted to empty string
 
     def test_list_sessions_empty(self, mock_context: MagicMock, mock_user: Mock) -> None:
         """Test listing when no sessions exist."""

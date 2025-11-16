@@ -135,11 +135,13 @@ class TestListDocuments:
         result = commands.list_documents(mock_context)
 
         assert result["count"] == 2
-        assert len(result["documents"]) == 2
-        assert result["documents"][0]["id"] == 1
-        assert result["documents"][0]["filename"] == "doc1.pdf"
-        assert result["documents"][1]["id"] == 2
-        assert result["documents"][1]["filename"] == "doc2.txt"
+        documents = result["documents"]
+        assert isinstance(documents, list)
+        assert len(documents) == 2
+        assert documents[0]["id"] == 1
+        assert documents[0]["filename"] == "doc1.pdf"
+        assert documents[1]["id"] == 2
+        assert documents[1]["filename"] == "doc2.txt"
 
     def test_list_documents_empty(self, mock_context: MagicMock, mock_user: Mock) -> None:
         """Test listing when no documents exist."""
