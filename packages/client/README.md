@@ -190,7 +190,7 @@ VITE_ENABLE_DEBUG=true
 
 ## Testing
 
-See [TESTING.md](../../TESTING.md) for the complete testing guide.
+See [testing guide](../../docs/testing.md) for the complete testing guide.
 
 ### Quick Test Commands
 
