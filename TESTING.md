@@ -260,32 +260,32 @@ task test:api:verbose
 **Collection Structure**:
 ```
 bruno/
-├── environments/
-│   └── local.bru           # Local environment config
-├── Auth/                   # Authentication tests
-│   ├── Signup_Success.bru
-│   ├── Login_Success.bru
-│   └── ...
-├── Chat/                   # Chat API tests
-│   ├── Send_Message_Success.bru
-│   ├── Send_Message_Rate_Limit.bru
-│   └── ...
-├── Documents/              # File upload tests
-│   ├── Upload_PDF_Success.bru
-│   ├── Upload_File_Too_Large.bru
-│   └── ...
-└── System/                 # System health tests
-    └── Health_Check.bru
++-- environments/
+|   +-- local.bru           # Local environment config
++-- Auth/                   # Authentication tests
+|   +-- Signup_Success.bru
+|   +-- Login_Success.bru
+|   +-- ...
++-- Chat/                   # Chat API tests
+|   +-- Send_Message_Success.bru
+|   +-- Send_Message_Rate_Limit.bru
+|   +-- ...
++-- Documents/              # File upload tests
+|   +-- Upload_PDF_Success.bru
+|   +-- Upload_File_Too_Large.bru
+|   +-- ...
++-- System/                 # System health tests
+    +-- Health_Check.bru
 ```
 
 **Test Scenarios**:
-- ✅ User signup and login
-- ✅ Authentication flows
-- ✅ Document upload (PDF, TXT)
-- ✅ File validation (size limits, types)
-- ✅ Chat message sending
-- ✅ Rate limiting
-- ✅ Health checks
+- [x] User signup and login
+- [x] Authentication flows
+- [x] Document upload (PDF, TXT)
+- [x] File validation (size limits, types)
+- [x] Chat message sending
+- [x] Rate limiting
+- [x] Health checks
 
 **GUI Alternative**:
 You can also use the [Bruno desktop app](https://www.usebruno.com/) to:
@@ -332,7 +332,7 @@ Reports generated:
 | Test Type | Use When | Examples |
 |-----------|----------|----------|
 | **Unit Tests** | Testing isolated component/function logic | Redux actions, utilities, form validation |
-| **E2E Tests** | Testing complete user workflows | Signup → Login → Create Chat → Send Message |
+| **E2E Tests** | Testing complete user workflows | Signup -> Login -> Create Chat -> Send Message |
 | **Storybook** | Visual component documentation | Button states, form layouts, loading states |
 | **API Tests** | Testing backend endpoints directly | Auth endpoints, file uploads, error handling |
 
@@ -399,13 +399,13 @@ assert {
 ## Continuous Integration
 
 All tests run automatically in CI:
-- ✅ Client unit tests (`task test`)
-- ✅ Client linting (`task lint`)
-- ✅ Client type checking (TypeScript)
-- ✅ Client build (`task build`)
-- ✅ Server unit tests (`task test`)
-- ✅ Server linting (`task lint`)
-- ✅ Server type checking (`task type-check`)
+- [x] Client unit tests (`task test`)
+- [x] Client linting (`task lint`)
+- [x] Client type checking (TypeScript)
+- [x] Client build (`task build`)
+- [x] Server unit tests (`task test`)
+- [x] Server linting (`task lint`)
+- [x] Server type checking (`task type-check`)
 
 E2E and API tests should be run manually or in separate CI jobs since they require running services.
 

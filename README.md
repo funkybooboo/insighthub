@@ -71,19 +71,19 @@ task clean           # Remove containers/volumes
 
 ```
 insighthub/
-├── packages/
-│   ├── server/              # Python RAG backend
-│   │   ├── src/
-│   │   │   ├── infrastructure/rag/  # RAG implementations
-│   │   │   ├── domains/             # Business logic
-│   │   │   └── api.py               # Flask app
-│   │   └── tests/           # Unit & integration tests
-│   └── client/              # React frontend
-│       └── src/
-│           ├── components/  # UI components
-│           └── store/       # Redux state
-├── docker-compose.yml       # Service orchestration
-└── Taskfile.yml             # Task commands
++-- packages/
+|   +-- server/              # Python RAG backend
+|   |   +-- src/
+|   |   |   +-- infrastructure/rag/  # RAG implementations
+|   |   |   +-- domains/             # Business logic
+|   |   |   +-- api.py               # Flask app
+|   |   +-- tests/           # Unit & integration tests
+|   +-- client/              # React frontend
+|       +-- src/
+|           +-- components/  # UI components
+|           +-- store/       # Redux state
++-- docker-compose.yml       # Service orchestration
++-- Taskfile.yml             # Task commands
 ```
 
 ## Testing
