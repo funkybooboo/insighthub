@@ -120,6 +120,9 @@ RUN poetry install --only-root
 # Copy and set permissions for entrypoint
 COPY --chown=app:app --chmod=755 docker-entrypoint.sh /usr/local/bin/
 
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && chown -R app:app /app/uploads
+
 # Switch to non-root user
 USER app
 

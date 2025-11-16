@@ -35,14 +35,11 @@ EOF
 fi
 
 # Configure nginx port if specified
-if [ -n "$NGINX_PORT" ]; then
-    log "Configuring nginx to listen on port $NGINX_PORT"
-
-    if [ -f /etc/nginx/conf.d/default.conf ]; then
-        sed -i "s/listen       80;/listen       $NGINX_PORT;/" /etc/nginx/conf.d/default.conf
-    else
-        warn "Could not find nginx configuration file"
-    fi
+# Note: This needs to run as root or with proper permissions
+# For now, we skip this in production and use environment variables or config files
+if [ -n "$NGINX_PORT" ] && [ "$NGINX_PORT" != "80" ]; then
+    warn "Custom NGINX_PORT specified but cannot modify config as non-root user"
+    warn "Using default port 80 instead"
 fi
 
 # Start nginx
