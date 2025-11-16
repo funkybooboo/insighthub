@@ -1,9 +1,11 @@
 """Unit tests for LLM providers."""
 
+from typing import cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
+
 from src.infrastructure.llm.claude_provider import ClaudeLlmProvider
 from src.infrastructure.llm.ollama import OllamaLlmProvider
 from src.infrastructure.llm.openai_provider import OpenAiLlmProvider
@@ -235,7 +237,8 @@ class TestOpenAiLlmProvider:
 
     def test_generate_response_error(self, provider: OpenAiLlmProvider) -> None:
         """Test error handling."""
-        provider.client.chat.completions.create.side_effect = Exception("API Error")
+        mock_client = cast(MagicMock, provider.client)
+        mock_client.chat.completions.create.side_effect = Exception("API Error")
 
         result = provider.generate_response("Test")
 
@@ -243,9 +246,10 @@ class TestOpenAiLlmProvider:
 
     def test_chat_without_history(self, provider: OpenAiLlmProvider) -> None:
         """Test chat without conversation history."""
+        mock_client = cast(MagicMock, provider.client)
         mock_response = Mock()
         mock_response.choices = [Mock(message=Mock(content="Chat response"))]
-        provider.client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = mock_response
 
         result = provider.chat("Hello")
 
@@ -253,9 +257,10 @@ class TestOpenAiLlmProvider:
 
     def test_chat_with_history(self, provider: OpenAiLlmProvider) -> None:
         """Test chat with conversation history."""
+        mock_client = cast(MagicMock, provider.client)
         mock_response = Mock()
         mock_response.choices = [Mock(message=Mock(content="Response"))]
-        provider.client.chat.completions.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = mock_response
 
         history = [
             {"role": "user", "content": "First"},
@@ -265,7 +270,7 @@ class TestOpenAiLlmProvider:
         result = provider.chat("Second", conversation_history=history)
 
         assert result == "Response"
-        call_args = provider.client.chat.completions.create.call_args
+        call_args = mock_client.chat.completions.create.call_args
         messages = call_args[1]["messages"]
         assert len(messages) == 3
 
@@ -278,7 +283,8 @@ class TestOpenAiLlmProvider:
 
     def test_health_check_healthy(self, provider: OpenAiLlmProvider) -> None:
         """Test health check when service is healthy."""
-        provider.client.models.list.return_value = []
+        mock_client = cast(MagicMock, provider.client)
+        mock_client.models.list.return_value = []
 
         result = provider.health_check()
 
@@ -287,7 +293,8 @@ class TestOpenAiLlmProvider:
 
     def test_health_check_unhealthy(self, provider: OpenAiLlmProvider) -> None:
         """Test health check when service is unhealthy."""
-        provider.client.models.list.side_effect = Exception("Connection error")
+        mock_client = cast(MagicMock, provider.client)
+        mock_client.models.list.side_effect = Exception("Connection error")
 
         result = provider.health_check()
 
@@ -302,12 +309,13 @@ class TestOpenAiLlmProvider:
 
     def test_chat_stream_success(self, provider: OpenAiLlmProvider) -> None:
         """Test successful streaming."""
+        mock_client = cast(MagicMock, provider.client)
         mock_chunk1 = Mock()
         mock_chunk1.choices = [Mock(delta=Mock(content="Hello "))]
         mock_chunk2 = Mock()
         mock_chunk2.choices = [Mock(delta=Mock(content="world"))]
 
-        provider.client.chat.completions.create.return_value = [mock_chunk1, mock_chunk2]
+        mock_client.chat.completions.create.return_value = [mock_chunk1, mock_chunk2]
 
         chunks = list(provider.chat_stream("Test"))
 
@@ -350,11 +358,12 @@ class TestClaudeLlmProvider:
 
     def test_generate_response_success(self, provider: ClaudeLlmProvider) -> None:
         """Test successful response generation."""
+        mock_client = cast(Mock, provider.client)
         mock_content = Mock()
         mock_content.text = "Test response"
         mock_response = Mock()
         mock_response.content = [mock_content]
-        provider.client.messages.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
 
         result = provider.generate_response("Test prompt")
 
@@ -362,11 +371,12 @@ class TestClaudeLlmProvider:
 
     def test_generate_response_strips_whitespace(self, provider: ClaudeLlmProvider) -> None:
         """Test that response strips whitespace."""
+        mock_client = cast(Mock, provider.client)
         mock_content = Mock()
         mock_content.text = "  Whitespace  "
         mock_response = Mock()
         mock_response.content = [mock_content]
-        provider.client.messages.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
 
         result = provider.generate_response("Test")
 
@@ -374,7 +384,8 @@ class TestClaudeLlmProvider:
 
     def test_generate_response_error(self, provider: ClaudeLlmProvider) -> None:
         """Test error handling."""
-        provider.client.messages.create.side_effect = Exception("API Error")
+        mock_client = cast(Mock, provider.client)
+        mock_client.messages.create.side_effect = Exception("API Error")
 
         result = provider.generate_response("Test")
 
@@ -382,11 +393,12 @@ class TestClaudeLlmProvider:
 
     def test_chat_without_history(self, provider: ClaudeLlmProvider) -> None:
         """Test chat without conversation history."""
+        mock_client = cast(Mock, provider.client)
         mock_content = Mock()
         mock_content.text = "Chat response"
         mock_response = Mock()
         mock_response.content = [mock_content]
-        provider.client.messages.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
 
         result = provider.chat("Hello")
 
@@ -394,11 +406,12 @@ class TestClaudeLlmProvider:
 
     def test_chat_with_history(self, provider: ClaudeLlmProvider) -> None:
         """Test chat with conversation history."""
+        mock_client = cast(Mock, provider.client)
         mock_content = Mock()
         mock_content.text = "Response"
         mock_response = Mock()
         mock_response.content = [mock_content]
-        provider.client.messages.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
 
         history = [
             {"role": "user", "content": "First"},
@@ -408,7 +421,7 @@ class TestClaudeLlmProvider:
         result = provider.chat("Second", conversation_history=history)
 
         assert result == "Response"
-        call_args = provider.client.messages.create.call_args
+        call_args = mock_client.messages.create.call_args
         messages = call_args[1]["messages"]
         assert len(messages) == 3
 
@@ -421,11 +434,12 @@ class TestClaudeLlmProvider:
 
     def test_health_check_healthy(self, provider: ClaudeLlmProvider) -> None:
         """Test health check when service is healthy."""
+        mock_client = cast(Mock, provider.client)
         mock_content = Mock()
         mock_content.text = "Hi"
         mock_response = Mock()
         mock_response.content = [mock_content]
-        provider.client.messages.create.return_value = mock_response
+        mock_client.messages.create.return_value = mock_response
 
         result = provider.health_check()
 
@@ -434,7 +448,8 @@ class TestClaudeLlmProvider:
 
     def test_health_check_unhealthy(self, provider: ClaudeLlmProvider) -> None:
         """Test health check when service is unhealthy."""
-        provider.client.messages.create.side_effect = Exception("Connection error")
+        mock_client = cast(Mock, provider.client)
+        mock_client.messages.create.side_effect = Exception("Connection error")
 
         result = provider.health_check()
 
@@ -449,12 +464,13 @@ class TestClaudeLlmProvider:
 
     def test_chat_stream_success(self, provider: ClaudeLlmProvider) -> None:
         """Test successful streaming."""
+        mock_client = cast(Mock, provider.client)
         mock_stream = Mock()
         mock_stream.__enter__ = Mock(return_value=mock_stream)
         mock_stream.__exit__ = Mock(return_value=None)
         mock_stream.text_stream = iter(["Hello ", "world"])
 
-        provider.client.messages.stream.return_value = mock_stream
+        mock_client.messages.stream.return_value = mock_stream
 
         chunks = list(provider.chat_stream("Test"))
 

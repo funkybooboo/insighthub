@@ -2,6 +2,8 @@
 
 import pytest
 from flask import Flask
+from werkzeug.exceptions import BadRequest
+
 from src.infrastructure.errors.base import (
     AlreadyExistsError,
     ConflictError,
@@ -13,7 +15,6 @@ from src.infrastructure.errors.base import (
 )
 from src.infrastructure.errors.dtos import ErrorResponse
 from src.infrastructure.errors.handlers import register_error_handlers
-from werkzeug.exceptions import BadRequest
 
 
 @pytest.fixture

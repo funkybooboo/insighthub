@@ -1,0 +1,25 @@
+meta {
+  name: Delete Nonexistent Document
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/documents/99999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("should return 404 for nonexistent document", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

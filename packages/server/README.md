@@ -77,19 +77,34 @@ poetry run python -m src.cli interactive       # Start interactive chat
 
 ### Testing
 
+See [testing guide](../../docs/testing.md) for the complete testing guide.
+
 ```bash
-# Run all tests
-poetry run pytest
+# Unit Tests (Pytest)
+task test                  # All tests with coverage
+task test-unit             # Unit tests only (fast)
+task test-integration      # Integration tests (requires Docker)
+task test-watch            # Watch mode
 
-# Run tests with coverage
-poetry run pytest --cov=src --cov-report=html
+# API Tests (Bruno)
+task test:api              # Run Bruno API tests (requires Bruno CLI)
+task test:api:verbose      # With verbose output
 
-# Run specific test categories
-poetry run pytest tests/unit/      # Unit tests only
-poetry run pytest tests/integration/  # Integration tests only
+# Using Poetry directly
+poetry run pytest                           # Run all tests
+poetry run pytest --cov=src --cov-report=html  # With coverage
+poetry run pytest tests/unit/               # Unit tests only
+poetry run pytest tests/integration/        # Integration tests only
+```
 
-# Run tests in watch mode
-poetry run pytest-watch
+**Prerequisites for API Tests**:
+```bash
+# Install Bruno CLI globally
+npm install -g @usebruno/cli
+
+# Make sure server is running
+task server  # In one terminal
+task test:api  # In another terminal
 ```
 
 ### Code Quality
@@ -115,37 +130,37 @@ task check  # From packages/server/ directory
 
 ```
 packages/server/
-├── src/                    # Source code
-│   ├── domains/           # Business logic domains
-│   │   ├── auth/          # User authentication
-│   │   ├── chat/          # Chat and conversation management
-│   │   ├── documents/     # Document upload and management
-│   │   ├── health/        # Health check endpoints
-│   │   └── users/         # User management
-│   ├── infrastructure/    # Infrastructure services
-│   │   ├── auth/          # JWT authentication
-│   │   ├── database/      # Database connection and session management
-│   │   ├── errors/        # Error handling and DTOs
-│   │   ├── factories/     # Service factories
-│   │   ├── llm/           # LLM provider implementations
-│   │   ├── middleware/    # Flask middleware (logging, security, etc.)
-│   │   ├── rag/           # RAG implementations and components
-│   │   │   ├── chunking/  # Text chunking strategies
-│   │   │   ├── embeddings/# Embedding model providers
-│   │   │   └── vector_stores/  # Vector database implementations
-│   │   ├── socket/        # WebSocket/Socket.IO handlers
-│   │   └── storage/       # File/blob storage backends
-│   ├── api.py             # Flask application factory
-│   ├── cli.py             # Command-line interface
-│   ├── config.py          # Application configuration
-│   └── context.py         # Application context with services
-├── tests/                 # Test files
-│   ├── unit/              # Unit tests with dummy implementations
-│   ├── integration/       # Integration tests with real services
-│   └── conftest.py        # Test configuration
-├── pyproject.toml         # Poetry dependencies and tool configs
-├── poetry.toml            # Poetry settings (venv in project)
-└── README.md              # This file
++-- src/                    # Source code
+|   +-- domains/           # Business logic domains
+|   |   +-- auth/          # User authentication
+|   |   +-- chat/          # Chat and conversation management
+|   |   +-- documents/     # Document upload and management
+|   |   +-- health/        # Health check endpoints
+|   |   +-- users/         # User management
+|   +-- infrastructure/    # Infrastructure services
+|   |   +-- auth/          # JWT authentication
+|   |   +-- database/      # Database connection and session management
+|   |   +-- errors/        # Error handling and DTOs
+|   |   +-- factories/     # Service factories
+|   |   +-- llm/           # LLM provider implementations
+|   |   +-- middleware/    # Flask middleware (logging, security, etc.)
+|   |   +-- rag/           # RAG implementations and components
+|   |   |   +-- chunking/  # Text chunking strategies
+|   |   |   +-- embeddings/# Embedding model providers
+|   |   |   +-- vector_stores/  # Vector database implementations
+|   |   +-- socket/        # WebSocket/Socket.IO handlers
+|   |   +-- storage/       # File/blob storage backends
+|   +-- api.py             # Flask application factory
+|   +-- cli.py             # Command-line interface
+|   +-- config.py          # Application configuration
+|   +-- context.py         # Application context with services
++-- tests/                 # Test files
+|   +-- unit/              # Unit tests with dummy implementations
+|   +-- integration/       # Integration tests with real services
+|   +-- conftest.py        # Test configuration
++-- pyproject.toml         # Poetry dependencies and tool configs
++-- poetry.toml            # Poetry settings (venv in project)
++-- README.md              # This file
 ```
 
 ## Configuration

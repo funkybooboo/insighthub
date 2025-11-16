@@ -1,0 +1,33 @@
+meta {
+  name: Send Message Special Characters
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "prompt": "Test with <html> & \"quotes\" and 'apostrophes'",
+    "session_id": "test-session"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should handle special characters", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().response).to.be.a("string");
+  });
+}

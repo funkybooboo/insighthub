@@ -71,19 +71,38 @@ task clean           # Remove containers/volumes
 
 ```
 insighthub/
-├── packages/
-│   ├── server/              # Python RAG backend
-│   │   ├── src/
-│   │   │   ├── infrastructure/rag/  # RAG implementations
-│   │   │   ├── domains/             # Business logic
-│   │   │   └── api.py               # Flask app
-│   │   └── tests/           # Unit & integration tests
-│   └── client/              # React frontend
-│       └── src/
-│           ├── components/  # UI components
-│           └── store/       # Redux state
-├── docker-compose.yml       # Service orchestration
-└── Taskfile.yml             # Task commands
++-- packages/
+|   +-- server/              # Python RAG backend
+|   |   +-- src/
+|   |   |   +-- infrastructure/rag/  # RAG implementations
+|   |   |   +-- domains/             # Business logic
+|   |   |   +-- api.py               # Flask app
+|   |   +-- tests/           # Unit & integration tests
+|   +-- client/              # React frontend
+|       +-- src/
+|           +-- components/  # UI components
+|           +-- store/       # Redux state
++-- docker-compose.yml       # Service orchestration
++-- Taskfile.yml             # Task commands
+```
+
+## Testing
+
+See [testing guide](docs/testing.md) for the complete testing guide.
+
+### Quick Test Commands
+
+```bash
+# Client Tests
+cd packages/client
+task test              # Unit tests (319 passing)
+task test:e2e          # E2E tests (Playwright)
+task storybook         # Component documentation
+
+# Server Tests
+cd packages/server
+task test              # Unit tests with coverage
+task test:api          # Bruno API tests
 ```
 
 ## Code Quality
@@ -143,6 +162,7 @@ See [docs/docker.md](docs/docker.md) for details.
 
 ## Documentation
 
+- [Testing Guide](docs/testing.md) - Comprehensive testing documentation
 - [Docker Setup](docs/docker.md)
 - [Task Commands](docs/taskfile-setup.md)
 - [Architecture](docs/architecture.md)

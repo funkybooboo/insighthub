@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import Flask, g
+
 from src.infrastructure.middleware.logging import RequestLoggingMiddleware
 from src.infrastructure.middleware.rate_limiting import RateLimitMiddleware
 from src.infrastructure.middleware.security import SecurityHeadersMiddleware

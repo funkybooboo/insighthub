@@ -64,36 +64,36 @@ bun run test         # Run tests (when available)
 
 ```
 packages/client/
-├── src/
-│   ├── components/          # React components
-│   │   ├── auth/           # Authentication components
-│   │   ├── chat/           # Chat interface components
-│   │   │   ├── ChatBot.tsx      # Main chat component
-│   │   │   ├── ChatInput.tsx    # Message input
-│   │   │   ├── ChatMessages.tsx # Message display
-│   │   │   └── ChatSidebar.tsx  # Session management
-│   │   ├── ui/             # Reusable UI components
-│   │   └── upload/         # Document upload components
-│   ├── lib/                # Utilities and helpers
-│   │   ├── utils.ts        # General utilities
-│   │   └── chatStorage.ts  # Local storage helpers
-│   ├── services/           # API and external service integrations
-│   │   ├── api.ts          # REST API client
-│   │   └── socket.ts       # WebSocket/Socket.IO client
-│   ├── store/              # Redux state management
-│   │   ├── slices/         # Redux slices
-│   │   │   ├── authSlice.ts
-│   │   │   └── chatSlice.ts
-│   │   ├── hooks.ts        # Typed hooks
-│   │   └── index.ts        # Store configuration
-│   ├── types/              # TypeScript type definitions
-│   │   └── chat.ts         # Chat-related types
-│   ├── App.tsx             # Main application component
-│   ├── main.tsx            # Application entry point
-│   └── vite-env.d.ts       # Vite type definitions
-├── public/                 # Static assets
-├── index.html              # HTML template
-└── package.json            # Dependencies and scripts
++-- src/
+|   +-- components/          # React components
+|   |   +-- auth/           # Authentication components
+|   |   +-- chat/           # Chat interface components
+|   |   |   +-- ChatBot.tsx      # Main chat component
+|   |   |   +-- ChatInput.tsx    # Message input
+|   |   |   +-- ChatMessages.tsx # Message display
+|   |   |   +-- ChatSidebar.tsx  # Session management
+|   |   +-- ui/             # Reusable UI components
+|   |   +-- upload/         # Document upload components
+|   +-- lib/                # Utilities and helpers
+|   |   +-- utils.ts        # General utilities
+|   |   +-- chatStorage.ts  # Local storage helpers
+|   +-- services/           # API and external service integrations
+|   |   +-- api.ts          # REST API client
+|   |   +-- socket.ts       # WebSocket/Socket.IO client
+|   +-- store/              # Redux state management
+|   |   +-- slices/         # Redux slices
+|   |   |   +-- authSlice.ts
+|   |   |   +-- chatSlice.ts
+|   |   +-- hooks.ts        # Typed hooks
+|   |   +-- index.ts        # Store configuration
+|   +-- types/              # TypeScript type definitions
+|   |   +-- chat.ts         # Chat-related types
+|   +-- App.tsx             # Main application component
+|   +-- main.tsx            # Application entry point
+|   +-- vite-env.d.ts       # Vite type definitions
++-- public/                 # Static assets
++-- index.html              # HTML template
++-- package.json            # Dependencies and scripts
 ```
 
 ## Key Components
@@ -190,16 +190,43 @@ VITE_ENABLE_DEBUG=true
 
 ## Testing
 
+See [testing guide](../../docs/testing.md) for the complete testing guide.
+
+### Quick Test Commands
+
 ```bash
-# Run tests
-bun run test
+# Unit Tests (Vitest)
+task test                  # Run all unit tests
+task test:watch            # Watch mode
+task test:coverage         # With coverage report
+task test:ui               # Interactive UI
 
-# Run tests in watch mode
-bun run test --watch
+# E2E Tests (Playwright)
+task test:e2e              # Run E2E tests
+task test:e2e:ui           # Interactive UI mode
+task test:e2e:headed       # See browser in action
 
-# Run tests with coverage
-bun run test --coverage
+# Component Documentation (Storybook)
+task storybook             # Run Storybook dev server (http://localhost:6006)
+task storybook:build       # Build static Storybook
 ```
+
+### Test Coverage
+
+**Current Stats**: 319 tests passing across 12 test files
+
+**Coverage Thresholds**:
+
+- Lines: 80%
+- Functions: 80%
+- Branches: 80%
+- Statements: 80%
+
+**Test Files**:
+
+- Unit tests: `src/**/*.test.tsx`
+- E2E tests: `e2e/**/*.spec.ts`
+- Stories: `src/**/*.stories.tsx`
 
 ## Docker Integration
 

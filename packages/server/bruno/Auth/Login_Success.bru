@@ -1,0 +1,31 @@
+meta {
+  name: Login Success
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "password": "password123"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isDefined
+}
+
+tests {
+  test("should login and return token", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().access_token).to.be.a("string");
+    expect(res.getBody().user).to.be.an("object");
+  });
+}

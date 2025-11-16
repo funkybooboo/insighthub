@@ -1,6 +1,7 @@
 """Unit tests for DocumentRepository."""
 
 import pytest
+
 from src.domains.documents.models import Document
 from src.domains.documents.repositories import DocumentRepository
 from src.domains.users.models import User

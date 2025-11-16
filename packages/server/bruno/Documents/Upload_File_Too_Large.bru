@@ -1,0 +1,29 @@
+meta {
+  name: Upload File Too Large
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/documents/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:multipart-form {
+  file: @file(large-file.pdf)
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should reject files larger than 16MB", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

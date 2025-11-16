@@ -1,0 +1,32 @@
+meta {
+  name: Send Message Empty Prompt
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/chat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "prompt": "",
+    "session_id": "test-session"
+  }
+}
+
+assert {
+  res.status: eq 400
+}
+
+tests {
+  test("should return 400 for empty prompt", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+}

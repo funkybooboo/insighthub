@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 import pytest
+
 from src.domains.chat.mappers import ChatMapper
 from src.domains.chat.models import ChatMessage, ChatSession
 from src.domains.documents.mappers import DocumentMapper
