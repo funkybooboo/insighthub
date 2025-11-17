@@ -113,6 +113,7 @@ FROM dependencies AS production
 COPY --chown=app:app src ./src
 COPY --chown=app:app alembic ./alembic
 COPY --chown=app:app alembic.ini ./
+COPY --chown=app:app README.md ./
 
 # Install the project (root only)
 RUN poetry install --only-root
@@ -142,4 +143,4 @@ ENV FLASK_HOST=0.0.0.0 \
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Default command for production
-CMD ["poetry", "run", "python", "src/api.py"]
+CMD ["poetry", "run", "python", "-m", "src.api"]
