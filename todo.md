@@ -1,0 +1,142 @@
+# Todo list
+
+---
+
+## Workspaces
+
+I am building a rag system where you can configure your own rag system, 
+upload documents and have intelligent converstaions about the topic. 
+On the UI you can create new chat sessions but all chat sessions are tied to the same uploaded documents. 
+uploaded documents are global for chats. 
+I want to create a higher level grouping of documents and chats where the user can upload documents 
+and this section of chat sessions will have access to those documents but they can make 
+new document groupings and those new groupings will have there own chat sessions.
+
+### **1. Data Modeling (with separate RAG config table)**
+
+**Entities:**
+
+1. **Workspace**
+
+   * `id`
+   * `name`
+   * `created_at`, `updated_at`
+
+2. **Document**
+
+   * `id`
+   * `workspace_id` (foreign key)
+   * `filename`
+   * `content` or `storage_path`
+   * `uploaded_at`
+
+3. **RAG Config**
+
+   * `id`
+   * `workspace_id` (foreign key, unique) → ensures one config per workspace
+   * `embedding_model`
+   * `retriever_type`
+   * `chunk_size`
+   * Other relevant parameters
+   * `created_at`, `updated_at`
+
+4. **Chat Session**
+
+   * `id`
+   * `workspace_id` (foreign key)
+   * `history` (DB or in-memory cache)
+   * `created_at`, `updated_at`
+
+**Relationships:**
+
+* Workspace 1:N Documents
+* Workspace 1:1 RAG Config
+* Workspace 1:N Chat Sessions
+
+### **2. API / Backend Updates**
+
+1. **Workspace Management**
+
+   * Create / update / delete workspace
+   * List all workspaces for a user
+
+2. **Document Management**
+
+   * Upload / delete / list documents per workspace
+
+3. **RAG Config Management**
+
+   * Create / update / retrieve RAG config per workspace
+   * Validate parameters
+   * Ensure one config per workspace
+
+4. **Chat Session Management**
+
+   * Create / delete / list chat sessions per workspace
+   * Retrieve session history
+
+5. **RAG Operations**
+
+   * On chat request:
+
+     * Load workspace’s RAG config
+     * Load workspace documents / embeddings
+     * Query relevant documents
+     * Generate response
+
+### **3. Database Schema Example (PostgreSQL)**
+
+```sql
+CREATE TABLE workspace (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE rag_config (
+    id SERIAL PRIMARY KEY,
+    workspace_id INT UNIQUE REFERENCES workspace(id) ON DELETE CASCADE,
+    embedding_model TEXT NOT NULL,
+    retriever_type TEXT NOT NULL,
+    chunk_size INT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE document (
+    id SERIAL PRIMARY KEY,
+    workspace_id INT REFERENCES workspace(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE chat_session (
+    id SERIAL PRIMARY KEY,
+    workspace_id INT REFERENCES workspace(id) ON DELETE CASCADE,
+    history JSONB DEFAULT '[]',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### **4. Advantages of Separate RAG Config Table**
+
+* Config can evolve independently of the workspace
+* Easier to store history or multiple versions in the future
+* Cleaner API endpoints: `GET /workspace/{id}/rag_config`
+
+---
+
+## Storybook stories
+
+---
+
+## Cypress tests
+
+---
+
+## Clean up types
+
+---
