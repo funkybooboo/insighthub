@@ -19,6 +19,9 @@ const ChatInput = ({ onSubmit, onCancel, isTyping }: Props) => {
     const { register, handleSubmit, reset, formState } = useForm<ChatFormData>();
 
     const handleFormSubmit = handleSubmit((data) => {
+        if (isTyping) {
+            return;
+        }
         reset({ prompt: '' });
         onSubmit(data);
     });
@@ -94,6 +97,7 @@ const ChatInput = ({ onSubmit, onCancel, isTyping }: Props) => {
                         </Button>
                     ) : (
                         <Button
+                            type="submit"
                             disabled={!formState.isValid}
                             className="rounded-full w-10 h-10 p-0 flex-shrink-0"
                             title="Send message"
