@@ -23,6 +23,7 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    theme_preference: Mapped[str] = mapped_column(String(10), nullable=False, server_default="dark")
 
     # Relationships
     documents: Mapped[list["Document"]] = relationship(

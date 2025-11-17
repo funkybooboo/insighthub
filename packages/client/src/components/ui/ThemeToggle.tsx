@@ -1,16 +1,19 @@
-import { useDispatch, useSelector } from 'react-redux';
-import { toggleTheme } from '../../store/slices/themeSlice';
-import type { RootState } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { toggleThemeAndSave } from '../../store/slices/themeSlice';
 
 export default function ThemeToggle() {
-    const dispatch = useDispatch();
-    const { theme } = useSelector((state: RootState) => state.theme);
+    const dispatch = useAppDispatch();
+    const { theme } = useAppSelector((state) => state.theme);
 
     const isDark = theme === 'dark';
 
+    const handleToggle = () => {
+        dispatch(toggleThemeAndSave());
+    };
+
     return (
         <button
-            onClick={() => dispatch(toggleTheme())}
+            onClick={handleToggle}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
             aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}

@@ -50,9 +50,9 @@ const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
     };
 
     return (
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600 transition-colors">
+                <label className="flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-5 w-5"
@@ -78,10 +78,14 @@ const FileUpload = ({ onUploadSuccess }: FileUploadProps) => {
                 </label>
 
                 <div className="flex-1">
-                    {message && <p className="text-sm text-green-600">{message}</p>}
-                    {error && <p className="text-sm text-red-600">{error}</p>}
+                    {message && (
+                        <p className="text-sm text-green-600 dark:text-green-400">{message}</p>
+                    )}
+                    {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                     {!message && !error && (
-                        <p className="text-sm text-gray-500">Upload PDF or TXT files (max 16MB)</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Upload PDF or TXT files (max 16MB)
+                        </p>
                     )}
                 </div>
             </div>

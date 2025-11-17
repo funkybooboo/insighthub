@@ -23,6 +23,7 @@ class UserMapper:
             "email": user.email,
             "full_name": user.full_name or "",
             "created_at": user.created_at.isoformat(),
+            "theme_preference": user.theme_preference,
         }
 
     @staticmethod

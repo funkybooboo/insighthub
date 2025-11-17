@@ -81,7 +81,7 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
 
         if (loading) {
             return (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                     <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full" />
                     <p className="mt-2">Loading documents...</p>
                 </div>
@@ -90,11 +90,11 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
 
         if (error && documents.length === 0) {
             return (
-                <div className="p-4 text-center text-red-600">
+                <div className="p-4 text-center text-red-600 dark:text-red-400">
                     <p>{error}</p>
                     <button
                         onClick={loadDocuments}
-                        className="mt-2 px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                        className="mt-2 px-4 py-2 text-sm bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700"
                     >
                         Retry
                     </button>
@@ -105,13 +105,15 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
         return (
             <div className="flex flex-col">
                 {error && (
-                    <div className="p-2 mb-2 text-sm text-red-600 bg-red-50 rounded">{error}</div>
+                    <div className="p-2 mb-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded">
+                        {error}
+                    </div>
                 )}
 
                 {documents.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         <svg
-                            className="mx-auto h-12 w-12 text-gray-400"
+                            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -127,8 +129,8 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                         <p className="text-sm">Upload a PDF or TXT file to get started</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-gray-200">
-                        <div className="px-4 py-2 bg-gray-100 flex items-center text-xs font-semibold text-gray-600 uppercase">
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <div className="px-4 py-2 bg-gray-100 dark:bg-gray-800 flex items-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
                             <div className="flex-1">Document</div>
                             <div className="w-24 text-right">Size</div>
                             <div className="w-32 text-right">Chunks</div>
@@ -138,7 +140,7 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                         {documents.map((doc) => (
                             <div
                                 key={doc.id}
-                                className="px-4 py-3 hover:bg-gray-50 flex items-center"
+                                className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center"
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
@@ -156,7 +158,7 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                                             </svg>
                                         ) : (
                                             <svg
-                                                className="h-5 w-5 text-gray-500 flex-shrink-0"
+                                                className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0"
                                                 fill="currentColor"
                                                 viewBox="0 0 20 20"
                                             >
@@ -167,25 +169,25 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                                                 />
                                             </svg>
                                         )}
-                                        <span className="font-medium text-gray-900 truncate">
+                                        <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
                                             {doc.filename}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="w-24 text-right text-sm text-gray-500">
+                                <div className="w-24 text-right text-sm text-gray-500 dark:text-gray-400">
                                     {formatFileSize(doc.file_size)}
                                 </div>
-                                <div className="w-32 text-right text-sm text-gray-500">
+                                <div className="w-32 text-right text-sm text-gray-500 dark:text-gray-400">
                                     {doc.chunk_count ? `${doc.chunk_count} chunks` : '-'}
                                 </div>
-                                <div className="w-40 text-right text-sm text-gray-500">
+                                <div className="w-40 text-right text-sm text-gray-500 dark:text-gray-400">
                                     {formatDate(doc.created_at)}
                                 </div>
                                 <div className="w-20 text-right">
                                     <button
                                         onClick={() => handleDelete(doc.id, doc.filename)}
                                         disabled={deletingId === doc.id}
-                                        className="p-1 text-red-600 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Delete document"
                                     >
                                         {deletingId === doc.id ? (

@@ -39,9 +39,9 @@ const ChatSidebar = () => {
     };
 
     return (
-        <div className="w-64 border-r border-gray-200 bg-gray-50 flex flex-col h-full">
+        <div className="w-64 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-col h-full">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <button
                     onClick={handleNewChat}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -61,9 +61,9 @@ const ChatSidebar = () => {
             {/* Chat Sessions List */}
             <div className="flex-1 overflow-y-auto">
                 {sessions.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         <svg
-                            className="mx-auto h-12 w-12 text-gray-400 mb-2"
+                            className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-2"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -86,8 +86,8 @@ const ChatSidebar = () => {
                                 onClick={() => handleSelectSession(session.id)}
                                 className={`group relative p-3 mb-2 rounded-lg cursor-pointer transition-colors ${
                                     activeSessionId === session.id
-                                        ? 'bg-blue-100 border border-blue-300'
-                                        : 'bg-white border border-gray-200 hover:bg-gray-100'
+                                        ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700'
+                                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-2">
@@ -96,8 +96,8 @@ const ChatSidebar = () => {
                                             <svg
                                                 className={`w-4 h-4 flex-shrink-0 ${
                                                     activeSessionId === session.id
-                                                        ? 'text-blue-600'
-                                                        : 'text-gray-400'
+                                                        ? 'text-blue-600 dark:text-blue-400'
+                                                        : 'text-gray-400 dark:text-gray-500'
                                                 }`}
                                                 fill="none"
                                                 viewBox="0 0 24 24"
@@ -113,14 +113,14 @@ const ChatSidebar = () => {
                                             <h3
                                                 className={`text-sm font-medium truncate ${
                                                     activeSessionId === session.id
-                                                        ? 'text-blue-900'
-                                                        : 'text-gray-900'
+                                                        ? 'text-blue-900 dark:text-blue-200'
+                                                        : 'text-gray-900 dark:text-gray-100'
                                                 }`}
                                             >
                                                 {session.title}
                                             </h3>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                             <span>{session.messages.length} messages</span>
                                             <span>•</span>
                                             <span>{formatDate(session.updatedAt)}</span>
@@ -128,7 +128,7 @@ const ChatSidebar = () => {
                                     </div>
                                     <button
                                         onClick={(e) => handleDeleteSession(session.id, e)}
-                                        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 hover:bg-red-50 rounded transition-opacity"
+                                        className="opacity-0 group-hover:opacity-100 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-opacity"
                                         title="Delete chat"
                                     >
                                         <svg
@@ -153,8 +153,8 @@ const ChatSidebar = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-200 bg-white">
-                <div className="text-xs text-gray-500 text-center">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                     {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} saved locally
                 </div>
             </div>

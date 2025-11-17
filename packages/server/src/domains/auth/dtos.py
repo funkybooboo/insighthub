@@ -38,3 +38,4 @@ class UserResponse:
     email: str
     full_name: str | None
     created_at: str
+    theme_preference: str = "dark"

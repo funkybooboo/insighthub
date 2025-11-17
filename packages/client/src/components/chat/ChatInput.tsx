@@ -27,13 +27,13 @@ const ChatInput = ({ onSubmit }: Props) => {
     };
 
     return (
-        <div className="border-t border-gray-200 bg-white px-4 py-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4">
             <form
                 onSubmit={handleFormSubmit}
                 onKeyDown={handleKeyDown}
                 className="max-w-3xl mx-auto"
             >
-                <div className="relative flex items-end gap-2 border border-gray-300 rounded-2xl bg-white px-4 py-3 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                <div className="relative flex items-end gap-2 border border-gray-300 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 px-4 py-3 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
                     <textarea
                         {...register('prompt', {
                             required: true,
@@ -41,7 +41,7 @@ const ChatInput = ({ onSubmit }: Props) => {
                         })}
                         autoFocus
                         rows={1}
-                        className="flex-1 resize-none border-0 focus:outline-none bg-transparent text-gray-900 placeholder-gray-500"
+                        className="flex-1 resize-none border-0 focus:outline-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                         placeholder="Ask me anything..."
                         maxLength={1000}
                         style={{
