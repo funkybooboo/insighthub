@@ -27,7 +27,7 @@ from src.domains.documents.repositories import DocumentRepository
 from src.domains.users.repositories import UserRepository
 from src.infrastructure.database.base import Base
 from src.infrastructure.storage import BlobStorage, MinioBlobStorage
-from tests.test_context import IntegrationTestContext, create_integration_test_context
+from tests.context import IntegrationTestContext, create_integration_test_context
 
 # ============================================================================
 # Pytest Skip Helpers

@@ -13,7 +13,7 @@ from src.domains.documents.repositories import DocumentRepository
 from src.domains.users.repositories import UserRepository
 from src.infrastructure.database.base import Base
 from src.infrastructure.storage import BlobStorage
-from tests.test_context import UnitTestContext, create_unit_test_context
+from tests.context import UnitTestContext, create_unit_test_context
 
 
 @pytest.fixture(scope="function")
