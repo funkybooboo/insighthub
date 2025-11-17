@@ -9,6 +9,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import UserMenu from './UserMenu';
 import authReducer, { setCredentials } from '../../store/slices/authSlice';
+import themeReducer from '../../store/slices/themeSlice';
 import apiService from '../../services/api';
 import type { User } from '../../types/auth';
 
@@ -36,6 +37,7 @@ describe('UserMenu', () => {
         const store = configureStore({
             reducer: {
                 auth: authReducer,
+                theme: themeReducer,
             },
         });
 

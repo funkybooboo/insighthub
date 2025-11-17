@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import LoginForm from './LoginForm';
 import authReducer from '../../store/slices/authSlice';
+import themeReducer from '../../store/slices/themeSlice';
 import apiService from '../../services/api';
 
 // Mock the API service
@@ -26,6 +27,7 @@ describe('LoginForm', () => {
         store = configureStore({
             reducer: {
                 auth: authReducer,
+                theme: themeReducer,
             },
         });
         vi.clearAllMocks();
