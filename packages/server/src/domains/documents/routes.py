@@ -8,6 +8,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from src.infrastructure.auth import get_current_user, require_auth
+from src.infrastructure.errors.base import ValidationError
 
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 
@@ -31,7 +32,6 @@ def upload_document() -> tuple[Response, int]:
         ValidationError: If file validation fails
         DocumentProcessingError: If document processing fails
     """
-    from src.infrastructure.errors.base import ValidationError
 
     # Check if file is present in request
     if "file" not in request.files:

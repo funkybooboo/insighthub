@@ -24,6 +24,7 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     theme_preference: Mapped[str] = mapped_column(String(10), nullable=False, server_default="dark")
+    # TODO add rag preference to user and implement ui on client
 
     # Relationships
     documents: Mapped[list["Document"]] = relationship(

@@ -3,6 +3,7 @@
 from flask import Blueprint, Response, g, jsonify, request
 
 from src.infrastructure.auth import get_current_user, require_auth
+from src.infrastructure.errors.base import ValidationError
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/api")
 
@@ -26,7 +27,6 @@ def chat() -> tuple[Response, int]:
     Raises:
         EmptyMessageError: If message is empty
     """
-    from src.infrastructure.errors.base import ValidationError
 
     data = request.get_json()
 
