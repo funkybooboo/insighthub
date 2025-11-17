@@ -1,75 +1,60 @@
-"""Abstract vector store interface."""
+"""
+Abstract vector store interface.
+"""
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Sequence
+from typing import Literal
 
-from src.infrastructure.rag.types import SearchResult
+from src.infrastructure.rag.types import PrimitiveValue, SearchResult
 
 
 class VectorStore(ABC):
     """
     Abstract base class for vector store implementations.
 
-    Vector stores persist embeddings and enable similarity search.
+    A vector store handles:
+    - Persistent storage of embedding vectors
+    - Efficient similarity search
+    - Optional metadata filtering
     """
 
     @abstractmethod
     def add(
         self,
-        vectors: list[list[float]],
-        ids: list[str],
-        metadata: list[dict[str, str | int | float | bool]] | None = None,
-    ) -> None:
+        vectors: Sequence[Sequence[float]],
+        ids: Sequence[str],
+        metadata: Sequence[dict[str, PrimitiveValue]] | None = None,
+    ) -> Sequence[str]:
         """
-        Add vectors to the store.
+        Add vectors to the database.
 
-        Args:
-            vectors: List of embedding vectors
-            ids: Unique identifiers for each vector
-            metadata: Optional metadata for each vector
+        Returns the stored IDs (may be modified/generated).
         """
-        pass
+        ...
 
     @abstractmethod
     def search(
         self,
-        query_vector: list[float],
+        query_vector: Sequence[float],
         top_k: int = 5,
-        filter_metadata: dict[str, str | int | float | bool] | None = None,
+        filter_metadata: dict[str, PrimitiveValue] | None = None,
+        metric: Literal["cosine", "euclidean", "dot"] = "cosine",
     ) -> list[SearchResult]:
-        """
-        Search for similar vectors.
-
-        Args:
-            query_vector: The query embedding
-            top_k: Number of results to return
-            filter_metadata: Optional metadata filters
-
-        Returns:
-            List of SearchResults with id, score, and metadata
-        """
-        pass
+        """Perform similarity search."""
+        ...
 
     @abstractmethod
-    def delete(self, ids: list[str]) -> None:
-        """
-        Delete vectors by ID.
-
-        Args:
-            ids: List of vector IDs to delete
-        """
-        pass
+    def delete(self, ids: Iterable[str]) -> None:
+        """Delete vectors by ID. Unknown IDs ignored."""
+        ...
 
     @abstractmethod
     def clear(self) -> None:
-        """Clear all vectors from the store."""
-        pass
+        """Remove all vectors + metadata."""
+        ...
 
     @abstractmethod
     def count(self) -> int:
-        """
-        Get the number of vectors in the store.
-
-        Returns:
-            Total vector count
-        """
-        pass
+        """Return the number of stored vectors."""
+        ...

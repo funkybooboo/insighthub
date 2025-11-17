@@ -1,6 +1,10 @@
-"""Abstract embedding model interface."""
+"""
+Abstract embedding model interface for RAG systems using strict type definitions.
+"""
 
 from abc import ABC, abstractmethod
+
+from src.infrastructure.rag.types import MetadataValue
 
 
 class EmbeddingModel(ABC):
@@ -11,17 +15,20 @@ class EmbeddingModel(ABC):
     """
 
     @abstractmethod
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(
+        self, texts: list[str], metadata: list[dict[str, MetadataValue]] | None = None
+    ) -> list[list[float]]:
         """
         Generate embeddings for a list of texts.
 
         Args:
-            texts: List of text strings to embed
+            texts: List of text strings to embed.
+            metadata: Optional list of metadata dictionaries associated with each text.
 
         Returns:
-            List of embedding vectors (each vector is a list of floats)
+            List of embedding vectors, each as a list of floats.
         """
-        pass
+        ...
 
     @abstractmethod
     def embed_query(self, query: str) -> list[float]:
@@ -29,12 +36,12 @@ class EmbeddingModel(ABC):
         Generate embedding for a single query string.
 
         Args:
-            query: Query text to embed
+            query: Query text to embed.
 
         Returns:
-            Embedding vector as list of floats
+            Embedding vector as a list of floats.
         """
-        pass
+        ...
 
     @abstractmethod
     def get_dimension(self) -> int:
@@ -42,6 +49,6 @@ class EmbeddingModel(ABC):
         Get the dimensionality of the embedding vectors.
 
         Returns:
-            Vector dimension (e.g., 768, 1536)
+            Vector dimension (e.g., 768, 1536).
         """
-        pass
+        ...
