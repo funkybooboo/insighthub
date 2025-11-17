@@ -1,59 +1,60 @@
-"""Type definitions for RAG system."""
+"""
+Strict and refined type definitions for the RAG system.
+"""
 
 from typing import Literal, TypedDict
 
+PrimitiveValue = str | int | float | bool
+
+
+MetadataValue = (
+    PrimitiveValue | list[PrimitiveValue] | list[list[PrimitiveValue]] | dict[str, PrimitiveValue]
+)
+
 
 class Document(TypedDict, total=False):
-    """Input document structure."""
-
-    text: str  # Required
-    metadata: dict[str, str | int | float | bool]  # Optional
-
-
-class Chunk(TypedDict):
-    """Chunked document with metadata."""
-
     text: str
-    metadata: dict[str, str | int | float | bool]
+    metadata: dict[str, MetadataValue]
+
+
+class Chunk(TypedDict, total=False):
+    """
+    Represents a chunk of a document.
+    """
+
+    id: str | None  # Optional unique ID for the chunk
+    text: str
+    metadata: dict[str, MetadataValue]
 
 
 class SearchResult(TypedDict):
-    """Vector store search result."""
-
     id: str
     score: float
-    metadata: dict[str, str | int | float | bool]
+    metadata: dict[str, MetadataValue]
 
 
 class RetrievalResult(TypedDict):
-    """RAG retrieval result with chunk content."""
-
     id: str
     text: str
     score: float
-    metadata: dict[str, str | int | float | bool]
+    metadata: dict[str, MetadataValue]
 
 
 class QueryResult(TypedDict, total=False):
-    """Complete RAG query result."""
-
     query: str
     chunks: list[RetrievalResult]
-    answer: str  # Optional, only if generate_answer=True
-    stats: dict[str, int | float | str]
+    answer: str
+    stats: dict[str, MetadataValue]
 
 
-class ChunkerConfig(TypedDict):
-    """Chunker configuration."""
-
+class ChunkerConfig(TypedDict, total=False):
     strategy: str
     chunk_size: int
     chunk_overlap: int
+    extra_options: dict[str, MetadataValue] | None  # For strategy-specific parameters
 
 
 class RagStats(TypedDict):
-    """RAG system statistics."""
-
     total_chunks: int
     embedding_dimension: int
     chunking_strategy: str
@@ -62,12 +63,10 @@ class RagStats(TypedDict):
 
 
 class RagConfig(TypedDict, total=False):
-    """Configuration for creating RAG instances via factory."""
-
-    rag_type: Literal["vector", "graph"]
-    chunking_strategy: Literal["character", "sentence", "word"]
-    embedding_type: Literal["ollama", "openai", "sentence_transformer", "dummy"]
-    vector_store_type: Literal["qdrant", "pinecone", "in_memory"]
+    rag_type: Literal["vector", "graph"] | str
+    chunking_strategy: Literal["character", "sentence", "word"] | str
+    embedding_type: Literal["ollama", "openai", "sentence_transformer", "dummy"] | str
+    vector_store_type: Literal["qdrant", "pinecone", "in_memory"] | str
     chunk_size: int
     chunk_overlap: int
     embedding_model_name: str

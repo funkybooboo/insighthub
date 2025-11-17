@@ -1,4 +1,6 @@
-"""Abstract RAG interface defining the core RAG operations."""
+"""
+Abstract RAG interface defining the core RAG operations.
+"""
 
 from abc import ABC, abstractmethod
 
@@ -7,9 +9,9 @@ from src.infrastructure.rag.types import Document, QueryResult, RagStats, Retrie
 
 class Rag(ABC):
     """
-    Abstract base class for RAG implementations.
+    Abstract base class for Retrieval-Augmented Generation (RAG) systems.
 
-    All RAG systems (Vector, Graph) must implement this interface.
+    All RAG systems (vector-based, graph-based) should implement this interface.
     """
 
     @abstractmethod
@@ -18,27 +20,27 @@ class Rag(ABC):
         Ingest and process documents into the RAG system.
 
         Args:
-            documents: List of documents with 'text' and optional metadata
-            batch_size: Number of documents to process in each batch
+            documents: List of documents with 'text' and optional metadata.
+            batch_size: Number of documents to process per batch.
 
         Returns:
-            Number of chunks/nodes created
+            Total number of chunks or nodes created.
         """
-        pass
+        ...
 
     @abstractmethod
     def retrieve(self, query: str, top_k: int = 5) -> list[RetrievalResult]:
         """
-        Retrieve relevant chunks/nodes for a query without generation.
+        Retrieve relevant chunks or nodes for a query without generation.
 
         Args:
-            query: The search query
-            top_k: Number of results to return
+            query: The search query.
+            top_k: Maximum number of results to return.
 
         Returns:
-            List of retrieved chunks with metadata and scores
+            List of retrieved chunks with metadata and relevance scores.
         """
-        pass
+        ...
 
     @abstractmethod
     def query(
@@ -48,29 +50,31 @@ class Rag(ABC):
         generate_answer: bool = True,
     ) -> QueryResult:
         """
-        Full RAG pipeline: retrieve context and optionally generate answer.
+        Full RAG pipeline: retrieve context and optionally generate an LLM answer.
 
         Args:
-            query: The user query
-            top_k: Number of chunks to retrieve
-            generate_answer: Whether to generate an LLM answer
+            query: The user query.
+            top_k: Number of chunks to retrieve.
+            generate_answer: Whether to generate an answer from retrieved context.
 
         Returns:
-            QueryResult with chunks, optional answer, and stats
+            QueryResult containing retrieved chunks, optional answer, and stats.
         """
-        pass
+        ...
 
     @abstractmethod
     def clear(self) -> None:
-        """Clear all data from the RAG system."""
-        pass
+        """
+        Clear all documents and internal state from the RAG system.
+        """
+        ...
 
     @abstractmethod
     def get_stats(self) -> RagStats:
         """
-        Get system statistics.
+        Retrieve system statistics.
 
         Returns:
-            RagStats with counts and configuration
+            RagStats including counts, configuration, and other relevant metrics.
         """
-        pass
+        ...
