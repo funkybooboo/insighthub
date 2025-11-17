@@ -140,3 +140,8 @@ CREATE TABLE chat_session (
 ## Clean up types
 
 ---
+
+## mock out more interfaces for rag system
+
+- community algorithms
+- 
