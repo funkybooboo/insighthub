@@ -16,7 +16,7 @@ from src import config
 from src.context import AppContext
 from src.domains.auth.routes import auth_bp
 from src.domains.chat.routes import chat_bp
-from src.domains.chat.socket_handlers import handle_chat_message
+from src.domains.chat.socket_handlers import handle_cancel_message, handle_chat_message
 from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
 from src.infrastructure.database import get_db, init_db
@@ -116,6 +116,7 @@ def create_app() -> Flask:
     # Initialize socket handler and register domain event handlers
     socket_handler = SocketHandler(socketio)
     socket_handler.register_event("chat_message", handle_chat_message)
+    socket_handler.register_event("cancel_message", handle_cancel_message)
     app.logger.info("Socket.IO initialized")
 
     # Register centralized error handlers

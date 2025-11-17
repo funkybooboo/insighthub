@@ -76,9 +76,8 @@ const ChatBot = () => {
             // Append chunk to current bot message
             currentBotMessage.current += data.chunk;
 
-            // Stop typing indicator on first chunk
+            // Stop typing indicator on first chunk, but keep isTyping true for cancel button
             setIsBotTyping(false);
-            dispatch(setTyping(false));
 
             // Create or update bot message in session
             if (currentBotMessageId.current) {
@@ -128,6 +127,20 @@ const ChatBot = () => {
 
             // Play notification sound
             notificationAudio.play();
+        });
+
+        socketService.onChatCancelled(() => {
+            if (!activeSessionId) return;
+
+            console.log('Chat stream cancelled by user');
+
+            // Reset current message buffer
+            currentBotMessage.current = '';
+            currentBotMessageId.current = null;
+
+            // Stop typing indicator
+            setIsBotTyping(false);
+            dispatch(setTyping(false));
         });
 
         socketService.onError((data) => {

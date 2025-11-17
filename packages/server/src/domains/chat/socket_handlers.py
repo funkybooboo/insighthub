@@ -1,5 +1,6 @@
 """Socket.IO event handlers for chat domain."""
 
+import uuid
 from typing import Any
 
 from flask import current_app
@@ -7,6 +8,9 @@ from flask_socketio import emit
 
 from src.context import AppContext
 from src.infrastructure.database import get_db
+
+# Track active request IDs per client
+_active_requests: dict[str, str] = {}
 
 
 def handle_chat_message(data: dict[str, Any]) -> None:
@@ -20,7 +24,8 @@ def handle_chat_message(data: dict[str, Any]) -> None:
         {
             "message": "User's question",
             "session_id": "optional-session-id",
-            "rag_type": "vector" (optional, defaults to vector)
+            "rag_type": "vector" (optional, defaults to vector),
+            "client_id": "unique-client-id" (for cancellation tracking)
         }
 
     Emits:
@@ -30,6 +35,8 @@ def handle_chat_message(data: dict[str, Any]) -> None:
     """
     with current_app.app_context():
         db = None
+        request_id = str(uuid.uuid4())
+
         try:
             # Get database session
             db = next(get_db())
@@ -38,6 +45,10 @@ def handle_chat_message(data: dict[str, Any]) -> None:
             user_message = data.get("message", "")
             session_id = data.get("session_id")
             rag_type = data.get("rag_type", "vector")
+            client_id = data.get("client_id", request_id)  # Use client_id for tracking
+
+            # Store request ID for cancellation
+            _active_requests[client_id] = request_id
 
             # Validate message (will raise EmptyMessageError if invalid)
             app_context.chat_service.validate_message(user_message)
@@ -52,6 +63,7 @@ def handle_chat_message(data: dict[str, Any]) -> None:
                 llm_provider=app_context.llm_provider,
                 session_id=int(session_id) if session_id else None,
                 rag_type=rag_type,
+                request_id=request_id,
             ):
                 # Emit events based on event type
                 if event.event_type == "chunk":
@@ -61,6 +73,52 @@ def handle_chat_message(data: dict[str, Any]) -> None:
 
         except Exception as e:
             emit("error", {"error": f"Error processing chat: {str(e)}"})
+
+        finally:
+            # Clean up active request tracking
+            client_id = data.get("client_id", request_id)
+            if client_id in _active_requests:
+                del _active_requests[client_id]
+
+            if db is not None:
+                db.close()
+
+
+def handle_cancel_message(data: dict[str, Any] | None = None) -> None:
+    """
+    Handle cancellation of streaming chat messages via Socket.IO.
+
+    This handler allows clients to cancel an ongoing streaming response.
+
+    Expected data:
+        {
+            "client_id": "unique-client-id" (same as used in chat_message)
+        }
+
+    Emits:
+        - chat_cancelled: Confirmation that the stream was cancelled
+    """
+    with current_app.app_context():
+        db = None
+        try:
+            # Get database session
+            db = next(get_db())
+            app_context = AppContext(db)
+
+            # Look up the active request ID for this client
+            client_id = (data or {}).get("client_id")
+            request_id = _active_requests.get(client_id) if client_id else None
+
+            if request_id:
+                # Cancel the streaming request
+                app_context.chat_service.cancel_stream(request_id)
+                emit("chat_cancelled", {"status": "cancelled"})
+            else:
+                # No active request to cancel (might have already completed)
+                emit("chat_cancelled", {"status": "no_active_request"})
+
+        except Exception as e:
+            emit("error", {"error": f"Error cancelling chat: {str(e)}"})
 
         finally:
             if db is not None:
