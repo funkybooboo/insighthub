@@ -22,4 +22,5 @@ export interface ChatState {
     sessions: ChatSession[];
     activeSessionId: string | null;
     isLoading: boolean;
+    isTyping: boolean;
 }

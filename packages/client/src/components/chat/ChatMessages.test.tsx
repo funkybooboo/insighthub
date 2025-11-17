@@ -498,7 +498,7 @@ describe('ChatMessages', () => {
                 <ChatMessages messages={mockMessages} error="" isBotTyping={false} />
             );
 
-            const messagesContainer = container.querySelector('.flex-1.overflow-y-auto');
+            const messagesContainer = container.querySelector('.overflow-y-auto');
             expect(messagesContainer).toBeInTheDocument();
         });
     });

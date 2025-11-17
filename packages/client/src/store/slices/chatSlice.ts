@@ -7,6 +7,7 @@ const initialState: ChatState = {
     sessions: chatStorage.loadSessions(),
     activeSessionId: null,
     isLoading: false,
+    isTyping: false,
 };
 
 const chatSlice = createSlice({
@@ -81,6 +82,9 @@ const chatSlice = createSlice({
         setLoading: (state, action: PayloadAction<boolean>) => {
             state.isLoading = action.payload;
         },
+        setTyping: (state, action: PayloadAction<boolean>) => {
+            state.isTyping = action.payload;
+        },
         clearAllSessions: (state) => {
             state.sessions = [];
             state.activeSessionId = null;
@@ -97,6 +101,7 @@ export const {
     setSessionBackendId,
     deleteSession,
     setLoading,
+    setTyping,
     clearAllSessions,
 } = chatSlice.actions;
 export default chatSlice.reducer;
