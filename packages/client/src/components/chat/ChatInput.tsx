@@ -1,5 +1,7 @@
 import { FaArrowUp } from 'react-icons/fa';
+import { MdCancel } from 'react-icons/md';
 import { useForm } from 'react-hook-form';
+import { useEffect } from 'react';
 
 import { Button } from '../ui/button';
 
@@ -9,9 +11,11 @@ export type ChatFormData = {
 
 type Props = {
     onSubmit: (data: ChatFormData) => void;
+    onCancel: () => void;
+    isTyping: boolean;
 };
 
-const ChatInput = ({ onSubmit }: Props) => {
+const ChatInput = ({ onSubmit, onCancel, isTyping }: Props) => {
     const { register, handleSubmit, reset, formState } = useForm<ChatFormData>();
 
     const handleFormSubmit = handleSubmit((data) => {
@@ -20,11 +24,40 @@ const ChatInput = ({ onSubmit }: Props) => {
     });
 
     const handleKeyDown = (event: React.KeyboardEvent): void => {
+        // Handle Ctrl+C to cancel
+        if (event.ctrlKey && event.key === 'c' && isTyping) {
+            event.preventDefault();
+            onCancel();
+            return;
+        }
+
+        // Disable Enter when AI is typing
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            handleFormSubmit();
+            if (!isTyping) {
+                handleFormSubmit();
+            }
         }
     };
+
+    const handleCancelClick = () => {
+        onCancel();
+    };
+
+    // Global Ctrl+C handler
+    useEffect(() => {
+        const handleGlobalKeyDown = (event: KeyboardEvent) => {
+            if (event.ctrlKey && event.key === 'c' && isTyping) {
+                event.preventDefault();
+                onCancel();
+            }
+        };
+
+        document.addEventListener('keydown', handleGlobalKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, [isTyping, onCancel]);
 
     return (
         <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-4">
@@ -50,13 +83,24 @@ const ChatInput = ({ onSubmit }: Props) => {
                             target.style.height = `${target.scrollHeight}px`;
                         }}
                     />
-                    <Button
-                        disabled={!formState.isValid}
-                        className="rounded-full w-10 h-10 p-0 flex-shrink-0"
-                        title="Send message"
-                    >
-                        <FaArrowUp className="w-4 h-4" />
-                    </Button>
+                    {isTyping ? (
+                        <Button
+                            type="button"
+                            onClick={handleCancelClick}
+                            className="rounded-full w-10 h-10 p-0 flex-shrink-0 bg-red-500 hover:bg-red-600"
+                            title="Cancel (Ctrl+C)"
+                        >
+                            <MdCancel className="w-5 h-5" />
+                        </Button>
+                    ) : (
+                        <Button
+                            disabled={!formState.isValid}
+                            className="rounded-full w-10 h-10 p-0 flex-shrink-0"
+                            title="Send message"
+                        >
+                            <FaArrowUp className="w-4 h-4" />
+                        </Button>
+                    )}
                 </div>
             </form>
         </div>

@@ -78,6 +78,16 @@ class SocketService {
     }
 
     /**
+     * Cancel the current chat message
+     */
+    cancelMessage(): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.emit('cancel_message');
+    }
+
+    /**
      * Listen for chat chunk events
      */
     onChatChunk(callback: ChatChunkCallback): void {

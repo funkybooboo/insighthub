@@ -43,6 +43,7 @@ describe('chatSlice', () => {
                 sessions: [],
                 activeSessionId: null,
                 isLoading: false,
+                isTyping: false,
             });
         });
 

@@ -8,6 +8,7 @@ import {
     updateMessageInSession,
     setSessionBackendId,
     setActiveSession,
+    setTyping,
 } from '@/store/slices/chatSlice';
 import type { Message } from '@/types/chat';
 import ChatMessages from './ChatMessages';
@@ -27,7 +28,7 @@ notificationAudio.volume = 0.2;
 
 const ChatBot = () => {
     const dispatch = useDispatch();
-    const { sessions, activeSessionId } = useSelector((state: RootState) => state.chat);
+    const { sessions, activeSessionId, isTyping } = useSelector((state: RootState) => state.chat);
     const [isBotTyping, setIsBotTyping] = useState(false);
     const [error, setError] = useState('');
     const currentBotMessageId = useRef<string | null>(null);
@@ -77,6 +78,7 @@ const ChatBot = () => {
 
             // Stop typing indicator on first chunk
             setIsBotTyping(false);
+            dispatch(setTyping(false));
 
             // Create or update bot message in session
             if (currentBotMessageId.current) {
@@ -122,6 +124,7 @@ const ChatBot = () => {
 
             // Stop typing indicator
             setIsBotTyping(false);
+            dispatch(setTyping(false));
 
             // Play notification sound
             notificationAudio.play();
@@ -131,6 +134,7 @@ const ChatBot = () => {
             console.error('Socket error:', data.error);
             setError(data.error);
             setIsBotTyping(false);
+            dispatch(setTyping(false));
             currentBotMessage.current = '';
             currentBotMessageId.current = null;
         });
@@ -175,6 +179,7 @@ const ChatBot = () => {
 
             // Set typing indicator
             setIsBotTyping(true);
+            dispatch(setTyping(true));
 
             // Play pop sound
             popAudio.play();
@@ -188,6 +193,24 @@ const ChatBot = () => {
             console.error('Error sending message:', error);
             setError('Something went wrong, try again!');
             setIsBotTyping(false);
+            dispatch(setTyping(false));
+        }
+    };
+
+    const onCancel = () => {
+        try {
+            // Cancel the current message
+            socketService.cancelMessage();
+
+            // Reset state
+            setIsBotTyping(false);
+            dispatch(setTyping(false));
+            currentBotMessage.current = '';
+            currentBotMessageId.current = null;
+
+            console.log('Message cancelled');
+        } catch (error) {
+            console.error('Error cancelling message:', error);
         }
     };
 
@@ -202,7 +225,7 @@ const ChatBot = () => {
         <div className="flex flex-col h-full bg-white dark:bg-gray-900">
             <DocumentManager />
             <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
-            <ChatInput onSubmit={onSubmit} />
+            <ChatInput onSubmit={onSubmit} onCancel={onCancel} isTyping={isTyping} />
         </div>
     );
 };
