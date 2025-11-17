@@ -10,6 +10,7 @@ export interface ChatMessageData {
     message: string;
     session_id?: number;
     rag_type?: string;
+    client_id?: string;
 }
 
 export interface ChatChunkData {
@@ -25,14 +26,20 @@ export interface ErrorData {
     error: string;
 }
 
+export interface ChatCancelledData {
+    status: string;
+}
+
 export type ChatChunkCallback = (data: ChatChunkData) => void;
 export type ChatCompleteCallback = (data: ChatCompleteData) => void;
+export type ChatCancelledCallback = (data: ChatCancelledData) => void;
 export type ErrorCallback = (data: ErrorData) => void;
 export type ConnectedCallback = () => void;
 export type DisconnectedCallback = () => void;
 
 class SocketService {
     private socket: Socket | null = null;
+    private currentClientId: string | null = null;
 
     /**
      * Connect to the Socket.IO server
@@ -74,7 +81,12 @@ class SocketService {
         if (!this.socket) {
             throw new Error('Socket not connected. Call connect() first.');
         }
-        this.socket.emit('chat_message', data);
+        // Generate a unique client ID for this message (for cancellation tracking)
+        this.currentClientId = `client-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        this.socket.emit('chat_message', {
+            ...data,
+            client_id: this.currentClientId,
+        });
     }
 
     /**
@@ -84,7 +96,10 @@ class SocketService {
         if (!this.socket) {
             throw new Error('Socket not connected. Call connect() first.');
         }
-        this.socket.emit('cancel_message');
+        if (this.currentClientId) {
+            this.socket.emit('cancel_message', { client_id: this.currentClientId });
+            this.currentClientId = null;
+        }
     }
 
     /**
@@ -105,6 +120,16 @@ class SocketService {
             throw new Error('Socket not connected. Call connect() first.');
         }
         this.socket.on('chat_complete', callback);
+    }
+
+    /**
+     * Listen for chat cancelled events
+     */
+    onChatCancelled(callback: ChatCancelledCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('chat_cancelled', callback);
     }
 
     /**

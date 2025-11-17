@@ -2,6 +2,7 @@
 
 import json
 import logging
+import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 
@@ -52,6 +53,8 @@ class ChatService:
         """
         self.session_repository = session_repository
         self.message_repository = message_repository
+        self._cancel_flags: dict[str, threading.Event] = {}
+        self._cancel_flags_lock = threading.Lock()
 
     def validate_message(self, message: str) -> None:
         """
@@ -66,6 +69,46 @@ class ChatService:
         if not message or not message.strip():
             logger.warning("Chat message validation failed: empty message")
             raise EmptyMessageError()
+
+    def cancel_stream(self, request_id: str) -> None:
+        """
+        Cancel an active streaming request.
+
+        Args:
+            request_id: The unique identifier for the streaming request
+        """
+        with self._cancel_flags_lock:
+            if request_id in self._cancel_flags:
+                logger.info(f"Cancelling streaming request: request_id={request_id}")
+                self._cancel_flags[request_id].set()
+            else:
+                logger.warning(f"No active stream found for request_id={request_id}")
+
+    def _get_cancel_flag(self, request_id: str) -> threading.Event:
+        """
+        Get or create a cancel flag for a streaming request.
+
+        Args:
+            request_id: The unique identifier for the streaming request
+
+        Returns:
+            threading.Event: The cancel flag for this request
+        """
+        with self._cancel_flags_lock:
+            if request_id not in self._cancel_flags:
+                self._cancel_flags[request_id] = threading.Event()
+            return self._cancel_flags[request_id]
+
+    def _cleanup_cancel_flag(self, request_id: str) -> None:
+        """
+        Clean up cancel flag after streaming completes.
+
+        Args:
+            request_id: The unique identifier for the streaming request
+        """
+        with self._cancel_flags_lock:
+            if request_id in self._cancel_flags:
+                del self._cancel_flags[request_id]
 
     def create_session(
         self,
@@ -261,6 +304,7 @@ class ChatService:
         llm_provider: LlmProvider,
         session_id: int | None = None,
         rag_type: str = "vector",
+        request_id: str | None = None,
     ) -> Generator[StreamEvent, None, None]:
         """
         Stream a chat response with full session management.
@@ -279,73 +323,101 @@ class ChatService:
             llm_provider: LLM provider for generating responses
             session_id: Optional existing session ID
             rag_type: Type of RAG to use (vector or graph)
+            request_id: Optional unique identifier for this streaming request (for cancellation)
 
         Yields:
             StreamEvent objects with chunk data or completion metadata
         """
         logger.info(
             f"Starting streaming chat: user_id={user_id}, session_id={session_id}, "
-            f"message_length={len(message)}, rag_type={rag_type}"
+            f"message_length={len(message)}, rag_type={rag_type}, request_id={request_id}"
         )
 
-        # Get or create session
-        session = self.get_or_create_session(
-            user_id=user_id,
-            session_id=session_id,
-            first_message=message,
-        )
+        # Get cancel flag for this request
+        cancel_flag = self._get_cancel_flag(request_id) if request_id else None
 
-        # Get conversation history
-        messages = self.list_session_messages(session.id)
-        conversation_history = [
-            {"role": msg.role, "content": msg.content} for msg in messages[-10:]
-        ]
-        logger.debug(
-            f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}"
-        )
+        try:
+            # Get or create session
+            session = self.get_or_create_session(
+                user_id=user_id,
+                session_id=session_id,
+                first_message=message,
+            )
 
-        # Store user message
-        self.create_message(
-            session_id=session.id,
-            role="user",
-            content=message,
-        )
+            # Get conversation history
+            messages = self.list_session_messages(session.id)
+            conversation_history = [
+                {"role": msg.role, "content": msg.content} for msg in messages[-10:]
+            ]
+            logger.debug(
+                f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}"
+            )
 
-        # TODO: RAG INTEGRATION - Retrieval for Streaming Chat
-        # Same as non-streaming chat - retrieve relevant context before streaming
-        # See process_chat_message_with_llm() for detailed implementation steps
-        # Key difference: Context should be prepended to conversation_history
-        # before calling llm_provider.chat_stream()
+            # Store user message
+            self.create_message(
+                session_id=session.id,
+                role="user",
+                content=message,
+            )
 
-        # Stream LLM response
-        logger.debug(f"Starting LLM streaming: session_id={session.id}")
-        full_response = ""
-        chunk_count = 0
-        for chunk in llm_provider.chat_stream(message, conversation_history):
-            full_response += chunk
-            chunk_count += 1
-            yield StreamEvent.chunk(chunk)
+            # TODO: RAG INTEGRATION - Retrieval for Streaming Chat
+            # Same as non-streaming chat - retrieve relevant context before streaming
+            # See process_chat_message_with_llm() for detailed implementation steps
+            # Key difference: Context should be prepended to conversation_history
+            # before calling llm_provider.chat_stream()
 
-        logger.debug(
-            f"LLM streaming completed: session_id={session.id}, chunks={chunk_count}, "
-            f"response_length={len(full_response)}"
-        )
+            # Stream LLM response
+            logger.debug(f"Starting LLM streaming: session_id={session.id}")
+            full_response = ""
+            chunk_count = 0
+            cancelled = False
 
-        # Store assistant response
-        self.create_message(
-            session_id=session.id,
-            role="assistant",
-            content=full_response,
-            metadata={"rag_type": rag_type},
-        )
+            for chunk in llm_provider.chat_stream(message, conversation_history):
+                # Check for cancellation
+                if cancel_flag and cancel_flag.is_set():
+                    logger.info(
+                        f"Stream cancelled: session_id={session.id}, request_id={request_id}, "
+                        f"chunks_sent={chunk_count}"
+                    )
+                    cancelled = True
+                    break
 
-        logger.info(
-            f"Streaming chat completed: user_id={user_id}, session_id={session.id}, "
-            f"response_length={len(full_response)}"
-        )
+                full_response += chunk
+                chunk_count += 1
+                yield StreamEvent.chunk(chunk)
 
-        # Send completion event
-        yield StreamEvent.complete(session_id=session.id, full_response=full_response)
+            if cancelled:
+                logger.info(
+                    f"Streaming chat cancelled: user_id={user_id}, session_id={session.id}, "
+                    f"partial_response_length={len(full_response)}"
+                )
+                return
+
+            logger.debug(
+                f"LLM streaming completed: session_id={session.id}, chunks={chunk_count}, "
+                f"response_length={len(full_response)}"
+            )
+
+            # Store assistant response
+            self.create_message(
+                session_id=session.id,
+                role="assistant",
+                content=full_response,
+                metadata={"rag_type": rag_type},
+            )
+
+            logger.info(
+                f"Streaming chat completed: user_id={user_id}, session_id={session.id}, "
+                f"response_length={len(full_response)}"
+            )
+
+            # Send completion event
+            yield StreamEvent.complete(session_id=session.id, full_response=full_response)
+
+        finally:
+            # Clean up cancel flag
+            if request_id:
+                self._cleanup_cancel_flag(request_id)
 
     def process_chat_message_with_llm(
         self,

@@ -1,6 +1,7 @@
 """Unit tests for ChatService."""
 
 import json
+import time
 from collections.abc import Generator
 from datetime import datetime
 
@@ -16,10 +17,11 @@ from src.infrastructure.llm.llm import LlmProvider
 class DummyLlmProvider(LlmProvider):
     """Dummy LLM provider for testing."""
 
-    def __init__(self, response: str = "Dummy response") -> None:
+    def __init__(self, response: str = "Dummy response", slow_stream: bool = False) -> None:
         """Initialize with a fixed response."""
         self.response = response
         self.model_name = "dummy-model"
+        self.slow_stream = slow_stream
 
     def generate_response(self, prompt: str) -> str:
         """Return fixed response."""
@@ -35,6 +37,8 @@ class DummyLlmProvider(LlmProvider):
         """Stream fixed response in chunks."""
         words = self.response.split()
         for word in words:
+            if self.slow_stream:
+                time.sleep(0.1)  # Simulate slow streaming for cancellation tests
             yield word + " "
 
     def health_check(self) -> dict[str, str | bool]:
@@ -518,3 +522,92 @@ class TestStreamChatResponse:
 
         messages = service.list_session_messages(session_id_value)
         assert len(messages) == 2
+
+    def test_stream_chat_response_with_request_id(
+        self, service: ChatService, dummy_llm: DummyLlmProvider
+    ) -> None:
+        """Test that streaming works with request_id."""
+        stream = service.stream_chat_response(
+            user_id=1, message="Hello", llm_provider=dummy_llm, request_id="test-request-123"
+        )
+
+        events = list(stream)
+        chunk_events = [e for e in events if e.event_type == "chunk"]
+        complete_events = [e for e in events if e.event_type == "complete"]
+
+        assert len(chunk_events) > 0
+        assert len(complete_events) == 1
+
+
+class TestCancellation:
+    """Tests for stream cancellation."""
+
+    def test_cancel_stream_no_active_stream(self, service: ChatService) -> None:
+        """Test cancelling a non-existent stream."""
+        service.cancel_stream("non-existent-request")
+
+    def test_cancel_stream_during_streaming(
+        self, service: ChatService, dummy_llm: DummyLlmProvider
+    ) -> None:
+        """Test cancelling an active stream."""
+        import threading
+
+        # Create a slow streaming LLM
+        slow_llm = DummyLlmProvider(
+            response="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10",
+            slow_stream=True,
+        )
+
+        request_id = "cancel-test-request"
+        events_received: list[str] = []
+
+        def stream_task() -> None:
+            """Stream in a separate thread."""
+            try:
+                stream = service.stream_chat_response(
+                    user_id=1, message="Hello", llm_provider=slow_llm, request_id=request_id
+                )
+                for event in stream:
+                    events_received.append(event.event_type)
+            except Exception:
+                pass
+
+        # Start streaming in background
+        stream_thread = threading.Thread(target=stream_task)
+        stream_thread.start()
+
+        # Wait a bit for streaming to start
+        time.sleep(0.15)
+
+        # Cancel the stream
+        service.cancel_stream(request_id)
+
+        # Wait for thread to finish
+        stream_thread.join(timeout=2.0)
+
+        # Should have received some chunks but not complete event
+        assert len(events_received) > 0
+        assert "chunk" in events_received
+        assert "complete" not in events_received
+
+    def test_get_cancel_flag_creates_new_flag(self, service: ChatService) -> None:
+        """Test that _get_cancel_flag creates a new flag."""
+        flag = service._get_cancel_flag("test-request")
+        assert flag is not None
+        assert not flag.is_set()
+
+    def test_get_cancel_flag_returns_same_flag(self, service: ChatService) -> None:
+        """Test that _get_cancel_flag returns the same flag for same request_id."""
+        flag1 = service._get_cancel_flag("test-request")
+        flag2 = service._get_cancel_flag("test-request")
+        assert flag1 is flag2
+
+    def test_cleanup_cancel_flag(self, service: ChatService) -> None:
+        """Test that _cleanup_cancel_flag removes the flag."""
+        request_id = "test-request"
+        service._get_cancel_flag(request_id)
+        service._cleanup_cancel_flag(request_id)
+
+        # After cleanup, getting the flag should create a new one
+        flag = service._get_cancel_flag(request_id)
+        assert flag is not None
