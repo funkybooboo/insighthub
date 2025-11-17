@@ -27,12 +27,8 @@ const ChatInput = ({ onSubmit }: Props) => {
     };
 
     return (
-        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-4">
-            <form
-                onSubmit={handleFormSubmit}
-                onKeyDown={handleKeyDown}
-                className="max-w-3xl mx-auto"
-            >
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-4">
+            <form onSubmit={handleFormSubmit} onKeyDown={handleKeyDown}>
                 <div className="relative flex items-end gap-2 border border-gray-300 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 px-4 py-3 shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
                     <textarea
                         {...register('prompt', {

@@ -10,6 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import SignupForm from './SignupForm';
 import authReducer from '../../store/slices/authSlice';
+import themeReducer from '../../store/slices/themeSlice';
 import apiService from '../../services/api';
 
 // Mock API service
@@ -24,6 +25,7 @@ describe('SignupForm', () => {
         const store = configureStore({
             reducer: {
                 auth: authReducer,
+                theme: themeReducer,
             },
         });
 

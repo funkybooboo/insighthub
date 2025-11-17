@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import ReactMarkDown from 'react-markdown';
+import { useEffect, useRef, useState } from 'react';
 
 import TypingIndicator from './TypingIndicator';
+import MarkdownRenderer from './MarkdownRenderer';
 
 export type Message = {
     content: string;
@@ -16,10 +16,9 @@ type Props = {
 
 const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
     const lastMessageRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        lastMessageRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const userHasScrolledRef = useRef(false);
 
     const onCopyMessage = (event: React.ClipboardEvent) => {
         const selection = window.getSelection()?.toString().trim();
@@ -29,9 +28,40 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
         }
     };
 
+    // Check if user is at the bottom
+    const isAtBottom = () => {
+        if (!scrollContainerRef.current) return true;
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+        return scrollHeight - scrollTop - clientHeight < 50;
+    };
+
+    // Detect if user scrolls away from bottom
+    const handleScroll = () => {
+        if (!scrollContainerRef.current) return;
+
+        const atBottom = isAtBottom();
+
+        if (!atBottom && !userHasScrolledRef.current) {
+            userHasScrolledRef.current = true;
+        }
+
+        setShouldAutoScroll(atBottom);
+    };
+
+    // Auto-scroll when messages change - only if user is at bottom
+    useEffect(() => {
+        if (shouldAutoScroll && lastMessageRef.current) {
+            lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    }, [messages, shouldAutoScroll]);
+
     return (
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-            <div className="max-w-3xl mx-auto space-y-6">
+        <div
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto px-6 py-6"
+        >
+            <div className="space-y-6">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
                         <div className="w-16 h-16 mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -66,19 +96,16 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                                    className={`max-w-4xl rounded-2xl px-4 py-3 ${
                                         message.role === 'user'
                                             ? 'bg-blue-600 text-white'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                                     }`}
                                 >
-                                    <div
-                                        className={`prose prose-sm max-w-none ${
-                                            message.role === 'user' ? 'prose-invert' : 'prose-gray'
-                                        }`}
-                                    >
-                                        <ReactMarkDown>{message.content}</ReactMarkDown>
-                                    </div>
+                                    <MarkdownRenderer
+                                        content={message.content}
+                                        isUser={message.role === 'user'}
+                                    />
                                 </div>
                             </div>
                         ))}
