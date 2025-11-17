@@ -1,4 +1,7 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import apiService from '../../services/api';
+import type { RootState } from '../index';
 
 export type Theme = 'light' | 'dark';
 
@@ -26,7 +29,7 @@ const themeSlice = createSlice({
             state.theme = state.theme === 'dark' ? 'light' : 'dark';
             localStorage.setItem('theme', state.theme);
         },
-        setTheme: (state, action: { payload: Theme }) => {
+        setTheme: (state, action: PayloadAction<Theme>) => {
             state.theme = action.payload;
             localStorage.setItem('theme', state.theme);
         },
@@ -34,4 +37,18 @@ const themeSlice = createSlice({
 });
 
 export const { toggleTheme, setTheme } = themeSlice.actions;
+
+export const toggleThemeAndSave = createAsyncThunk<void, void, { state: RootState }>(
+    'theme/toggleAndSave',
+    async (_, { dispatch, getState }) => {
+        dispatch(toggleTheme());
+        const newTheme = getState().theme.theme;
+        try {
+            await apiService.updatePreferences({ theme_preference: newTheme });
+        } catch (error) {
+            console.error('Failed to save theme preference:', error);
+        }
+    }
+);
+
 export default themeSlice.reducer;

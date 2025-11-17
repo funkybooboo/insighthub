@@ -68,6 +68,7 @@ def signup() -> tuple[Response, int]:
                         "email": user.email,
                         "full_name": user.full_name,
                         "created_at": user.created_at.isoformat(),
+                        "theme_preference": user.theme_preference,
                     },
                 }
             ),
@@ -127,6 +128,7 @@ def login() -> tuple[Response, int]:
                         "email": user.email,
                         "full_name": user.full_name,
                         "created_at": user.created_at.isoformat(),
+                        "theme_preference": user.theme_preference,
                     },
                 }
             ),
@@ -164,6 +166,7 @@ def get_me() -> tuple[Response, int]:
                     "email": user.email,
                     "full_name": user.full_name,
                     "created_at": user.created_at.isoformat(),
+                    "theme_preference": user.theme_preference,
                 }
             ),
             200,
@@ -184,3 +187,67 @@ def logout() -> tuple[Response, int]:
         200: {"message": "Successfully logged out"}
     """
     return jsonify({"message": "Successfully logged out"}), 200
+
+
+@auth_bp.route("/preferences", methods=["PATCH"])
+def update_preferences() -> tuple[Response, int]:
+    """
+    Update user preferences.
+
+    Headers:
+        Authorization: Bearer <token>
+
+    Request Body:
+        {
+            "theme_preference": "light" | "dark"
+        }
+
+    Returns:
+        200: {
+            "id": int,
+            "username": "string",
+            "email": "string",
+            "full_name": "string",
+            "created_at": "string",
+            "theme_preference": "string"
+        }
+        400: {"error": "string"} - Invalid request
+        401: {"error": "string"} - Invalid or missing token
+    """
+    try:
+        user = get_current_user()
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        theme_preference = data.get("theme_preference")
+
+        if theme_preference and theme_preference not in ["light", "dark"]:
+            return jsonify({"error": "theme_preference must be 'light' or 'dark'"}), 400
+
+        if theme_preference:
+            updated_user = g.app_context.user_service.update_user(
+                user.id, theme_preference=theme_preference
+            )
+            if not updated_user:
+                return jsonify({"error": "Failed to update preferences"}), 500
+
+            return (
+                jsonify(
+                    {
+                        "id": updated_user.id,
+                        "username": updated_user.username,
+                        "email": updated_user.email,
+                        "full_name": updated_user.full_name,
+                        "created_at": updated_user.created_at.isoformat(),
+                        "theme_preference": updated_user.theme_preference,
+                    }
+                ),
+                200,
+            )
+
+        return jsonify({"error": "No valid fields to update"}), 400
+
+    except InvalidTokenError as e:
+        return jsonify({"error": str(e)}), 401

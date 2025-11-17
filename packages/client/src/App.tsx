@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useEffect } from 'react';
 import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
@@ -7,6 +7,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
 import ChatSidebar from './components/chat/ChatSidebar';
 import UserMenu from './components/auth/UserMenu';
+import { setTheme } from './store/slices/themeSlice';
 import type { RootState } from './store';
 
 function MainApp() {
@@ -24,7 +25,8 @@ function MainApp() {
 }
 
 function App() {
-    const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const dispatch = useDispatch();
+    const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
     const { theme } = useSelector((state: RootState) => state.theme);
 
     useEffect(() => {
@@ -34,6 +36,12 @@ function App() {
             document.documentElement.classList.remove('dark');
         }
     }, [theme]);
+
+    useEffect(() => {
+        if (user?.theme_preference && user.theme_preference !== theme) {
+            dispatch(setTheme(user.theme_preference as 'light' | 'dark'));
+        }
+    }, [user, theme, dispatch]);
 
     return (
         <BrowserRouter>

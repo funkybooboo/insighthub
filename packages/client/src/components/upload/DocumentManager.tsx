@@ -25,14 +25,14 @@ const DocumentManager = ({ isExpanded: initialExpanded = false }: DocumentManage
     };
 
     return (
-        <div className="border-b border-gray-200 bg-gray-50">
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <button
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100 transition-colors"
+                className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 onClick={toggleExpanded}
             >
                 <div className="flex items-center gap-3">
                     <svg
-                        className="h-5 w-5 text-gray-600"
+                        className="h-5 w-5 text-gray-600 dark:text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -44,15 +44,15 @@ const DocumentManager = ({ isExpanded: initialExpanded = false }: DocumentManage
                             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                         />
                     </svg>
-                    <span className="font-medium text-gray-900">Documents</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">Documents</span>
                     {documentCount > 0 && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
                             {documentCount}
                         </span>
                     )}
                 </div>
                 <svg
-                    className={`h-5 w-5 text-gray-500 transition-transform ${
+                    className={`h-5 w-5 text-gray-500 dark:text-gray-400 transition-transform ${
                         isExpanded ? 'rotate-180' : ''
                     }`}
                     fill="none"
@@ -69,7 +69,7 @@ const DocumentManager = ({ isExpanded: initialExpanded = false }: DocumentManage
             </button>
 
             {isExpanded && (
-                <div className="border-t border-gray-200 bg-white">
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <FileUpload onUploadSuccess={handleDocumentChange} />
                     <DocumentList
                         ref={documentListRef}

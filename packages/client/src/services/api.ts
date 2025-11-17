@@ -69,6 +69,7 @@ export interface AuthResponse {
         email: string;
         full_name: string | null;
         created_at: string;
+        theme_preference?: string;
     };
 }
 
@@ -78,6 +79,11 @@ export interface UserResponse {
     email: string;
     full_name: string | null;
     created_at: string;
+    theme_preference?: string;
+}
+
+export interface UpdatePreferencesRequest {
+    theme_preference?: 'light' | 'dark';
 }
 
 class ApiService {
@@ -191,6 +197,14 @@ class ApiService {
      */
     async getCurrentUser(): Promise<UserResponse> {
         const { data } = await this.client.get<UserResponse>('/api/auth/me');
+        return data;
+    }
+
+    /**
+     * Update user preferences
+     */
+    async updatePreferences(request: UpdatePreferencesRequest): Promise<UserResponse> {
+        const { data } = await this.client.patch<UserResponse>('/api/auth/preferences', request);
         return data;
     }
 }

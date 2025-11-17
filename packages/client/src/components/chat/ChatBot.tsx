@@ -199,7 +199,7 @@ const ChatBot = () => {
         })) || [];
 
     return (
-        <div className="flex flex-col h-full bg-white">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
             <DocumentManager />
             <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
             <ChatInput onSubmit={onSubmit} />

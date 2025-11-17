@@ -34,9 +34,9 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
             <div className="max-w-3xl mx-auto space-y-6">
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                        <div className="w-16 h-16 mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                        <div className="w-16 h-16 mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                             <svg
-                                className="w-8 h-8 text-blue-600"
+                                className="w-8 h-8 text-blue-600 dark:text-blue-400"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -49,10 +49,10 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                 />
                             </svg>
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
                             Start a conversation
                         </h2>
-                        <p className="text-gray-500 max-w-sm">
+                        <p className="text-gray-500 dark:text-gray-400 max-w-sm">
                             Ask questions about your documents and get insights powered by AI
                         </p>
                     </div>
@@ -69,7 +69,7 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                     className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                                         message.role === 'user'
                                             ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 text-gray-900'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                                     }`}
                                 >
                                     <div
@@ -91,7 +91,7 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                 )}
                 {error && (
                     <div className="flex justify-center">
-                        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg max-w-md">
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg max-w-md">
                             {error}
                         </div>
                     </div>
