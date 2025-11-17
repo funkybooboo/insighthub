@@ -464,5 +464,22 @@ describe('ChatInput', () => {
             expect(cancelButton).toHaveClass('hover:bg-red-600');
             expect(cancelButton).toHaveClass('rounded-full');
         });
+
+        it('should not submit form when isTyping is true even if form is submitted', async () => {
+            const user = userEvent.setup();
+            const { container } = render(
+                <ChatInput onSubmit={mockOnSubmit} onCancel={mockOnCancel} isTyping={true} />
+            );
+
+            const textarea = screen.getByPlaceholderText(/ask me anything/i);
+            await user.type(textarea, 'Test message');
+
+            // Try to submit the form programmatically
+            const form = container.querySelector('form');
+            form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+
+            // onSubmit should not be called when isTyping is true
+            expect(mockOnSubmit).not.toHaveBeenCalled();
+        });
     });
 });
