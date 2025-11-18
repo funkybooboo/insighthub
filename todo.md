@@ -1,10 +1,8 @@
 # Todo list
 
----
-
 ## Workspaces
 
-I am building a rag system where you can configure your own rag system, 
+I am building a system where you can configure your own rag system, 
 upload documents and have intelligent converstaions about the topic. 
 On the UI you can create new chat sessions but all chat sessions are tied to the same uploaded documents. 
 uploaded documents are global for chats. 
@@ -127,21 +125,116 @@ CREATE TABLE chat_session (
 * Easier to store history or multiple versions in the future
 * Cleaner API endpoints: `GET /workspace/{id}/rag_config`
 
----
-
 ## Storybook stories
 
----
+- there should be a story for all main components
 
 ## Cypress tests
 
----
+- rip out playwright
+- test main workflows
+  - sign up
+  - sign in
+  - change the background color
+  - make a new workspace
+  - make a new chat
+  - upload a document
+  - delete workspace
+  - delete chat
+  - delete document
+  - chat with chatbot
 
-## Clean up types
+## Clean up types and code
 
----
+- simplify where possible without loosing functionality
+- ensure security
+- ensure we validate user inputs
+- ensure there are global and local types
+
+## fix bruno tests
+
+- pass security middleware
 
 ## mock out more interfaces for rag system
 
-- community algorithms
-- 
+- what are the parts of a graph rag system, name all the algorithms and technologies used
+- same for a vector rag system
+
+## restructure and organize files and folders
+
+## update docs
+
+- document features
+- document tests
+- UML
+- user manual
+- changelog 
+  - https://common-changelog.org/
+
+## more tests
+
+- make sure there is a high test coverage
+
+## ensure stateless processes
+
+- make sure that new server processes or client processes can be launched and destroyed at will without effecting users
+
+## worker processes
+
+- more packages next to client and server? or same folder as server?
+- process documents
+- pull information from the internet
+- run rag system
+- prepare for user queries
+- rabbitmq
+- observer pattern. no pulling
+
+## cache
+
+- redis
+- cache where possible
+- hit db as little as possible
+
+## preferences page
+
+- change password, email, name, etc... 
+- set what the default rag should be
+
+## shared library between server and workers
+
+- processes should be able to rely on the same global shared library
+- no duplicate code even between the server and the workers
+
+## figure out env files on client and server
+
+- be able to handle local and production configs
+
+## figure out how to secure secrets in docker
+
+- dont bake secrets into the images
+
+## audit code in ci
+
+- add onto existing ci
+- add a task
+- test locally
+
+## SLSA
+
+- https://slsa.dev/
+
+## ELK stack
+
+- ELK in docker
+- grab streams from all other containers to get logs
+- be able to monitor entire system
+
+## make a plain text workflow for project management
+
+- find out a good way to manage the project in plain text documents
+- I want something like a kandam board but simple and easy
+
+## be able to run in docker swarm
+
+- if we can run in docker swarm then we can run in k8s
+- this will make it easy to deploy the app to a cloud provider of choice later
