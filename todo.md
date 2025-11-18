@@ -265,6 +265,8 @@ src/
 ## audit code in ci
 
 - add onto existing ci
+  - install trivy
+  - run task security
 
 ## SLSA
 
