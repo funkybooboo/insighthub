@@ -1,0 +1,30 @@
+services:
+  server-prod:
+    build:
+      context: ./packages/server
+      dockerfile: Dockerfile
+      target: production
+    container_name: insighthub-server-prod
+    ports:
+      - "5000:8000"
+    environment:
+      FLASK_ENV: production
+    depends_on:
+      - postgres
+      - minio
+      - ollama
+    networks:
+      - insighthub
+
+  client-prod:
+    build:
+      context: ./packages/client
+      dockerfile: Dockerfile
+      target: production
+    container_name: insighthub-client-prod
+    ports:
+      - "3000:80"
+    depends_on:
+      - server-prod
+    networks:
+      - insighthub

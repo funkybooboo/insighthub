@@ -1,0 +1,35 @@
+services:
+  server-dev:
+    build:
+      context: ./packages/server
+      dockerfile: Dockerfile
+      target: development
+    container_name: insighthub-server-dev
+    ports:
+      - "5000:8000"
+    volumes:
+      - ./packages/server/src:/app/src:ro
+      - ./packages/server/tests:/app/tests:ro
+    environment:
+      FLASK_ENV: development
+    depends_on:
+      - postgres
+      - minio
+      - ollama
+    networks:
+      - insighthub
+
+  client-dev:
+    build:
+      context: ./packages/client
+      dockerfile: Dockerfile
+      target: development
+    container_name: insighthub-client-dev
+    ports:
+      - "3000:5173"
+    volumes:
+      - ./packages/client/src:/app/src:ro
+    depends_on:
+      - server-dev
+    networks:
+      - insighthub
