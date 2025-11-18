@@ -94,6 +94,48 @@ services:
     networks:
       - insighthub
 
+  rabbitmq:
+    labels:
+      project: insighthub
+    image: rabbitmq:3-management
+    container_name: insighthub-rabbitmq
+    restart: unless-stopped
+    ports:
+      - '5672:5672'       # AMQP port
+      - '15672:15672'     # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: insighthub
+      RABBITMQ_DEFAULT_PASS: insighthub_dev
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - insighthub
+
+  redis:
+    labels:
+      project: insighthub
+    image: redis:7-alpine
+    container_name: insighthub-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'   # Redis port
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - insighthub
+
 volumes:
   postgres_data:
     name: insighthub_postgres_data
@@ -101,6 +143,10 @@ volumes:
     name: insighthub_minio_data
   ollama_data:
     name: insighthub_ollama_data
+  rabbitmq_data:
+    name: insighthub_rabbitmq_data
+  redis_data:
+    name: insighthub_redis_data
 
 networks:
   insighthub:
