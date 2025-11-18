@@ -1,31 +1,55 @@
 services:
   postgres:
+    labels:
+      project: insighthub
     image: postgres:16-alpine
     container_name: insighthub-postgres
     restart: unless-stopped
+    ports:
+      - '5432:5432'
     environment:
       POSTGRES_USER: insighthub
       POSTGRES_PASSWORD: insighthub_dev
       POSTGRES_DB: insighthub
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U insighthub -d insighthub']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - insighthub
 
   minio:
+    labels:
+      project: insighthub
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     container_name: insighthub-minio
     restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
     environment:
       MINIO_ROOT_USER: insighthub
       MINIO_ROOT_PASSWORD: insighthub_dev_secret
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - insighthub
 
   ollama:
+    labels:
+      project: insighthub
     image: ollama/ollama:0.5.1
     container_name: insighthub-ollama
     restart: unless-stopped
@@ -33,14 +57,52 @@ services:
       - '11434:11434'
     volumes:
       - ollama_data:/root/.ollama
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - insighthub
+
+  ollama-setup:
+    labels:
+      project: insighthub
+    image: ollama/ollama:0.5.1
+    container_name: insighthub-ollama-setup
+    restart: on-failure:3
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: ollama:11434
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "Waiting for Ollama API to be ready..."
+        until ollama list > /dev/null 2>&1; do
+          echo "Waiting for Ollama service..."
+          sleep 2
+        done
+        echo "Pulling llama3.2:1b model..."
+        ollama pull llama3.2:1b
+        echo "Pulling nomic-embed-text model..."
+        ollama pull nomic-embed-text
+        echo "Models pulled successfully!"
     networks:
       - insighthub
 
 volumes:
   postgres_data:
+    name: insighthub_postgres_data
   minio_data:
+    name: insighthub_minio_data
   ollama_data:
+    name: insighthub_ollama_data
 
 networks:
   insighthub:
+    name: insighthub_network
     driver: bridge

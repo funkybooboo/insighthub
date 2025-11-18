@@ -61,7 +61,9 @@ services:
 
 volumes:
   esdata:
+    name: elasticsearch_data
 
 networks:
   elk:
+    name: elk_network
     driver: bridge
