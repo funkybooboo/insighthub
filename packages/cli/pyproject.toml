@@ -1,0 +1,14 @@
+[project]
+name = "insighthub-cli"
+version = "0.1.0"
+description = "Insighthub Command Line Interface"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.0",
+    "httpx>=0.27"
+]
+
+[project.scripts]
+insighthub = "insighthub_cli.__main__:app"
