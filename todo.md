@@ -155,14 +155,10 @@ CREATE TABLE chat_session (
 
 - pass security middleware
 
-## mock out more interfaces for rag system
-
-- what are the parts of a graph rag system, name all the algorithms and technologies used
-- same for a vector rag system
-
 ## restructure and organize files and folders
 
 - recursive folder structures
+- move cli to its own package folder
 
 ### Simple Description
 
@@ -210,7 +206,6 @@ src/
 * `dashboard/` has `components/`, `hooks/`, `api/`, `index.ts`
 * Its sub-feature `widgets/charts/` repeats that *same* structure
 * This pattern can continue as deep as needed
-
 
 ## update docs
 
