@@ -7,15 +7,18 @@ tasks:
       - task --list
     silent: true
 
+  # --------------------------------------------------------------------------
+  # Start services
+  # --------------------------------------------------------------------------
   up:
     desc: Start all production services
     cmds:
-      - docker compose --profile prod up -d
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
   up-dev:
-    desc: Start all development services (infrastructure + dev containers)
+    desc: Start all development services
     cmds:
-      - docker compose --profile dev up -d
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
       - cmd: 'echo "Development services started:"'
         silent: true
       - cmd: 'echo "  - Server (dev): http://localhost:5000"'
@@ -27,78 +30,168 @@ tasks:
       - cmd: 'echo "  - PostgreSQL: localhost:5432"'
         silent: true
 
+  up-elk:
+    desc: Start ELK stack services
+    cmds:
+      - docker compose -f docker-compose.elk.yml up -d
+      - cmd: 'echo "ELK stack started:"'
+        silent: true
+      - cmd: 'echo "  - Elasticsearch: http://localhost:9200"'
+        silent: true
+      - cmd: 'echo "  - Kibana: http://localhost:5601"'
+        silent: true
+
   up-infra:
     desc: Start infrastructure services only (Postgres, MinIO, Ollama)
     cmds:
-      - docker compose up -d postgres minio ollama
+      - docker compose -f docker-compose.yml up -d postgres minio ollama
       - cmd: 'echo "Waiting for Ollama to be healthy..."'
         silent: true
-      - docker compose up ollama-setup
-      - cmd: 'echo ""'
-        silent: true
-      - cmd: 'echo "Infrastructure services started. Run local dev servers with:"'
-        silent: true
-      - cmd: 'echo "  - Server: task dev-server (or cd packages/server && task server)"'
-        silent: true
-      - cmd: 'echo "  - Client: task dev-client (or cd packages/client && task dev)"'
+      - docker compose -f docker-compose.yml up ollama-setup
+      - cmd: 'echo "Infrastructure services started."'
         silent: true
 
   down:
     desc: Stop all services
     cmds:
-      - docker compose --profile prod --profile dev down
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml down
 
+  # --------------------------------------------------------------------------
+  # Restart services
+  # --------------------------------------------------------------------------
   restart:
-    desc: Restart all production services
+    desc: Restart production services
     cmds:
-      - docker compose --profile prod restart
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml restart
 
   restart-dev:
-    desc: Restart all development services
+    desc: Restart development services
     cmds:
-      - docker compose --profile dev restart
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml restart
 
+  # --------------------------------------------------------------------------
+  # Show status
+  # --------------------------------------------------------------------------
   ps:
     desc: Show status of all services
     cmds:
-      - docker compose --profile prod --profile dev ps
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml ps
 
+  # --------------------------------------------------------------------------
+  # Build images
+  # --------------------------------------------------------------------------
   build:
     desc: Build all production images
     cmds:
-      - docker compose --profile prod build
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build
 
   build-dev:
     desc: Build all development images
     cmds:
-      - docker compose --profile dev build
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build
 
   build-server:
     desc: Build server production image
     cmds:
-      - docker compose build server-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build server-prod
 
   build-server-dev:
     desc: Build server development image
     cmds:
-      - docker compose build server-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build server-dev
 
   build-client:
     desc: Build client production image
     cmds:
-      - docker compose build client-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build client-prod
 
   build-client-dev:
     desc: Build client development image
     cmds:
-      - docker compose build client-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build client-dev
 
   clean:
     desc: Remove all containers, images, and volumes
     cmds:
-      - docker compose down -v --rmi all
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml down -v --rmi all
       - task: server:clean
       - task: client:clean
+
+  # --------------------------------------------------------------------------
+  # Logs
+  # --------------------------------------------------------------------------
+  logs:
+    desc: Show logs from all services
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml logs -f
+
+  logs-server:
+    desc: Show server logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f server-prod
+
+  logs-server-dev:
+    desc: Show server logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f server-dev
+
+  logs-client:
+    desc: Show client logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f client-prod
+
+  logs-client-dev:
+    desc: Show client logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f client-dev
+
+  logs-elk:
+    desc: Show ELK logs
+    cmds:
+      - docker compose -f docker-compose.elk.yml logs -f
+
+  logs-ollama:
+    desc: Show Ollama logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f ollama
+
+  logs-postgres:
+    desc: Show Postgres logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f postgres
+
+  logs-minio:
+    desc: Show MinIO logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f minio
+
+  # --------------------------------------------------------------------------
+  # Dev shortcuts
+  # --------------------------------------------------------------------------
+  dev-server:
+    desc: Run server in development mode
+    cmds:
+      - task: server:server
+
+  dev-client:
+    desc: Run client in development mode
+    cmds:
+      - task: client:dev
+
+  # --------------------------------------------------------------------------
+  # Subdirectory tasks
+  # --------------------------------------------------------------------------
+  server:*:
+    desc: Run server tasks (use task server:<task-name>)
+    dir: packages/server
+    cmds:
+      - task {{index .MATCH 0}}
+
+  client:*:
+    desc: Run client tasks (use task client:<task-name>)
+    dir: packages/client
+    cmds:
+      - task {{index .MATCH 0}}
 
   check:
     desc: Run all checks for both client and server
@@ -115,66 +208,3 @@ tasks:
         silent: true
       - cmd: echo "All checks passed!"
         silent: true
-
-  logs:
-    desc: Show logs from all services
-    cmds:
-      - docker compose logs -f
-
-  logs-server:
-    desc: Show server logs (production)
-    cmds:
-      - docker compose logs -f server-prod
-
-  logs-server-dev:
-    desc: Show server logs (development)
-    cmds:
-      - docker compose logs -f server-dev
-
-  logs-client:
-    desc: Show client logs (production)
-    cmds:
-      - docker compose logs -f client-prod
-
-  logs-client-dev:
-    desc: Show client logs (development)
-    cmds:
-      - docker compose logs -f client-dev
-
-  logs-ollama:
-    desc: Show Ollama logs
-    cmds:
-      - docker compose logs -f ollama
-
-  logs-postgres:
-    desc: Show Postgres logs
-    cmds:
-      - docker compose logs -f postgres
-
-  logs-minio:
-    desc: Show MinIO logs
-    cmds:
-      - docker compose logs -f minio
-
-  dev-server:
-    desc: Run server in development mode
-    cmds:
-      - task: server:server
-
-  dev-client:
-    desc: Run client in development mode
-    cmds:
-      - task: client:dev
-
-  # Included tasks from subdirectories
-  server:*:
-    desc: Run server tasks (use task server:<task-name>)
-    dir: packages/server
-    cmds:
-      - task {{index .MATCH 0}}
-
-  client:*:
-    desc: Run client tasks (use task client:<task-name>)
-    dir: packages/client
-    cmds:
-      - task {{index .MATCH 0}}

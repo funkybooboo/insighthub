@@ -1,67 +1,31 @@
-# InsightHub Docker Compose Configuration
-# Production and Development environments using profiles
-#
-# Usage:
-#   Production:  docker compose --profile prod up -d
-#   Development: docker compose --profile dev up -d
-#   Infra only:  docker compose up -d postgres minio ollama
-
 services:
-  # ==========================================================================
-  # Infrastructure Services (Shared between prod and dev)
-  # ==========================================================================
-
   postgres:
-    labels:
-      project: insighthub
     image: postgres:16-alpine
     container_name: insighthub-postgres
     restart: unless-stopped
-    ports:
-      - '5432:5432'
     environment:
       POSTGRES_USER: insighthub
       POSTGRES_PASSWORD: insighthub_dev
       POSTGRES_DB: insighthub
-      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U insighthub -d insighthub']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     networks:
       - insighthub
 
   minio:
-    labels:
-      project: insighthub
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     container_name: insighthub-minio
     restart: unless-stopped
-    ports:
-      - '9000:9000'
-      - '9001:9001'
     environment:
       MINIO_ROOT_USER: insighthub
       MINIO_ROOT_PASSWORD: insighthub_dev_secret
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     networks:
       - insighthub
 
   ollama:
-    labels:
-      project: insighthub
     image: ollama/ollama:0.5.1
     container_name: insighthub-ollama
     restart: unless-stopped
@@ -69,298 +33,14 @@ services:
       - '11434:11434'
     volumes:
       - ollama_data:/root/.ollama
-    healthcheck:
-      test: ['CMD', 'ollama', 'list']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     networks:
       - insighthub
 
-  ollama-setup:
-    labels:
-      project: insighthub
-    image: ollama/ollama:0.5.1
-    container_name: insighthub-ollama-setup
-    restart: on-failure:3
-    depends_on:
-      ollama:
-        condition: service_healthy
-    environment:
-      OLLAMA_HOST: ollama:11434
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        echo "Waiting for Ollama API to be ready..."
-        until ollama list > /dev/null 2>&1; do
-            echo "Waiting for Ollama service..."
-            sleep 2
-        done
-
-        echo "Pulling llama3.2:1b model..."
-        ollama pull llama3.2:1b
-
-        echo "Pulling nomic-embed-text model..."
-        ollama pull nomic-embed-text
-
-        echo "Models pulled successfully!"
-    networks:
-      - insighthub
-
-  # ==========================================================================
-  # Production Services
-  # ==========================================================================
-
-  server-prod:
-    labels:
-      project: insighthub
-    image: insighthub-server:prod
-    container_name: insighthub-server-prod
-    profiles: ['prod']
-    restart: unless-stopped
-    build:
-      context: ./packages/server
-      dockerfile: Dockerfile
-      target: production
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    ports:
-      - '5000:8000'
-    environment:
-      # Python
-      PYTHONUNBUFFERED: 1
-
-      # Flask
-      FLASK_HOST: 0.0.0.0
-      FLASK_PORT: 8000
-      FLASK_ENV: production
-
-      # Database
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-
-      # Storage
-      BLOB_STORAGE_TYPE: s3
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: insighthub
-      S3_SECRET_KEY: insighthub_dev_secret
-      S3_BUCKET_NAME: documents
-
-      # LLM
-      LLM_PROVIDER: ollama
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_LLM_MODEL: llama3.2:1b
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  client-prod:
-    labels:
-      project: insighthub
-    image: insighthub-client:prod
-    container_name: insighthub-client-prod
-    profiles: ['prod']
-    restart: unless-stopped
-    build:
-      context: ./packages/client
-      dockerfile: Dockerfile
-      target: production
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    ports:
-      - '3000:80'
-    environment:
-      VITE_API_URL: http://localhost:5000
-      NGINX_PORT: 80
-    depends_on:
-      server-prod:
-        condition: service_started
-    networks:
-      - insighthub
-
-  # ==========================================================================
-  # Development Services
-  # ==========================================================================
-
-  server-dev:
-    labels:
-      project: insighthub
-    image: insighthub-server:dev
-    container_name: insighthub-server-dev
-    profiles: ['dev']
-    restart: unless-stopped
-    build:
-      context: ./packages/server
-      dockerfile: Dockerfile
-      target: development
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    ports:
-      - '5000:8000'
-    volumes:
-      - ./packages/server/src:/app/src:ro
-      - ./packages/server/tests:/app/tests:ro
-      - ./packages/server/alembic:/app/alembic:ro
-      - ./packages/server/alembic.ini:/app/alembic.ini:ro
-      - ./packages/server/pyproject.toml:/app/pyproject.toml:ro
-      - ./packages/server/poetry.lock:/app/poetry.lock:ro
-    environment:
-      # Python
-      PYTHONUNBUFFERED: 1
-
-      # Flask
-      FLASK_HOST: 0.0.0.0
-      FLASK_PORT: 8000
-      FLASK_ENV: development
-      FLASK_DEBUG: 1
-
-      # Database
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-
-      # Storage
-      BLOB_STORAGE_TYPE: s3
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: insighthub
-      S3_SECRET_KEY: insighthub_dev_secret
-      S3_BUCKET_NAME: documents
-
-      # LLM
-      LLM_PROVIDER: ollama
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_LLM_MODEL: llama3.2:1b
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  client-dev:
-    labels:
-      project: insighthub
-    image: insighthub-client:dev
-    container_name: insighthub-client-dev
-    profiles: ['dev']
-    restart: unless-stopped
-    build:
-      context: ./packages/client
-      dockerfile: Dockerfile
-      target: development
-      args:
-        - BUILDKIT_INLINE_CACHE=1
-    ports:
-      - '3000:5173'
-    volumes:
-      - ./packages/client/src:/app/src:ro
-      - ./packages/client/public:/app/public:ro
-      - ./packages/client/index.html:/app/index.html:ro
-      - ./packages/client/vite.config.ts:/app/vite.config.ts:ro
-      - ./packages/client/tsconfig.json:/app/tsconfig.json:ro
-      - ./packages/client/tsconfig.app.json:/app/tsconfig.app.json:ro
-      - ./packages/client/package.json:/app/package.json:ro
-      - ./packages/client/bun.lockb:/app/bun.lockb:ro
-    environment:
-      NODE_ENV: development
-      VITE_API_URL: http://localhost:5000
-    depends_on:
-      server-dev:
-        condition: service_started
-    networks:
-      - insighthub
-
-  # ==========================================================================
-  # ELK Stack Services
-  # ==========================================================================
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
-    container_name: elasticsearch
-    restart: unless-stopped
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=true
-      - xpack.security.enrollment.enabled=true
-      - ELASTIC_PASSWORD=changeme
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
-    networks:
-      - insighthub
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.13.0
-    container_name: logstash
-    restart: unless-stopped
-    depends_on:
-      - elasticsearch
-    volumes:
-      - ./elk/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    ports:
-      - "5044:5044"
-    networks:
-      - insighthub
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.0
-    container_name: kibana
-    restart: unless-stopped
-    depends_on:
-      - elasticsearch
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    networks:
-      - insighthub
-
-  filebeat:
-    image: docker.elastic.co/beats/filebeat:8.13.0
-    container_name: filebeat
-    user: root
-    restart: unless-stopped
-    depends_on:
-      - logstash
-    volumes:
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
-    networks:
-      - insighthub
-
-# ==========================================================================
-# Volumes
-# ==========================================================================
 volumes:
   postgres_data:
-    name: insighthub_postgres_data
   minio_data:
-    name: insighthub_minio_data
   ollama_data:
-    name: insighthub_ollama_data
-  esdata:
-    name: elasticsearch_data
 
-# ==========================================================================
-# Networks
-# ==========================================================================
 networks:
   insighthub:
-    name: insighthub_network
     driver: bridge
