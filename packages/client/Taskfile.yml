@@ -106,23 +106,13 @@ tasks:
       cmds:
         - bun audit
 
-    snyk-test:
-      desc: Run Snyk test on all projects
+    scan:
+      desc: Run security scan on all projects using Trivy
       cmds:
-        - bun run snyk:test
-
-    snyk-monitor:
-      desc: Monitor project with Snyk
-      cmds:
-        - bun run snyk:monitor
-
-    snyk-wizard:
-      desc: Launch Snyk wizard for guided vulnerability fixes
-      cmds:
-        - bun run snyk:wizard
+        - trivy fs --scanners vuln --ignore-unfixed .
 
     security:
-      desc: Run both Bun audit and Snyk test
+      desc: "Run security scans (Bun audit & Trivy)"
       cmds:
         - bun audit
-        - bun run snyk:test
+        - trivy fs --scanners vuln --ignore-unfixed .

@@ -117,3 +117,27 @@ tasks:
       - cmd: echo "Running Bruno API tests (verbose)..."
         silent: true
       - bru run --env local --verbose bruno/
+
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src
+
+  security:
+    desc: Run full security scan (dependencies + code)
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src
