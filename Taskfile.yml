@@ -208,3 +208,66 @@ tasks:
         silent: true
       - cmd: echo "All checks passed!"
         silent: true
+
+  # --------------------------------------------------------------------------
+  # Security tasks (root level)
+  # --------------------------------------------------------------------------
+  audit:
+    desc: Run dependency audits for client and server
+    cmds:
+      - cmd: echo "Running server audit..."
+        silent: true
+      - task: server:audit
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Running client audit..."
+        silent: true
+      - task: client:audit
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Audit complete!"
+        silent: true
+
+  scan:
+    desc: Run code scans for client and server
+    cmds:
+      - cmd: echo "Running server scan..."
+        silent: true
+      - task: server:scan
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Running client scan..."
+        silent: true
+      - task: client:scan
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Scan complete!"
+        silent: true
+
+  security:
+    desc: Run full security checks (audit + scan + Docker image scans)
+    cmds:
+      - cmd: echo "Running audits..."
+        silent: true
+      - task: audit
+      - cmd: echo "Running code scans..."
+        silent: true
+      - task: scan
+      - cmd: echo "Building Docker images before scanning..."
+        silent: true
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml build client-prod client-dev server-prod server-dev
+      - cmd: echo "Scanning Docker images..."
+        silent: true
+      - cmd: |
+          IMAGES=("client-prod" "client-dev" "server-prod" "server-dev")
+          for IMAGE in "${IMAGES[@]}"; do
+            if docker image inspect insighthub-$IMAGE > /dev/null 2>&1; then
+              echo "Scanning image: insighthub-$IMAGE"
+              # Scan with Trivy and output JSON for CI/CD
+              trivy image insighthub-$IMAGE --ignore-unfixed --format json --output trivy-$IMAGE.json
+            else
+              echo "Image insighthub-$IMAGE does not exist, skipping..."
+            fi
+          done
+      - cmd: echo "Full security check complete!"
+        silent: true
