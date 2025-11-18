@@ -265,8 +265,6 @@ src/
 ## audit code in ci
 
 - add onto existing ci
-- add a task
-- test locally
 
 ## SLSA
 
