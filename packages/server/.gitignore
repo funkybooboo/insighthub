@@ -47,3 +47,5 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+test_uploads/
