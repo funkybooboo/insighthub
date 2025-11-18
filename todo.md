@@ -162,6 +162,56 @@ CREATE TABLE chat_session (
 
 ## restructure and organize files and folders
 
+- recursive folder structures
+
+### Simple Description
+
+A **recursive folder structure** in a React project means that each feature (or component) can contain smaller features (or components) that follow the **same folder layout** as their parent.
+This creates a predictable pattern where every feature keeps its own components, hooks, API calls, and styles — and sub-features repeat the same pattern.
+
+---
+
+### Recursive React Folder Structure (Tree Syntax)
+
+```
+src/
+└── features/
+    └── dashboard/
+        ├── components/
+        │   ├── Header/
+        │   │   ├── Header.tsx
+        │   │   ├── Header.test.tsx
+        │   │   └── index.ts
+        │   └── Stats/
+        │       ├── Stats.tsx
+        │       ├── Stats.test.tsx
+        │       └── index.ts
+        ├── hooks/
+        │   └── useDashboardData.ts
+        ├── api/
+        │   └── fetchDashboard.ts
+        ├── index.ts
+        │
+        └── widgets/                         ← sub-feature
+            └── charts/
+                ├── components/
+                │   └── LineChart/
+                │       ├── LineChart.tsx
+                │       └── index.ts
+                ├── hooks/
+                │   └── useChartData.ts
+                ├── api/
+                │   └── fetchChart.ts
+                └── index.ts
+```
+
+### Why this is *recursive*:
+
+* `dashboard/` has `components/`, `hooks/`, `api/`, `index.ts`
+* Its sub-feature `widgets/charts/` repeats that *same* structure
+* This pattern can continue as deep as needed
+
+
 ## update docs
 
 - document features
@@ -173,7 +223,8 @@ CREATE TABLE chat_session (
 
 ## more tests
 
-- make sure there is a high test coverage
+- make sure there is high test coverage
+- make sure to test the cli
 
 ## ensure stateless processes
 
@@ -222,12 +273,6 @@ CREATE TABLE chat_session (
 ## SLSA
 
 - https://slsa.dev/
-
-## ELK stack
-
-- ELK in docker
-- grab streams from all other containers to get logs
-- be able to monitor entire system
 
 ## make a plain text workflow for project management
 
