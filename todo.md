@@ -218,8 +218,6 @@ src/
 - document tests
 - UML
 - user manual
-- changelog 
-  - https://common-changelog.org/
 
 ## more tests
 
