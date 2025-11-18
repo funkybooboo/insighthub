@@ -268,10 +268,6 @@ src/
   - install trivy
   - run task security
 
-## SLSA
-
-- https://slsa.dev/
-
 ## make a plain text workflow for project management
 
 - find out a good way to manage the project in plain text documents

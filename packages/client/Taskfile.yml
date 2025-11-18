@@ -102,17 +102,17 @@ tasks:
             - bun run preview
 
     audit:
-      desc: Audit project dependencies for vulnerabilities
-      cmds:
-        - bun audit
+        desc: Audit project dependencies for vulnerabilities
+        cmds:
+            - bun audit
 
     scan:
-      desc: Run security scan on all projects using Trivy
-      cmds:
-        - trivy fs --scanners vuln --ignore-unfixed .
+        desc: Run security scan on all projects using Trivy
+        cmds:
+            - trivy fs --scanners vuln --ignore-unfixed .
 
     security:
-      desc: "Run security scans (Bun audit & Trivy)"
-      cmds:
-        - bun audit
-        - trivy fs --scanners vuln --ignore-unfixed .
+        desc: 'Run security scans (Bun audit & Trivy)'
+        cmds:
+            - bun audit
+            - trivy fs --scanners vuln --ignore-unfixed .
