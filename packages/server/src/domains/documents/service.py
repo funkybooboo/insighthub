@@ -5,6 +5,7 @@ from typing import BinaryIO
 
 from pypdf import PdfReader
 
+from src.infrastructure.messaging import RabbitMQPublisher
 from src.infrastructure.storage import BlobStorage
 
 from .dtos import DocumentListResponse, DocumentUploadResponse
@@ -29,16 +30,23 @@ ALLOWED_EXTENSIONS = {"txt", "pdf"}
 class DocumentService:
     """Service for document-related business logic."""
 
-    def __init__(self, repository: DocumentRepository, blob_storage: BlobStorage):
+    def __init__(
+        self,
+        repository: DocumentRepository,
+        blob_storage: BlobStorage,
+        message_publisher: RabbitMQPublisher | None = None,
+    ):
         """
         Initialize service with repository and blob storage.
 
         Args:
             repository: Document repository implementation
             blob_storage: Blob storage implementation
+            message_publisher: Optional RabbitMQ publisher for event publishing
         """
         self.repository = repository
         self.blob_storage = blob_storage
+        self.message_publisher = message_publisher
 
     def validate_filename(self, filename: str | None) -> None:
         """
@@ -208,34 +216,41 @@ class DocumentService:
             mime_type=mime_type,
         )
 
-        # TODO: RAG INTEGRATION - Document Indexing
-        # After successful upload, add document to RAG system for semantic search
+        # Publish document.uploaded event to RabbitMQ for async processing
+        if self.message_publisher:
+            try:
+                self.message_publisher.publish(
+                    routing_key="document.uploaded",
+                    message={
+                        "document_id": document.id,
+                        "user_id": user_id,
+                        "filename": filename,
+                        "file_path": document.file_path,
+                        "mime_type": mime_type,
+                        "text": text,
+                        "text_length": len(text),
+                        "uploaded_at": document.created_at.isoformat(),
+                    },
+                )
+            except Exception as e:
+                # TODO: Add proper error handling
+                # Options:
+                # 1. Log error and continue (async processing will be skipped)
+                # 2. Raise exception and rollback upload
+                # 3. Retry with exponential backoff
+                print(f"Warning: Failed to publish document.uploaded event: {e}")
+
+        # TODO: RAG INTEGRATION - Legacy comment for direct RAG integration
+        # The above RabbitMQ event will trigger the ingestion worker which handles:
+        # - Document parsing and chunking
+        # - Embedding generation (via embeddings worker)
+        # - Knowledge graph building (via graph worker)
         #
-        # Implementation steps:
+        # If you want to integrate RAG directly without workers:
         # 1. Import RAG system: from src.rag.factory import create_rag
         # 2. Get RAG instance based on user preference or rag_collection param
-        # 3. Add document with metadata:
-        #    rag = create_rag(rag_type="vector", embedding_type="ollama", ...)
-        #    result = rag.add_documents([{
-        #        "text": text,
-        #        "metadata": {
-        #            "document_id": document.id,
-        #            "filename": filename,
-        #            "user_id": user_id,
-        #            "mime_type": mime_type,
-        #            "uploaded_at": document.created_at.isoformat()
-        #        }
-        #    }])
-        # 4. Update document record with RAG metadata:
-        #    self.update_document(
-        #        document.id,
-        #        chunk_count=result.chunk_count,
-        #        rag_collection=result.collection_name
-        #    )
-        # 5. Handle errors: If RAG indexing fails, consider whether to:
-        #    - Roll back document upload (raise exception)
-        #    - Keep document but mark as "not indexed" (set chunk_count=0)
-        #    - Retry with exponential backoff
+        # 3. Add document with metadata (see previous TODO comments)
+        # 4. Update document record with RAG metadata
 
         return DocumentUploadResult(
             document=document,

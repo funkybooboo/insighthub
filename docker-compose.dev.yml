@@ -43,12 +43,25 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_LLM_MODEL: llama3.2:1b
       OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      # Vector Store
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: documents
+      # Cache
+      REDIS_URL: redis://redis:6379/0
+      # Message Queue
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
       ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - insighthub

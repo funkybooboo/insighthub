@@ -1,0 +1,287 @@
+# Worker processes for async document processing
+# Use with: docker compose -f docker-compose.yml -f docker-compose.workers.yml up
+
+services:
+  # TODO: Ingestion Worker - Document parsing and chunking
+  worker-ingestion:
+    labels:
+      project: insighthub
+      worker: ingestion
+    image: insighthub-worker-ingestion:latest
+    container_name: insighthub-worker-ingestion
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/ingestion
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # Database
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      # MinIO
+      MINIO_ENDPOINT_URL: http://minio:9000
+      MINIO_ACCESS_KEY: insighthub
+      MINIO_SECRET_KEY: insighthub_dev_secret
+      MINIO_BUCKET_NAME: documents
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # Worker Config
+      WORKER_NAME: ingestion
+      WORKER_CONCURRENCY: 4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Embeddings Worker - Vector generation and Qdrant indexing
+  worker-embeddings:
+    labels:
+      project: insighthub
+      worker: embeddings
+    image: insighthub-worker-embeddings:latest
+    container_name: insighthub-worker-embeddings
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/embeddings
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # Database
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      # Qdrant
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: documents
+      # Ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # Worker Config
+      WORKER_NAME: embeddings
+      WORKER_CONCURRENCY: 2
+      BATCH_SIZE: 100
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Graph Worker - Entity extraction and graph construction
+  worker-graph:
+    labels:
+      project: insighthub
+      worker: graph
+    image: insighthub-worker-graph:latest
+    container_name: insighthub-worker-graph
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/graph
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # Database
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      # Ollama (for entity extraction)
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_LLM_MODEL: llama3.2:1b
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # Worker Config
+      WORKER_NAME: graph
+      WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Enrichment Worker - External knowledge fetching
+  worker-enrichment:
+    labels:
+      project: insighthub
+      worker: enrichment
+    image: insighthub-worker-enrichment:latest
+    container_name: insighthub-worker-enrichment
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/enrichment
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # External APIs
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
+      # Worker Config
+      WORKER_NAME: enrichment
+      WORKER_CONCURRENCY: 3
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Query Worker - Pre-compute query context
+  worker-query:
+    labels:
+      project: insighthub
+      worker: query
+    image: insighthub-worker-query:latest
+    container_name: insighthub-worker-query
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/query
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # Database
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      # Qdrant
+      QDRANT_URL: http://qdrant:6333
+      # Ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      # Redis (for caching)
+      REDIS_URL: redis://redis:6379/0
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # Worker Config
+      WORKER_NAME: query
+      WORKER_CONCURRENCY: 4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Retriever Worker - Live internet data fetching
+  worker-retriever:
+    labels:
+      project: insighthub
+      worker: retriever
+    image: insighthub-worker-retriever:latest
+    container_name: insighthub-worker-retriever
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/retriever
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # External APIs
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      ARXIV_API_URL: http://export.arxiv.org/api/query
+      # Worker Config
+      WORKER_NAME: retriever
+      WORKER_CONCURRENCY: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main
+
+  # TODO: Notify Worker - System notifications
+  worker-notify:
+    labels:
+      project: insighthub
+      worker: notify
+    image: insighthub-worker-notify:latest
+    container_name: insighthub-worker-notify
+    profiles:
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/notify
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      # Python
+      PYTHONUNBUFFERED: 1
+      # RabbitMQ
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      # Notification channels
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      EMAIL_SMTP_SERVER: ${EMAIL_SMTP_SERVER:-}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-587}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      # Worker Config
+      WORKER_NAME: notify
+      WORKER_CONCURRENCY: 10
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+    # TODO: Uncomment when Dockerfile is created
+    # command: poetry run python -m src.main

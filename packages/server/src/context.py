@@ -12,24 +12,38 @@ from src.infrastructure.factories import (
     create_user_repository,
 )
 from src.infrastructure.llm import create_llm_provider
+from src.infrastructure.messaging import RabbitMQPublisher, create_rabbitmq_publisher
 from src.infrastructure.storage import BlobStorage, create_blob_storage
 
 
 class AppContext:
     """Application context that holds service implementations."""
 
-    def __init__(self, db: Session, blob_storage: BlobStorage | None = None):
+    def __init__(
+        self,
+        db: Session,
+        blob_storage: BlobStorage | None = None,
+        message_publisher: RabbitMQPublisher | None = None,
+    ):
         """
         Initialize application context with dependencies.
 
         Args:
             db: Database session
             blob_storage: Optional blob storage instance (creates one if not provided)
+            message_publisher: Optional RabbitMQ publisher (creates one if not provided)
         """
         self.db = db
 
         # Initialize blob storage
         self.blob_storage = blob_storage if blob_storage is not None else create_blob_storage()
+
+        # Initialize RabbitMQ publisher (None if disabled)
+        self.message_publisher = (
+            message_publisher
+            if message_publisher is not None
+            else create_rabbitmq_publisher()
+        )
 
         # Initialize LLM provider using factory
         self.llm_provider = create_llm_provider()
@@ -43,7 +57,9 @@ class AppContext:
         # Initialize services with dependency injection
         self.user_service = UserService(repository=user_repo)
         self.document_service = DocumentService(
-            repository=document_repo, blob_storage=self.blob_storage
+            repository=document_repo,
+            blob_storage=self.blob_storage,
+            message_publisher=self.message_publisher,
         )
         self.chat_service = ChatService(
             session_repository=session_repo, message_repository=message_repo

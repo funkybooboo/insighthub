@@ -1376,6 +1376,23 @@ files = [
 ]
 
 [[package]]
+name = "insighthub-shared"
+version = "0.1.0"
+description = "Shared types, interfaces, and utilities for InsightHub server and workers"
+optional = false
+python-versions = "^3.11"
+groups = ["main"]
+files = []
+develop = false
+
+[package.dependencies]
+pydantic = "^2.0.0"
+
+[package.source]
+type = "directory"
+url = "../shared/python"
+
+[[package]]
 name = "isort"
 version = "5.13.2"
 description = "A Python utility / library to sort Python imports."
@@ -4724,4 +4741,4 @@ h11 = ">=0.16.0,<1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "75c10a75b80288f474cbe2e1ad1f80221ec953f143115e105c6c9f61f67857ce"
+content-hash = "442853a51e35a14a18fe8705c1e6be0c73a2d5e946ef110bb0e026f3e7bfe073"

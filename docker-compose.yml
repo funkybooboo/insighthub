@@ -136,6 +136,26 @@ services:
     networks:
       - insighthub
 
+  qdrant:
+    labels:
+      project: insighthub
+    image: qdrant/qdrant:v1.7.4
+    container_name: insighthub-qdrant
+    restart: unless-stopped
+    ports:
+      - '6333:6333'   # gRPC API
+      - '6334:6334'   # Web UI
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - insighthub
+
 volumes:
   postgres_data:
     name: insighthub_postgres_data
@@ -147,6 +167,8 @@ volumes:
     name: insighthub_rabbitmq_data
   redis_data:
     name: insighthub_redis_data
+  qdrant_data:
+    name: insighthub_qdrant_data
 
 networks:
   insighthub:
