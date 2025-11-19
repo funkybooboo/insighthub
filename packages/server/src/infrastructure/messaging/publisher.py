@@ -42,33 +42,47 @@ class RabbitMQPublisher:
     def connect(self) -> None:
         """
         Establish connection to RabbitMQ server.
-
-        TODO: Implement connection logic
-        TODO: Set up credentials and connection parameters
-        TODO: Create channel
-        TODO: Declare exchange (topic exchange for routing)
-        TODO: Add error handling for connection failures
-        TODO: Add retry logic with exponential backoff
+        
+        Creates a connection and channel, then declares the exchange for event routing.
         """
-        # TODO: Implement
-        credentials = pika.PlainCredentials(self.username, self.password)
-        parameters = pika.ConnectionParameters(
-            host=self.host, port=self.port, credentials=credentials
-        )
-        # TODO: Add connection logic here
-        logger.info(f"Connected to RabbitMQ at {self.host}:{self.port}")
+        try:
+            credentials = pika.PlainCredentials(self.username, self.password)
+            parameters = pika.ConnectionParameters(
+                host=self.host,
+                port=self.port,
+                credentials=credentials,
+                heartbeat=600,
+                blocked_connection_timeout=300,
+            )
+            
+            self.connection = pika.BlockingConnection(parameters)
+            self.channel = self.connection.channel()
+            
+            # Declare topic exchange for routing
+            self.channel.exchange_declare(
+                exchange=self.exchange,
+                exchange_type="topic",
+                durable=True,
+            )
+            
+            logger.info(f"Connected to RabbitMQ at {self.host}:{self.port}")
+        except Exception as e:
+            logger.error(f"Failed to connect to RabbitMQ: {e}")
+            raise
 
     def disconnect(self) -> None:
-        """
-        Close connection to RabbitMQ server.
-
-        TODO: Close channel gracefully
-        TODO: Close connection gracefully
-        TODO: Set connection and channel to None
-        TODO: Add error handling
-        """
-        # TODO: Implement
-        logger.info("Disconnected from RabbitMQ")
+        """Close connection to RabbitMQ server."""
+        try:
+            if self.channel and self.channel.is_open:
+                self.channel.close()
+            if self.connection and self.connection.is_open:
+                self.connection.close()
+            logger.info("Disconnected from RabbitMQ")
+        except Exception as e:
+            logger.error(f"Error disconnecting from RabbitMQ: {e}")
+        finally:
+            self.channel = None
+            self.connection = None
 
     def publish(self, routing_key: str, message: dict[str, Any]) -> None:
         """
@@ -77,16 +91,29 @@ class RabbitMQPublisher:
         Args:
             routing_key: Routing key for message (e.g., "document.uploaded")
             message: Message payload as dictionary
-
-        TODO: Ensure connection is established
-        TODO: Serialize message to JSON
-        TODO: Publish to exchange with routing key
-        TODO: Set message properties (delivery_mode=2 for persistent)
-        TODO: Add error handling for publish failures
-        TODO: Add logging for published messages
         """
-        # TODO: Implement
-        logger.info(f"Publishing message with routing_key={routing_key}")
+        if not self.channel or not self.channel.is_open:
+            raise RuntimeError("Not connected to RabbitMQ. Call connect() first.")
+        
+        try:
+            # Serialize message to JSON
+            message_body = json.dumps(message)
+            
+            # Publish to exchange with persistent delivery
+            self.channel.basic_publish(
+                exchange=self.exchange,
+                routing_key=routing_key,
+                body=message_body,
+                properties=pika.BasicProperties(
+                    delivery_mode=2,  # Make message persistent
+                    content_type="application/json",
+                ),
+            )
+            
+            logger.info(f"Published event: {routing_key} for document_id={message.get('document_id')}")
+        except Exception as e:
+            logger.error(f"Failed to publish message with routing_key={routing_key}: {e}")
+            raise
 
     def __enter__(self) -> "RabbitMQPublisher":
         """Context manager entry."""

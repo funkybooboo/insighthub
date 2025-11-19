@@ -1,6 +1,6 @@
 """Mappers for converting between user models and DTOs."""
 
-from .models import User
+from shared.models import User
 
 
 class UserMapper:

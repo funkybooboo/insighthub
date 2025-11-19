@@ -1,7 +1,8 @@
 """Mappers for converting between document models and DTOs."""
 
+from shared.models import Document
+
 from .dtos import DocumentResponse
-from .models import Document
 
 
 class DocumentMapper:

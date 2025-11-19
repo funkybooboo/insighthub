@@ -11,14 +11,20 @@ tasks:
   # Start services
   # --------------------------------------------------------------------------
   up:
-    desc: Start all production services
+    desc: Start production (infrastructure + server + client)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --profile prod
+      - cmd: 'echo "Production services started:"'
+        silent: true
+      - cmd: 'echo "  - Server (prod): http://localhost:5000"'
+        silent: true
+      - cmd: 'echo "  - Client (prod): http://localhost:3000"'
+        silent: true
 
   up-dev:
-    desc: Start all development services
+    desc: Start development (infrastructure + server + client)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile dev
       - cmd: 'echo "Development services started:"'
         silent: true
       - cmd: 'echo "  - Server (dev): http://localhost:5000"'
@@ -63,11 +69,32 @@ tasks:
       - cmd: 'echo "  - RabbitMQ: http://localhost:15672 (management)"'
         silent: true
 
-  up-workers:
-    desc: Start all worker processes
+  up-workers-dev:
+    desc: Start development workers (requires up-dev or up-infra)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.workers.yml up -d --profile workers
-      - cmd: 'echo "Worker processes started:"'
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile workers
+      - cmd: 'echo "Development worker processes started:"'
+        silent: true
+      - cmd: 'echo "  - Ingestion worker (document parsing)"'
+        silent: true
+      - cmd: 'echo "  - Embeddings worker (vector generation)"'
+        silent: true
+      - cmd: 'echo "  - Graph worker (entity extraction)"'
+        silent: true
+      - cmd: 'echo "  - Enrichment worker (external knowledge)"'
+        silent: true
+      - cmd: 'echo "  - Query worker (context preparation)"'
+        silent: true
+      - cmd: 'echo "  - Retriever worker (internet data)"'
+        silent: true
+      - cmd: 'echo "  - Notify worker (notifications)"'
+        silent: true
+
+  up-workers:
+    desc: Start production workers (requires up or up-infra)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --profile workers
+      - cmd: 'echo "Production worker processes started:"'
         silent: true
       - cmd: 'echo "  - Ingestion worker (document parsing)"'
         silent: true
@@ -85,10 +112,16 @@ tasks:
         silent: true
 
   up-full:
-    desc: Start infrastructure, server, client, and workers
+    desc: Start everything in development (infrastructure + dev + workers)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.workers.yml up -d --profile dev --profile workers
-      - cmd: 'echo "Full stack started (infrastructure + dev + workers)"'
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile dev --profile workers
+      - cmd: 'echo "Full development stack started:"'
+        silent: true
+      - cmd: 'echo "  - Server (dev): http://localhost:5000"'
+        silent: true
+      - cmd: 'echo "  - Client (dev): http://localhost:3000"'
+        silent: true
+      - cmd: 'echo "  - All 7 workers running"'
         silent: true
 
   down:
@@ -220,10 +253,15 @@ tasks:
     cmds:
       - docker compose -f docker-compose.yml logs -f rabbitmq
 
-  logs-workers:
-    desc: Show all worker logs
+  logs-workers-dev:
+    desc: Show all development worker logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.workers.yml logs -f
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-ingestion-dev worker-embeddings-dev worker-graph-dev worker-enrichment-dev worker-query-dev worker-retriever-dev worker-notify-dev
+
+  logs-workers:
+    desc: Show all production worker logs
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-ingestion-prod worker-embeddings-prod worker-graph-prod worker-enrichment-prod worker-query-prod worker-retriever-prod worker-notify-prod
 
   # --------------------------------------------------------------------------
   # Dev shortcuts

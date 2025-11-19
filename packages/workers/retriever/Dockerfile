@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Ingestion Worker
+# Multi-stage Dockerfile for Retriever Worker
 
 FROM python:3.11-slim as base
 

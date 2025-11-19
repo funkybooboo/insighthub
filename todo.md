@@ -272,11 +272,3 @@ src/
 
 - if we can run in docker swarm then we can run in k8s
 - this will make it easy to deploy the app to a cloud provider of choice later
-
-
-
-[ ] Restructure client to feature-based recursive folder structure
-[ ] Organize and verify all Dockerfiles are in proper order
-[ ] Organize and verify all docker-compose files
-[ ] Organize and verify all Taskfiles
-

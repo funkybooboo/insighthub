@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
-from src.domains.documents.repositories import DocumentRepository
-from src.domains.users.repositories import UserRepository
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.repositories import DocumentRepository
+from shared.repositories import UserRepository
 
 
 def test_user_document_relationship(

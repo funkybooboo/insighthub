@@ -99,3 +99,249 @@ services:
         condition: service_started
     networks:
       - insighthub
+
+  # ============================================================================
+  # Development Workers - Background processing with hot-reload
+  # ============================================================================
+  
+  worker-ingestion-dev:
+    labels:
+      project: insighthub
+      worker: ingestion
+    image: insighthub-worker-ingestion:dev
+    container_name: insighthub-worker-ingestion-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/ingestion
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/ingestion/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      MINIO_ENDPOINT_URL: http://minio:9000
+      MINIO_ACCESS_KEY: insighthub
+      MINIO_SECRET_KEY: insighthub_dev_secret
+      MINIO_BUCKET_NAME: documents
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      WORKER_NAME: ingestion
+      WORKER_CONCURRENCY: 4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-embeddings-dev:
+    labels:
+      project: insighthub
+      worker: embeddings
+    image: insighthub-worker-embeddings:dev
+    container_name: insighthub-worker-embeddings-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/embeddings
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/embeddings/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION_NAME: documents
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      WORKER_NAME: embeddings
+      WORKER_CONCURRENCY: 2
+      BATCH_SIZE: 100
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-graph-dev:
+    labels:
+      project: insighthub
+      worker: graph
+    image: insighthub-worker-graph:dev
+    container_name: insighthub-worker-graph-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/graph
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/graph/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_LLM_MODEL: llama3.2:1b
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      WORKER_NAME: graph
+      WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-enrichment-dev:
+    labels:
+      project: insighthub
+      worker: enrichment
+    image: insighthub-worker-enrichment:dev
+    container_name: insighthub-worker-enrichment-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/enrichment
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/enrichment/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
+      WORKER_NAME: enrichment
+      WORKER_CONCURRENCY: 3
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-query-dev:
+    labels:
+      project: insighthub
+      worker: query
+    image: insighthub-worker-query:dev
+    container_name: insighthub-worker-query-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/query
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/query/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      QDRANT_URL: http://qdrant:6333
+      OLLAMA_BASE_URL: http://ollama:11434
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      WORKER_NAME: query
+      WORKER_CONCURRENCY: 4
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-retriever-dev:
+    labels:
+      project: insighthub
+      worker: retriever
+    image: insighthub-worker-retriever:dev
+    container_name: insighthub-worker-retriever-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/retriever
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/retriever/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      ARXIV_API_URL: http://export.arxiv.org/api/query
+      WORKER_NAME: retriever
+      WORKER_CONCURRENCY: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-notify-dev:
+    labels:
+      project: insighthub
+      worker: notify
+    image: insighthub-worker-notify:dev
+    container_name: insighthub-worker-notify-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: ./packages/workers/notify
+      dockerfile: Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/notify/src:/app/src:ro
+    environment:
+      PYTHONUNBUFFERED: 1
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      RABBITMQ_EXCHANGE: insighthub
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      EMAIL_SMTP_SERVER: ${EMAIL_SMTP_SERVER:-}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-587}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      WORKER_NAME: notify
+      WORKER_CONCURRENCY: 10
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub

@@ -2,8 +2,9 @@
 
 import json
 
+from shared.models import ChatMessage, ChatSession
+
 from .dtos import MessageResponse, SessionResponse
-from .models import ChatMessage, ChatSession
 
 
 class ChatMapper:

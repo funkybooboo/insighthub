@@ -11,8 +11,8 @@ from src.domains.documents.exceptions import (
     DocumentProcessingError,
     InvalidFileTypeError,
 )
-from src.domains.documents.models import Document
-from src.domains.documents.repositories import DocumentRepository
+from shared.models import Document
+from shared.repositories import DocumentRepository
 from src.domains.documents.service import DocumentService
 from src.infrastructure.storage.blob_storage import BlobStorage
 

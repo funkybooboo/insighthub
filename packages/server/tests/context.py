@@ -2,11 +2,11 @@
 
 from sqlalchemy.orm import Session
 
-from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
 from src.domains.chat.service import ChatService
-from src.domains.documents.repositories import DocumentRepository
+from shared.repositories import DocumentRepository
 from src.domains.documents.service import DocumentService
-from src.domains.users.repositories import UserRepository
+from shared.repositories import UserRepository
 from src.domains.users.service import UserService
 from src.infrastructure.factories import (
     create_chat_message_repository,

@@ -22,10 +22,10 @@ from testcontainers.postgres import PostgresContainer
 
 from src import config
 from src.api import create_app
-from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
-from src.domains.documents.repositories import DocumentRepository
-from src.domains.users.repositories import UserRepository
-from src.infrastructure.database.base import Base
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.repositories import DocumentRepository
+from shared.repositories import UserRepository
+from shared.database import Base
 from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 from tests.context import IntegrationTestContext, create_integration_test_context
 
@@ -238,7 +238,7 @@ def sample_text_file() -> BytesIO:
 @pytest.fixture
 def test_user(db_session: Session) -> Any:
     """Create a test user for authentication."""
-    from src.domains.users.models import User
+    from shared.models import User
 
     user = User(
         username="test_user",

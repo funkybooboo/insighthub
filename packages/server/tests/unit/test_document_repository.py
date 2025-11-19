@@ -2,10 +2,10 @@
 
 import pytest
 
-from src.domains.documents.models import Document
-from src.domains.documents.repositories import DocumentRepository
-from src.domains.users.models import User
-from src.domains.users.repositories import UserRepository
+from shared.models import Document
+from shared.repositories import DocumentRepository
+from shared.models import User
+from shared.repositories import UserRepository
 
 
 @pytest.fixture
