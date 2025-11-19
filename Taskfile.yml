@@ -42,13 +42,53 @@ tasks:
         silent: true
 
   up-infra:
-    desc: Start infrastructure services only (Postgres, MinIO, Ollama)
+    desc: Start infrastructure services only (Postgres, MinIO, Ollama, Qdrant, Redis, RabbitMQ)
     cmds:
-      - docker compose -f docker-compose.yml up -d postgres minio ollama
+      - docker compose -f docker-compose.yml up -d postgres minio ollama qdrant redis rabbitmq
       - cmd: 'echo "Waiting for Ollama to be healthy..."'
         silent: true
       - docker compose -f docker-compose.yml up ollama-setup
       - cmd: 'echo "Infrastructure services started."'
+        silent: true
+      - cmd: 'echo "  - PostgreSQL: localhost:5432"'
+        silent: true
+      - cmd: 'echo "  - MinIO: http://localhost:9001 (console)"'
+        silent: true
+      - cmd: 'echo "  - Ollama: http://localhost:11434"'
+        silent: true
+      - cmd: 'echo "  - Qdrant: http://localhost:6334 (UI)"'
+        silent: true
+      - cmd: 'echo "  - Redis: localhost:6379"'
+        silent: true
+      - cmd: 'echo "  - RabbitMQ: http://localhost:15672 (management)"'
+        silent: true
+
+  up-workers:
+    desc: Start all worker processes
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.workers.yml up -d --profile workers
+      - cmd: 'echo "Worker processes started:"'
+        silent: true
+      - cmd: 'echo "  - Ingestion worker (document parsing)"'
+        silent: true
+      - cmd: 'echo "  - Embeddings worker (vector generation)"'
+        silent: true
+      - cmd: 'echo "  - Graph worker (entity extraction)"'
+        silent: true
+      - cmd: 'echo "  - Enrichment worker (external knowledge)"'
+        silent: true
+      - cmd: 'echo "  - Query worker (context preparation)"'
+        silent: true
+      - cmd: 'echo "  - Retriever worker (internet data)"'
+        silent: true
+      - cmd: 'echo "  - Notify worker (notifications)"'
+        silent: true
+
+  up-full:
+    desc: Start infrastructure, server, client, and workers
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.workers.yml up -d --profile dev --profile workers
+      - cmd: 'echo "Full stack started (infrastructure + dev + workers)"'
         silent: true
 
   down:
@@ -164,6 +204,26 @@ tasks:
     desc: Show MinIO logs
     cmds:
       - docker compose -f docker-compose.yml logs -f minio
+
+  logs-qdrant:
+    desc: Show Qdrant logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f qdrant
+
+  logs-redis:
+    desc: Show Redis logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f redis
+
+  logs-rabbitmq:
+    desc: Show RabbitMQ logs
+    cmds:
+      - docker compose -f docker-compose.yml logs -f rabbitmq
+
+  logs-workers:
+    desc: Show all worker logs
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.workers.yml logs -f
 
   # --------------------------------------------------------------------------
   # Dev shortcuts
