@@ -1,8 +1,9 @@
 """Documents domain - handles document uploads and management."""
 
+from shared.models import Document
+from shared.repositories import DocumentRepository, SqlDocumentRepository
+
 from . import commands
-from .models import Document
-from .repositories import DocumentRepository, SqlDocumentRepository
 from .routes import documents_bp
 from .service import DocumentService, DocumentUploadResult
 

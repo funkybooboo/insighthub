@@ -6,11 +6,11 @@ from datetime import datetime
 import pytest
 
 from src.domains.chat.mappers import ChatMapper
-from src.domains.chat.models import ChatMessage, ChatSession
+from shared.models import ChatMessage, ChatSession
 from src.domains.documents.mappers import DocumentMapper
-from src.domains.documents.models import Document
+from shared.models import Document
 from src.domains.users.mappers import UserMapper
-from src.domains.users.models import User
+from shared.models import User
 
 
 class TestDocumentMapper:

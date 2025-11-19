@@ -8,11 +8,12 @@ from pypdf import PdfReader
 from src.infrastructure.messaging import RabbitMQPublisher
 from src.infrastructure.storage import BlobStorage
 
+from shared.models import Document
+from shared.repositories import DocumentRepository
+
 from .dtos import DocumentListResponse, DocumentUploadResponse
 from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
 from .mappers import DocumentMapper
-from .models import Document
-from .repositories import DocumentRepository
 
 
 @dataclass

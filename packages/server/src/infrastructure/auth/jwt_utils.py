@@ -8,8 +8,7 @@ from typing import cast
 import jwt
 from flask import g, request
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-
-from src.domains.users.models import User
+from shared.models import User
 
 logger = logging.getLogger(__name__)
 

@@ -81,7 +81,7 @@ def client(app: Flask) -> FlaskClient:
 @pytest.fixture(scope="function")
 def test_user(app: Flask) -> Generator[Any, None, None]:
     """Create a test user for authentication."""
-    from src.domains.users.models import User
+    from shared.models import User
     from src.infrastructure.database import get_db
 
     db = next(get_db())

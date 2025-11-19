@@ -8,12 +8,13 @@ from dataclasses import dataclass
 
 from src.infrastructure.llm.llm import LlmProvider
 
+from shared.models import ChatMessage, ChatSession
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
+
 from .dtos import ChatResponse as ChatResponseDTO
 from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
 from .exceptions import EmptyMessageError
 from .mappers import ChatMapper
-from .models import ChatMessage, ChatSession
-from .repositories import ChatMessageRepository, ChatSessionRepository
 
 logger = logging.getLogger(__name__)
 

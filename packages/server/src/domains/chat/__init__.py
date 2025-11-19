@@ -1,26 +1,25 @@
 """Chat domain - handles chat sessions and messages."""
 
-from . import commands
-from .models import ChatMessage, ChatSession
-from .repositories import (
+from shared.models import ChatMessage, ChatSession
+from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
     SqlChatMessageRepository,
     SqlChatSessionRepository,
 )
+
 from .routes import chat_bp
-from .service import ChatContext, ChatResponse, ChatService
+from .service import ChatService
+from .socket_handlers import register_socket_handlers
 
 __all__ = [
-    "ChatMessage",
     "ChatSession",
-    "ChatMessageRepository",
+    "ChatMessage",
     "ChatSessionRepository",
-    "SqlChatMessageRepository",
     "SqlChatSessionRepository",
+    "ChatMessageRepository",
+    "SqlChatMessageRepository",
     "ChatService",
-    "ChatContext",
-    "ChatResponse",
     "chat_bp",
-    "commands",
+    "register_socket_handlers",
 ]

@@ -2,8 +2,8 @@
 
 import pytest
 
-from src.domains.users.models import User
-from src.domains.users.repositories import UserRepository
+from shared.models import User
+from shared.repositories import UserRepository
 
 pytestmark = [pytest.mark.unit, pytest.mark.database]
 

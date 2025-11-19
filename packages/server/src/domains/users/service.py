@@ -2,9 +2,10 @@
 
 import logging
 
+from shared.models import User
+from shared.repositories import UserRepository
+
 from .exceptions import UserAlreadyExistsError, UserAuthenticationError
-from .models import User
-from .repositories import UserRepository
 
 logger = logging.getLogger(__name__)
 

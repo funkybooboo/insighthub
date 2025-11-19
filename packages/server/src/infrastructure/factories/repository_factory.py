@@ -5,14 +5,16 @@ from enum import Enum
 from sqlalchemy.orm import Session
 
 from src import config
-from src.domains.chat.repositories import (
+from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
+    DocumentRepository,
     SqlChatMessageRepository,
     SqlChatSessionRepository,
+    SqlDocumentRepository,
+    SqlUserRepository,
+    UserRepository,
 )
-from src.domains.documents.repositories import DocumentRepository, SqlDocumentRepository
-from src.domains.users.repositories import SqlUserRepository, UserRepository
 
 
 class UserRepositoryType(Enum):

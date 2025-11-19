@@ -8,10 +8,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from src.domains.chat.repositories import ChatMessageRepository, ChatSessionRepository
-from src.domains.documents.repositories import DocumentRepository
-from src.domains.users.repositories import UserRepository
-from src.infrastructure.database.base import Base
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.repositories import DocumentRepository
+from shared.repositories import UserRepository
+from shared.database import Base
 from src.infrastructure.storage import BlobStorage
 from tests.context import UnitTestContext, create_unit_test_context
 
