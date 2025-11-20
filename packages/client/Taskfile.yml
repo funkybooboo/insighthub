@@ -57,21 +57,6 @@ tasks:
         cmds:
             - bun run test:ui
 
-    test:e2e:
-        desc: Run E2E tests with Playwright
-        cmds:
-            - npx playwright test
-
-    test:e2e:ui:
-        desc: Run E2E tests with Playwright UI mode
-        cmds:
-            - npx playwright test --ui
-
-    test:e2e:headed:
-        desc: Run E2E tests in headed mode (see browser)
-        cmds:
-            - npx playwright test --headed
-
     storybook:
         desc: Run Storybook development server
         cmds:

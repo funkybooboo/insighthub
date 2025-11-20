@@ -1,12 +1,17 @@
 """Test context for dependency injection in tests."""
 
+from shared.repositories import (
+    ChatMessageRepository,
+    ChatSessionRepository,
+    DocumentRepository,
+    UserRepository,
+)
+from shared.storage import BlobStorage
+from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 from sqlalchemy.orm import Session
 
-from shared.repositories import ChatMessageRepository, ChatSessionRepository
 from src.domains.chat.service import ChatService
-from shared.repositories import DocumentRepository
 from src.domains.documents.service import DocumentService
-from shared.repositories import UserRepository
 from src.domains.users.service import UserService
 from src.infrastructure.factories import (
     create_chat_message_repository,
@@ -14,7 +19,6 @@ from src.infrastructure.factories import (
     create_document_repository,
     create_user_repository,
 )
-from src.infrastructure.storage import BlobStorage, InMemoryBlobStorage
 
 
 class UnitTestContext:

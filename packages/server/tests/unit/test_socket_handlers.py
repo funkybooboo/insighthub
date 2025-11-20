@@ -75,7 +75,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_success(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:
@@ -114,7 +114,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_with_session_id(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:
@@ -152,7 +152,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_empty_message(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:
@@ -180,7 +180,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_error(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:
@@ -208,7 +208,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_closes_db(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:
@@ -233,7 +233,7 @@ class TestChatSocketHandlers:
 
     @patch("src.domains.chat.socket_handlers.get_db")
     @patch("src.domains.chat.socket_handlers.emit")
-    @patch("src.domains.chat.socket_handlers.AppContext")
+    @patch("src.context.AppContext")
     def test_handle_chat_message_with_custom_rag_type(
         self, mock_context: Mock, mock_emit: Mock, mock_get_db: Mock, app: Flask
     ) -> None:

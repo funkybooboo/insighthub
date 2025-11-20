@@ -3,11 +3,14 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from shared.repositories import (
+    SqlChatMessageRepository,
+    SqlChatSessionRepository,
+    SqlDocumentRepository,
+    SqlUserRepository,
+)
 from sqlalchemy.orm import Session
 
-from shared.repositories import SqlChatMessageRepository, SqlChatSessionRepository
-from shared.repositories import SqlDocumentRepository
-from shared.repositories import SqlUserRepository
 from src.infrastructure.factories import (
     ChatMessageRepositoryType,
     ChatSessionRepositoryType,

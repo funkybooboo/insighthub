@@ -2,6 +2,8 @@
 
 from sqlalchemy.orm import Session
 
+from shared.messaging import RabbitMQPublisher
+from shared.storage import BlobStorage
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
 from src.domains.users.service import UserService
@@ -12,8 +14,8 @@ from src.infrastructure.factories import (
     create_user_repository,
 )
 from src.infrastructure.llm import create_llm_provider
-from src.infrastructure.messaging import RabbitMQPublisher, create_rabbitmq_publisher
-from src.infrastructure.storage import BlobStorage, create_blob_storage
+from src.infrastructure.messaging import create_rabbitmq_publisher
+from src.infrastructure.storage import create_blob_storage
 
 
 class AppContext:
@@ -40,9 +42,7 @@ class AppContext:
 
         # Initialize RabbitMQ publisher (None if disabled)
         self.message_publisher = (
-            message_publisher
-            if message_publisher is not None
-            else create_rabbitmq_publisher()
+            message_publisher if message_publisher is not None else create_rabbitmq_publisher()
         )
 
         # Initialize LLM provider using factory

@@ -19,9 +19,15 @@ from src.domains.chat.routes import chat_bp
 from src.domains.chat.socket_handlers import handle_cancel_message, handle_chat_message
 from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
+from src.domains.status.socket_handlers import (
+    broadcast_document_status,
+    broadcast_workspace_status,
+    register_status_socket_handlers,
+)
 from src.infrastructure.database import get_db, init_db
 from src.infrastructure.errors import register_error_handlers
 from src.infrastructure.logging_config import setup_logging
+from src.infrastructure.messaging.status_consumer import create_status_consumer
 from src.infrastructure.middleware import (
     PerformanceMonitoringMiddleware,
     RateLimitMiddleware,
@@ -117,6 +123,31 @@ def create_app() -> Flask:
     socket_handler = SocketHandler(socketio)
     socket_handler.register_event("chat_message", handle_chat_message)
     socket_handler.register_event("cancel_message", handle_cancel_message)
+
+    # Register status socket handlers
+    register_status_socket_handlers(socketio)
+
+    # Start status update consumer if RabbitMQ is configured
+    def on_document_status(event_data: dict[str, Any]) -> None:
+        """Handle document status update from RabbitMQ."""
+        broadcast_document_status(event_data, socketio)
+
+    def on_workspace_status(event_data: dict[str, Any]) -> None:
+        """Handle workspace status update from RabbitMQ."""
+        broadcast_workspace_status(event_data, socketio)
+
+    status_consumer = create_status_consumer(
+        on_document_status=on_document_status,
+        on_workspace_status=on_workspace_status,
+    )
+
+    if status_consumer:
+        app.logger.info("Status update consumer started")
+        # Store consumer reference for graceful shutdown
+        app.status_consumer = status_consumer  # type: ignore
+    else:
+        app.logger.info("Status update consumer disabled (RabbitMQ not configured)")
+
     app.logger.info("Socket.IO initialized")
 
     # Register centralized error handlers

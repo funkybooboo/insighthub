@@ -7,6 +7,7 @@ from shared.repositories.chat import (
     SqlChatSessionRepository,
 )
 from shared.repositories.document import DocumentRepository, SqlDocumentRepository
+from shared.repositories.status import SqlStatusRepository, StatusRepository
 from shared.repositories.user import SqlUserRepository, UserRepository
 
 __all__ = [
@@ -18,4 +19,6 @@ __all__ = [
     "SqlChatSessionRepository",
     "ChatMessageRepository",
     "SqlChatMessageRepository",
+    "StatusRepository",
+    "SqlStatusRepository",
 ]

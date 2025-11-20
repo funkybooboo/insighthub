@@ -3,6 +3,14 @@
  */
 
 import axios, { type AxiosInstance } from 'axios';
+import type {
+    Workspace,
+    RagConfig,
+    CreateWorkspaceRequest,
+    UpdateWorkspaceRequest,
+    CreateRagConfigRequest,
+    UpdateRagConfigRequest,
+} from '../types/workspace';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -205,6 +213,79 @@ class ApiService {
      */
     async updatePreferences(request: UpdatePreferencesRequest): Promise<UserResponse> {
         const { data } = await this.client.patch<UserResponse>('/api/auth/preferences', request);
+        return data;
+    }
+
+    /**
+     * List all workspaces
+     */
+    async listWorkspaces(): Promise<Workspace[]> {
+        const { data } = await this.client.get<Workspace[]>('/api/workspaces');
+        return data;
+    }
+
+    /**
+     * Get a specific workspace
+     */
+    async getWorkspace(workspaceId: number): Promise<Workspace> {
+        const { data } = await this.client.get<Workspace>(`/api/workspaces/${workspaceId}`);
+        return data;
+    }
+
+    /**
+     * Create a new workspace
+     */
+    async createWorkspace(request: CreateWorkspaceRequest): Promise<Workspace> {
+        const { data } = await this.client.post<Workspace>('/api/workspaces', request);
+        return data;
+    }
+
+    /**
+     * Update a workspace
+     */
+    async updateWorkspace(workspaceId: number, request: UpdateWorkspaceRequest): Promise<Workspace> {
+        const { data } = await this.client.patch<Workspace>(`/api/workspaces/${workspaceId}`, request);
+        return data;
+    }
+
+    /**
+     * Delete a workspace
+     */
+    async deleteWorkspace(workspaceId: number): Promise<{ message: string }> {
+        const { data } = await this.client.delete<{ message: string }>(`/api/workspaces/${workspaceId}`);
+        return data;
+    }
+
+    /**
+     * Get RAG config for a workspace
+     */
+    async getRagConfig(workspaceId: number): Promise<RagConfig> {
+        const { data } = await this.client.get<RagConfig>(`/api/workspaces/${workspaceId}/rag-config`);
+        return data;
+    }
+
+    /**
+     * Create RAG config for a workspace
+     */
+    async createRagConfig(workspaceId: number, request: CreateRagConfigRequest): Promise<RagConfig> {
+        const { data } = await this.client.post<RagConfig>(
+            `/api/workspaces/${workspaceId}/rag-config`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Update RAG config for a workspace
+     */
+    async updateRagConfig(
+        workspaceId: number,
+        request: UpdateRagConfigRequest
+    ): Promise<RagConfig> {
+        const { data } = await this.client.patch<RagConfig>(
+            `/api/workspaces/${workspaceId}/rag-config`,
+            request
+        );
         return data;
     }
 }

@@ -5,10 +5,9 @@ from collections.abc import Generator
 from typing import Optional
 
 from sqlalchemy import Engine, create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
-# Base class for SQLAlchemy models
-Base = declarative_base()
+from .base import Base
 
 # Global engine and session factory (created lazily)
 _engine: Optional[Engine] = None

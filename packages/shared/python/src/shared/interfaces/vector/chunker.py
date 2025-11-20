@@ -1,50 +1,76 @@
-"""Chunker interface for Vector RAG."""
+"""Text chunking interfaces for splitting documents into semantic segments."""
 
 from abc import ABC, abstractmethod
+from typing import Any
 
-from shared.types import Chunk, Document
+from shared.types.document import Document, Chunk
 
 
 class Chunker(ABC):
     """
-    Splits Document content into smaller, semantically meaningful chunks.
-
-    Implementations can use different strategies:
-    - Sentence-based chunking
-    - Character-based with overlap
+    Interface for splitting documents into smaller, meaningful chunks.
+    
+    Implementations should use different strategies:
+    - Fixed-size character chunking
+    - Sentence-based chunking  
+    - Paragraph-based chunking
     - Semantic chunking using embeddings
     """
 
     @abstractmethod
     def chunk(self, document: Document) -> list[Chunk]:
         """
-        Chunk the document into a list of Chunk objects.
+        Split a document into chunks.
 
         Args:
-            document: Document to split into chunks
+            document: The document to chunk
 
         Returns:
-            List of Chunk objects
+            list[Chunk]: List of text chunks with metadata
+
+        Raises:
+            ChunkingError: If chunking fails
         """
-        raise NotImplementedError
+        pass
+
+    @abstractmethod
+    def estimate_chunk_count(self, document: Document) -> int:
+        """
+        Estimate the number of chunks that will be created.
+
+        Args:
+            document: The document to analyze
+
+        Returns:
+            int: Estimated number of chunks
+        """
+        pass
 
 
 class MetadataEnricher(ABC):
     """
-    Enriches chunks with additional metadata.
-
-    Examples: token count, language detection, content type, hash.
+    Interface for enriching chunks with additional metadata.
+    
+    Implementations can add:
+    - Token counts
+    - Language detection
+    - Position information
+    - Semantic metadata
+    - Provenance information
     """
 
     @abstractmethod
     def enrich(self, chunk: Chunk) -> Chunk:
         """
-        Add or modify metadata for a chunk.
+        Enrich a chunk with additional metadata.
 
         Args:
-            chunk: Chunk to enrich
+            chunk: The chunk to enrich
 
         Returns:
-            Enriched Chunk object
+            Chunk: Enriched chunk with additional metadata
+
+        Raises:
+            EnrichmentError: If enrichment fails
         """
-        raise NotImplementedError
+        pass

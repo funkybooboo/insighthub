@@ -2,13 +2,14 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.database.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from shared.models.user import User
+    from shared.models.workspace import Workspace
 
 
 class Document(Base, TimestampMixin):
@@ -19,6 +20,9 @@ class Document(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True
     )
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_path: Mapped[str] = mapped_column(String(1024), nullable=False)
@@ -31,9 +35,14 @@ class Document(Base, TimestampMixin):
     rag_collection: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )  # Vector store collection name
+    processing_status: Mapped[str] = mapped_column(
+        String(50), nullable=False, server_default="pending", index=True
+    )  # 'pending', 'processing', 'ready', 'failed'
+    processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="documents")
+    workspace: Mapped["Workspace | None"] = relationship("Workspace", back_populates="documents")
 
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, filename={self.filename}, user_id={self.user_id})>"

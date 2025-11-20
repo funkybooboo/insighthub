@@ -3,13 +3,13 @@
 from typing import TYPE_CHECKING
 
 import bcrypt
+from shared.database.base import Base, TimestampMixin
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.infrastructure.database.base import Base, TimestampMixin
-
 if TYPE_CHECKING:
-    from src.domains.chat.models import ChatSession
+    from shared.models.chat import ChatSession
+
     from src.domains.documents.models import Document
 
 

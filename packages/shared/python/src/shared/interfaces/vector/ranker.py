@@ -1,33 +1,36 @@
-"""Ranker interface for Vector RAG."""
+"""Result ranking interface for reordering retrieved vectors by relevance."""
 
 from abc import ABC, abstractmethod
+from typing import Any, List
 
-from shared.types import RetrievalResult
+from shared.types.retrieval import RetrievalResult
 
 
 class Ranker(ABC):
     """
-    Re-ranks retrieved chunks to improve relevance for LLM context.
-
-    Can use cross-encoders, BM25, or other ranking algorithms.
+    Interface for re-ranking retrieved vectors to improve relevance.
+    
+    Implementations can use:
+    - Cross-encoders
+    - BM25 scoring
+    - Learning-to-rank models
+    - Custom scoring functions
     """
 
     @abstractmethod
-    def rerank(
-        self,
-        candidates: list[RetrievalResult],
-        query: str | None = None,
-        top_k: int | None = None,
-    ) -> list[RetrievalResult]:
+    def rerank(self, candidates: List[RetrievalResult], query: str | None = None, top_k: int | None = None) -> List[RetrievalResult]:
         """
-        Re-rank retrieval candidates.
+        Re-rank a list of retrieved results.
 
         Args:
-            candidates: List of retrieved results
-            query: Optional query string for cross-encoder ranking
-            top_k: Optional limit for top-k results
+            candidates: List of retrieved results to re-rank
+            query: Optional query string for cross-encoder scoring
+            top_k: Optional number of top results to return
 
         Returns:
-            Re-ranked list of RetrievalResult
+            List[RetrievalResult]: Re-ranked results
+
+        Raises:
+            RankingError: If re-ranking fails
         """
-        raise NotImplementedError
+        pass

@@ -6,12 +6,12 @@ from collections.abc import Generator
 from datetime import datetime
 
 import pytest
-
-from src.domains.chat.exceptions import EmptyMessageError
+from shared.llm import LlmProvider
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
+
+from src.domains.chat.exceptions import EmptyMessageError
 from src.domains.chat.service import ChatService
-from src.infrastructure.llm.llm import LlmProvider
 
 
 class DummyLlmProvider(LlmProvider):

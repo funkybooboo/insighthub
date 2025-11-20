@@ -1,367 +1,197 @@
-# InsightHub Refactoring Plan
+# Code Deduplication Refactoring Plan
 
-This document outlines the file system reorganization to establish a clean, maintainable architecture.
+## Executive Summary
 
-## Goals
+This document outlines the plan to eliminate code duplication between `packages/server/` and `packages/shared/python/`. The goal is to ensure we follow proper OOP principles: program to interfaces (not implementations), use dependency injection, and maintain a single source of truth.
 
-1. Create shared Python package for types and interfaces used by server and workers
-2. Refactor client to feature-based structure
-3. Move RAG notes to documentation
-4. Implement foundational RAG interfaces
-5. Add TODOs for future implementation work
+## Current State Analysis
 
----
+### Duplicate Code Identified
 
-## Status: IN PROGRESS
+1. **LLM Interface** - `LlmProvider` class exists in both locations (IDENTICAL)
+2. **Blob Storage Interface** - `BlobStorage` class exists in both locations (NEARLY IDENTICAL)
+3. **RabbitMQ Publisher** - `RabbitMQPublisher` class exists in both locations (NEARLY IDENTICAL)
+4. **Chat Models** - `ChatSession` and `ChatMessage` exist in both locations (shared has workspace_id, server does not)
+5. **Chat Repositories** - Interface + SQL implementations exist in both locations (IDENTICAL)
+6. **Database Base Classes** - `Base`, `TimestampMixin` exist in both locations
+7. **LLM Provider Implementations** - Ollama, OpenAI, Claude, HuggingFace all duplicated
+8. **Storage Implementations** - MinIO, FileSystem, InMemory all duplicated
 
-### Completed ✅
+### Root Cause
 
-1. **Shared Python Package Structure**
-   - Created `packages/shared/python/` with Poetry configuration
-   - Implemented core data types:
-     - `shared.types.common` - PrimitiveValue, MetadataValue
-     - `shared.types.document` - Document, Chunk
-     - `shared.types.graph` - GraphNode, GraphEdge
-     - `shared.types.rag` - ChunkerConfig, RagConfig, SearchResult
-     - `shared.types.retrieval` - RetrievalResult
+The server was originally developed independently, then the shared library was created to support workers. Code was copied rather than refactored to use the shared library.
 
-2. **Vector RAG Interfaces** (based on `vector_rag_notes.py`)
-   - `shared.interfaces.vector.parser.DocumentParser` - Parse raw bytes to Document
-   - `shared.interfaces.vector.chunker.Chunker` - Split documents into chunks
-   - `shared.interfaces.vector.chunker.MetadataEnricher` - Enrich chunk metadata
-   - `shared.interfaces.vector.embedder.EmbeddingEncoder` - Generate embeddings
-   - `shared.interfaces.vector.store.VectorIndex` - Vector storage abstraction
-   - `shared.interfaces.vector.retriever.VectorRetriever` - High-level retrieval
-   - `shared.interfaces.vector.ranker.Ranker` - Rerank results
-   - `shared.interfaces.vector.context.ContextBuilder` - Build LLM context
-   - `shared.interfaces.vector.llm.LLM` - LLM generation interface
-   - `shared.interfaces.vector.formatter.OutputFormatter` - Format responses
+## Refactoring Strategy
 
-### In Progress 🚧
+### Phase 1: Core Interfaces (High Priority)
 
-3. **Graph RAG Interfaces** (based on `graph_rag_notes.py`)
-   - TODO: Entity extraction interfaces
-   - TODO: Relation extraction interfaces
-   - TODO: Graph builder interfaces
-   - TODO: Graph store interfaces
-   - TODO: Graph retrieval interfaces
-   - TODO: Hybrid retriever interfaces
+**Goal**: Remove duplicate interfaces from server, import from shared
 
-### Pending ⏳
+#### 1.1 LLM Interface
+- **Action**: Delete `server/src/infrastructure/llm/llm.py`
+- **Update Imports**:
+  - `server/src/domains/chat/service.py`: Change to `from shared.llm import LlmProvider`
+  - `server/src/infrastructure/llm/factory.py`: Change to `from shared.llm import LlmProvider`
+  - All test files
 
-4. **Orchestrators**
-   - TODO: `shared.orchestrators.VectorRAGIndexer` - Ingestion pipeline
-   - TODO: `shared.orchestrators.VectorRAG` - Query pipeline
-   - TODO: `shared.orchestrators.GraphRAGIndexer` - Graph ingestion
-   - TODO: `shared.orchestrators.GraphRAG` - Graph query
+#### 1.2 Blob Storage Interface
+- **Action**: Delete `server/src/infrastructure/storage/blob_storage.py`
+- **Update Imports**:
+  - `server/src/context.py`: Change to `from shared.storage import BlobStorage`
+  - `server/src/domains/documents/service.py`: Change to `from shared.storage import BlobStorage`
+  - All factory and test files
 
-5. **Event Schemas** (for RabbitMQ)
-   - TODO: `shared.events.document` - Document events
-   - TODO: `shared.events.embedding` - Embedding events
-   - TODO: `shared.events.graph` - Graph events
-   - TODO: `shared.events.query` - Query events
+#### 1.3 Messaging (RabbitMQ)
+- **Action**: Delete `server/src/infrastructure/messaging/publisher.py`
+- **Update Imports**:
+  - `server/src/context.py`: Change to `from shared.messaging import RabbitMQPublisher`
+  - `server/src/domains/documents/service.py`: Change to `from shared.messaging import RabbitMQPublisher`
 
-6. **Move RAG Notes to Docs**
-   - TODO: Move `graph_rag_notes.py` to `docs/rag/graph-rag-architecture.md`
-   - TODO: Move `vector_rag_notes.py` to `docs/rag/vector-rag-architecture.md`
-   - TODO: Create `docs/rag/comparison.md`
+#### 1.4 Database Base Classes
+- **Action**: Delete `server/src/infrastructure/database/base.py`
+- **Update Imports**:
+  - `server/src/domains/*/models.py`: Change to `from shared.database.base import Base, TimestampMixin`
 
-7. **Client Refactoring**
-   - TODO: Reorganize to feature-based structure (OPTIONAL - current structure is good)
-   - Current structure (domain-based) works well, only refactor if needed
+### Phase 2: Models & Repositories (High Priority)
 
-8. **Server Updates**
-   - TODO: Update server to depend on `insighthub-shared`
-   - TODO: Migrate existing RAG types to use shared types
-   - TODO: Update imports throughout server codebase
+#### 2.1 Chat Models
+- **Issue**: Shared has `workspace_id`, server doesn't
+- **Resolution**: Server should use shared models (workspace_id can be nullable for backwards compatibility)
+- **Action**: 
+  - Delete `server/src/domains/chat/models.py`
+  - Update imports to `from shared.models.chat import ChatSession, ChatMessage`
+  - Create migration to add `workspace_id` column if not exists
 
-9. **Worker Implementation**
-   - TODO: Add shared package dependency to all workers
-   - TODO: Implement ingestion worker using shared interfaces
-   - TODO: Implement embeddings worker
-   - TODO: Implement graph worker
+#### 2.2 Chat Repositories
+- **Action**: Delete `server/src/domains/chat/repositories.py`
+- **Update Imports**: Change to `from shared.repositories.chat import ChatSessionRepository, SqlChatSessionRepository, etc.`
 
----
+### Phase 3: Implementations (Medium Priority)
 
-## New File Structure
+#### 3.1 LLM Provider Implementations
+Currently duplicated:
+- `ollama.py` - OllamaLlmProvider
+- `openai_provider.py` - OpenAiLlmProvider
+- `claude_provider.py` - ClaudeLlmProvider
+- `huggingface_provider.py` - HuggingFaceLlmProvider
+
+**Decision**: Keep in SHARED, server's factory imports from shared
+- **Action**:
+  - Delete server implementations
+  - Update server factory to import from shared
+  - Server factory can stay in server (wraps shared implementations with server config)
+
+#### 3.2 Storage Implementations
+Currently duplicated:
+- `minio_blob_storage.py` / `minio_storage.py`
+- `file_system_blob_storage.py`
+- `in_memory_blob_storage.py`
+
+**Decision**: Keep in SHARED
+- **Action**:
+  - Delete server implementations
+  - Update server factory to import from shared
+
+### Phase 4: Clean Up (Medium Priority)
+
+#### 4.1 Folder Structure
+After removing duplicates, server infrastructure should be:
 
 ```
-packages/
-  shared/
-    python/
-      src/
-        shared/
-          __init__.py
-          types/                    # ✅ DONE
-            __init__.py
-            common.py              # PrimitiveValue, MetadataValue
-            document.py            # Document, Chunk
-            graph.py               # GraphNode, GraphEdge
-            rag.py                 # RagConfig, ChunkerConfig, SearchResult
-            retrieval.py           # RetrievalResult
-          interfaces/              # ✅ Vector DONE, Graph TODO
-            __init__.py
-            vector/                # ✅ DONE
-              __init__.py
-              parser.py            # DocumentParser
-              chunker.py           # Chunker, MetadataEnricher
-              embedder.py          # EmbeddingEncoder
-              store.py             # VectorIndex
-              retriever.py         # VectorRetriever
-              ranker.py            # Ranker
-              context.py           # ContextBuilder
-              llm.py               # LLM
-              formatter.py         # OutputFormatter
-            graph/                 # TODO
-              __init__.py
-              entity.py            # EntityExtractor
-              relation.py          # RelationExtractor
-              builder.py           # GraphBuilder
-              store.py             # GraphStore
-              retriever.py         # GraphRetriever
-            hybrid/                # TODO
-              __init__.py
-              retriever.py         # HybridRetriever
-              fusion.py            # FusionScorer
-          orchestrators/           # TODO
-            __init__.py
-            vector_rag.py          # VectorRAGIndexer, VectorRAG
-            graph_rag.py           # GraphRAGIndexer, GraphRAG
-          events/                  # TODO
-            __init__.py
-            document.py
-            embedding.py
-            graph.py
-            query.py
-          utils/                   # Future
-            __init__.py
-      pyproject.toml               # ✅ DONE
-      README.md                    # ✅ DONE
-
-  server/
-    src/
-      infrastructure/
-        rag/
-          # TODO: Update to use shared.interfaces instead of local interfaces
-          # TODO: Keep concrete implementations (QdrantVectorStore, OllamaEmbeddings, etc.)
-      domains/
-        # No changes needed
-
-  workers/
-    ingestion/
-      src/
-        # TODO: Implement using shared.interfaces
-    embeddings/
-      src/
-        # TODO: Implement using shared.interfaces
-    graph/
-      src/
-        # TODO: Implement using shared.interfaces
-    # ... other workers
-
-  client/
-    # Current structure is fine (domain-based)
-    # OPTIONAL: Refactor to feature-based only if project grows significantly
+server/src/infrastructure/
+├── auth/              # Server-specific: JWT, middleware
+├── database/          # Server-specific: session management, schema
+├── errors/            # Server-specific: Flask error handlers
+├── factories/         # Server-specific: Factories that wire up shared components
+├── rag/               # Server-specific: RAG factory (being deprecated)
+├── repositories/      # Server-specific: Non-standard repos (default_rag_config, workspace)
+├── middleware/        # Server-specific: Flask middleware
+├── socket/            # Server-specific: Socket.IO handlers
+└── logging_config.py  # Server-specific: Flask logging
 ```
 
----
-
-## Migration Steps
-
-### Phase 1: Shared Package Setup (COMPLETED)
-
-1. ✅ Create shared package structure
-2. ✅ Implement core types
-3. ✅ Implement Vector RAG interfaces
-4. ⏳ Implement Graph RAG interfaces
-5. ⏳ Implement orchestrators
-6. ⏳ Add event schemas
-
-### Phase 2: Server Migration (TODO)
-
-1. Add shared package to server dependencies:
-   ```bash
-   cd packages/server
-   poetry add ../shared/python
-   ```
-
-2. Update imports:
-   ```python
-   # OLD
-   from src.infrastructure.rag.types import Chunk, Document
-   
-   # NEW
-   from shared.types import Chunk, Document
-   ```
-
-3. Update RAG implementations to use shared interfaces:
-   ```python
-   # OLD
-   from src.infrastructure.rag.embeddings.embedding import EmbeddingModel
-   
-   # NEW
-   from shared.interfaces.vector import EmbeddingEncoder
-   ```
-
-4. Remove duplicate type definitions from server
-
-### Phase 3: Worker Implementation (TODO)
-
-1. Add shared package to worker dependencies
-2. Implement workers using shared interfaces
-3. Add Dockerfiles for each worker
-4. Add workers to docker-compose.yml
-5. Implement RabbitMQ integration
-
-### Phase 4: Documentation (TODO)
-
-1. Move `graph_rag_notes.py` → `docs/rag/graph-rag-architecture.md`
-2. Move `vector_rag_notes.py` → `docs/rag/vector-rag-architecture.md`
-3. Create `docs/rag/comparison.md`
-4. Update `docs/architecture.md` with new structure
-5. Create `docs/shared-package.md` explaining the shared package
-
-### Phase 5: Client (OPTIONAL)
-
-- Current domain-based structure works well
-- Only refactor if project grows to 20+ features
-- Defer this to future work
-
----
-
-## Key Decisions
-
-### ✅ Keep Current Client Structure
-The current domain-based organization (`src/components/`, `src/services/`, `src/store/`) works well for the current project size. Feature-based restructuring adds complexity without clear benefit at this scale.
-
-### ✅ Use Shared Package for Types and Interfaces
-All common types and abstract interfaces go in `shared/`. Concrete implementations stay in `server/` or `workers/`. This enables code reuse without duplication.
-
-### ✅ Workers Use Same Interfaces as Server
-Both server and workers implement the same RAG interfaces. This allows workers to be extracted from server logic without breaking compatibility.
-
-### ⏳ Event-Driven Architecture with RabbitMQ
-Workers communicate via RabbitMQ events. Event schemas are defined in `shared.events` to ensure consistency.
-
----
-
-## TODOs Added to Codebase
-
-### Server TODOs
+#### 4.2 Update Factories
+Server factories should import implementations from shared and inject server-specific config:
 
 ```python
-# packages/server/src/infrastructure/rag/factory.py
-# TODO: Migrate to use shared.interfaces.vector.* instead of local interfaces
-# TODO: Update create_rag() to return shared.orchestrators.VectorRAG instance
+# server/src/infrastructure/factories/repository_factory.py
+from shared.repositories.chat import SqlChatSessionRepository, SqlChatMessageRepository
+from shared.repositories.document import SqlDocumentRepository
+from shared.repositories.user import SqlUserRepository
 
-# packages/server/src/domains/chat/service.py
-# TODO: Integrate RAG query pipeline using shared.orchestrators.VectorRAG
-# TODO: Add support for GraphRAG alongside VectorRAG
-
-# packages/server/src/domains/documents/service.py
-# TODO: Trigger RabbitMQ events for async worker processing
-# TODO: Use shared.orchestrators.VectorRAGIndexer for document ingestion
+def create_chat_session_repository(db: Session) -> ChatSessionRepository:
+    return SqlChatSessionRepository(db)
 ```
 
-### Worker TODOs
+### Phase 5: Verification (High Priority)
 
-```python
-# packages/workers/ingestion/src/main.py
-# TODO: Implement DocumentParser using shared.interfaces.vector.parser
-# TODO: Implement Chunker using shared.interfaces.vector.chunker
-# TODO: Listen for document.uploaded events
-# TODO: Publish embeddings.generate and document.graph.build events
+#### 5.1 Tests
+- Run server unit tests: `cd packages/server && task test:unit`
+- Run server integration tests: `cd packages/server && task test:integration`
+- Ensure no imports broken
 
-# packages/workers/embeddings/src/main.py
-# TODO: Implement EmbeddingEncoder using shared.interfaces.vector.embedder
-# TODO: Implement VectorIndex integration for Qdrant
-# TODO: Listen for embeddings.generate events
-# TODO: Publish vector.index.updated events
+#### 5.2 Type Checking
+- Run mypy: `cd packages/server && task check`
+- Fix any type errors
 
-# packages/workers/graph/src/main.py
-# TODO: Implement EntityExtractor using shared.interfaces.graph.entity
-# TODO: Implement RelationExtractor using shared.interfaces.graph.relation
-# TODO: Implement GraphBuilder using shared.interfaces.graph.builder
-# TODO: Implement GraphStore integration for Neo4j
-# TODO: Listen for document.graph.build events
-# TODO: Publish graph.build.complete events
-```
+#### 5.3 Runtime Testing
+- Start development environment: `task up-dev`
+- Test API endpoints
+- Test WebSocket chat
+- Test document upload
 
----
+## Implementation Order
 
-## Testing Strategy
+1. ✅ LLM Interface (simplest, least dependencies)
+2. ✅ Blob Storage Interface
+3. ✅ RabbitMQ Publisher
+4. Database Base Classes
+5. Chat Models (requires migration)
+6. Chat Repositories
+7. LLM Implementations
+8. Storage Implementations
+9. Clean up folder structure
+10. Verification & testing
 
-### Shared Package Tests
+## Benefits
 
-```bash
-cd packages/shared/python
-poetry run pytest tests/
-```
+1. **Single Source of Truth**: All core logic in shared library
+2. **Proper OOP**: Programming to interfaces, dependency injection
+3. **Easier Maintenance**: Changes only needed in one place
+4. **Better Testing**: Can test shared components once, reuse across server/workers
+5. **Consistency**: Server and workers use identical implementations
+6. **Reduced Codebase Size**: ~2000-3000 lines of duplicate code removed
 
-Tests should cover:
-- Type validation and serialization
-- Interface contracts (using dummy implementations)
-- Event schema validation
+## Risks & Mitigation
 
-### Server Integration Tests
-
-After migration, ensure:
-- Existing RAG tests still pass
-- Types are compatible
-- Imports resolve correctly
-
-### Worker Tests
-
-Each worker should have:
-- Unit tests with dummy implementations
-- Integration tests with testcontainers (Qdrant, Neo4j, RabbitMQ)
-
----
-
-## Next Steps
-
-1. **Complete Graph RAG interfaces** (in `shared/interfaces/graph/`)
-2. **Create orchestrators** (in `shared/orchestrators/`)
-3. **Move RAG notes to documentation** (`docs/rag/`)
-4. **Add shared package to server** (`poetry add ../shared/python`)
-5. **Migrate server imports** (update all imports to use `shared.*`)
-6. **Implement ingestion worker** (using shared interfaces)
-7. **Add RabbitMQ integration** (event publishing/consuming)
-8. **Update documentation** (architecture diagrams, API docs)
-
----
-
-## Questions to Resolve
-
-1. **Neo4j vs PostgreSQL for Graph Store?**
-   - Neo4j is more powerful for graph operations
-   - PostgreSQL is simpler, already in stack
-   - Decision: Start with PostgreSQL, migrate to Neo4j if needed
-
-2. **Synchronous vs Async Document Processing?**
-   - Current: Synchronous in server
-   - Future: Async with workers
-   - Decision: Keep synchronous for now, add async as optimization
-
-3. **Client Refactoring Priority?**
-   - Current structure works well
-   - Feature-based adds complexity
-   - Decision: Defer client refactoring
-
----
+| Risk | Mitigation |
+|------|-----------|
+| Breaking existing functionality | Comprehensive test suite, phase-by-phase approach |
+| Import errors | Update all imports systematically, verify with mypy |
+| Database model incompatibility | Migrations for model changes, backwards compatibility |
+| Circular dependencies | Careful structuring, keep server-specific code in server |
 
 ## Success Criteria
 
-- ✅ Shared package installed and importable in server and workers
-- ✅ No duplicate type definitions between packages
-- ✅ All interfaces documented with examples
-- ⏳ Server migrated to use shared types/interfaces
-- ⏳ At least 2 workers implemented (ingestion, embeddings)
-- ⏳ RAG notes moved to markdown documentation
-- ⏳ All tests passing after refactoring
-- ⏳ Docker Compose can run full stack (server + workers)
+- [ ] Zero duplicate interfaces between server and shared
+- [ ] All server tests pass
+- [ ] Mypy type checking passes
+- [ ] Development environment runs without errors
+- [ ] API endpoints functional
+- [ ] WebSocket chat functional
+- [ ] Document upload/retrieval functional
+- [ ] Code review confirms OOP principles followed
 
----
+## Timeline
 
-*Last Updated: 2025-11-18*
-*Status: Phase 1 Complete, Phase 2 In Progress*
+- **Phase 1-3**: 2-3 hours
+- **Phase 4**: 1 hour
+- **Phase 5**: 1 hour
+- **Total**: ~5 hours of focused work
+
+## Notes
+
+- The `factory.py` pattern in server is GOOD - it wraps shared components with server-specific config
+- Server-specific code (Flask routes, middleware, auth) should stay in server
+- Shared code (interfaces, models, repositories, implementations) should be in shared
+- Workers will benefit from this refactoring as they can import from shared directly

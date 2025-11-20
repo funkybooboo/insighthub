@@ -1,14 +1,41 @@
-[project]
+[tool.poetry]
 name = "insighthub-cli"
 version = "0.1.0"
-description = "Insighthub Command Line Interface"
+description = "Command-line interface for InsightHub"
+authors = ["Nate Stott"]
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "typer>=0.12",
-    "rich>=13.0",
-    "httpx>=0.27"
-]
+packages = [{include = "insighthub_cli"}]
 
-[project.scripts]
-insighthub = "insighthub_cli.__main__:app"
+[tool.poetry.dependencies]
+python = "^3.11"
+click = "^8.1.0"
+requests = "^2.31.0"
+rich = "^13.0.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+black = "^24.0.0"
+isort = "^5.13.0"
+mypy = "^1.8.0"
+
+[tool.poetry.scripts]
+insighthub = "insighthub_cli.main:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

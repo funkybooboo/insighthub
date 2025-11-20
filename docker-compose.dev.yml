@@ -22,6 +22,7 @@ services:
       - ./packages/server/alembic.ini:/app/alembic.ini:ro
       - ./packages/server/pyproject.toml:/app/pyproject.toml:ro
       - ./packages/server/poetry.lock:/app/poetry.lock:ro
+      - ./packages/shared/python/src/shared:/app/.venv/lib/python3.11/site-packages/shared:ro
     environment:
       # Python
       PYTHONUNBUFFERED: 1
@@ -46,8 +47,15 @@ services:
       # Vector Store
       QDRANT_URL: http://qdrant:6333
       QDRANT_COLLECTION_NAME: documents
-      # Cache
-      REDIS_URL: redis://redis:6379/0
+      # Redis (optional)
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      # RabbitMQ (optional)
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
       # Message Queue
       RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
     depends_on:

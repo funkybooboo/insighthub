@@ -7,6 +7,7 @@ used across the InsightHub server and worker processes.
 Main exports:
 - types: Core data types (Document, Chunk, GraphNode, etc.)
 - interfaces: Abstract interfaces for RAG components
+- components: Concrete implementations of interfaces (chunking, embeddings, etc.)
 - events: Event schemas for RabbitMQ messaging
 - orchestrators: High-level RAG pipeline orchestrators
 - messaging: RabbitMQ publisher and consumer utilities
@@ -17,13 +18,27 @@ Main exports:
 
 __version__ = "0.1.0"
 
-# Core modules are available via their respective imports:
-#   from shared.types import Document, Chunk
-#   from shared.events import DocumentUploadedEvent
-#   from shared.interfaces.vector import EmbeddingEncoder
-#   from shared.messaging import RabbitMQPublisher, WorkerBase
-#   from shared.logging import setup_logging, get_logger
-#   from shared.database import get_db, get_engine
-#   from shared.storage import BlobStorage, MinIOBlobStorage
+from . import (
+    components,
+    database,
+    events,
+    interfaces,
+    logging,
+    messaging,
+    orchestrators,
+    storage,
+    types,
+)
 
-__all__ = ["__version__"]
+__all__ = [
+    "__version__",
+    "types",
+    "interfaces",
+    "components",
+    "events",
+    "orchestrators",
+    "messaging",
+    "logging",
+    "database",
+    "storage",
+]

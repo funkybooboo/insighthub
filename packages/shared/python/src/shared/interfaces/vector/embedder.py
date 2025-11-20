@@ -1,50 +1,67 @@
-"""Embedding encoder interface for Vector RAG."""
+"""Embedding generation interfaces for converting text to vector representations."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from typing import Any, Iterable
 
 
 class EmbeddingEncoder(ABC):
     """
-    Encodes text into vector representations for similarity search.
-
-    Implementations may call:
-    - Remote APIs (OpenAI, Cohere)
-    - Local models (Sentence Transformers, Ollama)
+    Interface for generating vector embeddings from text.
+    
+    Implementations should support different embedding models:
+    - Local models (Ollama, Sentence Transformers)
+    - API-based models (OpenAI, Claude)
+    - Custom models
     """
 
     @abstractmethod
     def encode(self, texts: Iterable[str]) -> list[list[float]]:
         """
-        Batch-encode multiple strings into vectors.
+        Encode multiple texts into vectors.
 
         Args:
-            texts: Iterable of strings to encode
+            texts: Iterable of text strings to encode
 
         Returns:
-            List of embedding vectors (one per text)
+            list[list[float]]: List of vector embeddings
+
+        Raises:
+            EmbeddingError: If encoding fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def encode_one(self, text: str) -> list[float]:
         """
-        Encode a single string into a vector.
+        Encode a single text into a vector.
 
         Args:
-            text: Input string
+            text: Text string to encode
 
         Returns:
-            Vector representation of the text
+            list[float]: Vector embedding
+
+        Raises:
+            EmbeddingError: If encoding fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def get_dimension(self) -> int:
         """
-        Get the dimensionality of the embedding vectors.
+        Get the dimension of the embedding vectors.
 
         Returns:
-            Vector dimension (e.g., 768, 1536)
+            int: Dimension of the vectors
         """
-        raise NotImplementedError
+        pass
+
+    @abstractmethod
+    def get_model_name(self) -> str:
+        """
+        Get the name of the embedding model.
+
+        Returns:
+            str: Model name
+        """
+        pass

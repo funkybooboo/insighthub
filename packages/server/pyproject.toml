@@ -29,7 +29,7 @@ bcrypt = "^4.0.0"
 pyjwt = "^2.8.0"
 anthropic = "^0.73.0"
 pika = "^1.3.2"
-insighthub-shared = {path = "/home/nate/projects/insighthub/packages/shared/python"}
+insighthub-shared = {path = "../shared/python"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -1,34 +1,37 @@
-"""Output formatter interface for Vector RAG."""
+"""Output formatting interface for structuring LLM responses with citations."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict
 
 
 class OutputFormatter(ABC):
     """
-    Formats raw LLM output for user consumption.
-
-    Responsibilities:
-    - Clean final text
-    - Attach citations and provenance
-    - Return structured JSON with answer, provenance, source list
+    Interface for formatting raw LLM output into user-facing responses.
+    
+    Implementations should handle:
+    - Answer formatting
+    - Citation inclusion
+    - Metadata attachment
+    - Error handling
     """
 
     @abstractmethod
-    def format(
-        self, raw_output: str, context_metadata: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    def format(self, raw_output: str, context_metadata: Dict[str, Any] | None = None) -> Dict[str, Any]:
         """
-        Format the LLM output into structured form.
+        Format raw LLM output into a structured response.
 
         Args:
             raw_output: Raw text from LLM
             context_metadata: Optional metadata from context building
 
         Returns:
-            Dictionary containing:
-                'answer': str
-                'provenance': list
-                'raw': str
+            Dict[str, Any]: Formatted response with keys:
+                - 'answer': str (formatted answer)
+                - 'provenance': list (source citations)
+                - 'raw': str (original LLM output)
+                - 'metadata': dict (additional metadata)
+
+        Raises:
+            FormattingError: If formatting fails
         """
-        raise NotImplementedError
+        pass

@@ -6,7 +6,7 @@ from collections.abc import Generator
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from .base import Base
+from shared.database.base import Base
 
 # Global engine and session factory (created lazily)
 _engine: Engine | None = None

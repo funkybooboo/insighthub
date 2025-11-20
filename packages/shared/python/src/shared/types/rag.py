@@ -1,64 +1,67 @@
 """RAG configuration and result types."""
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, List, Optional
+from datetime import datetime
 
-from shared.types.common import PrimitiveValue
+from shared.types.common import PrimitiveValue, MetadataValue
 
 
 @dataclass
 class ChunkerConfig:
     """
-    Configuration for a chunking strategy.
+    Configuration for text chunking.
 
     Attributes:
-        strategy: Chunking method (e.g., 'sentence', 'character', 'word')
-        chunk_size: Target size for chunks
+        strategy: Chunking strategy ('character', 'sentence', 'word', 'semantic')
+        chunk_size: Target size of each chunk
         overlap: Overlap between consecutive chunks
-        extra_options: Additional strategy-specific options
+        min_chunk_size: Minimum allowed chunk size
     """
-
     strategy: str
     chunk_size: int
-    overlap: int
-    extra_options: dict[str, Any] | None = None
+    overlap: int = 0
+    min_chunk_size: int = 50
 
 
 @dataclass
 class RagConfig:
     """
-    Configuration parameters for a RAG workspace or instance.
+    Canonical RAG configuration used across server/shared.
 
-    Attributes:
-        workspace_id: Workspace or tenant identifier
-        rag_type: RAG type ('vector', 'graph', 'hybrid')
-        chunking_strategy: Chunking method
-        embedding_model: Name of the embedding model to use
-        embedding_dim: Dimensionality of the embedding vectors
-        top_k: Default number of results to retrieve for queries
+    This model represents both the DB-persistent configuration and runtime
+    configuration needed by the RAG pipelines.
     """
-
-    workspace_id: str
-    rag_type: str
-    chunking_strategy: str
-    embedding_model: str
-    embedding_dim: int
+    id: Optional[str] = None
+    workspace_id: str = ""
+    rag_type: str = "vector"  # 'vector', 'graph', or 'hybrid'
+    chunking_strategy: str = "sentence"
+    embedding_model: str = "nomic-embed-text"
+    embedding_dim: Optional[int] = None
+    retriever_type: str = "vector"  # e.g., 'vector' or 'graph'
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
     top_k: int = 8
+    rerank_enabled: bool = False
+    rerank_model: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 @dataclass
 class SearchResult:
     """
-    Result from vector or graph search.
-
+    Result from RAG retrieval.
+    
     Attributes:
-        id: Identifier of the retrieved chunk/node
-        score: Similarity score (higher is better)
+        content: Retrieved text content
+        score: Relevance score
         metadata: Associated metadata
-        payload: Content payload (text, properties, etc.)
+        document_id: Source document ID
+        chunk_id: Chunk identifier
     """
-
-    id: str
+    content: str
     score: float
-    metadata: dict[str, PrimitiveValue]
-    payload: dict[str, Any] | None = None
+    metadata: Dict[str, PrimitiveValue]
+    document_id: str
+    chunk_id: str

@@ -13,7 +13,9 @@ import socketService, {
 } from './socket';
 
 // Mock socket.io-client
-vi.mock('socket.io-client');
+vi.mock('socket.io-client', () => ({
+    io: vi.fn(),
+}));
 
 const mockedIo = io as MockedFunction<typeof io>;
 

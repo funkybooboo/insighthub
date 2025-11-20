@@ -35,10 +35,14 @@ WORKDIR /app
 # ============================================================================
 FROM base AS dependencies
 
-# Copy dependency files
+# First install shared library dependencies
+COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock /tmp/shared/
+RUN cd /tmp/shared && poetry install --no-root --only main
+
+# Copy server dependency files
 COPY --chown=app:app pyproject.toml poetry.lock ./
 
-# Install dependencies (without dev dependencies)
+# Install server dependencies (without dev dependencies)
 RUN poetry install --no-root --only main
 
 # ============================================================================
@@ -46,7 +50,11 @@ RUN poetry install --no-root --only main
 # ============================================================================
 FROM base AS dependencies-dev
 
-# Copy dependency files
+# First install shared library dependencies
+COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock /tmp/shared/
+RUN cd /tmp/shared && poetry install --no-root
+
+# Copy server dependency files
 COPY --chown=app:app pyproject.toml poetry.lock ./
 
 # Install all dependencies (including dev)
@@ -56,6 +64,11 @@ RUN poetry install --no-root
 # Development Stage - For local development with hot-reload
 # ============================================================================
 FROM dependencies-dev AS development
+
+# Copy shared library source
+COPY --chown=app:app ../shared/python/src /tmp/shared/src
+COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock ../shared/python/README.md /tmp/shared/
+RUN cd /tmp/shared && poetry install
 
 # Copy application code
 COPY --chown=app:app . .
@@ -108,6 +121,11 @@ RUN poetry run mypy src tests || true
 # Production Stage - Minimal production image
 # ============================================================================
 FROM dependencies AS production
+
+# Copy shared library source
+COPY --chown=app:app ../shared/python/src /tmp/shared/src
+COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock ../shared/python/README.md /tmp/shared/
+RUN cd /tmp/shared && poetry install --only main --only-root
 
 # Copy application code
 COPY --chown=app:app src ./src
