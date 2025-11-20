@@ -3,6 +3,7 @@
 import inspect
 
 from shared.repositories.document import DocumentRepository
+from shared.models.document import Document
 
 
 def test_document_repository_signature_create():

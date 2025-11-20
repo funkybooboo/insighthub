@@ -10,7 +10,7 @@ from shared.models.user import User
 def test_user_repository_signature_create():
     sig = inspect.signature(UserRepository.create)
     names = [p.name for i, p in enumerate(list(sig.parameters.values())) if i > 0]
-    assert names == ["username", "email", "password", "full_name"]
+    assert names == ["username","email","password","full_name"]
     assert sig.parameters["full_name"].default is None
     ret = sig.return_annotation
     assert ret is User or ret == User or ret == User | None
