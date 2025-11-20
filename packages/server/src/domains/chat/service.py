@@ -6,8 +6,7 @@ import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 
-from src.infrastructure.llm.llm import LlmProvider
-
+from shared.llm import LlmProvider
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
 

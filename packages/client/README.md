@@ -4,10 +4,14 @@ React frontend for the InsightHub RAG system, providing a modern chatbot interfa
 
 ## Features
 
+- **Workspace Management**: Organize documents and chats into isolated workspaces with custom RAG configurations
 - **Real-time Chat**: WebSocket-based streaming responses with token-by-token display
-- **Document Management**: Upload and manage PDF/text documents
+- **Document Management**: Upload and manage PDF/text documents per workspace
 - **Conversation Memory**: Persistent chat sessions with context preservation
-- **Dual RAG Support**: Interface for both Vector RAG and Graph RAG (when available)
+- **Dual RAG Support**: Interface for both Vector RAG and Graph RAG with configurable parameters
+- **User Authentication**: Secure login/signup with JWT-based authentication
+- **Theme Support**: Light/dark mode with user preferences
+- **Input Validation**: Client-side validation for security and UX
 - **Responsive Design**: Mobile-friendly interface built with TailwindCSS
 - **TypeScript**: Full type safety throughout the application
 
@@ -20,6 +24,10 @@ React frontend for the InsightHub RAG system, providing a modern chatbot interfa
 - **Socket.IO Client** for real-time communication
 - **Axios** for REST API calls
 - **React Query** for server state management
+- **Vitest** for unit testing
+- **React Testing Library** for component testing
+- **MSW** for API mocking
+- **Storybook** for component documentation
 
 ## Development Setup
 
@@ -45,19 +53,42 @@ The development server will start at `http://localhost:5173`.
 
 ### Available Scripts
 
+We use **Taskfile** for task automation (requires Task CLI).
+
 ```bash
 # Development
-bun run dev          # Start Vite dev server with HMR
-bun run build        # Build for production
-bun run preview      # Preview production build
+task dev             # Start Vite dev server with HMR
+task build           # Build for production
+task preview         # Preview production build
 
 # Code Quality
-bun run lint         # Run ESLint
-bun run format       # Format code with Prettier
-bun run format:check # Check formatting without fixing
+task lint            # Run ESLint
+task format          # Format code with Prettier
+task format-check    # Check formatting without fixing
+task check           # Run all checks (format, lint, test, build)
 
 # Testing
-bun run test         # Run tests (when available)
+task test            # Run all unit tests
+task test:watch      # Run tests in watch mode
+task test:coverage   # Run tests with coverage report
+task test:ui         # Run tests with Vitest UI
+task storybook       # Run Storybook dev server
+task storybook:build # Build Storybook for production
+
+# Security
+task audit           # Audit dependencies
+task scan            # Run Trivy security scan
+task security        # Run all security checks
+
+# Cleanup
+task clean           # Remove generated files and node_modules
+```
+
+You can also use Bun directly:
+```bash
+bun run dev
+bun run test:run
+# etc.
 ```
 
 ## Project Structure
@@ -67,33 +98,62 @@ packages/client/
 +-- src/
 |   +-- components/          # React components
 |   |   +-- auth/           # Authentication components
+|   |   |   +-- LoginForm.tsx/test.tsx/stories.tsx
+|   |   |   +-- SignupForm.tsx/test.tsx/stories.tsx
+|   |   |   +-- UserMenu.tsx/test.tsx/stories.tsx
 |   |   +-- chat/           # Chat interface components
-|   |   |   +-- ChatBot.tsx      # Main chat component
-|   |   |   +-- ChatInput.tsx    # Message input
-|   |   |   +-- ChatMessages.tsx # Message display
-|   |   |   +-- ChatSidebar.tsx  # Session management
+|   |   |   +-- ChatBot.tsx           # Main chat component
+|   |   |   +-- ChatInput.tsx/test.tsx/stories.tsx
+|   |   |   +-- ChatMessages.tsx/test.tsx/stories.tsx
+|   |   |   +-- ChatSidebar.tsx/test.tsx/stories.tsx
+|   |   |   +-- MarkdownRenderer.tsx  # Markdown display
+|   |   |   +-- TypingIndicator.tsx   # Loading animation
 |   |   +-- ui/             # Reusable UI components
+|   |   |   +-- ThemeToggle.tsx
+|   |   |   +-- button.tsx/stories.tsx
 |   |   +-- upload/         # Document upload components
+|   |   |   +-- FileUpload.tsx/test.tsx/stories.tsx
+|   |   |   +-- DocumentList.tsx/test.tsx
+|   |   |   +-- DocumentManager.tsx
+|   |   +-- workspace/      # Workspace management
+|   |   |   +-- WorkspaceSelector.tsx/test.tsx/stories.tsx
+|   |   |   +-- WorkspaceSettings.tsx/stories.tsx
 |   +-- lib/                # Utilities and helpers
 |   |   +-- utils.ts        # General utilities
-|   |   +-- chatStorage.ts  # Local storage helpers
+|   |   +-- chatStorage.ts/test.ts  # Local storage helpers
+|   |   +-- validation.ts/test.ts   # Input validation
 |   +-- services/           # API and external service integrations
-|   |   +-- api.ts          # REST API client
-|   |   +-- socket.ts       # WebSocket/Socket.IO client
+|   |   +-- api.ts/test.ts  # REST API client (with MSW mocks)
+|   |   +-- socket.ts/test.ts  # WebSocket/Socket.IO client
 |   +-- store/              # Redux state management
 |   |   +-- slices/         # Redux slices
-|   |   |   +-- authSlice.ts
-|   |   |   +-- chatSlice.ts
+|   |   |   +-- authSlice.ts/test.ts
+|   |   |   +-- chatSlice.ts/test.ts
+|   |   |   +-- themeSlice.ts/test.ts
+|   |   |   +-- workspaceSlice.ts/test.ts
 |   |   +-- hooks.ts        # Typed hooks
 |   |   +-- index.ts        # Store configuration
 |   +-- types/              # TypeScript type definitions
 |   |   +-- chat.ts         # Chat-related types
+|   |   +-- workspace.ts    # Workspace-related types
+|   +-- stories/            # Storybook configuration
+|   +-- test/               # Test setup
+|   |   +-- setup.ts        # Vitest configuration
 |   +-- App.tsx             # Main application component
 |   +-- main.tsx            # Application entry point
 |   +-- vite-env.d.ts       # Vite type definitions
++-- docs/                   # Documentation
+|   +-- components.md       # Component documentation
+|   +-- state-management.md # Redux documentation
+|   +-- testing.md          # Testing guide
+|   +-- workspace-feature.md # Workspace feature docs
 +-- public/                 # Static assets
++-- .storybook/             # Storybook configuration
 +-- index.html              # HTML template
 +-- package.json            # Dependencies and scripts
++-- Taskfile.yml            # Task automation
++-- vitest.config.ts        # Vitest configuration
++-- vite.config.ts          # Vite configuration
 ```
 
 ## Key Components
@@ -213,20 +273,30 @@ task storybook:build       # Build static Storybook
 
 ### Test Coverage
 
-**Current Stats**: 319 tests passing across 12 test files
+**Current Stats**: 438 tests passing across 17 test files
+
+**Test Categories**:
+- Component tests: 200+ tests
+- Redux slice tests: 100+ tests
+- Service/utility tests: 100+ tests
+- Storybook stories: 50+ stories
 
 **Coverage Thresholds**:
-
-- Lines: 80%
-- Functions: 80%
-- Branches: 80%
-- Statements: 80%
+- Lines: > 80%
+- Functions: > 80%
+- Branches: > 75%
+- Statements: > 80%
 
 **Test Files**:
-
-- Unit tests: `src/**/*.test.tsx`
-- E2E tests: `e2e/**/*.spec.ts`
+- Unit tests: `src/**/*.test.{ts,tsx}`
+- Component tests: `src/components/**/*.test.tsx`
 - Stories: `src/**/*.stories.tsx`
+
+**Key Test Features**:
+- MSW for API mocking
+- React Testing Library for component testing
+- Vitest for fast test execution
+- Coverage reporting with v8
 
 ## Docker Integration
 

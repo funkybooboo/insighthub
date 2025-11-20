@@ -1,5 +1,11 @@
 """Factory for creating LLM provider instances."""
 
+from shared.llm import LlmProvider
+from shared.llm.claude_provider import ClaudeLlmProvider
+from shared.llm.huggingface_provider import HuggingFaceLlmProvider
+from shared.llm.ollama import OllamaLlmProvider
+from shared.llm.openai_provider import OpenAiLlmProvider
+
 from src.config import (
     ANTHROPIC_API_KEY,
     ANTHROPIC_MODEL,
@@ -11,12 +17,6 @@ from src.config import (
     OPENAI_API_KEY,
     OPENAI_MODEL,
 )
-
-from .claude_provider import ClaudeLlmProvider
-from .huggingface_provider import HuggingFaceLlmProvider
-from .llm import LlmProvider
-from .ollama import OllamaLlmProvider
-from .openai_provider import OpenAiLlmProvider
 
 
 def create_llm_provider(

@@ -4,13 +4,11 @@ import json
 from datetime import datetime
 
 import pytest
+from shared.models import ChatMessage, ChatSession, Document, User
 
 from src.domains.chat.mappers import ChatMapper
-from shared.models import ChatMessage, ChatSession
 from src.domains.documents.mappers import DocumentMapper
-from shared.models import Document
 from src.domains.users.mappers import UserMapper
-from shared.models import User
 
 
 class TestDocumentMapper:

@@ -2,7 +2,7 @@
 
 import os
 
-from .publisher import RabbitMQPublisher
+from shared.messaging import RabbitMQPublisher
 
 
 def create_rabbitmq_publisher() -> RabbitMQPublisher | None:

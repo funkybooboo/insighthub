@@ -1,6 +1,7 @@
-"""RabbitMQ messaging infrastructure."""
+"""RabbitMQ messaging infrastructure - server factory wrapping shared implementations."""
+
+from shared.messaging import RabbitMQPublisher
 
 from .factory import create_rabbitmq_publisher
-from .publisher import RabbitMQPublisher
 
 __all__ = ["RabbitMQPublisher", "create_rabbitmq_publisher"]

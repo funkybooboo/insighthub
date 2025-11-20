@@ -7,18 +7,15 @@ Based on the architecture defined in vector_rag_notes.py.
 from collections.abc import Iterable
 from typing import Any
 
-from shared.interfaces.vector import (
-    Chunker,
-    ContextBuilder,
-    DocumentParser,
-    EmbeddingEncoder,
-    LLM,
-    MetadataEnricher,
-    OutputFormatter,
-    Ranker,
-    VectorIndex,
-    VectorRetriever,
-)
+from shared.components.chunking import Chunker, MetadataEnricher
+from shared.components.embedding import EmbeddingEncoder
+from shared.components.vector_store import VectorIndex
+from shared.interfaces.vector.context import ContextBuilder
+from shared.interfaces.vector.formatter import OutputFormatter
+from shared.interfaces.vector.llm import LLM
+from shared.interfaces.vector.parser import DocumentParser
+from shared.interfaces.vector.ranker import Ranker
+from shared.interfaces.vector.retriever import VectorRetriever
 from shared.types import RagConfig
 
 

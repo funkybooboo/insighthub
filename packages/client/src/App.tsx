@@ -7,13 +7,24 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
 import ChatSidebar from './components/chat/ChatSidebar';
 import UserMenu from './components/auth/UserMenu';
+import WorkspaceSelector from './components/workspace/WorkspaceSelector';
+import WorkspaceSettings from './components/workspace/WorkspaceSettings';
+import { SettingsPage } from './components/settings';
+import WorkspacesPage from './pages/WorkspacesPage';
 import { setTheme } from './store/slices/themeSlice';
+import { useStatusUpdates } from './hooks/useStatusUpdates';
 import type { RootState } from './store';
 
 function MainApp() {
     return (
         <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-            <UserMenu />
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <WorkspaceSelector />
+                <div className="flex items-center gap-2 px-4">
+                    <WorkspaceSettings />
+                    <UserMenu />
+                </div>
+            </div>
             <div className="flex-1 flex overflow-hidden">
                 <ChatSidebar />
                 <main className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900">
@@ -28,6 +39,9 @@ function App() {
     const dispatch = useDispatch();
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
     const { theme } = useSelector((state: RootState) => state.theme);
+
+    // Subscribe to real-time status updates when authenticated
+    useStatusUpdates();
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -53,6 +67,22 @@ function App() {
                 <Route
                     path="/signup"
                     element={isAuthenticated ? <Navigate to="/" replace /> : <SignupForm />}
+                />
+                <Route
+                    path="/settings"
+                    element={
+                        <ProtectedRoute>
+                            <SettingsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/workspaces"
+                    element={
+                        <ProtectedRoute>
+                            <WorkspacesPage />
+                        </ProtectedRoute>
+                    }
                 />
                 <Route
                     path="/"

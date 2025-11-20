@@ -2,10 +2,9 @@
 
 from typing import TYPE_CHECKING
 
+from shared.database.base import Base, TimestampMixin
 from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from src.infrastructure.database.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from src.domains.users.models import User

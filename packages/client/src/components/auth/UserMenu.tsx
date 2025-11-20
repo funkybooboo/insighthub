@@ -1,4 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { logout } from '../../store/slices/authSlice';
 import type { RootState } from '../../store';
 import apiService from '../../services/api';
@@ -6,6 +7,7 @@ import ThemeToggle from '../ui/ThemeToggle';
 
 export default function UserMenu() {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { user } = useSelector((state: RootState) => state.auth);
 
     const handleLogout = async () => {
@@ -17,6 +19,10 @@ export default function UserMenu() {
             dispatch(logout());
             window.location.href = '/login';
         }
+    };
+
+    const handleSettingsClick = () => {
+        navigate('/settings');
     };
 
     return (
@@ -37,6 +43,13 @@ export default function UserMenu() {
                     )}
                 </div>
                 <ThemeToggle />
+                <button
+                    onClick={handleSettingsClick}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Settings"
+                >
+                    Settings
+                </button>
                 <button
                     onClick={handleLogout}
                     className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"

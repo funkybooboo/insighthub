@@ -4,12 +4,10 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 from pypdf import PdfReader
-
-from src.infrastructure.messaging import RabbitMQPublisher
-from src.infrastructure.storage import BlobStorage
-
+from shared.messaging import RabbitMQPublisher
 from shared.models import Document
 from shared.repositories import DocumentRepository
+from shared.storage import BlobStorage
 
 from .dtos import DocumentListResponse, DocumentUploadResponse
 from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
@@ -241,17 +239,16 @@ class DocumentService:
                 # 3. Retry with exponential backoff
                 print(f"Warning: Failed to publish document.uploaded event: {e}")
 
-        # TODO: RAG INTEGRATION - Legacy comment for direct RAG integration
-        # The above RabbitMQ event will trigger the ingestion worker which handles:
-        # - Document parsing and chunking
-        # - Embedding generation (via embeddings worker)
-        # - Knowledge graph building (via graph worker)
+        # TODO: RAG INTEGRATION - Async Processing
+        # The above RabbitMQ event will trigger the ingestion worker which uses
+        # shared.orchestrators.vector_rag.VectorRAGIndexer to process the document.
         #
-        # If you want to integrate RAG directly without workers:
-        # 1. Import RAG system: from src.rag.factory import create_rag
-        # 2. Get RAG instance based on user preference or rag_collection param
-        # 3. Add document with metadata (see previous TODO comments)
-        # 4. Update document record with RAG metadata
+        # The flow is:
+        # 1. Server uploads file to MinIO and creates DB record
+        # 2. Server publishes 'document.uploaded' event
+        # 3. Ingestion worker consumes event
+        # 4. Ingestion worker downloads file and uses VectorRAGIndexer.ingest()
+        # 5. VectorRAGIndexer handles parsing, chunking, embedding, and indexing
 
         return DocumentUploadResult(
             document=document,
@@ -399,17 +396,13 @@ class DocumentService:
         # Before deleting document from database, remove it from RAG system
         #
         # Implementation steps:
-        # 1. Check if document is indexed (document.rag_collection is not None)
-        # 2. If indexed, remove from RAG:
+        # 1. Publish 'document.deleted' event
+        # 2. Workers consume event and delete chunks/vectors/nodes
+        #
+        # Legacy sync approach (for reference):
         #    from src.rag.factory import create_rag
-        #    rag = create_rag(
-        #        rag_type=document.rag_type or "vector",
-        #        collection_name=document.rag_collection,
-        #        ...
-        #    )
+        #    rag = create_rag(...)
         #    rag.remove_document(document_id)
-        # 3. Handle errors: Log failures but continue with deletion
-        #    (orphaned RAG chunks are acceptable vs blocking deletion)
 
         # Delete document (includes blob storage cleanup)
         self.delete_document(document_id, delete_from_storage=True)

@@ -1,6 +1,45 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
+
+// Mock localStorage using Storage API
+class LocalStorageMock implements Storage {
+    private store: Map<string, string> = new Map();
+
+    get length(): number {
+        return this.store.size;
+    }
+
+    clear(): void {
+        this.store.clear();
+    }
+
+    getItem(key: string): string | null {
+        return this.store.get(key) ?? null;
+    }
+
+    key(index: number): string | null {
+        return Array.from(this.store.keys())[index] ?? null;
+    }
+
+    removeItem(key: string): void {
+        this.store.delete(key);
+    }
+
+    setItem(key: string, value: string): void {
+        this.store.set(key, String(value));
+    }
+}
+
+// Create instance and assign to global
+const localStorageMock = new LocalStorageMock();
+global.localStorage = localStorageMock;
+(globalThis as any).localStorage = localStorageMock;
+
+// Reset localStorage before each test
+beforeEach(() => {
+    localStorageMock.clear();
+});
 
 // Clean up after each test
 afterEach(() => {
@@ -40,37 +79,3 @@ global.ResizeObserver = class ResizeObserver {
     observe() {}
     unobserve() {}
 } as unknown as typeof ResizeObserver;
-
-// Mock localStorage if not already available
-if (typeof localStorage === 'undefined') {
-    const localStorageMock = (() => {
-        let store: Record<string, string> = {};
-
-        return {
-            getItem: (key: string) => {
-                return store[key] || null;
-            },
-            setItem: (key: string, value: string) => {
-                store[key] = value.toString();
-            },
-            removeItem: (key: string) => {
-                delete store[key];
-            },
-            clear: () => {
-                store = {};
-            },
-            key: (index: number): string | null => {
-                const keys = Object.keys(store);
-                return keys[index] || null;
-            },
-            get length() {
-                return Object.keys(store).length;
-            },
-        };
-    })();
-
-    Object.defineProperty(globalThis, 'localStorage', {
-        value: localStorageMock,
-        writable: true,
-    });
-}

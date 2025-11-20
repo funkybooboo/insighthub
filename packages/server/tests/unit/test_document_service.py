@@ -5,16 +5,16 @@ from datetime import datetime
 from typing import BinaryIO
 
 import pytest
+from shared.models import Document
+from shared.repositories import DocumentRepository
+from shared.storage import BlobStorage
 
 from src.domains.documents.exceptions import (
     DocumentNotFoundError,
     DocumentProcessingError,
     InvalidFileTypeError,
 )
-from shared.models import Document
-from shared.repositories import DocumentRepository
 from src.domains.documents.service import DocumentService
-from src.infrastructure.storage.blob_storage import BlobStorage
 
 
 class FakeBlobStorage(BlobStorage):

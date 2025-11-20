@@ -15,30 +15,22 @@ tasks:
   test:
     desc: Run all tests with coverage
     cmds:
-      - cmd: echo "Running all tests..."
-        silent: true
       - poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
 
-  test-unit:
+  test:unit:
     desc: Run unit tests only (fast)
     cmds:
-      - cmd: echo "Running unit tests..."
-        silent: true
-      - poetry run pytest tests/unit/ -v
+      - poetry run pytest tests/unit/ -v --cov=src/domains --cov=src/infrastructure
 
-  test-integration:
-    desc: Run integration tests with testcontainers (slower)
+  test:integration:
+    desc: Run integration tests with testcontainers (slower, requires Docker)
     cmds:
-      - cmd: echo "Running integration tests with testcontainers..."
-        silent: true
-      - cmd: 'echo "Note: Docker must be running for testcontainers"'
-        silent: true
       - poetry run pytest tests/integration/ -v -s
 
-  test-watch:
-    desc: Run tests in watch mode (requires pytest-watch)
+  test:watch:
+    desc: Run tests in watch mode
     cmds:
-      - poetry run ptw tests/
+      - poetry run pytest-watch tests/
 
   format:
     desc: Format code with black, isort, and ruff

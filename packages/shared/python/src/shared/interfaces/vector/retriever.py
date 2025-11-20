@@ -1,24 +1,23 @@
-"""Vector retriever interface for Vector RAG."""
+"""Vector retrieval interface for high-level vector search operations."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List
 
-from shared.types import RetrievalResult
+from shared.types.retrieval import RetrievalResult
 
 
 class VectorRetriever(ABC):
     """
-    High-level interface for retrieving top-k vectors from a VectorIndex.
-
-    This wraps VectorIndex with additional logic like filtering, reranking hints, etc.
+    High-level interface for retrieving vectors from a vector store.
+    
+    This provides a more convenient API than the raw VectorIndex,
+    handling query processing and result formatting.
     """
 
     @abstractmethod
-    def retrieve(
-        self, query_vector: list[float], k: int = 10, filters: dict[str, Any] | None = None
-    ) -> list[RetrievalResult]:
+    def retrieve(self, query_vector: List[float], k: int = 10, filters: dict[str, Any] | None = None) -> List[RetrievalResult]:
         """
-        Retrieve top-k relevant chunks from the vector store.
+        Retrieve top-k most similar vectors to the query vector.
 
         Args:
             query_vector: Query embedding vector
@@ -26,6 +25,25 @@ class VectorRetriever(ABC):
             filters: Optional metadata filters
 
         Returns:
-            List of RetrievalResult objects
+            List[RetrievalResult]: Retrieved vectors with scores
+
+        Raises:
+            RetrievalError: If retrieval fails
         """
-        raise NotImplementedError
+        pass
+
+    @abstractmethod
+    def retrieve_by_ids(self, ids: List[str]) -> List[RetrievalResult]:
+        """
+        Retrieve vectors by their IDs.
+
+        Args:
+            ids: List of vector IDs to retrieve
+
+        Returns:
+            List[RetrievalResult]: Retrieved vectors
+
+        Raises:
+            RetrievalError: If retrieval fails
+        """
+        pass

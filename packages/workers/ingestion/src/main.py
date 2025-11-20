@@ -13,12 +13,17 @@ import sys
 from typing import Any
 
 import pika
+from shared.database.session import create_session
 from shared.events import (
     DocumentChunksReadyEvent,
     DocumentGraphBuildEvent,
     DocumentUploadedEvent,
     EmbeddingGenerateEvent,
 )
+from shared.messaging.publisher import RabbitMQPublisher
+from shared.repositories.status import SqlStatusRepository
+from shared.services.status_service import StatusService
+from shared.types.status import DocumentProcessingStatus
 
 # Configure logging
 logging.basicConfig(
@@ -42,9 +47,11 @@ class IngestionWorker:
         self.connection = None
         self.channel = None
         self.should_stop = False
+        self.status_service: StatusService | None = None
+        self.db_session = None
 
     def connect(self):
-        """Connect to RabbitMQ."""
+        """Connect to RabbitMQ and initialize services."""
         logger.info(f"Connecting to RabbitMQ: {RABBITMQ_URL}")
         self.connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URL))
         self.channel = self.connection.channel()
@@ -68,20 +75,43 @@ class IngestionWorker:
         # Set QoS to process one message at a time
         self.channel.basic_qos(prefetch_count=WORKER_CONCURRENCY)
 
-        logger.info("Connected to RabbitMQ successfully")
+        # Initialize database session
+        self.db_session = next(create_session())
+        
+        # Initialize status service with publisher
+        publisher = RabbitMQPublisher(
+            rabbitmq_url=RABBITMQ_URL,
+            exchange=RABBITMQ_EXCHANGE
+        )
+        publisher.connect()
+        
+        status_repository = SqlStatusRepository(self.db_session)
+        self.status_service = StatusService(
+            status_repository=status_repository,
+            message_publisher=publisher
+        )
+
+        logger.info("Connected to RabbitMQ and initialized status service successfully")
 
     def on_document_uploaded(self, ch, method, properties, body):
         """
         Handle document.uploaded event.
 
-        TODO: Implement document parsing and chunking logic:
-        1. Download document from MinIO using event.storage_path
-        2. Parse document (PDF, TXT, etc.) into text
-        3. Chunk text into semantic segments
-        4. Store chunks in PostgreSQL
-        5. Publish document.chunks.ready event
-        6. Publish embeddings.generate event
-        7. Publish document.graph.build event
+        TODO: Implement document ingestion using shared orchestrators:
+        
+        # 1. Initialize dependencies
+        # parser = PDFParser() or TextParser() depending on mime_type
+        # chunker = SentenceChunker(chunk_size=500)
+        # enricher = DefaultEnricher()
+        # embedder = OllamaEmbeddings(...)
+        # vector_index = QdrantVectorStore(...)
+        
+        # 2. Use VectorRAGIndexer
+        # from shared.orchestrators.vector_rag import VectorRAGIndexer
+        # indexer = VectorRAGIndexer(parser, chunker, enricher, embedder, vector_index)
+        # indexer.ingest([(document_bytes, event.metadata)])
+        
+        # 3. Publish events for next stages (Graph, etc.)
         """
         try:
             # Parse event

@@ -1,22 +1,24 @@
-"""Entity extraction interface for Graph RAG."""
+"""Graph RAG interfaces for entity and relationship extraction."""
 
 from abc import ABC, abstractmethod
+from typing import Any, List
 
-from shared.types import Chunk, GraphNode
+from shared.types.document import Chunk
+from shared.types.graph import GraphNode
 
 
 class EntityExtractor(ABC):
     """
-    Extracts named entities from text chunks using NER or LLM-based extraction.
-
-    Implementations may use:
+    Interface for extracting named entities from text chunks.
+    
+    Implementations can use:
     - spaCy NER
-    - LLM-based extraction (GPT, Claude, Llama)
+    - LLM-based extraction
     - Custom entity recognition models
     """
 
     @abstractmethod
-    def extract_entities(self, chunk: Chunk) -> list[GraphNode]:
+    def extract_entities(self, chunk: Chunk) -> List[GraphNode]:
         """
         Extract entities from a text chunk.
 
@@ -24,12 +26,15 @@ class EntityExtractor(ABC):
             chunk: Text chunk to extract entities from
 
         Returns:
-            List of GraphNode objects representing extracted entities
+            List[GraphNode]: List of extracted entities
+
+        Raises:
+            EntityExtractionError: If extraction fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
-    def extract_entities_batch(self, chunks: list[Chunk]) -> list[list[GraphNode]]:
+    def extract_entities_batch(self, chunks: List[Chunk]) -> List[List[GraphNode]]:
         """
         Batch extract entities from multiple chunks.
 
@@ -37,6 +42,9 @@ class EntityExtractor(ABC):
             chunks: List of chunks to process
 
         Returns:
-            List of entity lists (one per chunk)
+            List[List[GraphNode]]: List of entity lists (one per chunk)
+
+        Raises:
+            EntityExtractionError: If extraction fails
         """
-        raise NotImplementedError
+        pass

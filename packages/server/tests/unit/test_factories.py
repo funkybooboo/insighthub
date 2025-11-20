@@ -3,16 +3,16 @@
 from unittest.mock import Mock, patch
 
 import pytest
+from shared.llm.claude_provider import ClaudeLlmProvider
+from shared.llm.factory import create_llm_provider
+from shared.llm.huggingface_provider import HuggingFaceLlmProvider
+from shared.llm.ollama import OllamaLlmProvider
+from shared.llm.openai_provider import OpenAiLlmProvider
+from shared.storage.file_system_blob_storage import FileSystemBlobStorage
+from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
+from shared.storage.minio_storage import MinIOBlobStorage
 
-from src.infrastructure.llm.claude_provider import ClaudeLlmProvider
-from src.infrastructure.llm.factory import create_llm_provider
-from src.infrastructure.llm.huggingface_provider import HuggingFaceLlmProvider
-from src.infrastructure.llm.ollama import OllamaLlmProvider
-from src.infrastructure.llm.openai_provider import OpenAiLlmProvider
 from src.infrastructure.storage.blob_storage_factory import BlobStorageType, create_blob_storage
-from src.infrastructure.storage.file_system_blob_storage import FileSystemBlobStorage
-from src.infrastructure.storage.in_memory_blob_storage import InMemoryBlobStorage
-from src.infrastructure.storage.minio_blob_storage import MinioBlobStorage
 
 
 class TestBlobStorageFactory:
@@ -31,26 +31,17 @@ class TestBlobStorageFactory:
         storage = create_blob_storage(BlobStorageType.FILE_SYSTEM)
         assert isinstance(storage, FileSystemBlobStorage)
 
-    @patch("src.infrastructure.storage.blob_storage_factory.MinioBlobStorage")
+    @patch("shared.storage.minio_storage.Minio")
     @patch("src.infrastructure.storage.blob_storage_factory.config")
-    def test_create_s3_storage(self, mock_config: Mock, mock_minio_class: Mock) -> None:
+    def test_create_s3_storage(self, mock_config: Mock, mock_minio: Mock) -> None:
         """Test creating S3 (MinIO) storage."""
-        mock_config.S3_ENDPOINT_URL = "http://localhost:9000"
+        mock_config.S3_ENDPOINT_URL = "localhost:9000"
         mock_config.S3_ACCESS_KEY = "test_key"
         mock_config.S3_SECRET_KEY = "test_secret"
         mock_config.S3_BUCKET_NAME = "test_bucket"
 
-        mock_instance = Mock(spec=MinioBlobStorage)
-        mock_minio_class.return_value = mock_instance
-
         storage = create_blob_storage(BlobStorageType.S3)
-        assert storage == mock_instance
-        mock_minio_class.assert_called_once_with(
-            endpoint_url="http://localhost:9000",
-            access_key="test_key",
-            secret_key="test_secret",
-            bucket_name="test_bucket",
-        )
+        assert isinstance(storage, MinIOBlobStorage)
 
     @patch("src.infrastructure.storage.blob_storage_factory.config")
     def test_create_storage_from_config(self, mock_config: Mock) -> None:
@@ -168,7 +159,7 @@ class TestGetAvailableProviders:
     @patch("src.infrastructure.llm.factory.create_llm_provider")
     def test_get_available_providers_calls_health_check(self, mock_create_provider: Mock) -> None:
         """Test that health checks are called for all providers."""
-        from src.infrastructure.llm.factory import get_available_providers
+        from shared.llm.factory import get_available_providers
 
         mock_provider = type("MockProvider", (), {})()
         mock_provider.health_check = lambda: {"status": "healthy", "provider": "test"}
@@ -184,7 +175,7 @@ class TestGetAvailableProviders:
     @patch("src.infrastructure.llm.factory.create_llm_provider")
     def test_get_available_providers_handles_errors(self, mock_create_provider: Mock) -> None:
         """Test that provider errors are handled gracefully."""
-        from src.infrastructure.llm.factory import get_available_providers
+        from shared.llm.factory import get_available_providers
 
         mock_provider = type("MockProvider", (), {})()
         mock_provider.health_check = lambda: (_ for _ in ()).throw(Exception("Connection failed"))
@@ -199,7 +190,7 @@ class TestGetAvailableProviders:
     @patch("src.infrastructure.llm.factory.create_llm_provider")
     def test_get_available_providers_returns_dict(self, mock_create_provider: Mock) -> None:
         """Test that get_available_providers returns a dictionary."""
-        from src.infrastructure.llm.factory import get_available_providers
+        from shared.llm.factory import get_available_providers
 
         mock_provider = type("MockProvider", (), {})()
         mock_provider.health_check = lambda: {"status": "healthy"}

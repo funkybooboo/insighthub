@@ -9,6 +9,7 @@ from shared.database.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from shared.models.user import User
+    from shared.models.workspace import Workspace
 
 
 class ChatSession(Base, TimestampMixin):
@@ -20,6 +21,9 @@ class ChatSession(Base, TimestampMixin):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    workspace_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
     rag_type: Mapped[str] = mapped_column(
         String(50), nullable=False, default="vector"
@@ -27,6 +31,7 @@ class ChatSession(Base, TimestampMixin):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="chat_sessions")
+    workspace: Mapped["Workspace | None"] = relationship("Workspace", back_populates="chat_sessions")
     messages: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage", back_populates="session", cascade="all, delete-orphan"
     )

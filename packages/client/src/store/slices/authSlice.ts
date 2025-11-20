@@ -17,10 +17,19 @@ interface AuthState {
     isLoading: boolean;
 }
 
+// Helper to safely get token from localStorage
+const getInitialToken = (): string | null => {
+    try {
+        return typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+    } catch {
+        return null;
+    }
+};
+
 const initialState: AuthState = {
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    token: getInitialToken(),
+    isAuthenticated: !!getInitialToken(),
     isLoading: false,
 };
 

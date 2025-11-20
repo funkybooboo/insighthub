@@ -2,12 +2,12 @@
 
 from enum import Enum
 
-from src import config
+from shared.storage import BlobStorage
+from shared.storage.file_system_blob_storage import FileSystemBlobStorage
+from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
+from shared.storage.minio_storage import MinIOBlobStorage
 
-from .blob_storage import BlobStorage
-from .file_system_blob_storage import FileSystemBlobStorage
-from .in_memory_blob_storage import InMemoryBlobStorage
-from .minio_blob_storage import MinioBlobStorage
+from src import config
 
 
 class BlobStorageType(Enum):
@@ -36,8 +36,8 @@ def create_blob_storage(storage_type: BlobStorageType | None = None) -> BlobStor
         storage_type = BlobStorageType(config.BLOB_STORAGE_TYPE)
 
     if storage_type == BlobStorageType.S3:
-        return MinioBlobStorage(
-            endpoint_url=config.S3_ENDPOINT_URL,
+        return MinIOBlobStorage(
+            endpoint=config.S3_ENDPOINT_URL,
             access_key=config.S3_ACCESS_KEY,
             secret_key=config.S3_SECRET_KEY,
             bucket_name=config.S3_BUCKET_NAME,

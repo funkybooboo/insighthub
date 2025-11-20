@@ -15,6 +15,15 @@ from typing import Any
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
+from shared.database import Base
+from shared.repositories import (
+    ChatMessageRepository,
+    ChatSessionRepository,
+    DocumentRepository,
+    UserRepository,
+)
+from shared.storage import BlobStorage
+from shared.storage.minio_storage import MinIOBlobStorage
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.minio import MinioContainer
@@ -22,11 +31,6 @@ from testcontainers.postgres import PostgresContainer
 
 from src import config
 from src.api import create_app
-from shared.repositories import ChatMessageRepository, ChatSessionRepository
-from shared.repositories import DocumentRepository
-from shared.repositories import UserRepository
-from shared.database import Base
-from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 from tests.context import IntegrationTestContext, create_integration_test_context
 
 # ============================================================================
@@ -185,7 +189,7 @@ def blob_storage(minio_container: MinioContainer) -> BlobStorage:
     if not endpoint.startswith(("http://", "https://")):
         endpoint = f"http://{endpoint}"
 
-    return MinioBlobStorage(
+    return MinIOBlobStorage(
         endpoint_url=endpoint,
         access_key=minio_config["access_key"],
         secret_key=minio_config["secret_key"],

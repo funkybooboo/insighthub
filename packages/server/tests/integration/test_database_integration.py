@@ -1,12 +1,14 @@
 """Integration tests for database operations with PostgreSQL testcontainer."""
 
 import pytest
+from shared.repositories import (
+    ChatMessageRepository,
+    ChatSessionRepository,
+    DocumentRepository,
+    UserRepository,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from shared.repositories import ChatMessageRepository, ChatSessionRepository
-from shared.repositories import DocumentRepository
-from shared.repositories import UserRepository
 
 
 def test_user_document_relationship(

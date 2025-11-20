@@ -2,13 +2,18 @@
 Factory for creating RAG instances with different configurations.
 """
 
-from src.infrastructure.rag.rag import Rag
-from src.infrastructure.rag.types import RagConfig
+from shared.types.rag import RagConfig
+
+# from src.infrastructure.rag.rag import Rag # TODO: Deprecate local Rag interface in favor of shared orchestrators
+# from src.infrastructure.rag.types import RagConfig # TODO: Deprecate local RagConfig
 
 
-def create_rag(config: RagConfig | None = None) -> Rag:
+def create_rag(config: RagConfig | None = None):
     """
     Factory function to create RAG instances from configuration.
+
+    DEPRECATED: This factory is being replaced by direct usage of shared.orchestrators.
+    TODO: Update API to use VectorRAG and GraphRAG orchestrators directly.
 
     Args:
         config: Optional RagConfig dictionary. If not provided, defaults are used:
@@ -16,46 +21,43 @@ def create_rag(config: RagConfig | None = None) -> Rag:
             - chunking_strategy: "sentence"
             - embedding_type: "ollama"
             - vector_store_type: "qdrant"
-            - chunk_size: 512
-            - chunk_overlap: 50
-            - embedding_model_name: "nomic-embed-text"
-            - vector_store_host: "localhost"
-            - vector_store_port: 6333
-            - collection_name: "documents"
+            - top_k: 8
+            - workspace_id: "default"
+            - embedding_model: "nomic-embed-text"
+            - embedding_dim: 768
+            - chunk_size: 1000
+            - chunk_overlap: 200
+            - retriever_type: "vector"
+            - rerank_enabled: False
+            - rerank_model: None
 
     Returns:
-        Configured RAG instance implementing the Rag interface.
+        Configured RAG instance.
 
     Raises:
-        ValueError: If the provided configuration is invalid.
-
-    Example:
-        >>> config: RagConfig = {
-        ...     "rag_type": "vector",
-        ...     "chunking_strategy": "sentence",
-        ...     "chunk_size": 1024,
-        ... }
-        >>> rag = create_rag(config)
+        NotImplementedError: Migration to shared orchestrators in progress
     """
     # Define default configuration
-    defaults: RagConfig = {
-        "rag_type": "vector",
-        "chunking_strategy": "sentence",
-        "embedding_type": "ollama",
-        "vector_store_type": "qdrant",
-        "chunk_size": 512,
-        "chunk_overlap": 50,
-        "embedding_model_name": "nomic-embed-text",
-        "vector_store_host": "localhost",
-        "vector_store_port": 6333,
-        "collection_name": "documents",
-    }
+    # TODO: Use pydantic model for defaults
+    defaults = RagConfig(
+        id=None,
+        workspace_id="default",
+        rag_type="vector",
+        chunking_strategy="sentence",
+        embedding_model="nomic-embed-text",
+        embedding_dim=768,
+        retriever_type="vector",
+        chunk_size=1000,
+        chunk_overlap=200,
+        top_k=8,
+        rerank_enabled=False,
+        rerank_model=None,
+        created_at=None,
+        updated_at=None,
+    )
 
-    # Merge provided config with defaults
-    _merged_config: RagConfig = {**defaults, **config} if config else defaults
+    # TODO: Implement factory logic using shared.orchestrators.vector_rag.VectorRAG
+    # TODO: Implement factory logic using shared.orchestrators.graph_rag.GraphRAG
 
-    # TODO: Validate _merged_config values (e.g., rag_type in allowed options)
-    # TODO: Instantiate embedding model, vector store, and RAG system based on _merged_config
-    # TODO: Return fully configured Rag instance
-
-    raise NotImplementedError("Factory implementation pending")
+    # For now, return None or raise NotImplementedError until we migrate the rest of the server
+    raise NotImplementedError("Migration to shared orchestrators in progress")

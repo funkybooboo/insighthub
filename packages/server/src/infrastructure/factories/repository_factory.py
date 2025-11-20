@@ -2,9 +2,6 @@
 
 from enum import Enum
 
-from sqlalchemy.orm import Session
-
-from src import config
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -15,6 +12,9 @@ from shared.repositories import (
     SqlUserRepository,
     UserRepository,
 )
+from sqlalchemy.orm import Session
+
+from src import config
 
 
 class UserRepositoryType(Enum):

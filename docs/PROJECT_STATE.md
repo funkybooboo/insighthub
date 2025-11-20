@@ -1,153 +1,126 @@
-# InsightHub - Current Project State
+# InsightHub - Project Status
 
-## Status: Clean, Organized, Ready for Development
-
-Date: 2025-11-19
-
----
-
-## Completed Reorganization
-
-### 1. File Structure - CLEAN ✅
-
-**Client** - Feature-based architecture
-- `src/features/` - Self-contained modules (auth, chat, documents)
-- `src/shared/` - Cross-feature utilities
-- Each feature exports clean public API
-
-**Server** - Domain-driven design
-- `src/domains/` - Business logic by feature
-- `src/infrastructure/` - External integrations
-- Clean separation of concerns
-
-**Workers** - Consistent structure
-- All 7 workers have identical file organization
-- `src/main.py` - RabbitMQ consumer with proper TODOs
-- `src/handlers/` - Event handlers (TODO)
-- `src/utils/` - Worker utilities (TODO)
-
-**Shared Library** - Centralized types and interfaces
-- `src/shared/types/` - Core data structures
-- `src/shared/interfaces/` - Abstract interfaces (14 total)
-- `src/shared/events/` - RabbitMQ event schemas (8 events)
-- `src/shared/orchestrators/` - High-level RAG pipelines
-
-### 2. Docker Compose - SIMPLIFIED ✅
-
-**Before** (5 files, confusing):
-- docker-compose.yml
-- docker-compose.dev.yml  
-- docker-compose.prod.yml
-- docker-compose.workers.yml (separate)
-- docker-compose.elk.yml
-
-**After** (4 files, intuitive):
-- `docker-compose.yml` - Infrastructure only (6 services)
-- `docker-compose.dev.yml` - Dev server + client + 7 workers
-- `docker-compose.prod.yml` - Prod server + client + 7 workers  
-- `docker-compose.elk.yml` - Optional monitoring
-
-**Why Better:**
-- Workers belong with their environments
-- Clear separation: infra vs dev vs prod
-- Profiles: `--profile dev` and `--profile workers`
-
-### 3. Taskfile Commands - CLEAR ✅
-
-```bash
-# Development
-task up-infra          # Just infrastructure
-task up-dev            # Dev server + client  
-task up-workers-dev    # Dev workers
-task up-full           # Everything (dev)
-
-# Production
-task up                # Prod server + client
-task up-workers        # Prod workers
-
-# Monitoring
-task up-elk            # ELK stack
-
-# Logs
-task logs-server-dev   # Dev server
-task logs-workers-dev  # Dev workers
-```
-
-### 4. RabbitMQ Integration - IMPLEMENTED ✅
-
-**Server** (`packages/server/`):
-- ✅ `RabbitMQPublisher` fully implemented
-- ✅ `DocumentService` publishes `document.uploaded` event
-- ✅ Proper error handling and logging
-- ✅ Context manager support
-
-**Workers** (`packages/workers/`):
-- ✅ All workers have RabbitMQ connection setup
-- ✅ Event handlers with comprehensive TODOs
-- ✅ Graceful shutdown on SIGTERM/SIGINT
-- ✅ Proper message acknowledgment
-
-### 5. Dockerfiles - STANDARDIZED ✅
-
-**All Dockerfiles use multi-stage builds:**
-
-```dockerfile
-FROM python:3.11-slim AS base         # Base dependencies
-FROM base AS development              # Hot-reload development
-FROM base AS production               # Optimized production
-```
-
-**Benefits:**
-- Same code for dev and prod
-- Development has volume mounts (hot-reload)
-- Production has optimized layers
-- Consistent across all 7 workers
+**Status**: Active Development - Test Coverage & Workspace Implementation  
+**Updated**: 2025-11-19
 
 ---
 
-## Current Architecture
+## Current Focus
 
-### Service Map
+1. **Improve Test Coverage** - Target 80%+ for server and client
+2. **Implement Workspaces** - Multi-tenant document/chat organization
+3. **RabbitMQ & Redis Integration** - Event-driven architecture with caching
+4. **Shared Library** - Consolidate common code between server and workers
+
+---
+
+## Architecture Overview
+
+### Client (React + TypeScript)
+- **Location**: `packages/client/`
+- **Structure**: Component-based with Redux state management
+- **Testing**: Vitest + Testing Library (17 test files, need expansion)
+- **Features**: Auth, Chat, Documents, Workspace UI (in progress)
+
+### Server (Flask + Python)
+- **Location**: `packages/server/`
+- **Structure**: Domain-driven design with clean architecture
+- **Testing**: Pytest (36 test files, need higher coverage)
+- **Features**: REST API, WebSocket chat, Auth, Document management
+
+### Shared Library (Python)
+- **Location**: `packages/shared/python/`
+- **Purpose**: Common types, models, interfaces, and utilities
+- **Contents**: SQLAlchemy models, RAG interfaces, messaging, caching
+- **Dependencies**: Redis (optional), RabbitMQ, PostgreSQL, Qdrant
+
+### Workers (7 services - Future)
+- **Location**: `packages/workers/`
+- **Status**: Structured but not priority for current phase
+- **Services**: ingestion, embeddings, graph, enrichment, query, retriever, notify
+
+## Infrastructure Services
 
 ```
-Infrastructure (docker-compose.yml)
-├── PostgreSQL (5432)
-├── MinIO (9000, 9001)
-├── Ollama (11434)
-├── RabbitMQ (5672, 15672)
-├── Redis (6379)
-└── Qdrant (6333, 6334)
-
-Development (docker-compose.dev.yml)
-├── server-dev (5000) - Hot-reload Flask
-├── client-dev (3000) - Vite dev server
-└── Workers (--profile workers)
-    ├── worker-ingestion-dev
-    ├── worker-embeddings-dev
-    ├── worker-graph-dev
-    ├── worker-enrichment-dev
-    ├── worker-query-dev
-    ├── worker-retriever-dev
-    └── worker-notify-dev
-
-Production (docker-compose.prod.yml)
-├── server-prod (5000) - Optimized Flask
-├── client-prod (3000) - Nginx static
-└── Workers (--profile workers)
-    ├── worker-ingestion-prod
-    ├── worker-embeddings-prod
-    ├── worker-graph-prod
-    ├── worker-enrichment-prod
-    ├── worker-query-prod
-    ├── worker-retriever-prod
-    └── worker-notify-prod
-
-Monitoring (docker-compose.elk.yml) - Optional
-├── Elasticsearch (9200)
-├── Logstash (5044)
-├── Kibana (5601)
-└── Filebeat
+PostgreSQL (5432)  - Main database
+RabbitMQ (5672)    - Message queue (ready, not actively used)
+Redis (6379)       - Cache (optional, graceful degradation)
+Qdrant (6333)      - Vector database
+MinIO (9000)       - Object storage
+Ollama (11434)     - Local LLM
 ```
+
+## Docker Compose Organization
+
+- `docker-compose.yml` - Core infrastructure (6 services above)
+- `docker-compose.dev.yml` - Dev server + client with hot-reload
+- `docker-compose.prod.yml` - Production builds
+- `docker-compose.elk.yml` - Optional ELK monitoring stack
+
+---
+
+## High Priority Tasks
+
+### 1. Test Coverage (In Progress)
+- **Server**: Currently ~40%, target 80%+
+  - Add unit tests for all services (workspace, chat, document, user)
+  - Add integration tests for API endpoints
+  - Add tests for RabbitMQ publishing and Redis caching
+- **Client**: Currently ~50%, target 80%+
+  - Add unit tests for Redux slices and hooks
+  - Add component tests for workspace features
+  - Add integration tests for API interactions
+
+### 2. Workspace Implementation
+- **Database**: Create Alembic migration for workspace schema
+  - `workspaces` table (id, name, description, user_id, created_at)
+  - `rag_configs` table (workspace_id, embedding_model, retriever_type, chunk_size, etc.)
+  - Update `documents` and `chat_sessions` with workspace_id foreign key
+- **Server**: Implement WorkspaceService with Redis caching
+  - CRUD operations for workspaces
+  - RAG config management per workspace
+  - Publish workspace events to RabbitMQ
+- **Client**: Build workspace UI components
+  - WorkspaceSelector dropdown
+  - WorkspaceSettings modal
+  - Update document/chat UIs to be workspace-aware
+
+### 3. Move Code to Shared Library
+- Move common RAG components from server to shared
+- Move common utilities and helpers to shared
+- Ensure all imports work correctly
+
+### 4. Redis Integration (Optional)
+- Cache workspace data with TTL
+- Cache RAG configs
+- Cache user sessions
+- Gracefully degrade when Redis unavailable
+
+---
+
+## Project Architecture
+
+### Tech Stack
+
+**Backend**:
+- Flask 3.x with Flask-SocketIO for WebSockets
+- SQLAlchemy 2.x ORM with Alembic migrations
+- PostgreSQL 16 for relational data
+- Qdrant for vector embeddings
+- MinIO for object storage
+- Optional: Redis for caching, RabbitMQ for async processing
+
+**Frontend**:
+- React 19 + TypeScript
+- Redux Toolkit for state management
+- TailwindCSS for styling
+- Vite for dev server and builds
+- Socket.IO client for real-time chat
+
+**Testing**:
+- Server: pytest + pytest-cov + testcontainers
+- Client: vitest + @testing-library/react
+- Target: 80%+ coverage for both
 
 ### Event Flow
 
@@ -232,254 +205,104 @@ Monitoring (docker-compose.elk.yml) - Optional
 
 ## Next Steps for Development
 
-### Priority 1: Ingestion Worker
+## Quick Start
 
-**File:** `packages/workers/ingestion/src/main.py`
-
-```python
-# TODO: Lines 93-120 - Implement:
-1. Download document from MinIO
-2. Parse document (PDF/TXT)
-3. Chunk text using shared.interfaces.vector.Chunker
-4. Store chunks in PostgreSQL
-5. Publish events (document.chunks.ready, embeddings.generate)
-```
-
-### Priority 2: Embeddings Worker
-
-**File:** `packages/workers/embeddings/src/main.py`
-
-```python
-# TODO: Lines 90-115 - Implement:
-1. Fetch chunks from PostgreSQL
-2. Generate embeddings using Ollama
-3. Upsert vectors to Qdrant
-4. Publish vector.index.updated event
-```
-
-### Priority 3: Server Integration
-
-**Files to update:**
-- `packages/server/src/domains/chat/service.py` - Publish query events
-- `packages/server/src/domains/users/service.py` - Publish user events
-- `packages/server/src/infrastructure/messaging/factory.py` - Verify factory
-
----
-
-## How to Start Development
-
-### Quick Start (Recommended)
+### Local Development (Recommended)
 
 ```bash
-# 1. Start infrastructure
+# 1. Start infrastructure services
 task up-infra
 
-# 2. Run server locally (terminal 1)
-cd packages/server
-poetry install
-poetry shell
-task server
+# 2. Run server (terminal 1)
+cd packages/server && poetry install && poetry run python src/api.py
 
-# 3. Run client locally (terminal 2)
-cd packages/client
-bun install
-task dev
+# 3. Run client (terminal 2)
+cd packages/client && bun install && bun run dev
 
-# 4. Optional: Start workers (terminal 3)
-task up-workers-dev
+# Access:
+#   - Client: http://localhost:3000
+#   - Server API: http://localhost:5000
+#   - MinIO Console: http://localhost:9001
+#   - Qdrant UI: http://localhost:6334
+#   - RabbitMQ Management: http://localhost:15672
 ```
 
-### Full Containerized
+### Docker Development
 
 ```bash
-# Build images
-task build-dev
-
-# Start everything
-task up-full
+# Start everything in development mode
+task up-dev
 
 # View logs
 task logs-server-dev
-task logs-workers-dev
+task logs-client-dev
+
+# Stop all services
+task down
 ```
 
-### Working on a Specific Worker
+### Running Tests
 
 ```bash
-# Start infrastructure + specific worker
-task up-infra
-cd packages/workers/ingestion
-poetry shell
+# Server tests
+cd packages/server
+task test              # All tests with coverage
+task test:unit         # Fast unit tests only
+task test:integration  # Integration tests (requires Docker)
 
-# Run locally for debugging
-poetry run python -m src.main
-
-# Or in Docker with hot-reload
-docker compose -f ../../docker-compose.yml -f ../../docker-compose.dev.yml up -d worker-ingestion-dev
-docker compose logs -f worker-ingestion-dev
+# Client tests
+cd packages/client
+task test              # All tests
+task test:coverage     # With coverage report
+task test:watch        # Watch mode
 ```
 
 ---
 
-## Key Design Decisions
-
-### 1. Workers in Dev/Prod Compose Files
-
-**Decision:** Include workers in docker-compose.dev.yml and docker-compose.prod.yml
-
-**Rationale:**
-- Workers are part of the application, not optional infrastructure
-- They should be available in both environments
-- Use `--profile workers` to optionally enable them
-- Clearer organization than separate workers file
-
-### 2. Feature-Based Client Structure
-
-**Decision:** Organize client by features, not by file type
-
-**Before:**
-```
-src/
-├── components/  (all components mixed)
-├── hooks/       (all hooks mixed)
-└── store/       (all slices mixed)
-```
-
-**After:**
-```
-src/
-├── features/
-│   ├── auth/        (all auth code together)
-│   ├── chat/        (all chat code together)
-│   └── documents/   (all document code together)
-└── shared/          (truly shared utilities)
-```
-
-**Benefits:**
-- Easier to find related code
-- Features are self-contained
-- Scales better as features grow
-- Clear ownership boundaries
-
-### 3. TODOs Instead of Empty Stubs
-
-**Decision:** Use comprehensive TODOs with implementation guidance
-
-**Rationale:**
-- Developers know exactly what needs to be done
-- TODOs include code examples and suggestions
-- Can track progress by searching for TODO
-- Easy to convert to GitHub issues
-
-### 4. Multi-Stage Dockerfiles
-
-**Decision:** All services use multi-stage builds with development and production targets
-
-**Benefits:**
-- Same Dockerfile for dev and prod
-- Development has hot-reload (volume mounts)
-- Production is optimized (no dev deps)
-- Consistent pattern across all services
-
----
-
-## File Organization Summary
-
-```
-insighthub/
-├── packages/
-│   ├── shared/python/      ✅ Clean, organized
-│   │   └── src/shared/     All types, interfaces, events
-│   ├── server/             ✅ Domain-driven, organized
-│   │   ├── src/domains/    Business logic
-│   │   └── src/infrastructure/  External services
-│   ├── client/             ✅ Feature-based, organized
-│   │   └── src/features/   Self-contained modules
-│   └── workers/            ✅ Consistent, organized
-│       ├── ingestion/      All 7 workers identical structure
-│       ├── embeddings/     RabbitMQ setup complete
-│       └── ...             Core logic has TODOs
-├── docs/                   ✅ Comprehensive docs
-│   ├── architecture.md
-│   ├── project-structure.md
-│   └── ...
-├── docker-compose.yml      ✅ Infrastructure
-├── docker-compose.dev.yml  ✅ Dev + workers
-├── docker-compose.prod.yml ✅ Prod + workers
-├── docker-compose.elk.yml  ✅ Monitoring
-├── Taskfile.yml            ✅ Clean commands
-├── STRUCTURE.md            ✅ Project structure guide
-└── PROJECT_STATE.md        ✅ This file
-```
-
----
-
-## Documentation Index
-
-- `README.md` - Project overview and quick start
-- `STRUCTURE.md` - Detailed file structure and architecture
-- `PROJECT_STATE.md` - Current state and next steps (this file)
-- `docs/architecture.md` - System architecture details
-- `docs/project-structure.md` - Technical structure documentation
-- `docs/PHASE2_STATUS.md` - Implementation phase status
-- `docs/REFACTORING_COMPLETE.md` - What was refactored
-- `packages/shared/python/README.md` - Shared library usage
-- `packages/server/README.md` - Server development guide
-- `packages/client/README.md` - Client development guide
-
----
-
-## Verification Commands
+## Common Development Tasks
 
 ```bash
-# Verify infrastructure
-task up-infra
-task ps
+# Format and lint code
+task server:format     # Format server code
+task client:format     # Format client code
+task check             # Run all checks (both)
 
-# Verify server structure
-tree packages/server/src -L 2
+# Build Docker images
+task build-dev         # Build dev images
+task build             # Build production images
 
-# Verify client structure
-tree packages/client/src/features -L 2
+# View logs
+task logs-server-dev   # Server logs
+task logs-postgres     # Database logs
+task logs-redis        # Cache logs
 
-# Verify workers
-ls -la packages/workers/*/src/main.py
-
-# Verify shared library
-cd packages/shared/python
-poetry run python test_imports.py
-
-# Verify docker compose files
-docker compose -f docker-compose.yml config
-docker compose -f docker-compose.yml -f docker-compose.dev.yml config
+# Clean up
+task down              # Stop all services
+task clean             # Remove containers and volumes
 ```
 
 ---
 
-## Summary
+## Development Tips
 
-### What Works Right Now ✅
-1. Complete infrastructure (6 services)
-2. Server API with RabbitMQ publishing
-3. Client with real-time chat
-4. All 7 workers with RabbitMQ consumers
-5. Clean, intuitive file organization
-6. Comprehensive documentation
-
-### What Needs Implementation ⏳
-1. Worker core processing logic (all marked with TODOs)
-2. Complete RAG pipeline integration
-3. Graph RAG implementation
-4. Additional server events (chat, users)
-
-### Project Health: Excellent ⭐
-- **Structure:** Clean and intuitive
-- **Consistency:** High across all packages
-- **Documentation:** Comprehensive
-- **Ready for:** Immediate development
-- **Next Focus:** Implement worker TODOs one by one
+1. **Use local development** for faster iteration (hot-reload, easier debugging)
+2. **Redis and RabbitMQ** are optional - server degrades gracefully if unavailable
+3. **Run unit tests** frequently - they're fast and catch most issues
+4. **Integration tests** require Docker - use testcontainers for isolated DB tests
+5. **Check logs** with `task logs-*` commands when debugging issues
 
 ---
 
-**Status: Ready for Development**
-**Last Updated: 2025-11-19**
+## Documentation
+
+- `README.md` - Project overview and features
+- `docs/architecture.md` - System architecture and design patterns
+- `docs/testing.md` - Testing strategy and guidelines
+- `docs/docker.md` - Docker setup and configuration
+- `docs/contributing.md` - Contribution guidelines
+- `packages/server/README.md` - Server API documentation
+- `packages/client/README.md` - Client app documentation
+
+---
+
+**Last Updated**: 2025-11-19

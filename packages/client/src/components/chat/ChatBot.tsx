@@ -29,6 +29,7 @@ notificationAudio.volume = 0.2;
 const ChatBot = () => {
     const dispatch = useDispatch();
     const { sessions, activeSessionId, isTyping } = useSelector((state: RootState) => state.chat);
+    const { activeWorkspaceId } = useSelector((state: RootState) => state.workspace);
     const [isBotTyping, setIsBotTyping] = useState(false);
     const [error, setError] = useState('');
     const currentBotMessageId = useRef<string | null>(null);
@@ -36,6 +37,15 @@ const ChatBot = () => {
 
     // Get active session
     const activeSession = sessions.find((s) => s.id === activeSessionId);
+
+    // Show message if no workspace is selected
+    if (!activeWorkspaceId) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                <p className="text-lg">Please create or select a workspace to start chatting</p>
+            </div>
+        );
+    }
 
     // Create initial session if none exists
     useEffect(() => {

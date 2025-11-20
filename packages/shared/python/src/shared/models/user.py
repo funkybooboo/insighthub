@@ -11,6 +11,7 @@ from shared.database.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from shared.models.chat import ChatSession
     from shared.models.document import Document
+    from shared.models.workspace import DefaultRagConfig, Workspace
 
 
 class User(Base, TimestampMixin):
@@ -31,6 +32,12 @@ class User(Base, TimestampMixin):
     )
     chat_sessions: Mapped[list["ChatSession"]] = relationship(
         "ChatSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    workspaces: Mapped[list["Workspace"]] = relationship(
+        "Workspace", back_populates="user", cascade="all, delete-orphan"
+    )
+    default_rag_config: Mapped["DefaultRagConfig | None"] = relationship(
+        "DefaultRagConfig", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     def set_password(self, password: str) -> None:

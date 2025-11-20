@@ -1,13 +1,15 @@
 """Socket.IO event handlers for chat domain."""
 
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from flask import current_app
 from flask_socketio import emit
 
-from src.context import AppContext
 from src.infrastructure.database import get_db
+
+if TYPE_CHECKING:
+    from src.context import AppContext
 
 # Track active request IDs per client
 _active_requests: dict[str, str] = {}
@@ -34,6 +36,9 @@ def handle_chat_message(data: dict[str, Any]) -> None:
         - error: Error information {"error": str}
     """
     with current_app.app_context():
+        # Import here to avoid circular dependency
+        from src.context import AppContext
+
         db = None
         request_id = str(uuid.uuid4())
 
@@ -99,6 +104,9 @@ def handle_cancel_message(data: dict[str, Any] | None = None) -> None:
         - chat_cancelled: Confirmation that the stream was cancelled
     """
     with current_app.app_context():
+        # Import here to avoid circular dependency
+        from src.context import AppContext
+
         db = None
         try:
             # Get database session
@@ -123,3 +131,9 @@ def handle_cancel_message(data: dict[str, Any] | None = None) -> None:
         finally:
             if db is not None:
                 db.close()
+
+
+def register_socket_handlers(socketio: Any) -> None:
+    """Register Socket.IO event handlers for chat domain."""
+    socketio.on_event("chat_message", handle_chat_message)
+    socketio.on_event("cancel_chat", handle_cancel_chat)

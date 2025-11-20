@@ -1,52 +1,54 @@
-"""Vector storage interface for Vector RAG."""
+"""Vector storage interface for storing and retrieving vector embeddings."""
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from typing import Any
+from typing import Any, List
 
-from shared.types import RetrievalResult
+from shared.types.retrieval import RetrievalResult
 
 
 class VectorIndex(ABC):
     """
-    Abstract vector storage interface.
-
-    Responsibilities:
-    - Upsert vector + metadata
-    - Similarity search
-    - Delete vectors by ID
+    Interface for storing and retrieving vector embeddings.
+    
+    Implementations should support different vector databases:
+    - Qdrant
+    - Pinecone
+    - Weaviate
+    - FAISS
     """
 
     @abstractmethod
-    def upsert(self, id: str, vector: list[float], metadata: dict[str, Any]) -> None:
+    def upsert(self, id: str, vector: List[float], metadata: dict[str, Any]) -> None:
         """
         Insert or update a vector in the store.
 
         Args:
             id: Unique identifier for the vector
             vector: Vector embedding
-            metadata: Metadata associated with the vector
+            metadata: Associated metadata
+
+        Raises:
+            VectorStoreError: If operation fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
-    def upsert_many(
-        self, items: Iterable[tuple[str, list[float], dict[str, Any]]]
-    ) -> None:
+    def upsert_many(self, items: List[tuple[str, List[float], dict[str, Any]]]) -> None:
         """
         Batch upsert multiple vectors.
 
         Args:
-            items: Iterable of (id, vector, metadata) tuples
+            items: List of (id, vector, metadata) tuples
+
+        Raises:
+            VectorStoreError: If operation fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
-    def similarity_search(
-        self, vector: list[float], top_k: int = 10, filters: dict[str, Any] | None = None
-    ) -> list[RetrievalResult]:
+    def similarity_search(self, vector: List[float], top_k: int = 10, filters: dict[str, Any] | None = None) -> List[RetrievalResult]:
         """
-        Retrieve the top-k most similar vectors.
+        Retrieve top-k most similar vectors.
 
         Args:
             vector: Query vector
@@ -54,9 +56,12 @@ class VectorIndex(ABC):
             filters: Optional metadata filters
 
         Returns:
-            List of RetrievalResult objects
+            List[RetrievalResult]: Similar vectors with scores
+
+        Raises:
+            VectorStoreError: If operation fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def delete(self, id: str) -> None:
@@ -65,15 +70,18 @@ class VectorIndex(ABC):
 
         Args:
             id: Vector identifier to delete
+
+        Raises:
+            VectorStoreError: If operation fails
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def clear(self) -> None:
-        """Remove all vectors and metadata."""
-        raise NotImplementedError
+        """
+        Clear all vectors from the store.
 
-    @abstractmethod
-    def count(self) -> int:
-        """Return the number of stored vectors."""
-        raise NotImplementedError
+        Raises:
+            VectorStoreError: If operation fails
+        """
+        pass

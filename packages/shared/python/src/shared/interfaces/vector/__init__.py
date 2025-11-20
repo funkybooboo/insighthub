@@ -1,18 +1,19 @@
-"""Vector RAG interfaces based on vector_rag_notes.py."""
+"""Vector RAG interfaces for document processing, embedding, and retrieval."""
 
-from shared.interfaces.vector.chunker import Chunker
-from shared.interfaces.vector.context import ContextBuilder
-from shared.interfaces.vector.embedder import EmbeddingEncoder
-from shared.interfaces.vector.formatter import OutputFormatter
-from shared.interfaces.vector.llm import LLM
-from shared.interfaces.vector.parser import DocumentParser
-from shared.interfaces.vector.ranker import Ranker
-from shared.interfaces.vector.retriever import VectorRetriever
-from shared.interfaces.vector.store import VectorIndex
+from .parser import DocumentParser
+from .chunker import Chunker, MetadataEnricher
+from .embedder import EmbeddingEncoder
+from .store import VectorIndex
+from .retriever import VectorRetriever
+from .ranker import Ranker
+from .context import ContextBuilder
+from .llm import LLM
+from .formatter import OutputFormatter
 
 __all__ = [
     "DocumentParser",
-    "Chunker",
+    "Chunker", 
+    "MetadataEnricher",
     "EmbeddingEncoder",
     "VectorIndex",
     "VectorRetriever",

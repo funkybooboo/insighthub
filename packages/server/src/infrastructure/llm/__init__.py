@@ -1,18 +1,11 @@
-"""LLM providers and factory."""
+"""LLM providers and factory - server factory wrapping shared implementations."""
 
-from .claude_provider import ClaudeLlmProvider
+from shared.llm import LlmProvider
+
 from .factory import create_llm_provider, get_available_providers
-from .huggingface_provider import HuggingFaceLlmProvider
-from .llm import LlmProvider
-from .ollama import OllamaLlmProvider
-from .openai_provider import OpenAiLlmProvider
 
 __all__ = [
     "LlmProvider",
-    "OllamaLlmProvider",
-    "OpenAiLlmProvider",
-    "ClaudeLlmProvider",
-    "HuggingFaceLlmProvider",
     "create_llm_provider",
     "get_available_providers",
 ]

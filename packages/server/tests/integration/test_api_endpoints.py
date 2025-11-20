@@ -9,11 +9,11 @@ from typing import Any
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
+from shared.storage.minio_storage import MinIOBlobStorage
 from testcontainers.minio import MinioContainer
 from testcontainers.postgres import PostgresContainer
 
 from src.api import create_app
-from src.infrastructure.storage import BlobStorage, MinioBlobStorage
 
 
 @pytest.fixture(scope="function")
@@ -25,7 +25,7 @@ def test_blob_storage(minio_container: MinioContainer) -> BlobStorage:
         endpoint = f"http://{endpoint}"
 
     # Create blob storage with explicit config (cleaner than env vars)
-    return MinioBlobStorage(
+    return MinIOBlobStorage(
         endpoint_url=endpoint,
         access_key=minio_config["access_key"],
         secret_key=minio_config["secret_key"],
@@ -82,6 +82,7 @@ def client(app: Flask) -> FlaskClient:
 def test_user(app: Flask) -> Generator[Any, None, None]:
     """Create a test user for authentication."""
     from shared.models import User
+
     from src.infrastructure.database import get_db
 
     db = next(get_db())
