@@ -4,7 +4,7 @@ import pytest
 from flask import Flask
 from werkzeug.exceptions import BadRequest
 
-from src.infrastructure.errors.base import (
+from packages.shared.python.src.shared.errors import (
     AlreadyExistsError,
     ConflictError,
     DomainException,
@@ -13,8 +13,8 @@ from src.infrastructure.errors.base import (
     UnauthorizedError,
     ValidationError,
 )
-from src.infrastructure.errors.dtos import ErrorResponse
-from src.infrastructure.errors.handlers import register_error_handlers
+from packages.shared.python.src.shared.errors import ErrorResponse
+from packages.shared.python.src.shared.errors import register_error_handlers
 
 
 @pytest.fixture

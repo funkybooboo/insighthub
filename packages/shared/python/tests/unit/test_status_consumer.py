@@ -1,11 +1,11 @@
 """Unit tests for StatusUpdateConsumer."""
 
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from src.infrastructure.messaging.status_consumer import (
+from packages.shared.python.src.shared.messaging.status_consumer import (
     StatusUpdateConsumer,
     create_status_consumer,
 )

@@ -1,6 +1,6 @@
 """Chat domain exceptions."""
 
-from src.infrastructure.errors.base import DomainException, NotFoundError, ValidationError
+from packages.shared.python.src.shared.errors import DomainException, NotFoundError, ValidationError
 
 
 class ChatSessionNotFoundError(NotFoundError):

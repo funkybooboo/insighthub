@@ -24,10 +24,10 @@ from src.domains.status.socket_handlers import (
     broadcast_workspace_status,
     register_status_socket_handlers,
 )
-from src.infrastructure.database import get_db, init_db
-from src.infrastructure.errors import register_error_handlers
-from src.infrastructure.logging_config import setup_logging
-from src.infrastructure.messaging.status_consumer import create_status_consumer
+from shared.database import get_db, init_db
+from shared.exceptions import register_error_handlers
+from shared.logging_config import setup_logging
+from shared.messaging.status_consumer import create_status_consumer
 from src.infrastructure.middleware import (
     PerformanceMonitoringMiddleware,
     RateLimitMiddleware,
