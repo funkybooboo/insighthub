@@ -1,7 +1,7 @@
 """Document parsing for various file formats."""
 
 from .document_parser import DocumentParser
-from .parsers import (
+from .docx_document_parser import (
     PDFDocumentParser,
     TextDocumentParser,
     DocxDocumentParser,

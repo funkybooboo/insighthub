@@ -11,7 +11,7 @@ from typing import Optional
 from .blob_storage import BlobStorage
 from .file_system_blob_storage import FileSystemBlobStorage
 from .in_memory_blob_storage import InMemoryBlobStorage
-from .minio_storage import MinIOBlobStorage
+from .s3_blob_storage import S3BlobStorage
 
 
 class BlobStorageType(Enum):
@@ -73,7 +73,7 @@ def create_blob_storage(
             raise ValueError(
                 "S3 storage requires: endpoint_url, access_key, secret_key, bucket_name"
             )
-        return MinIOBlobStorage(
+        return S3BlobStorage(
             endpoint_url=endpoint_url,  # type: ignore
             access_key=access_key,  # type: ignore
             secret_key=secret_key,  # type: ignore

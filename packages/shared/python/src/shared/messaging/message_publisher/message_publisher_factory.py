@@ -2,10 +2,10 @@
 
 import os
 
-from .publisher import RabbitMQPublisher
+from packages.shared.python.src.shared.messaging.message_publisher.rabbitmq_message_publisher import RabbitMQPublisher
 
 
-def create_rabbitmq_publisher() -> RabbitMQPublisher | None:
+def create_message_publisher() -> RabbitMQPublisher | None:
     """
     Create RabbitMQ publisher from environment variables.
 
