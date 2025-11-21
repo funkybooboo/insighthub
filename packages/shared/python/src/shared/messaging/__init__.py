@@ -1,6 +1,6 @@
-"""RabbitMQ messaging utilities for server and workers."""
+"""RabbitMQ messaging utilities."""
 
-from shared.messaging.publisher import RabbitMQPublisher
-from shared.messaging.consumer import RabbitMQConsumer, WorkerBase
+from .publisher import RabbitMQPublisher
+from .consumer import RabbitMQConsumer
 
-__all__ = ["RabbitMQPublisher", "RabbitMQConsumer", "WorkerBase"]
+__all__ = ["RabbitMQPublisher", "RabbitMQConsumer"]

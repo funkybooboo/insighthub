@@ -6,7 +6,7 @@ import bcrypt
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from shared.database.base import Base, TimestampMixin
+from shared.sql_database.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from shared.models.chat import ChatSession

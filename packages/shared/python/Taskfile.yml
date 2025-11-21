@@ -1,0 +1,87 @@
+version: '3'
+
+tasks:
+  # Development tasks
+  install:
+    desc: Install dependencies
+    cmds:
+      - poetry install
+
+  # Code quality tasks
+  format:
+    desc: Format code with black and isort
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+
+  lint:
+    desc: Lint code with ruff
+    cmds:
+      - poetry run ruff check src tests
+
+  typecheck:
+    desc: Type check with mypy
+    cmds:
+      - poetry run mypy src tests
+
+  # Testing tasks
+  test:
+    desc: Run all tests
+    cmds:
+      - poetry run pytest tests/ -v
+
+  test:unit:
+    desc: Run unit tests only
+    cmds:
+      - poetry run pytest tests/unit/ -v
+
+  test:integration:
+    desc: Run integration tests only
+    cmds:
+      - poetry run pytest tests/integration/ -v
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - poetry run pytest tests/ --cov=src/shared --cov-report=term-missing --cov-report=html
+
+  # Combined tasks
+  check:
+    desc: Run all quality checks (format, lint, typecheck, test)
+    cmds:
+      - task: format
+      - task: lint
+      - task: typecheck
+      - task: test
+
+  ci:
+    desc: Run CI checks (lint, typecheck, test with coverage)
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test:coverage
+
+  # Build tasks
+  build:
+    desc: Build distribution packages
+    cmds:
+      - poetry build
+
+  build:wheel:
+    desc: Build wheel package only
+    cmds:
+      - poetry build --format wheel
+
+  build:sdist:
+    desc: Build source distribution only
+    cmds:
+      - poetry build --format sdist
+
+  # Utility tasks
+  clean:
+    desc: Clean build artifacts and caches
+    cmds:
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true
+      - rm -rf htmlcov .coverage dist *.egg-info

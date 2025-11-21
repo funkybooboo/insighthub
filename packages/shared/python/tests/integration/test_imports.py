@@ -1,123 +1,265 @@
-#!/usr/bin/env python3
 """
-Test script to verify shared package imports work correctly.
+Integration tests verifying shared package imports work correctly.
 
-Run from the shared package directory:
-    poetry run python test_imports.py
+These tests ensure all public modules and types can be imported
+without errors, validating the package structure is correct.
 """
 
-print("Testing shared package imports...\n")
+import pytest
 
-# Test type imports
-print("1. Testing type imports...")
-try:
-    from shared.types import (
-        Chunk,
-        ChunkerConfig,
-        Document,
-        GraphEdge,
-        GraphNode,
-        MetadataValue,
-        PrimitiveValue,
-        RagConfig,
-        RetrievalResult,
-        SearchResult,
-    )
 
-    print("   ✓ All types imported successfully")
-    print(f"   - Document: {Document.__name__}")
-    print(f"   - Chunk: {Chunk.__name__}")
-    print(f"   - GraphNode: {GraphNode.__name__}")
-    print(f"   - GraphEdge: {GraphEdge.__name__}")
-except ImportError as e:
-    print(f"   ✗ Failed to import types: {e}")
-    exit(1)
+class TestTypeImports:
+    """Test that core type imports work."""
 
-# Test Vector RAG interface imports
-print("\n2. Testing Vector RAG interface imports...")
-try:
-    from shared.interfaces.vector import (
-        Chunker,
-        ContextBuilder,
-        DocumentParser,
-        EmbeddingEncoder,
-        LLM,
-        OutputFormatter,
-        Ranker,
-        VectorIndex,
-        VectorRetriever,
-    )
+    def test_document_and_chunk_types(self) -> None:
+        """Test importing Document and Chunk types."""
+        from shared.types import Document, Chunk
 
-    print("   ✓ All Vector RAG interfaces imported successfully")
-    print(f"   - DocumentParser: {DocumentParser.__name__}")
-    print(f"   - Chunker: {Chunker.__name__}")
-    print(f"   - EmbeddingEncoder: {EmbeddingEncoder.__name__}")
-    print(f"   - VectorIndex: {VectorIndex.__name__}")
-    print(f"   - VectorRetriever: {VectorRetriever.__name__}")
-    print(f"   - Ranker: {Ranker.__name__}")
-    print(f"   - ContextBuilder: {ContextBuilder.__name__}")
-    print(f"   - LLM: {LLM.__name__}")
-    print(f"   - OutputFormatter: {OutputFormatter.__name__}")
-except ImportError as e:
-    print(f"   ✗ Failed to import Vector RAG interfaces: {e}")
-    exit(1)
+        # Verify they are importable and are classes
+        assert Document is not None
+        assert Chunk is not None
 
-# Test data type instantiation
-print("\n3. Testing data type instantiation...")
-try:
-    doc = Document(
-        id="doc_1",
-        workspace_id="workspace_1",
-        title="Test Document",
-        content="This is a test document.",
-        metadata={"author": "Test Author", "year": 2025},
-    )
-    print(f"   ✓ Created Document: {doc.id} - {doc.title}")
+    def test_graph_types(self) -> None:
+        """Test importing GraphNode and GraphEdge types."""
+        from shared.types import GraphNode, GraphEdge
 
-    chunk = Chunk(
-        id="chunk_1",
-        document_id="doc_1",
-        text="This is a test chunk.",
-        metadata={"index": 0, "source": "test"},
-        vector=None,
-    )
-    print(f"   ✓ Created Chunk: {chunk.id}")
+        assert GraphNode is not None
+        assert GraphEdge is not None
 
-    node = GraphNode(id="node_1", labels=["Entity", "Person"], properties={"name": "John Doe"})
-    print(f"   ✓ Created GraphNode: {node.id} with labels {node.labels}")
+    def test_result_and_option_types(self) -> None:
+        """Test importing Result and Option types."""
+        from shared.types.result import Ok, Err, Result
+        from shared.types.option import Some, Nothing, Option
 
-    edge = GraphEdge(
-        id="edge_1",
-        source="node_1",
-        target="node_2",
-        label="knows",
-        properties={"since": 2020},
-    )
-    print(f"   ✓ Created GraphEdge: {edge.label} from {edge.source} to {edge.target}")
+        assert Ok is not None
+        assert Err is not None
+        assert Some is not None
+        assert Nothing is not None
 
-except Exception as e:
-    print(f"   ✗ Failed to instantiate data types: {e}")
-    exit(1)
+    def test_rag_config_types(self) -> None:
+        """Test importing RAG configuration types."""
+        from shared.types import ChunkerConfig, RagConfig, SearchResult
 
-# Test interface usage
-print("\n4. Testing interface usage (abstract methods)...")
-try:
-    from abc import ABCMeta
+        assert ChunkerConfig is not None
+        assert RagConfig is not None
+        assert SearchResult is not None
 
-    assert isinstance(DocumentParser, ABCMeta), "DocumentParser should be abstract"
-    assert isinstance(Chunker, ABCMeta), "Chunker should be abstract"
-    assert isinstance(EmbeddingEncoder, ABCMeta), "EmbeddingEncoder should be abstract"
-    assert isinstance(VectorIndex, ABCMeta), "VectorIndex should be abstract"
-    print("   ✓ All interfaces are properly abstract")
-except AssertionError as e:
-    print(f"   ✗ Interface check failed: {e}")
-    exit(1)
 
-print("\n" + "=" * 50)
-print("✅ All import tests passed!")
-print("=" * 50)
-print("\nThe shared package is correctly configured and ready to use.")
-print("\nNext steps:")
-print("  1. Use 'from shared.types import Document, Chunk' in server/workers")
-print("  2. Use 'from shared.interfaces.vector import EmbeddingEncoder' for interfaces")
-print("  3. Implement concrete classes that inherit from these interfaces")
+class TestComponentImports:
+    """Test that component imports work from their new locations."""
+
+    def test_document_chunking_imports(self) -> None:
+        """Test importing document chunking components."""
+        from shared.document_chunking import Chunker, SentenceChunker
+
+        from abc import ABCMeta
+
+        assert isinstance(Chunker, ABCMeta)
+        assert SentenceChunker is not None
+
+    def test_vector_embedding_imports(self) -> None:
+        """Test importing vector embedding components."""
+        from shared.vector_embedding import EmbeddingEncoder, OllamaEmbeddings
+
+        from abc import ABCMeta
+
+        assert isinstance(EmbeddingEncoder, ABCMeta)
+        assert OllamaEmbeddings is not None
+
+    def test_vector_database_imports(self) -> None:
+        """Test importing vector database components."""
+        from shared.vector_database import VectorDatabase, QdrantVectorDatabase
+
+        from abc import ABCMeta
+
+        assert isinstance(VectorDatabase, ABCMeta)
+        assert QdrantVectorDatabase is not None
+
+    def test_parsing_imports(self) -> None:
+        """Test importing parsing components."""
+        from shared.parsing import DocumentParser, ParserFactory
+
+        from abc import ABCMeta
+
+        assert isinstance(DocumentParser, ABCMeta)
+        assert ParserFactory is not None
+
+
+class TestDataTypeInstantiation:
+    """Test that data types can be instantiated correctly."""
+
+    def test_document_instantiation(self) -> None:
+        """Test creating a Document instance."""
+        from shared.types import Document
+
+        doc = Document(
+            id="doc_1",
+            workspace_id="workspace_1",
+            title="Test Document",
+            content="This is a test document.",
+            metadata={"author": "Test Author", "year": 2025},
+        )
+
+        assert doc.id == "doc_1"
+        assert doc.title == "Test Document"
+        assert doc.metadata["author"] == "Test Author"
+
+    def test_chunk_instantiation(self) -> None:
+        """Test creating a Chunk instance."""
+        from shared.types import Chunk
+
+        chunk = Chunk(
+            id="chunk_1",
+            document_id="doc_1",
+            text="This is a test chunk.",
+            metadata={"index": 0, "source": "test"},
+            vector=None,
+        )
+
+        assert chunk.id == "chunk_1"
+        assert chunk.document_id == "doc_1"
+        assert chunk.text == "This is a test chunk."
+
+    def test_graph_node_instantiation(self) -> None:
+        """Test creating a GraphNode instance."""
+        from shared.types import GraphNode
+
+        node = GraphNode(
+            id="node_1",
+            labels=["Entity", "Person"],
+            properties={"name": "John Doe"},
+        )
+
+        assert node.id == "node_1"
+        assert "Person" in node.labels
+        assert node.properties["name"] == "John Doe"
+
+    def test_graph_edge_instantiation(self) -> None:
+        """Test creating a GraphEdge instance."""
+        from shared.types import GraphEdge
+
+        edge = GraphEdge(
+            id="edge_1",
+            source="node_1",
+            target="node_2",
+            label="knows",
+            properties={"since": 2020},
+        )
+
+        assert edge.id == "edge_1"
+        assert edge.label == "knows"
+        assert edge.source == "node_1"
+        assert edge.target == "node_2"
+
+
+class TestBlobStorageImports:
+    """Test that blob_storage module imports work."""
+
+    def test_blob_storage_interface(self) -> None:
+        """Test importing BlobStorage interface."""
+        from shared.blob_storage import BlobStorage
+
+        from abc import ABCMeta
+
+        assert isinstance(BlobStorage, ABCMeta)
+
+    def test_storage_implementations(self) -> None:
+        """Test importing storage implementations."""
+        from shared.blob_storage import (
+            InMemoryBlobStorage,
+            FileSystemBlobStorage,
+            MinIOBlobStorage,
+        )
+
+        assert InMemoryBlobStorage is not None
+        assert FileSystemBlobStorage is not None
+        assert MinIOBlobStorage is not None
+
+    def test_storage_factory(self) -> None:
+        """Test importing storage factory."""
+        from shared.blob_storage import create_blob_storage, BlobStorageType
+
+        assert create_blob_storage is not None
+        assert BlobStorageType.IN_MEMORY.value == "in_memory"
+        assert BlobStorageType.FILE_SYSTEM.value == "file_system"
+        assert BlobStorageType.S3.value == "s3"
+
+
+class TestLlmProviderImports:
+    """Test that LLM provider module imports work."""
+
+    def test_llm_provider_interface(self) -> None:
+        """Test importing LlmProvider interface."""
+        from shared.llm_provider import LlmProvider
+
+        from abc import ABCMeta
+
+        assert isinstance(LlmProvider, ABCMeta)
+
+    def test_llm_provider_implementations(self) -> None:
+        """Test importing LLM provider implementations."""
+        from shared.llm_provider import (
+            OllamaLlmProvider,
+            OpenAiLlmProvider,
+            ClaudeLlmProvider,
+            HuggingFaceLlmProvider,
+        )
+
+        assert OllamaLlmProvider is not None
+        assert OpenAiLlmProvider is not None
+        assert ClaudeLlmProvider is not None
+        assert HuggingFaceLlmProvider is not None
+
+    def test_llm_provider_factory(self) -> None:
+        """Test importing LLM provider factory."""
+        from shared.llm_provider import create_llm_provider, SUPPORTED_LLM_PROVIDERS
+
+        assert create_llm_provider is not None
+        assert "ollama" in SUPPORTED_LLM_PROVIDERS
+        assert "openai" in SUPPORTED_LLM_PROVIDERS
+        assert "claude" in SUPPORTED_LLM_PROVIDERS
+        assert "huggingface" in SUPPORTED_LLM_PROVIDERS
+
+
+class TestMessagingImports:
+    """Test that messaging module imports work."""
+
+    def test_rabbitmq_classes(self) -> None:
+        """Test importing RabbitMQ classes."""
+        from shared.messaging import RabbitMQPublisher, RabbitMQConsumer
+        from shared.workers import Worker
+
+        assert RabbitMQPublisher is not None
+        assert RabbitMQConsumer is not None
+        assert Worker is not None
+
+
+class TestModelImports:
+    """Test that ORM model imports work."""
+
+    def test_model_imports(self) -> None:
+        """Test importing SQLAlchemy models."""
+        from shared.models import Document, User, ChatSession, ChatMessage
+
+        assert Document is not None
+        assert User is not None
+        assert ChatSession is not None
+        assert ChatMessage is not None
+
+
+class TestRepositoryImports:
+    """Test that repository imports work."""
+
+    def test_repository_interfaces(self) -> None:
+        """Test importing repository interfaces."""
+        from shared.repositories import (
+            DocumentRepository,
+            UserRepository,
+            ChatSessionRepository,
+            ChatMessageRepository,
+        )
+
+        from abc import ABCMeta
+
+        assert isinstance(DocumentRepository, ABCMeta)
+        assert isinstance(UserRepository, ABCMeta)
