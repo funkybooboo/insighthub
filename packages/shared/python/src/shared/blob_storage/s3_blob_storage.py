@@ -13,7 +13,7 @@ from .blob_storage import BlobStorage
 logger = logging.getLogger(__name__)
 
 
-class MinIOBlobStorage(BlobStorage):
+class S3BlobStorage(BlobStorage):
     """
     MinIO/S3-compatible blob storage implementation.
     

@@ -2,7 +2,7 @@
 
 from typing import Iterable
 
-from .encoder import EmbeddingEncoder
+from .vector_embedding_encoder import EmbeddingEncoder
 
 
 class OllamaEmbeddings(EmbeddingEncoder):

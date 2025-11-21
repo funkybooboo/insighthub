@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Any, Optional
 import json
-import os
 
 try:
     import redis  # type: ignore
@@ -11,29 +10,7 @@ except Exception:  # pragma: no cover
     redis = None  # type: ignore
 
 
-class CacheInterface:
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        raise NotImplementedError
-    def get(self, key: str) -> Optional[Any]:
-        raise NotImplementedError
-    def delete(self, key: str) -> None:
-        raise NotImplementedError
-    def clear(self) -> None:
-        raise NotImplementedError
-
-
-class NoOpCache(CacheInterface):
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
-        pass
-    def get(self, key: str) -> Optional[Any]:
-        return None
-    def delete(self, key: str) -> None:
-        pass
-    def clear(self) -> None:
-        pass
-
-
-class RedisCache(CacheInterface):
+class RedisCache(Cache):
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0, password: Optional[str] = None, default_ttl: Optional[int] = None) -> None:
         self._enabled = redis is not None
         self._default_ttl = default_ttl
