@@ -34,7 +34,7 @@ class LocalStorageMock implements Storage {
 // Create instance and assign to global
 const localStorageMock = new LocalStorageMock();
 global.localStorage = localStorageMock;
-(globalThis as any).localStorage = localStorageMock;
+(globalThis as unknown as { localStorage: Storage }).localStorage = localStorageMock;
 
 // Reset localStorage before each test
 beforeEach(() => {

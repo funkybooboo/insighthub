@@ -52,10 +52,11 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                 type: 'success',
                 text: 'Profile updated successfully',
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { data?: { error?: string } } };
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to update profile',
+                text: axiosError.response?.data?.error || 'Failed to update profile',
             });
         } finally {
             setIsLoading(false);
