@@ -205,8 +205,7 @@ packages/workers/
 ├── graph/                 # Entity extraction and graph construction
 ├── enrichment/            # External knowledge fetching
 ├── query/                 # Pre-compute query context
-├── retriever/             # Live internet data fetching
-└── notify/                # System notifications
+└── retriever/             # Live internet data fetching
 ```
 
 **Worker Structure** (all workers follow this pattern):

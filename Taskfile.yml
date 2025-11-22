@@ -87,8 +87,6 @@ tasks:
         silent: true
       - cmd: 'echo "  - Retriever worker (internet data)"'
         silent: true
-      - cmd: 'echo "  - Notify worker (notifications)"'
-        silent: true
 
   up-workers:
     desc: Start production workers (requires up or up-infra)
@@ -108,8 +106,6 @@ tasks:
         silent: true
       - cmd: 'echo "  - Retriever worker (internet data)"'
         silent: true
-      - cmd: 'echo "  - Notify worker (notifications)"'
-        silent: true
 
   up-full:
     desc: Start everything in development (infrastructure + dev + workers)
@@ -121,7 +117,7 @@ tasks:
         silent: true
       - cmd: 'echo "  - Client (dev): http://localhost:3000"'
         silent: true
-      - cmd: 'echo "  - All 7 workers running"'
+      - cmd: 'echo "  - All 6 workers running"'
         silent: true
 
   down:
@@ -256,12 +252,12 @@ tasks:
   logs-workers-dev:
     desc: Show all development worker logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-ingestion-dev worker-embeddings-dev worker-graph-dev worker-enrichment-dev worker-query-dev worker-retriever-dev worker-notify-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-ingestion-dev worker-embeddings-dev worker-graph-dev worker-enrichment-dev worker-query-dev worker-retriever-dev
 
   logs-workers:
     desc: Show all production worker logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-ingestion-prod worker-embeddings-prod worker-graph-prod worker-enrichment-prod worker-query-prod worker-retriever-prod worker-notify-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-ingestion-prod worker-embeddings-prod worker-graph-prod worker-enrichment-prod worker-query-prod worker-retriever-prod
 
   # --------------------------------------------------------------------------
   # Dev shortcuts

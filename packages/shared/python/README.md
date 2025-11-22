@@ -42,7 +42,6 @@ src/shared/
     status/                 # Status repository
   storage/                  # Blob storage (S3, FileSystem, InMemory)
   cache/                    # Caching (Redis, InMemory, NoOp)
-  notify/                   # Notifications
   logger/                   # Structured logging
   worker/                   # Worker base class
 ```

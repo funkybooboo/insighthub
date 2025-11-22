@@ -25,7 +25,6 @@ The design supports:
 | `indexer`   | Store embeddings into a vector database (Vector RAG)             |
 | `connector` | Build graph nodes and edges in a graph database (Graph RAG)      |
 | `enricher`  | Add metadata, summaries, classifications, or post-processing     |
-| `notifier`  | Publish events or notifications to downstream systems or UIs     |
 
 ---
 
@@ -36,7 +35,7 @@ The design supports:
 ```
 user.upload -> ingester -> parser -> chunker -> embedder -> indexer
                                                         \-> connector
-                                                        \-> enricher -> notifier
+                                                        \-> enricher
 ```
 
 ### External knowledge augmentation (Wikipedia, URL)
@@ -44,7 +43,7 @@ user.upload -> ingester -> parser -> chunker -> embedder -> indexer
 ```
 user.question -> retriever -> ingester -> parser -> chunker -> embedder -> indexer
                                                                        \-> connector
-                                                                       \-> enricher -> notifier
+                                                                       \-> enricher
 ```
 
 > The `embedder` output is fanned out to both `indexer` (Vector RAG) and `connector` (Graph RAG).
@@ -60,7 +59,7 @@ user.question -> retriever -> ingester -> parser -> chunker -> embedder -> index
 | `document.parsed`   | parser      | chunker            |
 | `document.chunked`  | chunker     | embedder           |
 | `embedding.created` | embedder    | indexer, connector |
-| `document.enriched` | enricher    | notifier           |
+| `document.enriched` | enricher    | server (status)    |
 
 Workers communicate exclusively via **events**, allowing multiple pipelines (Vector, Graph, or Hybrid) to run **in parallel and independently**.
 
@@ -145,12 +144,6 @@ Workers communicate exclusively via **events**, allowing multiple pipelines (Vec
                 | (metadata, |
                 | summaries, |
                 | classify)  |
-                +-----+------+
-                      |
-                      v
-                +------------+
-                |  Notifier  |
-                | (events/UI)|
                 +------------+
 ```
 
@@ -161,6 +154,6 @@ Workers communicate exclusively via **events**, allowing multiple pipelines (Vec
 - **Retriever -> Ingester**: Handles external content (Wikipedia, URLs) or uploaded files.
 - **Parser -> Chunker -> Embedder**: Standard preprocessing pipeline for all content.
 - **Embedder -> Indexer / Connector**: Branches for Vector RAG (`Indexer`) and Graph RAG (`Connector`).
-- **Enricher -> Notifier**: Post-processing and notifications.
+- **Enricher**: Post-processing (metadata, summaries). Status updates are handled by the server via WebSocket.
 
 This diagram shows how **both user-uploaded and external content** can feed **Vector and Graph RAG pipelines simultaneously**.
