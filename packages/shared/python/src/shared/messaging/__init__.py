@@ -1,13 +1,13 @@
 """Messaging utilities for RabbitMQ pub/sub."""
 
-from .message_consumer import (
+from .consumer import (
     ConsumerType,
     MessageCallback,
     MessageConsumer,
     RabbitMQConsumer,
     create_message_consumer,
 )
-from .message_publisher import (
+from .publisher import (
     MessagePublisher,
     PublisherType,
     RabbitMQPublisher,
