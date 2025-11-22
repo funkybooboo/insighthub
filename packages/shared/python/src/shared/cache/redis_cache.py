@@ -15,7 +15,7 @@ from .cache import Cache
 if TYPE_CHECKING:
     from redis import Redis
 
-logger = create_logger("redis-cache")
+logger = create_logger(__name__)
 
 try:
     import redis as redis_lib

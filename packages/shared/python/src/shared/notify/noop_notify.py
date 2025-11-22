@@ -5,7 +5,7 @@ from shared.types.result import Ok, Result
 
 from .notify import Notify, NotifyError
 
-logger = create_logger("noop-notify")
+logger = create_logger(__name__)
 
 
 class NoopNotify(Notify):

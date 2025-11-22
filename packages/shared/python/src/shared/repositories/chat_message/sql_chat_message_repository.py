@@ -1,22 +1,22 @@
-"""SQL implementation of chat message repository."""
+"""SQL implementation of chat message repository using SqlDatabase."""
 
-from sqlalchemy.orm import Session
-
+from typing import List
 from shared.models.chat import ChatMessage
-from shared.types.option import Nothing, Option, Some
+from shared.types.option import Option, Some, Nothing
 
 from .chat_message_repository import ChatMessageRepository
+from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlChatMessageRepository(ChatMessageRepository):
-    """Repository for ChatMessage operations using SQL database."""
+    """Repository for ChatMessage operations using direct SQL queries."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: SqlDatabase) -> None:
         """
-        Initialize repository with database session.
+        Initialize repository with SqlDatabase.
 
         Args:
-            db: SQLAlchemy database session
+            db: SqlDatabase instance
         """
         self._db = db
 
@@ -28,46 +28,47 @@ class SqlChatMessageRepository(ChatMessageRepository):
         extra_metadata: str | None = None,
     ) -> ChatMessage:
         """Create a new chat message."""
-        message = ChatMessage(
-            session_id=session_id,
-            role=role,
-            content=content,
-            extra_metadata=extra_metadata,
-        )
-        self._db.add(message)
-        self._db.commit()
-        self._db.refresh(message)
-        return message
+        query = """
+        INSERT INTO chat_message (session_id, role, content, extra_metadata, created_at, updated_at)
+        VALUES (%(session_id)s, %(role)s, %(content)s, %(extra_metadata)s, NOW(), NOW())
+        RETURNING id, session_id, role, content, extra_metadata, created_at, updated_at;
+        """
+        params = {
+            "session_id": session_id,
+            "role": role,
+            "content": content,
+            "extra_metadata": extra_metadata,
+        }
+        row = self._db.fetchone(query, params)
+        return ChatMessage(**row)
 
     def get_by_id(self, message_id: int) -> Option[ChatMessage]:
         """Get chat message by ID."""
-        message = (
-            self._db.query(ChatMessage).filter(ChatMessage.id == message_id).first()
-        )
-        if message is None:
+        query = "SELECT * FROM chat_message WHERE id = %(id)s;"
+        row = self._db.fetchone(query, {"id": message_id})
+        if row is None:
             return Nothing()
-        return Some(message)
+        return Some(ChatMessage(**row))
 
-    def get_by_session(
-        self, session_id: int, skip: int, limit: int
-    ) -> list[ChatMessage]:
+    def get_by_session(self, session_id: int, skip: int, limit: int) -> List[ChatMessage]:
         """Get all messages for a chat session with pagination."""
-        return (
-            self._db.query(ChatMessage)
-            .filter(ChatMessage.session_id == session_id)
-            .order_by(ChatMessage.created_at)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        query = """
+        SELECT * FROM chat_message
+        WHERE session_id = %(session_id)s
+        ORDER BY created_at
+        OFFSET %(skip)s
+        LIMIT %(limit)s;
+        """
+        rows = self._db.fetchall(query, {"session_id": session_id, "skip": skip, "limit": limit})
+        return [ChatMessage(**row) for row in rows]
 
     def delete(self, message_id: int) -> bool:
         """Delete chat message by ID."""
-        result = self.get_by_id(message_id)
-        if result.is_nothing():
+        # Check if exists
+        message_option = self.get_by_id(message_id)
+        if message_option.is_nothing():
             return False
 
-        message = result.unwrap()
-        self._db.delete(message)
-        self._db.commit()
+        query = "DELETE FROM chat_message WHERE id = %(id)s;"
+        self._db.execute(query, {"id": message_id})
         return True

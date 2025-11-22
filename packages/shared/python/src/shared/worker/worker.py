@@ -11,7 +11,7 @@ from shared.logger import create_logger
 from shared.messaging import RabbitMQConsumer
 from shared.types.common import PayloadDict
 
-logger = create_logger("worker")
+logger = create_logger(__name__)
 
 
 class Worker(ABC):

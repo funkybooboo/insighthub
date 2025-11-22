@@ -1,23 +1,22 @@
-"""SQL implementation of status repository."""
-
-from sqlalchemy.orm import Session
+"""SQL implementation of status repository using SqlDatabase and Option types."""
 
 from shared.models import Document, Workspace
-from shared.types.option import Nothing, Option, Some
+from shared.types.option import Option, Some, Nothing
 from shared.types.status import DocumentProcessingStatus, WorkspaceStatus
 
 from .status_repository import StatusRepository
+from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlStatusRepository(StatusRepository):
-    """SQL implementation of status repository using Option types."""
+    """SQL implementation of status repository using direct SQL queries."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: SqlDatabase) -> None:
         """
         Initialize repository.
 
         Args:
-            db: SQLAlchemy database session
+            db: SqlDatabase instance
         """
         self._db = db
 
@@ -29,19 +28,28 @@ class SqlStatusRepository(StatusRepository):
         chunk_count: int | None = None,
     ) -> Option[Document]:
         """Update document processing status."""
-        document = self._db.query(Document).filter(Document.id == document_id).first()
-        if not document:
-            return Nothing()
+        set_parts = ["processing_status = %(status)s"]
+        params = {"status": status.value, "id": document_id}
 
-        document.processing_status = status.value
         if error is not None:
-            document.processing_error = error
+            set_parts.append("processing_error = %(error)s")
+            params["error"] = error
         if chunk_count is not None:
-            document.chunk_count = chunk_count
+            set_parts.append("chunk_count = %(chunk_count)s")
+            params["chunk_count"] = chunk_count
 
-        self._db.commit()
-        self._db.refresh(document)
-        return Some(document)
+        set_clause = ", ".join(set_parts)
+        query = f"""
+        UPDATE document
+        SET {set_clause}, updated_at = NOW()
+        WHERE id = %(id)s
+        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, processing_status, processing_error, created_at, updated_at;
+        """
+
+        row = self._db.fetchone(query, params)
+        if row is None:
+            return Nothing()
+        return Some(Document(**row))
 
     def update_workspace_status(
         self,
@@ -50,16 +58,22 @@ class SqlStatusRepository(StatusRepository):
         message: str | None = None,
     ) -> Option[Workspace]:
         """Update workspace provisioning status."""
-        workspace = (
-            self._db.query(Workspace).filter(Workspace.id == workspace_id).first()
-        )
-        if not workspace:
-            return Nothing()
+        set_parts = ["status = %(status)s"]
+        params = {"status": status.value, "id": workspace_id}
 
-        workspace.status = status.value
         if message is not None:
-            workspace.status_message = message
+            set_parts.append("status_message = %(message)s")
+            params["message"] = message
 
-        self._db.commit()
-        self._db.refresh(workspace)
-        return Some(workspace)
+        set_clause = ", ".join(set_parts)
+        query = f"""
+        UPDATE workspace
+        SET {set_clause}, updated_at = NOW()
+        WHERE id = %(id)s
+        RETURNING id, name, status, status_message, created_at, updated_at;
+        """
+
+        row = self._db.fetchone(query, params)
+        if row is None:
+            return Nothing()
+        return Some(Workspace(**row))
