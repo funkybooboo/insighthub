@@ -3,6 +3,7 @@
 import pytest
 from shared.models import User
 from shared.repositories import UserRepository
+from shared.types.option import Nothing, Option, Some
 
 from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.domains.users.service import UserService
@@ -24,6 +25,7 @@ class FakeUserRepository(UserRepository):
             id=self.next_id,
             username=username,
             email=email,
+            password_hash="",
             full_name=full_name or "",
         )
         user.set_password(password)
@@ -31,40 +33,43 @@ class FakeUserRepository(UserRepository):
         self.next_id += 1
         return user
 
-    def get_by_id(self, user_id: int) -> User | None:
+    def get_by_id(self, user_id: int) -> Option[User]:
         """Get user by ID."""
-        return self.users.get(user_id)
+        user = self.users.get(user_id)
+        if user is None:
+            return Nothing()
+        return Some(user)
 
-    def get_by_username(self, username: str) -> User | None:
+    def get_by_username(self, username: str) -> Option[User]:
         """Get user by username."""
         for user in self.users.values():
             if user.username == username:
-                return user
-        return None
+                return Some(user)
+        return Nothing()
 
-    def get_by_email(self, email: str) -> User | None:
+    def get_by_email(self, email: str) -> Option[User]:
         """Get user by email."""
         for user in self.users.values():
             if user.email == email:
-                return user
-        return None
+                return Some(user)
+        return Nothing()
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
         """Get all users with pagination."""
         all_users = list(self.users.values())
         return all_users[skip : skip + limit]
 
-    def update(self, user_id: int, **kwargs: str) -> User | None:
+    def update(self, user_id: int, **kwargs: str) -> Option[User]:
         """Update user fields."""
         user = self.users.get(user_id)
         if not user:
-            return None
+            return Nothing()
 
         for key, value in kwargs.items():
             if hasattr(user, key):
                 setattr(user, key, value)
 
-        return user
+        return Some(user)
 
     def delete(self, user_id: int) -> bool:
         """Delete user by ID."""

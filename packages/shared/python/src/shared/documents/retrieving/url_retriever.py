@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 import requests
 
 from shared.types.common import MetadataDict
-from .retriever import Retriever, RetrievedContent
+
+from .retriever import RetrievedContent, Retriever
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ try:
     BS4_AVAILABLE = True
 except ImportError:
     BS4_AVAILABLE = False
-    BeautifulSoup = None  # type: ignore
+    BeautifulSoup = None
 
 
 class URLRetriever(Retriever):
@@ -58,9 +59,7 @@ class URLRetriever(Retriever):
             "Mozilla/5.0 (compatible; InsightHub/1.0; +https://insighthub.example.com)"
         )
 
-    def retrieve(
-        self, query: str, max_results: int = 5
-    ) -> list[RetrievedContent]:
+    def retrieve(self, query: str, max_results: int = 5) -> list[RetrievedContent]:
         """
         Retrieve content from URLs.
 
@@ -105,9 +104,7 @@ class URLRetriever(Retriever):
         try:
             headers = {"User-Agent": self.user_agent}
 
-            response = requests.get(
-                identifier, headers=headers, timeout=self.timeout, stream=True
-            )
+            response = requests.get(identifier, headers=headers, timeout=self.timeout, stream=True)
             response.raise_for_status()
 
             # Check content length

@@ -46,6 +46,7 @@ Located at: `src/components/workspace/WorkspaceSelector.tsx`
 **Purpose**: Allows users to switch between workspaces and create new ones.
 
 **Features**:
+
 - Dropdown to select active workspace
 - Create new workspace button
 - Modal form for workspace creation
@@ -55,10 +56,11 @@ Located at: `src/components/workspace/WorkspaceSelector.tsx`
 **Props**: None (uses Redux state)
 
 **Usage**:
+
 ```tsx
 import WorkspaceSelector from './components/workspace/WorkspaceSelector';
 
-<WorkspaceSelector />
+<WorkspaceSelector />;
 ```
 
 #### WorkspaceSettings
@@ -68,23 +70,25 @@ Located at: `src/components/workspace/WorkspaceSettings.tsx`
 **Purpose**: Configure workspace metadata and RAG settings.
 
 **Features**:
+
 - Edit workspace name and description
 - Configure RAG parameters:
-  - Embedding model (nomic-embed-text, openai, sentence-transformer)
-  - Retriever type (vector, graph)
-  - Chunk size (100-5000)
-  - Chunk overlap (0-1000)
-  - Top K results (1-20)
+    - Embedding model (nomic-embed-text, openai, sentence-transformer)
+    - Retriever type (vector, graph)
+    - Chunk size (100-5000)
+    - Chunk overlap (0-1000)
+    - Top K results (1-20)
 - Delete workspace (with confirmation)
 - Input validation on all fields
 
 **Props**: None (uses Redux state)
 
 **Usage**:
+
 ```tsx
 import WorkspaceSettings from './components/workspace/WorkspaceSettings';
 
-<WorkspaceSettings />
+<WorkspaceSettings />;
 ```
 
 ### State Management
@@ -123,8 +127,8 @@ const workspaces = useSelector((state: RootState) => state.workspace.workspaces)
 const activeWorkspaceId = useSelector((state: RootState) => state.workspace.activeWorkspaceId);
 
 // Get active workspace object
-const activeWorkspace = useSelector((state: RootState) => 
-    state.workspace.workspaces.find(w => w.id === state.workspace.activeWorkspaceId)
+const activeWorkspace = useSelector((state: RootState) =>
+    state.workspace.workspaces.find((w) => w.id === state.workspace.activeWorkspaceId)
 );
 ```
 
@@ -142,12 +146,12 @@ await apiService.getWorkspace(workspaceId);
 // Create workspace
 await apiService.createWorkspace({
     name: 'Research Papers',
-    description: 'Academic papers on RAG'
+    description: 'Academic papers on RAG',
 });
 
 // Update workspace
 await apiService.updateWorkspace(workspaceId, {
-    name: 'Updated Name'
+    name: 'Updated Name',
 });
 
 // Delete workspace
@@ -162,12 +166,12 @@ await apiService.createRagConfig(workspaceId, {
     retriever_type: 'vector',
     chunk_size: 1000,
     chunk_overlap: 200,
-    top_k: 5
+    top_k: 5,
 });
 
 // Update RAG config
 await apiService.updateRagConfig(workspaceId, {
-    chunk_size: 1500
+    chunk_size: 1500,
 });
 ```
 
@@ -230,12 +234,14 @@ All user inputs are validated using the validation utilities in `src/lib/validat
 ### Unit Tests
 
 Located at:
+
 - `src/store/slices/workspaceSlice.test.ts` - Redux slice tests
 - `src/components/workspace/WorkspaceSelector.test.tsx` - Component tests
 - `src/lib/validation.test.ts` - Validation utility tests
 - `src/services/api.test.ts` - API service tests
 
 Run tests:
+
 ```bash
 task test
 # or
@@ -245,10 +251,12 @@ bun run test:run
 ### Storybook Stories
 
 Located at:
+
 - `src/components/workspace/WorkspaceSelector.stories.tsx`
 - `src/components/workspace/WorkspaceSettings.stories.tsx`
 
 Run Storybook:
+
 ```bash
 task storybook
 # or
@@ -260,6 +268,7 @@ bun run storybook
 ### Input Sanitization
 
 All user inputs are validated and sanitized:
+
 - Maximum length limits prevent buffer overflow attacks
 - Character whitelisting prevents injection attacks
 - HTML/script tags are not allowed in any text fields
@@ -267,6 +276,7 @@ All user inputs are validated and sanitized:
 ### API Authentication
 
 All API requests include authentication headers:
+
 - JWT token stored in localStorage
 - Automatically included in all requests via Axios interceptor
 - 401 responses trigger automatic logout and redirect to login
@@ -274,6 +284,7 @@ All API requests include authentication headers:
 ### Authorization
 
 Backend enforces workspace ownership:
+
 - Users can only access their own workspaces
 - Workspace ID validation on all operations
 - Cascading deletes ensure data consistency

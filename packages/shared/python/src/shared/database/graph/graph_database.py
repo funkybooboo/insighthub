@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from shared.types.common import PropertiesDict
-from shared.types.graph import GraphNode, GraphEdge
+from shared.types.graph import GraphEdge, GraphNode
 
 if TYPE_CHECKING:
     from shared.types.common import PayloadDict
@@ -206,9 +206,7 @@ class GraphDatabase(ABC):
         pass
 
     @abstractmethod
-    def get_node_edges(
-        self, node_id: str, direction: str = "both"
-    ) -> list[GraphEdge]:
+    def get_node_edges(self, node_id: str, direction: str = "both") -> list[GraphEdge]:
         """
         Get all edges connected to a node.
 

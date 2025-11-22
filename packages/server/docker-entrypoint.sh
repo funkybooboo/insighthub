@@ -53,21 +53,12 @@ except Exception:
         exit 1
     fi
 
-    # Run database migrations
+    # Run database migrations (raw SQL files in migrations/ directory)
     log "Running database migrations..."
-    if poetry run alembic upgrade head; then
-        log "Migrations completed successfully!"
-    else
-        error "Database migrations failed!"
-        exit 1
-    fi
-
-    # Initialize database
-    log "Initializing database..."
     if poetry run python -c "from src.infrastructure.database import init_db; init_db()"; then
-        log "Database initialized successfully!"
+        log "Database migrations completed successfully!"
     else
-        warn "Database initialization had issues (may already be initialized)"
+        warn "Database migrations had issues (may already be initialized)"
     fi
 else
     warn "DATABASE_URL not set - skipping database initialization"

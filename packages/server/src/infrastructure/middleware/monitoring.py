@@ -3,11 +3,30 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any
+from typing import TypedDict
 
 from flask import Flask, Response, g, request
 
 logger = logging.getLogger(__name__)
+
+
+class EndpointStats(TypedDict):
+    """TypedDict for endpoint statistics."""
+
+    count: int
+    total_time: float
+    min_time: float
+    max_time: float
+
+
+class EndpointStatsReport(TypedDict):
+    """TypedDict for endpoint statistics report."""
+
+    count: int
+    avg_time: float
+    min_time: float
+    max_time: float
+    total_time: float
 
 
 class PerformanceMonitoringMiddleware:
@@ -40,8 +59,8 @@ class PerformanceMonitoringMiddleware:
         self.enable_stats = enable_stats
 
         # Statistics storage
-        self.endpoint_stats: dict[str, dict[str, Any]] = defaultdict(
-            lambda: {"count": 0, "total_time": 0.0, "min_time": float("inf"), "max_time": 0.0}
+        self.endpoint_stats: dict[str, EndpointStats] = defaultdict(
+            lambda: EndpointStats(count=0, total_time=0.0, min_time=float("inf"), max_time=0.0)
         )
 
         self.setup_monitoring(app)
@@ -92,7 +111,7 @@ class PerformanceMonitoringMiddleware:
 
             return response
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> dict[str, EndpointStatsReport]:
         """
         Get performance statistics for all endpoints.
 
@@ -100,13 +119,13 @@ class PerformanceMonitoringMiddleware:
             Dictionary with endpoint statistics including avg response time
         """
         return {
-            endpoint: {
-                "count": stats["count"],
-                "avg_time": stats["total_time"] / stats["count"] if stats["count"] > 0 else 0,
-                "min_time": stats["min_time"] if stats["min_time"] != float("inf") else 0,
-                "max_time": stats["max_time"],
-                "total_time": stats["total_time"],
-            }
+            endpoint: EndpointStatsReport(
+                count=stats["count"],
+                avg_time=stats["total_time"] / stats["count"] if stats["count"] > 0 else 0.0,
+                min_time=stats["min_time"] if stats["min_time"] != float("inf") else 0.0,
+                max_time=stats["max_time"],
+                total_time=stats["total_time"],
+            )
             for endpoint, stats in self.endpoint_stats.items()
         }
 

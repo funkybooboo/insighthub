@@ -1,11 +1,11 @@
 """LLM provider implementations and factory."""
 
-from shared.llm_provider.llm_provider import LlmProvider
-from shared.llm_provider.ollama_llm_provider import OllamaLlmProvider
-from shared.llm_provider.openai_llm_provider import OpenAiLlmProvider
-from shared.llm_provider.claude_llm_provider import ClaudeLlmProvider
-from shared.llm_provider.huggingface_llm_provider import HuggingFaceLlmProvider
-from shared.llm_provider.factory import create_llm_provider, SUPPORTED_LLM_PROVIDERS
+from shared.llm.claude_llm_provider import ClaudeLlmProvider
+from shared.llm.factory import SUPPORTED_LLM_PROVIDERS, create_llm_provider
+from shared.llm.huggingface_llm_provider import HuggingFaceLlmProvider
+from shared.llm.llm_provider import LlmProvider
+from shared.llm.ollama_llm_provider import OllamaLlmProvider
+from shared.llm.openai_llm_provider import OpenAiLlmProvider
 
 __all__ = [
     "LlmProvider",

@@ -7,25 +7,14 @@ PrimitiveValue = str | int | float | bool | None
 
 # Metadata value types - nested structures of primitives
 MetadataValue = (
-    PrimitiveValue
-    | list[PrimitiveValue]
-    | dict[str, PrimitiveValue]
-    | list["MetadataDict"]
+    PrimitiveValue | list[PrimitiveValue] | dict[str, PrimitiveValue] | list["MetadataDict"]
 )
 
 # Metadata dictionary type - replaces dict[str, Any] for metadata
 MetadataDict = dict[str, PrimitiveValue | list[PrimitiveValue] | dict[str, PrimitiveValue]]
 
 # JSON-serializable value type - for API responses and payloads
-JsonValue = (
-    str
-    | int
-    | float
-    | bool
-    | None
-    | list["JsonValue"]
-    | dict[str, "JsonValue"]
-)
+JsonValue = str | int | float | bool | None | list["JsonValue"] | dict[str, "JsonValue"]
 
 # Payload dictionary - replaces dict[str, Any] for event payloads
 PayloadDict = dict[str, JsonValue]

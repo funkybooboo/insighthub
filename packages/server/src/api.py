@@ -4,30 +4,33 @@ Flask application factory for InsightHub RAG system.
 This module provides the main Flask application with all routes registered.
 """
 
+import logging
 import os
-from typing import Any
 
 from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from shared.messaging import StatusConsumer
+from shared.messaging.status_consumer import create_status_consumer
 
 from src import config
 from src.context import AppContext
 from src.domains.auth.routes import auth_bp
 from src.domains.chat.routes import chat_bp
-from src.domains.chat.socket_handlers import handle_cancel_message, handle_chat_message
+from src.domains.chat.socket_handlers import (
+    register_socket_handlers as register_chat_socket_handlers,
+)
 from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
 from src.domains.status.socket_handlers import (
+    DocumentStatusData,
+    WorkspaceStatusData,
     broadcast_document_status,
     broadcast_workspace_status,
     register_status_socket_handlers,
 )
-from shared.database import get_db, init_db
-from shared.exceptions import register_error_handlers
-from shared.logging_config import setup_logging
-from shared.messaging.status_consumer import create_status_consumer
+from src.infrastructure.database import get_db, init_db
 from src.infrastructure.middleware import (
     PerformanceMonitoringMiddleware,
     RateLimitMiddleware,
@@ -37,6 +40,14 @@ from src.infrastructure.middleware import (
 )
 from src.infrastructure.socket import SocketHandler
 
+
+class InsightHubApp(Flask):
+    """Typed Flask subclass with custom InsightHub attributes."""
+
+    performance_monitoring: PerformanceMonitoringMiddleware
+    status_consumer: StatusConsumer | None
+
+
 # Load environment variables
 load_dotenv()
 
@@ -44,14 +55,14 @@ load_dotenv()
 socketio = SocketIO(cors_allowed_origins="*")
 
 
-def create_app() -> Flask:
+def create_app() -> InsightHubApp:
     """
     Create and configure the Flask application.
 
     Returns:
-        Flask: Configured Flask application
+        InsightHubApp: Configured Flask application with custom attributes
     """
-    app = Flask(__name__)
+    app = InsightHubApp(__name__)
 
     # CORS configuration
     CORS(
@@ -67,8 +78,10 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
     app.config["DEBUG"] = config.FLASK_DEBUG
 
-    # Set up structured logging (stdout/stderr only)
-    setup_logging(app, log_level=os.getenv("LOG_LEVEL", "INFO"))
+    # Set up logging
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    logging.basicConfig(level=getattr(logging, log_level.upper(), logging.INFO))
+    app.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
     # Initialize middleware (order matters!)
     # 1. Security headers (first, to add headers to all responses)
@@ -100,7 +113,7 @@ def create_app() -> Flask:
     )
 
     # Store performance monitoring instance for access in routes
-    app.performance_monitoring = performance_monitoring  # type: ignore
+    app.performance_monitoring = performance_monitoring
 
     # Initialize database
     try:
@@ -119,20 +132,21 @@ def create_app() -> Flask:
     # Initialize SocketIO with the app
     socketio.init_app(app)
 
-    # Initialize socket handler and register domain event handlers
-    socket_handler = SocketHandler(socketio)
-    socket_handler.register_event("chat_message", handle_chat_message)
-    socket_handler.register_event("cancel_message", handle_cancel_message)
+    # Initialize socket handler (registers base connect/disconnect handlers)
+    SocketHandler(socketio)
+
+    # Register domain-specific socket handlers
+    register_chat_socket_handlers(socketio)
 
     # Register status socket handlers
     register_status_socket_handlers(socketio)
 
     # Start status update consumer if RabbitMQ is configured
-    def on_document_status(event_data: dict[str, Any]) -> None:
+    def on_document_status(event_data: DocumentStatusData) -> None:
         """Handle document status update from RabbitMQ."""
         broadcast_document_status(event_data, socketio)
 
-    def on_workspace_status(event_data: dict[str, Any]) -> None:
+    def on_workspace_status(event_data: WorkspaceStatusData) -> None:
         """Handle workspace status update from RabbitMQ."""
         broadcast_workspace_status(event_data, socketio)
 
@@ -144,15 +158,11 @@ def create_app() -> Flask:
     if status_consumer:
         app.logger.info("Status update consumer started")
         # Store consumer reference for graceful shutdown
-        app.status_consumer = status_consumer  # type: ignore
+        app.status_consumer = status_consumer
     else:
         app.logger.info("Status update consumer disabled (RabbitMQ not configured)")
 
     app.logger.info("Socket.IO initialized")
-
-    # Register centralized error handlers
-    register_error_handlers(app)
-    app.logger.info("Error handlers registered")
 
     # Database session and application context management
     @app.before_request
@@ -162,7 +172,7 @@ def create_app() -> Flask:
         g.app_context = AppContext(g.db)
 
     @app.teardown_appcontext
-    def teardown_db(error: Any) -> None:
+    def teardown_db(error: BaseException | None) -> None:
         """Close database session at the end of the request."""
         db = g.pop("db", None)
         if db is not None:

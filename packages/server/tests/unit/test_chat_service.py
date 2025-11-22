@@ -9,6 +9,7 @@ import pytest
 from shared.llm import LlmProvider
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.types.option import Nothing, Option, Some
 
 from src.domains.chat.exceptions import EmptyMessageError
 from src.domains.chat.service import ChatService
@@ -59,14 +60,19 @@ class FakeChatSessionRepository(ChatSessionRepository):
         self.next_id = 1
 
     def create(
-        self, user_id: int, title: str | None = None, rag_type: str | None = None
+        self,
+        user_id: int,
+        title: str | None = None,
+        workspace_id: int | None = None,
+        rag_type: str = "vector",
     ) -> ChatSession:
         """Create a new chat session."""
         session = ChatSession(
             id=self.next_id,
             user_id=user_id,
+            workspace_id=workspace_id,
             title=title or f"Session {self.next_id}",
-            rag_type=rag_type or "vector",
+            rag_type=rag_type,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
@@ -74,31 +80,29 @@ class FakeChatSessionRepository(ChatSessionRepository):
         self.next_id += 1
         return session
 
-    def get_by_id(self, session_id: int) -> ChatSession | None:
+    def get_by_id(self, session_id: int) -> Option[ChatSession]:
         """Get session by ID."""
-        return self.sessions.get(session_id)
+        session = self.sessions.get(session_id)
+        if session is None:
+            return Nothing()
+        return Some(session)
 
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[ChatSession]:
         """Get all sessions for a user."""
         user_sessions = [s for s in self.sessions.values() if s.user_id == user_id]
         return user_sessions[skip : skip + limit]
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatSession]:
-        """Get all sessions."""
-        all_sessions = list(self.sessions.values())
-        return all_sessions[skip : skip + limit]
-
-    def update(self, session_id: int, **kwargs: str) -> ChatSession | None:
+    def update(self, session_id: int, **kwargs: str | int | None) -> Option[ChatSession]:
         """Update session fields."""
         session = self.sessions.get(session_id)
         if not session:
-            return None
+            return Nothing()
 
         for key, value in kwargs.items():
             if hasattr(session, key):
                 setattr(session, key, value)
 
-        return session
+        return Some(session)
 
     def delete(self, session_id: int) -> bool:
         """Delete session by ID."""
@@ -127,24 +131,23 @@ class FakeChatMessageRepository(ChatMessageRepository):
             content=content,
             extra_metadata=extra_metadata,
             created_at=datetime.now(),
+            updated_at=datetime.now(),
         )
         self.messages[message.id] = message
         self.next_id += 1
         return message
 
-    def get_by_id(self, message_id: int) -> ChatMessage | None:
+    def get_by_id(self, message_id: int) -> Option[ChatMessage]:
         """Get message by ID."""
-        return self.messages.get(message_id)
+        msg = self.messages.get(message_id)
+        if msg is None:
+            return Nothing()
+        return Some(msg)
 
     def get_by_session(self, session_id: int, skip: int = 0, limit: int = 100) -> list[ChatMessage]:
         """Get all messages for a session."""
         session_messages = [m for m in self.messages.values() if m.session_id == session_id]
         return session_messages[skip : skip + limit]
-
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[ChatMessage]:
-        """Get all messages."""
-        all_messages = list(self.messages.values())
-        return all_messages[skip : skip + limit]
 
     def delete(self, message_id: int) -> bool:
         """Delete message by ID."""

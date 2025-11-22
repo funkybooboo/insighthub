@@ -35,12 +35,21 @@ export function useStatusUpdates() {
     const { user } = useSelector((state: RootState) => state.auth);
 
     useEffect(() => {
-        if (!user || !socketService.isConnected()) {
+        if (!user) {
             return;
         }
 
-        // Subscribe to status updates for this user
-        socketService.emit('subscribe_status', { user_id: user.id });
+        // Connect socket if not already connected
+        if (!socketService.isConnected()) {
+            socketService.connect();
+        }
+
+        // Wait a bit for connection to establish, then subscribe
+        const subscribeTimeout = setTimeout(() => {
+            if (socketService.isConnected()) {
+                socketService.emit('subscribe_status', { user_id: user.id });
+            }
+        }, 100);
 
         // Listen for document status updates
         const handleDocumentStatus = (data: unknown) => {
@@ -67,6 +76,7 @@ export function useStatusUpdates() {
         socketService.on('subscribed', handleSubscribed);
 
         return () => {
+            clearTimeout(subscribeTimeout);
             socketService.off('document_status', handleDocumentStatus);
             socketService.off('workspace_status', handleWorkspaceStatus);
             socketService.off('subscribed', handleSubscribed);

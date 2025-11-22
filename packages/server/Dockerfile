@@ -129,8 +129,7 @@ RUN cd /tmp/shared && poetry install --only main --only-root
 
 # Copy application code
 COPY --chown=app:app src ./src
-COPY --chown=app:app alembic ./alembic
-COPY --chown=app:app alembic.ini ./
+COPY --chown=app:app migrations ./migrations
 COPY --chown=app:app README.md ./
 
 # Install the project (root only)

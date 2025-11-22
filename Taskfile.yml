@@ -275,6 +275,12 @@ tasks:
   # --------------------------------------------------------------------------
   # Subdirectory tasks
   # --------------------------------------------------------------------------
+  shared:*:
+    desc: Run shared tasks (use task shared:<task-name>)
+    dir: packages/shared/python
+    cmds:
+      - task {{index .MATCH 0}}
+
   server:*:
     desc: Run server tasks (use task server:<task-name>)
     dir: packages/server
@@ -288,8 +294,13 @@ tasks:
       - task {{index .MATCH 0}}
 
   check:
-    desc: Run all checks for both client and server
+    desc: Run all checks for shared, server, and client
     cmds:
+      - cmd: echo "Running shared checks..."
+        silent: true
+      - task: shared:check
+      - cmd: echo ""
+        silent: true
       - cmd: echo "Running server checks..."
         silent: true
       - task: server:check
@@ -302,6 +313,17 @@ tasks:
         silent: true
       - cmd: echo "All checks passed!"
         silent: true
+
+  shared:rebuild:
+    desc: Rebuild shared package and reinstall in server
+    cmds:
+      - cmd: echo "Building shared package..."
+        silent: true
+      - task: shared:build
+      - cmd: echo "Reinstalling shared package in server..."
+        silent: true
+      - cd packages/server && poetry remove insighthub-shared || true
+      - cd packages/server && poetry add ../shared/python/dist/insighthub_shared-*.whl
 
   # --------------------------------------------------------------------------
   # Security tasks (root level)

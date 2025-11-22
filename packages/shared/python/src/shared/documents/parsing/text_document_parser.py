@@ -3,7 +3,7 @@
 import uuid
 from typing import BinaryIO
 
-from shared.document_parser.document_parser import DocumentParser, ParsingError
+from shared.documents.parsing.document_parser import DocumentParser, ParsingError
 from shared.types.common import MetadataDict
 from shared.types.document import Document
 from shared.types.result import Err, Ok, Result
@@ -29,7 +29,7 @@ class TextDocumentParser(DocumentParser):
             raw.seek(0)
             content = raw.read().decode("utf-8")
 
-            text_metadata = self._extract_text_metadata(content, metadata)
+            self._extract_text_metadata(content, metadata)
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, content)
@@ -50,9 +50,7 @@ class TextDocumentParser(DocumentParser):
             )
 
         except UnicodeDecodeError as e:
-            return Err(
-                ParsingError(f"Failed to decode text: {e}", code="ENCODING_ERROR")
-            )
+            return Err(ParsingError(f"Failed to decode text: {e}", code="ENCODING_ERROR"))
         except Exception as e:
             return Err(ParsingError(f"Failed to parse text: {e}", code="PARSE_ERROR"))
 

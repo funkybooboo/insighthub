@@ -33,9 +33,7 @@ class BlobStorage(ABC):
     """
 
     @abstractmethod
-    def upload_file(
-        self, file_obj: BinaryIO, object_name: str
-    ) -> Result[str, BlobStorageError]:
+    def upload_file(self, file_obj: BinaryIO, object_name: str) -> Result[str, BlobStorageError]:
         """
         Upload a file to blob storage.
 

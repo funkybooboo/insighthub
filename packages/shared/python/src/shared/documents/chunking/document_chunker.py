@@ -1,18 +1,17 @@
 """Text chunking interfaces for splitting documents into semantic segments."""
 
 from abc import ABC, abstractmethod
-from typing import Any
 
-from shared.types.document import Document, Chunk
+from shared.types.document import Chunk, Document
 
 
 class Chunker(ABC):
     """
     Interface for splitting documents into smaller, meaningful chunks.
-    
+
     Implementations should use different strategies:
     - Fixed-size character chunking
-    - Sentence-based chunking  
+    - Sentence-based chunking
     - Paragraph-based chunking
     - Semantic chunking using embeddings
     """
@@ -50,7 +49,7 @@ class Chunker(ABC):
 class MetadataEnricher(ABC):
     """
     Interface for enriching chunks with additional metadata.
-    
+
     Implementations can add:
     - Token counts
     - Language detection

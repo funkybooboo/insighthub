@@ -3,9 +3,8 @@
 import logging
 import time
 from collections import defaultdict
-from typing import Any
 
-from flask import Flask, Request, jsonify, request
+from flask import Flask, Request, Response, jsonify, request
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ class RateLimitMiddleware:
         """Set up rate limiting before each request."""
 
         @app.before_request
-        def check_rate_limit() -> Any:
+        def check_rate_limit() -> tuple[Response, int] | None:
             """Check if the request should be rate limited."""
             # Skip rate limiting for health checks
             if request.path in ["/health", "/heartbeat"]:

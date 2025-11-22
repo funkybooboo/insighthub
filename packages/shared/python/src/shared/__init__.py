@@ -11,9 +11,9 @@ Modules:
     messaging: RabbitMQ publisher and consumer utilities
     blob_storage: Blob storage interface and implementations
     llm: LLM provider interfaces and implementations
-    models: SQLAlchemy ORM models
+    models: Data models (plain dataclasses)
     repositories: Data access layer
-    sql_database: Database connection and session management
+    database: Database connection utilities (SqlDatabase interface)
     logging: Structured logging configuration
 """
 

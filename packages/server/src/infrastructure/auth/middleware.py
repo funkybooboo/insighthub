@@ -2,15 +2,18 @@
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import ParamSpec, TypeVar
 
-from flask import jsonify
+from flask import Response, jsonify
 from jwt.exceptions import InvalidTokenError
 
 from .jwt_utils import get_current_user
 
+P = ParamSpec("P")
+T = TypeVar("T")
 
-def require_auth(f: Callable[..., Any]) -> Callable[..., Any]:
+
+def require_auth(f: Callable[P, T]) -> Callable[P, T | tuple[Response, int]]:
     """
     Decorator to require authentication for a route.
 
@@ -29,7 +32,7 @@ def require_auth(f: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Any:
+    def decorated_function(*args: P.args, **kwargs: P.kwargs) -> T | tuple[Response, int]:
         try:
             get_current_user()
         except InvalidTokenError as e:

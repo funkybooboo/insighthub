@@ -10,12 +10,15 @@ load_dotenv(".env.test", override=True)
 import os
 from collections.abc import Generator
 from io import BytesIO
-from typing import Any
+from pathlib import Path
 
+import psycopg2
+import psycopg2.extras
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-from shared.database import Base
+from shared.database.sql import PostgresSQLDatabase
+from shared.models import User
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -23,15 +26,41 @@ from shared.repositories import (
     UserRepository,
 )
 from shared.storage import BlobStorage
-from shared.storage.minio_storage import MinIOBlobStorage
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from shared.storage.s3_blob_storage import S3BlobStorage
 from testcontainers.minio import MinioContainer
 from testcontainers.postgres import PostgresContainer
 
 from src import config
 from src.api import create_app
 from tests.context import IntegrationTestContext, create_integration_test_context
+
+
+def _run_migrations(db_url: str) -> None:
+    """Run migration SQL files against the database."""
+    migrations_dir = Path(__file__).parent.parent / "migrations"
+    migration_files = sorted(migrations_dir.glob("*.sql"))
+
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            for migration_file in migration_files:
+                sql = migration_file.read_text()
+                cur.execute(sql)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _drop_all_tables(db_url: str) -> None:
+    """Drop all tables from the database."""
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        conn.commit()
+    finally:
+        conn.close()
+
 
 # ============================================================================
 # Pytest Skip Helpers
@@ -123,35 +152,27 @@ def minio_container() -> Generator[MinioContainer, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_engine(postgres_container: PostgresContainer) -> Generator[Any, None, None]:
-    """Create a test database engine with temporary PostgreSQL container."""
-    # Get connection URL from container
-    db_url = postgres_container.get_connection_url()
+def db_url(postgres_container: PostgresContainer) -> Generator[str, None, None]:
+    """Get database URL and run migrations."""
+    url = postgres_container.get_connection_url()
 
-    # Create engine
-    engine = create_engine(db_url, pool_pre_ping=True)
+    # Run migrations
+    _run_migrations(url)
 
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-
-    yield engine
+    yield url
 
     # Drop all tables after test
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
+    _drop_all_tables(url)
 
 
 @pytest.fixture(scope="function")
-def db_session(db_engine: Any) -> Generator[Session, None, None]:
-    """Create a test database session."""
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
-    session = SessionLocal()
-
+def db(db_url: str) -> Generator[PostgresSQLDatabase, None, None]:
+    """Create a test database connection."""
+    database = PostgresSQLDatabase(db_url)
     try:
-        yield session
+        yield database
     finally:
-        session.rollback()
-        session.close()
+        database.close()
 
 
 @pytest.fixture(scope="function")
@@ -189,18 +210,19 @@ def blob_storage(minio_container: MinioContainer) -> BlobStorage:
     if not endpoint.startswith(("http://", "https://")):
         endpoint = f"http://{endpoint}"
 
-    return MinIOBlobStorage(
-        endpoint_url=endpoint,
+    return S3BlobStorage(
+        endpoint=endpoint,
         access_key=minio_config["access_key"],
         secret_key=minio_config["secret_key"],
         bucket_name="test-bucket",
+        secure=False,
     )
 
 
 @pytest.fixture(scope="function")
-def test_context(db_session: Session, blob_storage: BlobStorage) -> IntegrationTestContext:
+def test_context(db: PostgresSQLDatabase, blob_storage: BlobStorage) -> IntegrationTestContext:
     """Create a test context for integration tests with real implementations."""
-    return create_integration_test_context(db=db_session, blob_storage=blob_storage)
+    return create_integration_test_context(db=db, blob_storage=blob_storage)
 
 
 @pytest.fixture(scope="function")
@@ -240,24 +262,30 @@ def sample_text_file() -> BytesIO:
 
 
 @pytest.fixture
-def test_user(db_session: Session) -> Any:
+def test_user(db: PostgresSQLDatabase) -> User:
     """Create a test user for authentication."""
-    from shared.models import User
+    password_hash = User.hash_password("test_password")
 
-    user = User(
-        username="test_user",
-        email="test@example.com",
-        full_name="Test User",
+    row = db.fetchone(
+        """
+        INSERT INTO users (username, email, password_hash, full_name)
+        VALUES (%(username)s, %(email)s, %(password_hash)s, %(full_name)s)
+        RETURNING *
+        """,
+        {
+            "username": "test_user",
+            "email": "test@example.com",
+            "password_hash": password_hash,
+            "full_name": "Test User",
+        },
     )
-    user.set_password("test_password")
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user
+    assert row is not None
+
+    return User(**row)
 
 
 @pytest.fixture
-def test_token(test_user: Any) -> str:
+def test_token(test_user: User) -> str:
     """Create a JWT token for the test user."""
     from src.infrastructure.auth import create_access_token
 

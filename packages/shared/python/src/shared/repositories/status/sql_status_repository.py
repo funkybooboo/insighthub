@@ -1,11 +1,11 @@
 """SQL implementation of status repository using SqlDatabase and Option types."""
 
+from shared.database.sql.sql_database import SqlDatabase
 from shared.models import Document, Workspace
-from shared.types.option import Option, Some, Nothing
+from shared.types.option import Nothing, Option, Some
 from shared.types.status import DocumentProcessingStatus, WorkspaceStatus
 
 from .status_repository import StatusRepository
-from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlStatusRepository(StatusRepository):

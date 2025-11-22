@@ -85,6 +85,7 @@ task clean           # Remove generated files and node_modules
 ```
 
 You can also use Bun directly:
+
 ```bash
 bun run dev
 bun run test:run
@@ -276,23 +277,27 @@ task storybook:build       # Build static Storybook
 **Current Stats**: 438 tests passing across 17 test files
 
 **Test Categories**:
+
 - Component tests: 200+ tests
 - Redux slice tests: 100+ tests
 - Service/utility tests: 100+ tests
 - Storybook stories: 50+ stories
 
 **Coverage Thresholds**:
+
 - Lines: > 80%
 - Functions: > 80%
 - Branches: > 75%
 - Statements: > 80%
 
 **Test Files**:
+
 - Unit tests: `src/**/*.test.{ts,tsx}`
 - Component tests: `src/components/**/*.test.tsx`
 - Stories: `src/**/*.stories.tsx`
 
 **Key Test Features**:
+
 - MSW for API mocking
 - React Testing Library for component testing
 - Vitest for fast test execution

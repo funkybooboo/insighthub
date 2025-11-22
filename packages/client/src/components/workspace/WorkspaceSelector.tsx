@@ -28,7 +28,7 @@ const WorkspaceSelector = () => {
         try {
             const workspaceList = await apiService.listWorkspaces();
             dispatch(setWorkspaces(workspaceList));
-            
+
             if (workspaceList.length > 0 && !activeWorkspaceId) {
                 dispatch(setActiveWorkspace(workspaceList[0].id));
             }

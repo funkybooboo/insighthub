@@ -3,7 +3,7 @@
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
-from shared.document_parser.document_parser import DocumentParser, ParsingError
+from shared.documents.parsing.document_parser import DocumentParser, ParsingError
 from shared.types.common import MetadataDict
 from shared.types.document import Document
 from shared.types.result import Err, Ok, Result
@@ -121,9 +121,7 @@ class PDFDocumentParser(DocumentParser):
 
         return metadata
 
-    def _get_title(
-        self, metadata: MetadataDict | None, pdf_metadata: MetadataDict
-    ) -> str | None:
+    def _get_title(self, metadata: MetadataDict | None, pdf_metadata: MetadataDict) -> str | None:
         """Get title from metadata or PDF metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])

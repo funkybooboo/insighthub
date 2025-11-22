@@ -250,7 +250,8 @@ export default function WorkspacesPage() {
                                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                                     <span>{workspace.document_count ?? 0} documents</span>
                                     <span>
-                                        Updated {new Date(workspace.updated_at).toLocaleDateString()}
+                                        Updated{' '}
+                                        {new Date(workspace.updated_at).toLocaleDateString()}
                                     </span>
                                 </div>
 
@@ -337,7 +338,12 @@ export default function WorkspacesPage() {
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
                                     >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 9l-7 7-7-7"
+                                        />
                                     </svg>
                                 </button>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -362,11 +368,20 @@ export default function WorkspacesPage() {
                                                 </label>
                                                 <select
                                                     value={ragConfig.embedding_model}
-                                                    onChange={(e) => setRagConfig({ ...ragConfig, embedding_model: e.target.value })}
+                                                    onChange={(e) =>
+                                                        setRagConfig({
+                                                            ...ragConfig,
+                                                            embedding_model: e.target.value,
+                                                        })
+                                                    }
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
                                                 >
-                                                    <option value="nomic-embed-text">Nomic Embed Text</option>
-                                                    <option value="text-embedding-ada-002">OpenAI Ada-002</option>
+                                                    <option value="nomic-embed-text">
+                                                        Nomic Embed Text
+                                                    </option>
+                                                    <option value="text-embedding-ada-002">
+                                                        OpenAI Ada-002
+                                                    </option>
                                                     <option value="all-MiniLM-L6-v2">MiniLM</option>
                                                 </select>
                                             </div>
@@ -376,7 +391,12 @@ export default function WorkspacesPage() {
                                                 </label>
                                                 <select
                                                     value={ragConfig.retriever_type}
-                                                    onChange={(e) => setRagConfig({ ...ragConfig, retriever_type: e.target.value })}
+                                                    onChange={(e) =>
+                                                        setRagConfig({
+                                                            ...ragConfig,
+                                                            retriever_type: e.target.value,
+                                                        })
+                                                    }
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
                                                 >
                                                     <option value="vector">Vector RAG</option>
@@ -394,7 +414,13 @@ export default function WorkspacesPage() {
                                                 <input
                                                     type="number"
                                                     value={ragConfig.chunk_size}
-                                                    onChange={(e) => setRagConfig({ ...ragConfig, chunk_size: parseInt(e.target.value) || 1000 })}
+                                                    onChange={(e) =>
+                                                        setRagConfig({
+                                                            ...ragConfig,
+                                                            chunk_size:
+                                                                parseInt(e.target.value) || 1000,
+                                                        })
+                                                    }
                                                     min="100"
                                                     max="5000"
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
@@ -407,7 +433,13 @@ export default function WorkspacesPage() {
                                                 <input
                                                     type="number"
                                                     value={ragConfig.chunk_overlap}
-                                                    onChange={(e) => setRagConfig({ ...ragConfig, chunk_overlap: parseInt(e.target.value) || 0 })}
+                                                    onChange={(e) =>
+                                                        setRagConfig({
+                                                            ...ragConfig,
+                                                            chunk_overlap:
+                                                                parseInt(e.target.value) || 0,
+                                                        })
+                                                    }
                                                     min="0"
                                                     max="1000"
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
@@ -420,7 +452,12 @@ export default function WorkspacesPage() {
                                                 <input
                                                     type="number"
                                                     value={ragConfig.top_k}
-                                                    onChange={(e) => setRagConfig({ ...ragConfig, top_k: parseInt(e.target.value) || 8 })}
+                                                    onChange={(e) =>
+                                                        setRagConfig({
+                                                            ...ragConfig,
+                                                            top_k: parseInt(e.target.value) || 8,
+                                                        })
+                                                    }
                                                     min="1"
                                                     max="50"
                                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
@@ -434,7 +471,8 @@ export default function WorkspacesPage() {
                             {/* Info about provisioning */}
                             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                                    Creating a workspace will set up the required RAG infrastructure. This may take a moment.
+                                    Creating a workspace will set up the required RAG
+                                    infrastructure. This may take a moment.
                                 </p>
                             </div>
 

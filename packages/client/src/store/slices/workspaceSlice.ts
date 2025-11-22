@@ -48,7 +48,8 @@ const workspaceSlice = createSlice({
         removeWorkspace: (state, action: PayloadAction<number>) => {
             state.workspaces = state.workspaces.filter((w) => w.id !== action.payload);
             if (state.activeWorkspaceId === action.payload) {
-                state.activeWorkspaceId = state.workspaces.length > 0 ? state.workspaces[0].id : null;
+                state.activeWorkspaceId =
+                    state.workspaces.length > 0 ? state.workspaces[0].id : null;
                 saveActiveWorkspaceId(state.activeWorkspaceId);
             }
         },

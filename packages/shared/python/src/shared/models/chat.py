@@ -1,62 +1,36 @@
 """Chat models."""
 
-from typing import TYPE_CHECKING
-
-from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from shared.sql_database.base import Base, TimestampMixin
-
-if TYPE_CHECKING:
-    from shared.models.user import User
-    from shared.models.workspace import Workspace
+from dataclasses import dataclass, field
+from datetime import datetime
 
 
-class ChatSession(Base, TimestampMixin):
+@dataclass
+class ChatSession:
     """Chat session model for grouping related chat messages."""
 
-    __tablename__ = "chat_sessions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    workspace_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True
-    )
-    title: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    rag_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="vector"
-    )  # 'vector' or 'graph'
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="chat_sessions")
-    workspace: Mapped["Workspace | None"] = relationship("Workspace", back_populates="chat_sessions")
-    messages: Mapped[list["ChatMessage"]] = relationship(
-        "ChatMessage", back_populates="session", cascade="all, delete-orphan"
-    )
+    id: int
+    user_id: int
+    workspace_id: int | None = None
+    title: str | None = None
+    rag_type: str = "vector"  # 'vector' or 'graph'
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def __repr__(self) -> str:
         return f"<ChatSession(id={self.id}, user_id={self.user_id}, title={self.title})>"
 
 
-class ChatMessage(Base, TimestampMixin):
+@dataclass
+class ChatMessage:
     """Chat message model for storing conversation history."""
 
-    __tablename__ = "chat_messages"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    role: Mapped[str] = mapped_column(String(50), nullable=False)  # 'user', 'assistant', 'system'
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    extra_metadata: Mapped[str | None] = mapped_column(
-        Text, nullable=True
-    )  # JSON string for storing additional data
-
-    # Relationships
-    session: Mapped["ChatSession"] = relationship("ChatSession", back_populates="messages")
+    id: int
+    session_id: int
+    role: str  # 'user', 'assistant', 'system'
+    content: str
+    extra_metadata: str | None = None  # JSON string for storing additional data
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def __repr__(self) -> str:
         content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content

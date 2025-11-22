@@ -1,16 +1,19 @@
 """Neo4j graph database implementation."""
 
 from types import TracebackType
+from typing import Any
 
-from shared.types.graph import GraphNode, GraphEdge
-from .graph_database import GraphDatabase
-from shared.logger import create_logger
-
+from neo4j import Driver
 from neo4j import GraphDatabase as Neo4jDriver
-from neo4j import Driver, Session, Result
 from neo4j.exceptions import Neo4jError, ServiceUnavailable
 
+from shared.logger import create_logger
+from shared.types.graph import GraphEdge, GraphNode
+
+from .graph_database import GraphDatabase
+
 logger = create_logger(__name__)
+
 
 class Neo4jGraphDatabase(GraphDatabase):
     """
@@ -58,17 +61,10 @@ class Neo4jGraphDatabase(GraphDatabase):
         Establish connection to Neo4j.
 
         Raises:
-            ConnectionError: If connection fails or Neo4j driver not available
+            ConnectionError: If connection fails
         """
-        if not NEO4J_AVAILABLE:
-            raise ConnectionError(
-                "Neo4j driver not installed. Please run: pip install neo4j"
-            )
-
         try:
-            self._driver = Neo4jDriver.driver(
-                self.uri, auth=(self.username, self.password)
-            )
+            self._driver = Neo4jDriver.driver(self.uri, auth=(self.username, self.password))
             # Verify connectivity
             self._driver.verify_connectivity()
             logger.info(f"Connected to Neo4j at {self.uri}")
@@ -431,9 +427,7 @@ class Neo4jGraphDatabase(GraphDatabase):
                 )
         return neighbors
 
-    def get_node_edges(
-        self, node_id: str, direction: str = "both"
-    ) -> list[GraphEdge]:
+    def get_node_edges(self, node_id: str, direction: str = "both") -> list[GraphEdge]:
         """
         Get all edges connected to a node.
 
@@ -493,9 +487,7 @@ class Neo4jGraphDatabase(GraphDatabase):
         """
         if properties:
             # Build property filter string
-            prop_filters = " AND ".join(
-                [f"n.{k} = ${k}" for k in properties.keys()]
-            )
+            prop_filters = " AND ".join([f"n.{k} = ${k}" for k in properties.keys()])
             query = f"""
             MATCH (n:{label})
             WHERE {prop_filters}
@@ -524,9 +516,7 @@ class Neo4jGraphDatabase(GraphDatabase):
                 )
         return nodes
 
-    def execute_query(
-        self, query: str, parameters: dict[str, Any] | None = None
-    ) -> Any:
+    def execute_query(self, query: str, parameters: dict[str, Any] | None = None) -> Any:
         """
         Execute a raw Cypher query.
 

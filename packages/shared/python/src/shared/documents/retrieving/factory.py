@@ -5,8 +5,8 @@ from enum import Enum
 from shared.types.option import Nothing, Option, Some
 
 from .retriever import Retriever
-from .wikipedia_retriever import WikipediaRetriever
 from .url_retriever import URLRetriever
+from .wikipedia_retriever import WikipediaRetriever
 
 
 class RetrieverType(Enum):

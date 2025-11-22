@@ -31,7 +31,6 @@ export default function WorkspaceDetailPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-
     // Edit workspace modal state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editName, setEditName] = useState('');
@@ -232,7 +231,8 @@ export default function WorkspaceDetailPage() {
                                 Workspace setup failed
                             </p>
                             <p className="text-sm text-red-600 dark:text-red-400">
-                                There was an error setting up this workspace. Please try again or contact support.
+                                There was an error setting up this workspace. Please try again or
+                                contact support.
                             </p>
                         </div>
                     )}
@@ -246,7 +246,9 @@ export default function WorkspaceDetailPage() {
                             </p>
                         </div>
                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Chat Sessions</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Chat Sessions
+                            </p>
                             <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                                 {workspace.session_count ?? 0}
                             </p>
@@ -273,7 +275,8 @@ export default function WorkspaceDetailPage() {
                             RAG Configuration
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Configuration is set when the workspace is created and cannot be changed.
+                            Configuration is set when the workspace is created and cannot be
+                            changed.
                         </p>
                     </div>
 
@@ -296,7 +299,9 @@ export default function WorkspaceDetailPage() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Chunk Size</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Chunk Size
+                                </p>
                                 <p className="font-medium text-gray-900 dark:text-white">
                                     {workspace.rag_config.chunk_size}
                                 </p>
@@ -365,7 +370,12 @@ export default function WorkspaceDetailPage() {
                         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
                             Edit Workspace
                         </h2>
-                        <form onSubmit={(e) => { e.preventDefault(); handleSaveWorkspace(); }}>
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSaveWorkspace();
+                            }}
+                        >
                             {editError && (
                                 <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg text-sm">
                                     {editError}
@@ -417,7 +427,6 @@ export default function WorkspaceDetailPage() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }

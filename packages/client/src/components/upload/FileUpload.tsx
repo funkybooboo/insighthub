@@ -93,9 +93,10 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <div
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
-                    ${isDragging
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
+                    ${
+                        isDragging
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
                     }
                     ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                 onDrop={handleDrop}

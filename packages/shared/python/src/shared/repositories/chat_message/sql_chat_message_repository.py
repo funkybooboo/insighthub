@@ -1,11 +1,10 @@
 """SQL implementation of chat message repository using SqlDatabase."""
 
-from typing import List
+from shared.database.sql.sql_database import SqlDatabase
 from shared.models.chat import ChatMessage
-from shared.types.option import Option, Some, Nothing
+from shared.types.option import Nothing, Option, Some
 
 from .chat_message_repository import ChatMessageRepository
-from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlChatMessageRepository(ChatMessageRepository):
@@ -29,9 +28,9 @@ class SqlChatMessageRepository(ChatMessageRepository):
     ) -> ChatMessage:
         """Create a new chat message."""
         query = """
-        INSERT INTO chat_message (session_id, role, content, extra_metadata, created_at, updated_at)
-        VALUES (%(session_id)s, %(role)s, %(content)s, %(extra_metadata)s, NOW(), NOW())
-        RETURNING id, session_id, role, content, extra_metadata, created_at, updated_at;
+        INSERT INTO chat_messages (session_id, role, content, extra_metadata)
+        VALUES (%(session_id)s, %(role)s, %(content)s, %(extra_metadata)s)
+        RETURNING *;
         """
         params = {
             "session_id": session_id,
@@ -40,20 +39,22 @@ class SqlChatMessageRepository(ChatMessageRepository):
             "extra_metadata": extra_metadata,
         }
         row = self._db.fetchone(query, params)
+        if row is None:
+            raise ValueError("Failed to create chat message")
         return ChatMessage(**row)
 
     def get_by_id(self, message_id: int) -> Option[ChatMessage]:
         """Get chat message by ID."""
-        query = "SELECT * FROM chat_message WHERE id = %(id)s;"
+        query = "SELECT * FROM chat_messages WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": message_id})
         if row is None:
             return Nothing()
         return Some(ChatMessage(**row))
 
-    def get_by_session(self, session_id: int, skip: int, limit: int) -> List[ChatMessage]:
+    def get_by_session(self, session_id: int, skip: int, limit: int) -> list[ChatMessage]:
         """Get all messages for a chat session with pagination."""
         query = """
-        SELECT * FROM chat_message
+        SELECT * FROM chat_messages
         WHERE session_id = %(session_id)s
         ORDER BY created_at
         OFFSET %(skip)s
@@ -64,11 +65,10 @@ class SqlChatMessageRepository(ChatMessageRepository):
 
     def delete(self, message_id: int) -> bool:
         """Delete chat message by ID."""
-        # Check if exists
         message_option = self.get_by_id(message_id)
         if message_option.is_nothing():
             return False
 
-        query = "DELETE FROM chat_message WHERE id = %(id)s;"
+        query = "DELETE FROM chat_messages WHERE id = %(id)s;"
         self._db.execute(query, {"id": message_id})
         return True

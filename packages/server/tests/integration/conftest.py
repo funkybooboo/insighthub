@@ -1,4 +1,5 @@
 import os
+from collections.abc import Generator
 
 import pytest
 
@@ -11,7 +12,7 @@ except Exception:
 
 
 @pytest.fixture(scope="session")
-def postgres_url():
+def postgres_url() -> Generator[str, None, None]:
     if not POSTGRES_AVAILABLE:
         pytest.skip("testcontainers PostgreSQL not available; skipping integration tests")
     with PostgreSQLContainer("postgres:15-alpine") as container:

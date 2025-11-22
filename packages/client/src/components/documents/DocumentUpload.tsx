@@ -18,7 +18,10 @@ interface DocumentUploadProps {
     onUploadComplete?: (documentId: number) => void;
 }
 
-export default function DocumentUpload({ workspaceId, onUploadComplete: _onUploadComplete }: DocumentUploadProps) {
+export default function DocumentUpload({
+    workspaceId,
+    onUploadComplete: _onUploadComplete,
+}: DocumentUploadProps) {
     void _onUploadComplete; // Reserved for future use
     const documentStatuses = useSelector((state: RootState) => state.status.documents);
     const [uploading, setUploading] = useState(false);

@@ -4,6 +4,7 @@ import logging
 
 from shared.models import User
 from shared.repositories import UserRepository
+from shared.types.option import Nothing, Some
 
 from .exceptions import UserAlreadyExistsError, UserAuthenticationError
 
@@ -32,27 +33,44 @@ class UserService:
 
     def get_user_by_id(self, user_id: int) -> User | None:
         """Get user by ID."""
-        return self.repository.get_by_id(user_id)
+        result = self.repository.get_by_id(user_id)
+        match result:
+            case Some(user):
+                return user
+            case Nothing():
+                return None
 
     def get_user_by_username(self, username: str) -> User | None:
         """Get user by username."""
-        return self.repository.get_by_username(username)
+        result = self.repository.get_by_username(username)
+        match result:
+            case Some(user):
+                return user
+            case Nothing():
+                return None
 
     def get_user_by_email(self, email: str) -> User | None:
         """Get user by email."""
-        return self.repository.get_by_email(email)
+        result = self.repository.get_by_email(email)
+        match result:
+            case Some(user):
+                return user
+            case Nothing():
+                return None
 
     def get_or_create_default_user(self) -> User:
         """Get or create a default user for demo purposes."""
-        user = self.repository.get_by_username("demo_user")
-        if not user:
-            user = self.repository.create(
-                username="demo_user",
-                email="demo@insighthub.local",
-                password="demo_password",
-                full_name="Demo User",
-            )
-        return user
+        result = self.repository.get_by_username("demo_user")
+        match result:
+            case Some(user):
+                return user
+            case Nothing():
+                return self.repository.create(
+                    username="demo_user",
+                    email="demo@insighthub.local",
+                    password="demo_password",
+                    full_name="Demo User",
+                )
 
     def list_users(self, skip: int = 0, limit: int = 100) -> list[User]:
         """List all users with pagination."""
@@ -60,7 +78,12 @@ class UserService:
 
     def update_user(self, user_id: int, **kwargs: str) -> User | None:
         """Update user fields."""
-        return self.repository.update(user_id, **kwargs)
+        result = self.repository.update(user_id, **kwargs)
+        match result:
+            case Some(user):
+                return user
+            case Nothing():
+                return None
 
     def delete_user(self, user_id: int) -> bool:
         """Delete user by ID."""
@@ -81,19 +104,21 @@ class UserService:
             UserAuthenticationError: If authentication fails
         """
         logger.info(f"Authentication attempt for username={username}")
-        user = self.repository.get_by_username(username)
-        if not user:
-            logger.warning(f"Authentication failed: user not found (username={username})")
-            raise UserAuthenticationError("Invalid username or password")
-
-        if not user.check_password(password):
-            logger.warning(
-                f"Authentication failed: invalid password (username={username}, user_id={user.id})"
-            )
-            raise UserAuthenticationError("Invalid username or password")
-
-        logger.info(f"User authenticated successfully: user_id={user.id}, username={username}")
-        return user
+        result = self.repository.get_by_username(username)
+        match result:
+            case Some(user):
+                if not user.check_password(password):
+                    logger.warning(
+                        f"Authentication failed: invalid password (username={username}, user_id={user.id})"
+                    )
+                    raise UserAuthenticationError("Invalid username or password")
+                logger.info(
+                    f"User authenticated successfully: user_id={user.id}, username={username}"
+                )
+                return user
+            case Nothing():
+                logger.warning(f"Authentication failed: user not found (username={username})")
+                raise UserAuthenticationError("Invalid username or password")
 
     def register_user(
         self, username: str, email: str, password: str, full_name: str | None = None
@@ -115,13 +140,23 @@ class UserService:
         """
         logger.info(f"User registration attempt: username={username}, email={email}")
 
-        if self.repository.get_by_username(username):
-            logger.warning(f"Registration failed: username already exists (username={username})")
-            raise UserAlreadyExistsError(f"Username '{username}' already exists")
+        username_result = self.repository.get_by_username(username)
+        match username_result:
+            case Some(_):
+                logger.warning(
+                    f"Registration failed: username already exists (username={username})"
+                )
+                raise UserAlreadyExistsError(f"Username '{username}' already exists")
+            case Nothing():
+                pass
 
-        if self.repository.get_by_email(email):
-            logger.warning(f"Registration failed: email already exists (email={email})")
-            raise UserAlreadyExistsError(f"Email '{email}' already exists")
+        email_result = self.repository.get_by_email(email)
+        match email_result:
+            case Some(_):
+                logger.warning(f"Registration failed: email already exists (email={email})")
+                raise UserAlreadyExistsError(f"Email '{email}' already exists")
+            case Nothing():
+                pass
 
         user = self.create_user(
             username=username, email=email, password=password, full_name=full_name

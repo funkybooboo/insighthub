@@ -45,9 +45,7 @@ class ChatMessageRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_session(
-        self, session_id: int, skip: int, limit: int
-    ) -> list[ChatMessage]:
+    def get_by_session(self, session_id: int, skip: int, limit: int) -> list[ChatMessage]:
         """
         Get messages by session ID with pagination.
 

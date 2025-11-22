@@ -26,7 +26,7 @@ const WorkspaceSettings = () => {
 
     const loadRagConfig = useCallback(async () => {
         if (!activeWorkspaceId) return;
-        
+
         try {
             const config = await apiService.getRagConfig(activeWorkspaceId);
             setRagConfig(config);
@@ -144,7 +144,9 @@ const WorkspaceSettings = () => {
                                 <input
                                     type="text"
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, name: e.target.value })
+                                    }
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                                 />
                             </div>
@@ -176,13 +178,18 @@ const WorkspaceSettings = () => {
                                 <select
                                     value={formData.embedding_model}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, embedding_model: e.target.value })
+                                        setFormData({
+                                            ...formData,
+                                            embedding_model: e.target.value,
+                                        })
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                                 >
                                     <option value="nomic-embed-text">Nomic Embed Text</option>
                                     <option value="openai">OpenAI</option>
-                                    <option value="sentence-transformer">Sentence Transformer</option>
+                                    <option value="sentence-transformer">
+                                        Sentence Transformer
+                                    </option>
                                 </select>
                             </div>
 
@@ -250,7 +257,10 @@ const WorkspaceSettings = () => {
                                     type="number"
                                     value={formData.top_k}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, top_k: parseInt(e.target.value) })
+                                        setFormData({
+                                            ...formData,
+                                            top_k: parseInt(e.target.value),
+                                        })
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                                     min="1"

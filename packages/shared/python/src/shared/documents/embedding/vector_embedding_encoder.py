@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from shared.types.common import HealthStatus
-from shared.types.result import Err, Ok, Result
+from shared.types.result import Result
 
 
 class EmbeddingError:
@@ -37,9 +37,7 @@ class VectorEmbeddingEncoder(ABC):
     """
 
     @abstractmethod
-    def encode(
-        self, texts: Iterable[str]
-    ) -> Result[list[list[float]], EmbeddingError]:
+    def encode(self, texts: Iterable[str]) -> Result[list[list[float]], EmbeddingError]:
         """
         Encode multiple texts into vectors.
 

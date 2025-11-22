@@ -7,7 +7,10 @@ import { ConfirmDialog } from '@/components/shared';
 const ChatSidebar = () => {
     const dispatch = useDispatch();
     const { sessions, activeSessionId } = useSelector((state: RootState) => state.chat);
-    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; sessionId: string | null }>({
+    const [deleteConfirm, setDeleteConfirm] = useState<{
+        isOpen: boolean;
+        sessionId: string | null;
+    }>({
         isOpen: false,
         sessionId: null,
     });

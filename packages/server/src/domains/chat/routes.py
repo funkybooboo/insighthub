@@ -1,9 +1,9 @@
 """Chat routes."""
 
 from flask import Blueprint, Response, g, jsonify, request
+from shared.exceptions import ValidationError
 
 from src.infrastructure.auth import get_current_user, require_auth
-from packages.shared.python.src.shared.errors import ValidationError
 
 chat_bp = Blueprint("chat", __name__, url_prefix="/api")
 
