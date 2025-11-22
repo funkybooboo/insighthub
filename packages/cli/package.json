@@ -1,0 +1,16 @@
+{
+  "name": "insighthub-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "insighthub-cli": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && pkg dist/index.js --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output insighthub-cli"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20"
+  },
+  "dependencies": {}
+}
