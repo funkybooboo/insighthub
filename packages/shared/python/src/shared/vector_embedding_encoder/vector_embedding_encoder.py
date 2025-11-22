@@ -1,13 +1,35 @@
 """Embedding generation interfaces for converting text to vector representations."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Iterable
+from collections.abc import Iterable
+
+from shared.types.common import HealthStatus
+from shared.types.result import Err, Ok, Result
 
 
-class EmbeddingEncoder(ABC):
+class EmbeddingError:
+    """Error type for embedding failures."""
+
+    def __init__(self, message: str, code: str = "EMBEDDING_ERROR") -> None:
+        """
+        Initialize embedding error.
+
+        Args:
+            message: Error message
+            code: Error code for categorization
+        """
+        self.message = message
+        self.code = code
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"[{self.code}] {self.message}"
+
+
+class VectorEmbeddingEncoder(ABC):
     """
     Interface for generating vector embeddings from text.
-    
+
     Implementations should support different embedding models:
     - Local models (Ollama, Sentence Transformers)
     - API-based models (OpenAI, Claude)
@@ -15,7 +37,9 @@ class EmbeddingEncoder(ABC):
     """
 
     @abstractmethod
-    def encode(self, texts: Iterable[str]) -> list[list[float]]:
+    def encode(
+        self, texts: Iterable[str]
+    ) -> Result[list[list[float]], EmbeddingError]:
         """
         Encode multiple texts into vectors.
 
@@ -23,15 +47,12 @@ class EmbeddingEncoder(ABC):
             texts: Iterable of text strings to encode
 
         Returns:
-            list[list[float]]: List of vector embeddings
-
-        Raises:
-            EmbeddingError: If encoding fails
+            Result containing list of vector embeddings, or EmbeddingError on failure
         """
         pass
 
     @abstractmethod
-    def encode_one(self, text: str) -> list[float]:
+    def encode_one(self, text: str) -> Result[list[float], EmbeddingError]:
         """
         Encode a single text into a vector.
 
@@ -39,10 +60,7 @@ class EmbeddingEncoder(ABC):
             text: Text string to encode
 
         Returns:
-            list[float]: Vector embedding
-
-        Raises:
-            EmbeddingError: If encoding fails
+            Result containing vector embedding, or EmbeddingError on failure
         """
         pass
 
@@ -52,7 +70,7 @@ class EmbeddingEncoder(ABC):
         Get the dimension of the embedding vectors.
 
         Returns:
-            int: Dimension of the vectors
+            Dimension of the vectors
         """
         pass
 
@@ -62,6 +80,15 @@ class EmbeddingEncoder(ABC):
         Get the name of the embedding model.
 
         Returns:
-            str: Model name
+            Model name
         """
         pass
+
+    def health_check(self) -> HealthStatus:
+        """
+        Check if the embedding service is available.
+
+        Returns:
+            Health status dictionary
+        """
+        return {"status": "healthy", "provider": "unknown"}

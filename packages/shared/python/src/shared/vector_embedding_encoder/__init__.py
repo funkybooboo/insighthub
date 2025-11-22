@@ -1,6 +1,15 @@
 """Vector embedding for text representations."""
 
-from shared.vector_embedding.encoder import EmbeddingEncoder
-from shared.vector_embedding.ollama_embeddings import OllamaEmbeddings
+from shared.vector_embedding_encoder.vector_embedding_encoder import (
+    EmbeddingError,
+    VectorEmbeddingEncoder,
+)
+from shared.vector_embedding_encoder.ollama_vector_embedding_encoder import (
+    OllamaVectorEmbeddingEncoder,
+)
 
-__all__ = ["EmbeddingEncoder", "OllamaEmbeddings"]
+__all__ = [
+    "EmbeddingError",
+    "VectorEmbeddingEncoder",
+    "OllamaVectorEmbeddingEncoder",
+]

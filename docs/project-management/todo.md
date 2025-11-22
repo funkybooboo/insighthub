@@ -155,6 +155,10 @@ Move logic shared by:
 
 Into one **shared/js** and/or **shared/ts** lib.
 
+It seems like we need to move some of the types declared in types to a more appropriate places.
+
+We need to remove all reading from the configs in the shared library.
+
 ---
 
 # **5. CLI**

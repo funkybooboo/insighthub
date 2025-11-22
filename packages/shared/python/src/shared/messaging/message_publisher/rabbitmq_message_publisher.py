@@ -1,35 +1,47 @@
-"""RabbitMQ publisher for publishing events to message queue."""
+"""RabbitMQ publisher implementation."""
 
 import json
-import logging
-from typing import Any
+from types import TracebackType
 
 import pika
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
 
-logger = logging.getLogger(__name__)
+from shared.logger import create_logger
+from shared.types.common import PayloadDict
+
+from .message_publisher import MessagePublisher
+
+logger = create_logger("rabbitmq-publisher")
 
 
-class RabbitMQPublisher:
+class RabbitMQPublisher(MessagePublisher):
     """
-    Publisher for sending events to RabbitMQ.
-    
+    RabbitMQ publisher implementation.
+
     Used by the server to publish events that workers will consume.
     Supports context manager for automatic connection management.
-    
+
     Example:
-        with RabbitMQPublisher(host="rabbitmq", exchange="insighthub") as publisher:
+        publisher = RabbitMQPublisher(
+            host="rabbitmq",
+            port=5672,
+            username="guest",
+            password="guest",
+            exchange="insighthub",
+            exchange_type="topic",
+        )
+        with publisher:
             publisher.publish("document.uploaded", {"document_id": 123})
     """
 
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 5672,
-        username: str = "guest",
-        password: str = "guest",
-        exchange: str = "insighthub",
-        exchange_type: str = "topic",
+        host: str,
+        port: int,
+        username: str,
+        password: str,
+        exchange: str,
+        exchange_type: str,
     ) -> None:
         """
         Initialize RabbitMQ publisher.
@@ -42,102 +54,96 @@ class RabbitMQPublisher:
             exchange: Exchange name to publish to
             exchange_type: Type of exchange (topic, direct, fanout)
         """
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.exchange = exchange
-        self.exchange_type = exchange_type
-        self.connection: BlockingConnection | None = None
-        self.channel: BlockingChannel | None = None
+        self._host = host
+        self._port = port
+        self._username = username
+        self._password = password
+        self._exchange = exchange
+        self._exchange_type = exchange_type
+        self._connection: BlockingConnection | None = None
+        self._channel: BlockingChannel | None = None
 
     def connect(self) -> None:
-        """
-        Establish connection to RabbitMQ server.
-        
-        Creates a connection and channel, then declares the exchange for event routing.
-        """
+        """Establish connection to RabbitMQ server."""
         try:
-            credentials = pika.PlainCredentials(self.username, self.password)
+            credentials = pika.PlainCredentials(self._username, self._password)
             parameters = pika.ConnectionParameters(
-                host=self.host,
-                port=self.port,
+                host=self._host,
+                port=self._port,
                 credentials=credentials,
                 heartbeat=600,
                 blocked_connection_timeout=300,
             )
-            
-            self.connection = pika.BlockingConnection(parameters)
-            self.channel = self.connection.channel()
-            
-            # Declare exchange for routing
-            self.channel.exchange_declare(
-                exchange=self.exchange,
-                exchange_type=self.exchange_type,
+
+            self._connection = pika.BlockingConnection(parameters)
+            self._channel = self._connection.channel()
+
+            self._channel.exchange_declare(
+                exchange=self._exchange,
+                exchange_type=self._exchange_type,
                 durable=True,
             )
-            
-            logger.info(f"Connected to RabbitMQ at {self.host}:{self.port}")
+
+            logger.info(
+                "Connected to RabbitMQ",
+                host=self._host,
+                port=self._port,
+            )
         except Exception as e:
-            logger.error(f"Failed to connect to RabbitMQ: {e}")
-            raise
+            logger.error("Failed to connect to RabbitMQ", error=str(e))
+            raise RuntimeError(f"Failed to connect to RabbitMQ: {e}") from e
 
     def disconnect(self) -> None:
         """Close connection to RabbitMQ server."""
         try:
-            if self.channel and self.channel.is_open:
-                self.channel.close()
-            if self.connection and self.connection.is_open:
-                self.connection.close()
+            if self._channel and self._channel.is_open:
+                self._channel.close()
+            if self._connection and self._connection.is_open:
+                self._connection.close()
             logger.info("Disconnected from RabbitMQ")
         except Exception as e:
-            logger.error(f"Error disconnecting from RabbitMQ: {e}")
+            logger.error("Error disconnecting from RabbitMQ", error=str(e))
         finally:
-            self.channel = None
-            self.connection = None
+            self._channel = None
+            self._connection = None
 
-    def publish(self, routing_key: str, message: dict[str, Any]) -> None:
-        """
-        Publish message to RabbitMQ exchange.
-
-        Args:
-            routing_key: Routing key for message (e.g., "document.uploaded")
-            message: Message payload as dictionary
-            
-        Raises:
-            RuntimeError: If not connected to RabbitMQ
-        """
-        if not self.channel or not self.channel.is_open:
+    def publish(self, routing_key: str, message: PayloadDict) -> None:
+        """Publish message to RabbitMQ exchange."""
+        if not self._channel or not self._channel.is_open:
             raise RuntimeError("Not connected to RabbitMQ. Call connect() first.")
-        
+
         try:
-            # Serialize message to JSON
             message_body = json.dumps(message)
-            
-            # Publish to exchange with persistent delivery
-            self.channel.basic_publish(
-                exchange=self.exchange,
+
+            self._channel.basic_publish(
+                exchange=self._exchange,
                 routing_key=routing_key,
                 body=message_body,
                 properties=pika.BasicProperties(
-                    delivery_mode=2,  # Make message persistent
+                    delivery_mode=2,
                     content_type="application/json",
                 ),
             )
-            
-            logger.info(
-                f"Published event: {routing_key} "
-                f"(document_id={message.get('document_id', 'N/A')})"
-            )
+
+            logger.info("Published event", routing_key=routing_key)
         except Exception as e:
-            logger.error(f"Failed to publish message with routing_key={routing_key}: {e}")
-            raise
+            logger.error(
+                "Failed to publish message",
+                routing_key=routing_key,
+                error=str(e),
+            )
+            raise RuntimeError(f"Failed to publish message: {e}") from e
 
     def __enter__(self) -> "RabbitMQPublisher":
         """Context manager entry."""
         self.connect()
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Context manager exit."""
         self.disconnect()

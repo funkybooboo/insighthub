@@ -1,32 +1,20 @@
-"""Document parser implementation for multiple file formats."""
+"""Text document parser implementation."""
 
-from abc import ABC, abstractmethod
-from typing import BinaryIO, Dict, Any, List, Optional, Union
+import uuid
+from typing import BinaryIO
 
-from shared.parsing.document_parser import DocumentParser
+from shared.document_parser.document_parser import DocumentParser, ParsingError
+from shared.types.common import MetadataDict
 from shared.types.document import Document
-from shared.types.common import PrimitiveValue, MetadataValue
-
-try:
-    import pypdf
-    from docx import Document as DocxDocument
-except ImportError:
-    pypdf = None
-    DocxDocument = None
-
-import os
-import tempfile
-from pathlib import Path
+from shared.types.result import Err, Ok, Result
 
 
 class TextDocumentParser(DocumentParser):
     """Plain text document parser."""
 
-    def __init__(self):
-        """Initialize text parser."""
-        pass
-
-    def parse(self, raw: BinaryIO, metadata: dict[str, Any] | None = None) -> Document:
+    def parse(
+        self, raw: BinaryIO, metadata: MetadataDict | None = None
+    ) -> Result[Document, ParsingError]:
         """
         Parse text document bytes into structured Document.
 
@@ -35,123 +23,94 @@ class TextDocumentParser(DocumentParser):
             metadata: Optional metadata to attach
 
         Returns:
-            Document: Structured document with text and metadata
-
-        Raises:
-            DocumentParsingError: If text parsing fails
+            Result containing Document on success, or ParsingError on failure
         """
         try:
-            # Seek to beginning
             raw.seek(0)
+            content = raw.read().decode("utf-8")
 
-            # Read and decode text
-            content = raw.read().decode('utf-8')
-
-            # Extract metadata
             text_metadata = self._extract_text_metadata(content, metadata)
+            doc_id = self._generate_document_id(metadata)
+            workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
+            title = self._get_title(metadata, content)
 
-            return Document(
-                id=self._generate_document_id(metadata),
-                workspace_id=metadata.get("workspace_id", "default") if metadata else "default",
-                title=metadata.get("title", self._extract_title_from_content(
-                    content)) if metadata else self._extract_title_from_content(content),
-                content=content,
-                metadata={
-                    **text_metadata,
-                    "file_type": "text",
-                    "char_count": len(content),
-                    "line_count": len(content.splitlines()),
-                    "word_count": len(content.split()),
-                }
+            return Ok(
+                Document(
+                    id=doc_id,
+                    workspace_id=workspace_id,
+                    title=title,
+                    content=content,
+                    metadata={
+                        "file_type": "text",
+                        "char_count": str(len(content)),
+                        "line_count": str(len(content.splitlines())),
+                        "word_count": str(len(content.split())),
+                    },
+                )
             )
 
+        except UnicodeDecodeError as e:
+            return Err(
+                ParsingError(f"Failed to decode text: {e}", code="ENCODING_ERROR")
+            )
         except Exception as e:
-            raise DocumentParsingError(f"Failed to parse text: {str(e)}") from e
+            return Err(ParsingError(f"Failed to parse text: {e}", code="PARSE_ERROR"))
 
     def supports_format(self, filename: str) -> bool:
-        """
-        Check if parser supports the file format.
+        """Check if parser supports the file format."""
+        return filename.lower().endswith(".txt")
 
-        Args:
-            filename: Name of the file to check
-
-        Returns:
-            bool: True if text format is supported
-        """
-        return filename.lower().endswith('.txt')
-
-    def extract_metadata(self, raw: BinaryIO) -> dict[str, Any]:
-        """
-        Extract metadata from raw text bytes.
-
-        Args:
-            raw: Binary text content
-
-        Returns:
-            dict: Extracted metadata
-        """
+    def extract_metadata(self, raw: BinaryIO) -> MetadataDict:
+        """Extract metadata from raw text bytes."""
         try:
             raw.seek(0)
-            content = raw.read().decode('utf-8')
+            content = raw.read().decode("utf-8")
             return self._extract_text_metadata(content, None)
         except Exception:
             return {}
 
-    def _extract_text_metadata(self, content: str, user_metadata: dict[str, Any] | None) -> dict[str, Any]:
-        """
-        Extract metadata from text content.
-
-        Args:
-            content: Text content
-            user_metadata: User-provided metadata
-
-        Returns:
-            Dict[str, Any]: Extracted metadata
-        """
-        metadata: dict[str, Any] = {
+    def _extract_text_metadata(
+        self, content: str, user_metadata: MetadataDict | None
+    ) -> MetadataDict:
+        """Extract metadata from text content."""
+        metadata: MetadataDict = {
             "encoding": "utf-8",
         }
 
-        # Basic text statistics
         if content:
             lines = content.splitlines()
             words = content.split()
 
-            metadata.update({
-                "line_count": len(lines),
-                "word_count": len(words),
-                "char_count": len(content),
-                "has_content": len(content.strip()) > 0,
-            })
+            metadata["line_count"] = len(lines)
+            metadata["word_count"] = len(words)
+            metadata["char_count"] = len(content)
+            metadata["has_content"] = len(content.strip()) > 0
 
-            # Try to extract potential title from first line
             if lines and len(lines[0].strip()) > 0:
                 first_line = lines[0].strip()
-                if len(first_line) < 100:  # Reasonable title length
+                if len(first_line) < 100:
                     metadata["potential_title"] = first_line
 
-        # Include user metadata
         if user_metadata:
             metadata.update(user_metadata)
 
         return metadata
 
-    def _extract_title_from_content(self, content: str) -> str | None:
-        """Extract title from text content."""
-        lines = content.splitlines()
+    def _get_title(self, metadata: MetadataDict | None, content: str) -> str | None:
+        """Get title from metadata or extract from content."""
+        if metadata and "title" in metadata:
+            return str(metadata["title"])
 
-        # Look for first non-empty line as potential title
+        lines = content.splitlines()
         for line in lines:
             stripped = line.strip()
-            if stripped and len(stripped) < 100:  # Reasonable title length
+            if stripped and len(stripped) < 100:
                 return stripped
 
         return None
 
-    def _generate_document_id(self, metadata: dict[str, Any] | None) -> str:
+    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])
-
-        import uuid
         return str(uuid.uuid4())

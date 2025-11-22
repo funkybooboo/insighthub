@@ -1,6 +1,27 @@
-"""RabbitMQ messaging utilities."""
+"""Messaging utilities for RabbitMQ pub/sub."""
 
-from packages.shared.python.src.shared.messaging.message_publisher.rabbitmq_message_publisher import RabbitMQPublisher
-from packages.shared.python.src.shared.messaging.message_consumer.rabbitmq_message_consumer import RabbitMQConsumer
+from .message_consumer import (
+    ConsumerType,
+    MessageCallback,
+    MessageConsumer,
+    RabbitMQConsumer,
+    create_message_consumer,
+)
+from .message_publisher import (
+    MessagePublisher,
+    PublisherType,
+    RabbitMQPublisher,
+    create_message_publisher,
+)
 
-__all__ = ["RabbitMQPublisher", "RabbitMQConsumer"]
+__all__ = [
+    "ConsumerType",
+    "MessageCallback",
+    "MessageConsumer",
+    "MessagePublisher",
+    "PublisherType",
+    "RabbitMQConsumer",
+    "RabbitMQPublisher",
+    "create_message_consumer",
+    "create_message_publisher",
+]

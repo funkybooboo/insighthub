@@ -1,53 +1,67 @@
-"""Factory for creating RabbitMQ publisher instances."""
+"""Factory for creating message publisher instances."""
 
-import os
+from enum import Enum
 
-from packages.shared.python.src.shared.messaging.message_publisher.rabbitmq_message_publisher import RabbitMQPublisher
+from shared.types.option import Nothing, Option, Some
+
+from .message_publisher import MessagePublisher
+from .rabbitmq_message_publisher import RabbitMQPublisher
 
 
-def create_message_publisher() -> RabbitMQPublisher | None:
+class PublisherType(Enum):
+    """Enum for message publisher types."""
+
+    RABBITMQ = "rabbitmq"
+
+
+def create_message_publisher(
+    publisher_type: str,
+    host: str | None = None,
+    port: int | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    exchange: str | None = None,
+    exchange_type: str | None = None,
+) -> Option[MessagePublisher]:
     """
-    Create RabbitMQ publisher from environment variables.
+    Create a message publisher instance.
+
+    Args:
+        publisher_type: Type of publisher ("rabbitmq")
+        host: Message broker host (required for rabbitmq)
+        port: Message broker port (required for rabbitmq)
+        username: Authentication username (required for rabbitmq)
+        password: Authentication password (required for rabbitmq)
+        exchange: Exchange name (required for rabbitmq)
+        exchange_type: Exchange type (required for rabbitmq)
 
     Returns:
-        RabbitMQPublisher instance or None if RabbitMQ is disabled
-
-    Environment Variables:
-        RABBITMQ_ENABLED: Enable/disable RabbitMQ (default: false)
-        RABBITMQ_HOST: RabbitMQ host (default: localhost)
-        RABBITMQ_PORT: RabbitMQ port (default: 5672)
-        RABBITMQ_USER: RabbitMQ username (default: guest)
-        RABBITMQ_PASS: RabbitMQ password (default: guest)
-        RABBITMQ_EXCHANGE: Exchange name (default: insighthub)
-
-    TODO: Add connection retry logic
-    TODO: Add health check method
-    TODO: Add connection pooling for high throughput
-    TODO: Add metrics for published messages
+        Some(MessagePublisher) if creation succeeds, Nothing() otherwise
     """
-    # Check if RabbitMQ is enabled
-    rabbitmq_enabled = os.getenv("RABBITMQ_ENABLED", "false").lower() == "true"
+    try:
+        publisher_enum = PublisherType(publisher_type)
+    except ValueError:
+        return Nothing()
 
-    if not rabbitmq_enabled:
-        return None
+    if publisher_enum == PublisherType.RABBITMQ:
+        if (
+            host is None
+            or port is None
+            or username is None
+            or password is None
+            or exchange is None
+            or exchange_type is None
+        ):
+            return Nothing()
+        return Some(
+            RabbitMQPublisher(
+                host=host,
+                port=port,
+                username=username,
+                password=password,
+                exchange=exchange,
+                exchange_type=exchange_type,
+            )
+        )
 
-    # Get configuration from environment
-    host = os.getenv("RABBITMQ_HOST", "localhost")
-    port = int(os.getenv("RABBITMQ_PORT", "5672"))
-    username = os.getenv("RABBITMQ_USER", "guest")
-    password = os.getenv("RABBITMQ_PASS", "guest")
-    exchange = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-
-    # Create publisher instance
-    publisher = RabbitMQPublisher(
-        host=host,
-        port=port,
-        username=username,
-        password=password,
-        exchange=exchange,
-    )
-
-    # TODO: Connect to RabbitMQ (add connection logic in publisher.connect())
-    # publisher.connect()
-
-    return publisher
+    return Nothing()

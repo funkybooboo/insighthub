@@ -1,32 +1,33 @@
-"""Document parser implementation for multiple file formats."""
-
-from abc import ABC, abstractmethod
-from typing import BinaryIO, Dict, Any, List, Optional, Union
-
-from shared.parsing.document_parser import DocumentParser
-from shared.types.document import Document
-from shared.types.common import PrimitiveValue, MetadataValue
-
-try:
-    import pypdf
-    from docx import Document as DocxDocument
-except ImportError:
-    pypdf = None
-    DocxDocument = None
+"""DOCX document parser implementation."""
 
 import os
 import tempfile
-from pathlib import Path
+import uuid
+from typing import TYPE_CHECKING, BinaryIO
+
+from shared.document_parser.document_parser import DocumentParser, ParsingError
+from shared.types.common import MetadataDict
+from shared.types.document import Document
+from shared.types.result import Err, Ok, Result
+
+if TYPE_CHECKING:
+    from docx import Document as DocxDocumentType
+
+try:
+    from docx import Document as DocxDocument
+
+    DOCX_AVAILABLE = True
+except ImportError:
+    DocxDocument = None
+    DOCX_AVAILABLE = False
 
 
 class DocxDocumentParser(DocumentParser):
     """DOCX document parser using python-docx library."""
 
-    def __init__(self):
-        """Initialize DOCX parser."""
-        pass
-
-    def parse(self, raw: BinaryIO, metadata: dict[str, Any] | None = None) -> Document:
+    def parse(
+        self, raw: BinaryIO, metadata: MetadataDict | None = None
+    ) -> Result[Document, ParsingError]:
         """
         Parse DOCX document bytes into structured Document.
 
@@ -35,152 +36,131 @@ class DocxDocumentParser(DocumentParser):
             metadata: Optional metadata to attach
 
         Returns:
-            Document: Structured document with text and metadata
-
-        Raises:
-            DocumentParsingError: If DOCX parsing fails
+            Result containing Document on success, or ParsingError on failure
         """
-        if not DocxDocument:
-            raise DocumentParsingError("python-docx library not available for DOCX parsing")
+        if not DOCX_AVAILABLE or DocxDocument is None:
+            return Err(
+                ParsingError(
+                    "python-docx library not available. Install: pip install python-docx",
+                    code="DEPENDENCY_ERROR",
+                )
+            )
 
+        temp_file_path: str | None = None
         try:
-            # Create temporary file for docx processing
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_file:
                 temp_file.write(raw.read())
                 temp_file_path = temp_file.name
-            
-            try:
-                # Open the document
-                doc = DocxDocument(temp_file_path)
-                
-                # Extract text from paragraphs
-                text_parts = []
-                for paragraph in doc.paragraphs:
-                    if paragraph.text.strip():
-                        text_parts.append(paragraph.text)
-                
-                text_content = "\n".join(text_parts)
-                
-                # Extract metadata from DOCX
-                docx_metadata = self._extract_docx_metadata(doc, metadata)
-                
-                return Document(
-                    id=self._generate_document_id(metadata),
-                    workspace_id=metadata.get("workspace_id", "default") if metadata else "default",
-                    title=metadata.get("title", self._extract_title_from_metadata(docx_metadata)) if metadata else self._extract_title_from_metadata(docx_metadata),
+
+            doc = DocxDocument(temp_file_path)
+
+            text_parts: list[str] = []
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_parts.append(paragraph.text)
+
+            text_content = "\n".join(text_parts)
+
+            docx_metadata = self._extract_docx_metadata(doc, metadata)
+            doc_id = self._generate_document_id(metadata)
+            workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
+            title = self._get_title(metadata, docx_metadata)
+
+            return Ok(
+                Document(
+                    id=doc_id,
+                    workspace_id=workspace_id,
+                    title=title,
                     content=text_content,
                     metadata={
-                        **docx_metadata,
                         "file_type": "docx",
-                        "paragraph_count": len(doc.paragraphs),
-                        "char_count": len(text_content),
-                    }
+                        "paragraph_count": str(len(doc.paragraphs)),
+                        "char_count": str(len(text_content)),
+                    },
                 )
-                
-            finally:
-                # Clean up temporary file
-                os.unlink(temp_file_path)
-            
+            )
+
         except Exception as e:
-            raise DocumentParsingError(f"Failed to parse DOCX: {str(e)}") from e
+            return Err(ParsingError(f"Failed to parse DOCX: {e}", code="PARSE_ERROR"))
+        finally:
+            if temp_file_path:
+                try:
+                    os.unlink(temp_file_path)
+                except OSError:
+                    pass
 
     def supports_format(self, filename: str) -> bool:
-        """
-        Check if parser supports the file format.
+        """Check if parser supports the file format."""
+        return filename.lower().endswith(".docx")
 
-        Args:
-            filename: Name of the file to check
-
-        Returns:
-            bool: True if DOCX format is supported
-        """
-        return filename.lower().endswith('.docx')
-
-    def extract_metadata(self, raw: BinaryIO) -> dict[str, Any]:
-        """
-        Extract metadata from raw DOCX bytes.
-
-        Args:
-            raw: Binary DOCX content
-
-        Returns:
-            dict: Extracted metadata
-        """
-        if not DocxDocument:
+    def extract_metadata(self, raw: BinaryIO) -> MetadataDict:
+        """Extract metadata from raw DOCX bytes."""
+        if not DOCX_AVAILABLE or DocxDocument is None:
             return {}
-        
+
+        temp_file_path: str | None = None
         try:
-            # Create temporary file for docx processing
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_file:
                 temp_file.write(raw.read())
                 temp_file_path = temp_file.name
-            
-            try:
-                doc = DocxDocument(temp_file_path)
-                return self._extract_docx_metadata(doc, None)
-            finally:
-                os.unlink(temp_file_path)
+
+            doc = DocxDocument(temp_file_path)
+            return self._extract_docx_metadata(doc, None)
         except Exception:
             return {}
+        finally:
+            if temp_file_path:
+                try:
+                    os.unlink(temp_file_path)
+                except OSError:
+                    pass
 
-    def _extract_docx_metadata(self, doc: Any, user_metadata: dict[str, Any] | None) -> dict[str, Any]:
-        """
-        Extract metadata from DOCX document.
-
-        Args:
-            doc: python-docx document object
-            user_metadata: User-provided metadata
-
-        Returns:
-            Dict[str, Any]: Extracted metadata
-        """
-        metadata: dict[str, Any] = {}
-        
-        # Basic document info
-        metadata.update({
+    def _extract_docx_metadata(
+        self, doc: "DocxDocumentType", user_metadata: MetadataDict | None
+    ) -> MetadataDict:
+        """Extract metadata from DOCX document."""
+        metadata: MetadataDict = {
             "paragraph_count": len(doc.paragraphs),
-        })
-        
-        # Core properties
-        if hasattr(doc, 'core_properties'):
+        }
+
+        if hasattr(doc, "core_properties"):
             core_props = doc.core_properties
             if core_props:
-                metadata.update({
-                    "title": core_props.title,
-                    "author": core_props.author,
-                    "subject": core_props.subject,
-                    "keywords": core_props.keywords,
-                    "category": core_props.category,
-                    "comments": core_props.comments,
-                    "created": core_props.created,
-                    "modified": core_props.modified,
-                    "last_modified_by": core_props.last_modified_by,
-                    "revision": core_props.revision,
-                })
-        
-        # Include user metadata
+                if core_props.title:
+                    metadata["title"] = str(core_props.title)
+                if core_props.author:
+                    metadata["author"] = str(core_props.author)
+                if core_props.subject:
+                    metadata["subject"] = str(core_props.subject)
+                if core_props.keywords:
+                    metadata["keywords"] = str(core_props.keywords)
+                if core_props.category:
+                    metadata["category"] = str(core_props.category)
+
         if user_metadata:
             metadata.update(user_metadata)
-        
+
         return metadata
 
-    def _extract_title_from_metadata(self, metadata: dict[str, Any]) -> str | None:
-        """Extract title from DOCX metadata."""
-        # Try multiple fields for title
-        title = metadata.get("title")
+    def _get_title(
+        self, metadata: MetadataDict | None, docx_metadata: MetadataDict
+    ) -> str | None:
+        """Get title from metadata or DOCX metadata."""
+        if metadata and "title" in metadata:
+            return str(metadata["title"])
+
+        title = docx_metadata.get("title")
         if title:
             return str(title)
-        
-        title = metadata.get("subject")
-        if title:
-            return str(title)
-        
+
+        subject = docx_metadata.get("subject")
+        if subject:
+            return str(subject)
+
         return None
 
-    def _generate_document_id(self, metadata: dict[str, Any] | None) -> str:
+    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])
-        
-        import uuid
         return str(uuid.uuid4())

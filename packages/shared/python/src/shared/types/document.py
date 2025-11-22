@@ -1,9 +1,8 @@
 """Document and chunk data types."""
 
 from dataclasses import dataclass
-from typing import Any
 
-from shared.types.common import PrimitiveValue
+from shared.types.common import MetadataDict, PrimitiveValue
 
 
 @dataclass
@@ -16,14 +15,14 @@ class Document:
         workspace_id: Workspace or tenant identifier
         title: Optional human-readable title
         content: Raw textual content of the document
-        metadata: Arbitrary metadata dictionary (author, source, timestamps, etc.)
+        metadata: Metadata dictionary (author, source, timestamps, etc.)
     """
 
     id: str
     workspace_id: str
     title: str | None
     content: str
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 @dataclass

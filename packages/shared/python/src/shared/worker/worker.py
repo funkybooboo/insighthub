@@ -1,13 +1,18 @@
+"""Base worker class for message queue processing."""
+
 import json
-import logging
 import signal
 from abc import ABC, abstractmethod
-from typing import Any
 
 from pika.adapters.blocking_connection import BlockingChannel
-from shared.messaging import RabbitMQConsumer
+from pika.spec import Basic, BasicProperties
 
-logger = logging.getLogger(__name__)
+from shared.logger import create_logger
+from shared.messaging import RabbitMQConsumer
+from shared.types.common import PayloadDict
+
+logger = create_logger("worker")
+
 
 class Worker(ABC):
     """
@@ -23,13 +28,13 @@ class Worker(ABC):
     """
 
     def __init__(
-            self,
-            worker_name: str,
-            rabbitmq_url: str,
-            exchange: str = "insighthub",
-            consume_routing_key: str = "",
-            consume_queue: str = "",
-            prefetch_count: int = 1,
+        self,
+        worker_name: str,
+        rabbitmq_url: str,
+        exchange: str,
+        consume_routing_key: str,
+        consume_queue: str,
+        prefetch_count: int,
     ) -> None:
         """
         Initialize worker.
@@ -42,17 +47,17 @@ class Worker(ABC):
             consume_queue: Queue name to consume from
             prefetch_count: Number of messages to prefetch
         """
-        self.worker_name = worker_name
-        self.consume_routing_key = consume_routing_key
-        self.consume_queue = consume_queue
-        self.consumer = RabbitMQConsumer(
+        self._worker_name = worker_name
+        self._consume_routing_key = consume_routing_key
+        self._consume_queue = consume_queue
+        self._consumer = RabbitMQConsumer(
             rabbitmq_url=rabbitmq_url,
             exchange=exchange,
             prefetch_count=prefetch_count,
         )
 
     @abstractmethod
-    def process_event(self, event_data: dict[str, Any]) -> None:
+    def process_event(self, event_data: PayloadDict) -> None:
         """
         Process an event from the queue.
 
@@ -60,14 +65,15 @@ class Worker(ABC):
 
         Args:
             event_data: Parsed event data as dictionary
-
-        Raises:
-            Exception: If processing fails
         """
         pass
 
     def on_message(
-            self, ch: BlockingChannel, method: Any, properties: Any, body: bytes
+        self,
+        ch: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
     ) -> None:
         """
         Handle incoming message.
@@ -79,43 +85,45 @@ class Worker(ABC):
             body: Message body (JSON bytes)
         """
         try:
-            # Parse event
-            event_data = json.loads(body)
+            event_data: PayloadDict = json.loads(body)
 
             logger.info(
-                f"[{self.worker_name}] Processing message: "
-                f"routing_key={method.routing_key}"
+                "Processing message",
+                worker=self._worker_name,
+                routing_key=method.routing_key,
             )
 
-            # Process event (implemented by subclass)
             self.process_event(event_data)
 
-            # Acknowledge message
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-            logger.info(f"[{self.worker_name}] Successfully processed message")
+            logger.info(
+                "Successfully processed message",
+                worker=self._worker_name,
+            )
 
+        except json.JSONDecodeError as e:
+            logger.error(
+                "Failed to decode message JSON",
+                worker=self._worker_name,
+                error=str(e),
+            )
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         except Exception as e:
             logger.error(
-                f"[{self.worker_name}] Error processing message: {e}",
-                exc_info=True,
+                "Error processing message",
+                worker=self._worker_name,
+                error=str(e),
             )
-            # Reject and requeue message on error
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     def start(self) -> None:
         """Start the worker."""
-        logger.info(f"Starting {self.worker_name} worker")
+        logger.info("Starting worker", worker=self._worker_name)
 
-        # Register signal handlers
-        signal.signal(signal.SIGINT, self.consumer.signal_handler)
-        signal.signal(signal.SIGTERM, self.consumer.signal_handler)
+        signal.signal(signal.SIGINT, self._consumer.signal_handler)
+        signal.signal(signal.SIGTERM, self._consumer.signal_handler)
 
-        # Connect to RabbitMQ
-        self.consumer.connect()
-
-        # Declare queue and bind
-        self.consumer.declare_queue(self.consume_queue, self.consume_routing_key)
-
-        # Start consuming
-        self.consumer.consume(self.consume_queue, self.on_message)
+        self._consumer.connect()
+        self._consumer.declare_queue(self._consume_queue, self._consume_routing_key)
+        self._consumer.consume(self._consume_queue, self.on_message)
