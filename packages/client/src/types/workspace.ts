@@ -35,6 +35,7 @@ export interface WorkspaceState {
 export interface CreateWorkspaceRequest {
     name: string;
     description?: string;
+    rag_config?: CreateRagConfigRequest;
 }
 
 export interface UpdateWorkspaceRequest {

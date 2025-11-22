@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { StatusBadge, ProgressIndicator } from '../shared';
 import type { DocumentStatus } from '../../store/slices/statusSlice';
-import api from '../../services/api';
+import apiService from '../../services/api';
 
 interface UploadedDocument {
     id: number;
@@ -14,13 +14,12 @@ interface UploadedDocument {
 }
 
 interface DocumentUploadProps {
-    workspaceId?: number;
+    workspaceId: number;
     onUploadComplete?: (documentId: number) => void;
 }
 
 export default function DocumentUpload({ workspaceId, onUploadComplete: _onUploadComplete }: DocumentUploadProps) {
     void _onUploadComplete; // Reserved for future use
-    const { token } = useSelector((state: RootState) => state.auth);
     const documentStatuses = useSelector((state: RootState) => state.status.documents);
     const [uploading, setUploading] = useState(false);
     const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([]);
@@ -34,22 +33,11 @@ export default function DocumentUpload({ workspaceId, onUploadComplete: _onUploa
 
         try {
             for (const file of Array.from(files)) {
-                const formData = new FormData();
-                formData.append('file', file);
-                if (workspaceId) {
-                    formData.append('workspace_id', workspaceId.toString());
-                }
-
-                const response = await api.post('/documents/upload', formData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
+                const response = await apiService.uploadDocument(workspaceId, file);
 
                 const doc: UploadedDocument = {
-                    id: response.data.id,
-                    filename: response.data.filename,
+                    id: response.document.id,
+                    filename: response.document.filename,
                     status: 'pending',
                 };
 

@@ -2,7 +2,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useState } from 'react';
 import type { RootState } from '../../store';
 import { setTheme } from '../../store/slices/themeSlice';
-import api from '../../services/api';
+import apiService from '../../services/api';
 
 export default function ThemePreferences() {
     const dispatch = useDispatch();
@@ -21,7 +21,7 @@ export default function ThemePreferences() {
             dispatch(setTheme(newTheme));
 
             // Save to server
-            await api.patch('/auth/preferences', {
+            await apiService.updatePreferences({
                 theme_preference: newTheme,
             });
 
