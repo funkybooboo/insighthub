@@ -1,7 +1,6 @@
 """Common type definitions used across the RAG system."""
 
 from enum import Enum
-from typing import Union
 
 # Primitive values that can be stored/serialized
 PrimitiveValue = str | int | float | bool | None

@@ -143,17 +143,24 @@ class S3BlobStorage(BlobStorage):
                 BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR")
             )
 
-    def delete_file(self, object_name: str) -> bool:
+    def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """Delete file from MinIO."""
         try:
+            # Check if file exists first
+            exists = self.file_exists(object_name)
+            if not exists:
+                return Ok(False)
+
             self._client.remove_object(
                 bucket_name=self._bucket_name, object_name=object_name
             )
             logger.info("Deleted file", object_name=object_name)
-            return True
+            return Ok(True)
         except S3Error as e:
             logger.error("Error deleting file", object_name=object_name, error=str(e))
-            return False
+            return Err(
+                BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR")
+            )
 
     def file_exists(self, object_name: str) -> bool:
         """Check if file exists in MinIO."""

@@ -1,7 +1,8 @@
 """Query-related event schemas."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import MetadataDict
 
 
 @dataclass
@@ -17,7 +18,7 @@ class QueryPrepareEvent:
     query_text: str
     rag_type: str  # 'vector', 'graph', 'hybrid'
     top_k: int
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 @dataclass
@@ -32,4 +33,4 @@ class QueryReadyEvent:
     workspace_id: str
     context_key: str  # Redis cache key
     chunk_count: int
-    metadata: dict[str, Any]
+    metadata: MetadataDict

@@ -62,7 +62,7 @@ class BlobStorage(ABC):
         pass
 
     @abstractmethod
-    def delete_file(self, object_name: str) -> bool:
+    def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """
         Delete a file from blob storage.
 
@@ -70,7 +70,7 @@ class BlobStorage(ABC):
             object_name: Name/key of the object to delete
 
         Returns:
-            True if deleted, False if not found
+            Result containing True if deleted, False if not found, or BlobStorageError on failure
         """
         pass
 

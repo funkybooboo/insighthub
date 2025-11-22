@@ -1,7 +1,8 @@
 """Graph-related event schemas."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import MetadataDict
 
 
 @dataclass
@@ -17,4 +18,4 @@ class GraphBuildCompleteEvent:
     node_count: int
     edge_count: int
     community_count: int
-    metadata: dict[str, Any]
+    metadata: MetadataDict

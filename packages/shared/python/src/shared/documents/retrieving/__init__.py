@@ -1,9 +1,9 @@
 """Content retrieval from external sources."""
 
-from shared.retriever.retriever import Retriever, RetrievedContent
-from shared.retriever.wikipedia_retriever import WikipediaRetriever
-from shared.retriever.url_retriever import URLRetriever
-from shared.retriever.retriever_registry import RetrieverRegistry, retriever_registry
+from shared.documents.retrieving.retriever import Retriever, RetrievedContent
+from shared.documents.retrieving.wikipedia_retriever import WikipediaRetriever
+from shared.documents.retrieving.url_retriever import URLRetriever
+from shared.documents.retrieving.retriever_registry import RetrieverRegistry, retriever_registry
 
 __all__ = [
     "Retriever",
