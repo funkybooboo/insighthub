@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { FaPlus, FaFolderOpen } from 'react-icons/fa';
 import type { RootState } from '../../store';
@@ -23,11 +23,7 @@ const WorkspaceSelector = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
 
-    useEffect(() => {
-        loadWorkspaces();
-    }, []);
-
-    const loadWorkspaces = async () => {
+    const loadWorkspaces = useCallback(async () => {
         dispatch(setLoading(true));
         try {
             const workspaceList = await apiService.listWorkspaces();
@@ -40,7 +36,11 @@ const WorkspaceSelector = () => {
             const message = error instanceof Error ? error.message : 'Failed to load workspaces';
             dispatch(setError(message));
         }
-    };
+    }, [dispatch, activeWorkspaceId]);
+
+    useEffect(() => {
+        loadWorkspaces();
+    }, [loadWorkspaces]);
 
     const handleCreateWorkspace = async (e: React.FormEvent) => {
         e.preventDefault();

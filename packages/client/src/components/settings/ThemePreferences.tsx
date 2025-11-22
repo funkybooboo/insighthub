@@ -29,10 +29,11 @@ export default function ThemePreferences() {
                 type: 'success',
                 text: 'Theme preference saved',
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { data?: { error?: string } } };
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to save theme preference',
+                text: axiosError.response?.data?.error || 'Failed to save theme preference',
             });
         } finally {
             setIsLoading(false);

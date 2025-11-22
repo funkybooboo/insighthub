@@ -93,15 +93,19 @@ const server = setupServer(
     }),
 
     http.post(`${API_BASE_URL}/api/auth/signup`, async ({ request }) => {
-        const body = await request.json();
+        const body = (await request.json()) as {
+            username: string;
+            email: string;
+            full_name?: string;
+        };
         return HttpResponse.json({
             access_token: 'mock-token',
             token_type: 'Bearer',
             user: {
                 id: 1,
-                username: (body as any).username,
-                email: (body as any).email,
-                full_name: (body as any).full_name || null,
+                username: body.username,
+                email: body.email,
+                full_name: body.full_name || null,
                 created_at: '2025-01-01T00:00:00Z',
             },
         });
@@ -137,14 +141,14 @@ const server = setupServer(
     }),
 
     http.patch(`${API_BASE_URL}/api/auth/preferences`, async ({ request }) => {
-        const body = await request.json();
+        const body = (await request.json()) as { theme_preference: string };
         return HttpResponse.json({
             id: 1,
             username: 'testuser',
             email: 'test@example.com',
             full_name: 'Test User',
             created_at: '2025-01-01T00:00:00Z',
-            theme_preference: (body as any).theme_preference,
+            theme_preference: body.theme_preference,
         });
     })
 );

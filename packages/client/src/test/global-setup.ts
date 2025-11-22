@@ -29,8 +29,10 @@ export default function setup() {
     })();
 
     // Set localStorage on all global objects
-    (globalThis as any).localStorage = localStorageMock;
+    (globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage =
+        localStorageMock;
     if (typeof global !== 'undefined') {
-        (global as any).localStorage = localStorageMock;
+        (global as unknown as { localStorage: typeof localStorageMock }).localStorage =
+            localStorageMock;
     }
 }

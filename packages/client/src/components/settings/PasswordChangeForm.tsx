@@ -38,10 +38,11 @@ export default function PasswordChangeForm() {
                 text: 'Password changed successfully',
             });
             reset();
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { data?: { error?: string } } };
             setMessage({
                 type: 'error',
-                text: error.response?.data?.error || 'Failed to change password',
+                text: axiosError.response?.data?.error || 'Failed to change password',
             });
         } finally {
             setIsLoading(false);

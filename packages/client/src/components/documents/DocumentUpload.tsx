@@ -18,7 +18,8 @@ interface DocumentUploadProps {
     onUploadComplete?: (documentId: number) => void;
 }
 
-export default function DocumentUpload({ workspaceId, onUploadComplete }: DocumentUploadProps) {
+export default function DocumentUpload({ workspaceId, onUploadComplete: _onUploadComplete }: DocumentUploadProps) {
+    void _onUploadComplete; // Reserved for future use
     const { token } = useSelector((state: RootState) => state.auth);
     const documentStatuses = useSelector((state: RootState) => state.status.documents);
     const [uploading, setUploading] = useState(false);
@@ -54,8 +55,9 @@ export default function DocumentUpload({ workspaceId, onUploadComplete }: Docume
 
                 setUploadedDocs((prev) => [...prev, doc]);
             }
-        } catch (error: any) {
-            alert(error.response?.data?.detail || 'Failed to upload documents');
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { data?: { detail?: string } } };
+            alert(axiosError.response?.data?.detail || 'Failed to upload documents');
         } finally {
             setUploading(false);
             if (fileInputRef.current) {

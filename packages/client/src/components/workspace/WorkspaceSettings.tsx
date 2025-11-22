@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { FaCog, FaTrash } from 'react-icons/fa';
 import type { RootState } from '../../store';
@@ -24,22 +24,7 @@ const WorkspaceSettings = () => {
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
-    useEffect(() => {
-        if (showModal && activeWorkspace) {
-            setFormData({
-                name: activeWorkspace.name,
-                description: activeWorkspace.description || '',
-                embedding_model: ragConfig?.embedding_model || 'nomic-embed-text',
-                retriever_type: ragConfig?.retriever_type || 'vector',
-                chunk_size: ragConfig?.chunk_size || 1000,
-                chunk_overlap: ragConfig?.chunk_overlap || 200,
-                top_k: ragConfig?.top_k || 5,
-            });
-            loadRagConfig();
-        }
-    }, [showModal, activeWorkspace]);
-
-    const loadRagConfig = async () => {
+    const loadRagConfig = useCallback(async () => {
         if (!activeWorkspaceId) return;
         
         try {
@@ -53,10 +38,25 @@ const WorkspaceSettings = () => {
                 chunk_overlap: config.chunk_overlap || 200,
                 top_k: config.top_k || 5,
             }));
-        } catch (error) {
+        } catch {
             console.log('No RAG config found, will create on save');
         }
-    };
+    }, [activeWorkspaceId]);
+
+    useEffect(() => {
+        if (showModal && activeWorkspace) {
+            setFormData({
+                name: activeWorkspace.name,
+                description: activeWorkspace.description || '',
+                embedding_model: ragConfig?.embedding_model || 'nomic-embed-text',
+                retriever_type: ragConfig?.retriever_type || 'vector',
+                chunk_size: ragConfig?.chunk_size || 1000,
+                chunk_overlap: ragConfig?.chunk_overlap || 200,
+                top_k: ragConfig?.top_k || 5,
+            });
+            loadRagConfig();
+        }
+    }, [showModal, activeWorkspace, ragConfig, loadRagConfig]);
 
     const handleSave = async () => {
         if (!activeWorkspaceId) return;
