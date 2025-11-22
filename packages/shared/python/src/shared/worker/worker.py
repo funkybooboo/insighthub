@@ -32,6 +32,7 @@ class Worker(ABC):
         worker_name: str,
         rabbitmq_url: str,
         exchange: str,
+        exchange_type: str,
         consume_routing_key: str,
         consume_queue: str,
         prefetch_count: int,
@@ -43,6 +44,7 @@ class Worker(ABC):
             worker_name: Name of this worker (for logging)
             rabbitmq_url: RabbitMQ connection URL
             exchange: Exchange name
+            exchange_type: Type of exchange (topic, direct, fanout)
             consume_routing_key: Routing key to consume
             consume_queue: Queue name to consume from
             prefetch_count: Number of messages to prefetch
@@ -53,6 +55,7 @@ class Worker(ABC):
         self._consumer = RabbitMQConsumer(
             rabbitmq_url=rabbitmq_url,
             exchange=exchange,
+            exchange_type=exchange_type,
             prefetch_count=prefetch_count,
         )
 
@@ -116,6 +119,21 @@ class Worker(ABC):
                 error=str(e),
             )
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
+    def publish_event(self, routing_key: str, event: PayloadDict) -> None:
+        """
+        Publish an event to RabbitMQ.
+
+        Args:
+            routing_key: Routing key for the event
+            event: Event payload as dictionary
+        """
+        self._consumer.publish_event(routing_key, event)
+        logger.info(
+            "Published event",
+            worker=self._worker_name,
+            routing_key=routing_key,
+        )
 
     def start(self) -> None:
         """Start the worker."""

@@ -1,327 +1,211 @@
 """
-Enrichment Worker
+Enrichment Worker - Wikipedia knowledge augmentation via MCP.
 
 Enriches documents with Wikipedia knowledge using Model Context Protocol (MCP).
 
-Responsibilities:
-- Consumes document.uploaded events
-- Identifies key entities/concepts from documents
-- Queries Wikipedia MCP server for related content
-- Publishes enrichment results for downstream processing
-
-Event Flow:
-- Consumes: document.uploaded
-- Publishes: document.enriched, document.enrichment.failed
+Consumes: document.uploaded
+Produces: document.enriched, document.enrichment.failed
 """
 
-import json
-import logging
 import os
-import signal
-import sys
-from typing import Any
+from dataclasses import dataclass
 
-import pika
-from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
+from shared.logger import create_logger
+from shared.messaging.events import DocumentUploadedEvent
+from shared.types.common import MetadataDict, PayloadDict
+from shared.worker import Worker
 
-# TODO: Add shared package imports when implementing
-# from shared.events import DocumentUploadedEvent, DocumentEnrichedEvent
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 # Configuration
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
-RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
-RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "guest")
-EXCHANGE_NAME = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
+RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
+WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
 
 # Wikipedia MCP Configuration
 MCP_WIKIPEDIA_ENDPOINT = os.getenv("MCP_WIKIPEDIA_ENDPOINT", "http://localhost:8080")
 
-# Global connection and channel
-connection: BlockingConnection | None = None
-channel: BlockingChannel | None = None
+
+@dataclass
+class DocumentEnrichedEvent:
+    """Event published when document enrichment completes."""
+
+    document_id: str
+    workspace_id: str
+    enrichments: list[dict[str, str]]
+    entity_count: int
+    enrichment_count: int
+    metadata: MetadataDict
 
 
-def connect_rabbitmq() -> tuple[BlockingConnection, BlockingChannel]:
-    """
-    Establish connection to RabbitMQ.
+@dataclass
+class DocumentEnrichmentFailedEvent:
+    """Event published when document enrichment fails."""
 
-    TODO: Implement connection logic with credentials
-    TODO: Add retry logic with exponential backoff
-    TODO: Declare exchange (topic exchange)
-    TODO: Declare queues for document.uploaded routing
-    TODO: Bind queues to exchange with routing keys
-
-    Returns:
-        Tuple of (connection, channel)
-    """
-    # TODO: Implement
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-    parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials, heartbeat=600
-    )
-
-    logger.info(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT}")
-    # TODO: Add actual connection code
-    raise NotImplementedError("RabbitMQ connection not implemented")
+    document_id: str
+    workspace_id: str
+    error: str
+    metadata: MetadataDict
 
 
-def extract_entities(text: str) -> list[str]:
-    """
-    Extract key entities/concepts from document text.
+class EnricherWorker(Worker):
+    """Enrichment worker for Wikipedia knowledge augmentation."""
 
-    TODO: Implement entity extraction logic
-    TODO: Use NLP techniques (spaCy, NLTK, or LLM-based extraction)
-    TODO: Filter entities by relevance and type
-    TODO: Return list of entity strings
-
-    Args:
-        text: Document text content
-
-    Returns:
-        List of extracted entity strings
-    """
-    # TODO: Implement
-    logger.info("Extracting entities from document text")
-    return []
-
-
-def query_wikipedia_mcp(entity: str) -> dict[str, Any] | None:
-    """
-    Query Wikipedia MCP server for entity information.
-
-    TODO: Implement MCP protocol communication
-    TODO: Send search query for entity
-    TODO: Parse Wikipedia results (summary, categories, links)
-    TODO: Handle errors and rate limiting
-    TODO: Return structured Wikipedia data
-
-    Args:
-        entity: Entity name to search for
-
-    Returns:
-        Wikipedia data dictionary or None if not found
-    """
-    # TODO: Implement
-    logger.info(f"Querying Wikipedia MCP for entity: {entity}")
-    return None
-
-
-def enrich_document(document_id: int, text: str) -> dict[str, Any]:
-    """
-    Enrich document with Wikipedia knowledge.
-
-    TODO: Extract entities from document text
-    TODO: Query Wikipedia for each entity
-    TODO: Aggregate enrichment results
-    TODO: Build enrichment metadata structure
-    TODO: Return enriched document data
-
-    Args:
-        document_id: Document ID
-        text: Document text content
-
-    Returns:
-        Enrichment results dictionary
-    """
-    # TODO: Implement
-    logger.info(f"Enriching document {document_id}")
-
-    entities = extract_entities(text)
-    enrichments = []
-
-    for entity in entities:
-        wiki_data = query_wikipedia_mcp(entity)
-        if wiki_data:
-            enrichments.append({"entity": entity, "data": wiki_data})
-
-    return {
-        "document_id": document_id,
-        "enrichments": enrichments,
-        "entity_count": len(entities),
-        "enrichment_count": len(enrichments),
-    }
-
-
-def publish_event(routing_key: str, event_data: dict[str, Any]) -> None:
-    """
-    Publish event to RabbitMQ exchange.
-
-    TODO: Serialize event_data to JSON
-    TODO: Publish to exchange with routing_key
-    TODO: Set message properties (persistent delivery)
-    TODO: Add error handling
-
-    Args:
-        routing_key: Routing key for message
-        event_data: Event payload dictionary
-    """
-    global channel
-    if not channel:
-        logger.error("Channel not initialized")
-        return
-
-    # TODO: Implement
-    logger.info(f"Publishing event with routing_key={routing_key}")
-
-
-def process_document_uploaded(event_data: dict[str, Any]) -> None:
-    """
-    Process document.uploaded event.
-
-    TODO: Extract document_id and text from event_data
-    TODO: Validate event data structure
-    TODO: Call enrich_document()
-    TODO: Publish document.enriched event on success
-    TODO: Publish document.enrichment.failed on error
-    TODO: Add comprehensive error handling
-
-    Args:
-        event_data: Event payload from RabbitMQ
-    """
-    try:
-        # TODO: Implement
-        logger.info(f"Processing document.uploaded event: {event_data}")
-
-        document_id = event_data.get("document_id")
-        text = event_data.get("text")
-
-        if not document_id or not text:
-            logger.error("Missing required fields in event")
-            return
-
-        # Enrich document
-        enrichment_result = enrich_document(document_id, text)
-
-        # Publish success event
-        publish_event(
-            "document.enriched",
-            {
-                "document_id": document_id,
-                "enrichments": enrichment_result["enrichments"],
-                "metadata": {
-                    "entity_count": enrichment_result["entity_count"],
-                    "enrichment_count": enrichment_result["enrichment_count"],
-                },
-            },
+    def __init__(self) -> None:
+        """Initialize the enricher worker."""
+        super().__init__(
+            worker_name="enricher",
+            rabbitmq_url=RABBITMQ_URL,
+            exchange=RABBITMQ_EXCHANGE,
+            exchange_type="topic",
+            consume_routing_key="document.uploaded",
+            consume_queue="enricher.document.uploaded",
+            prefetch_count=WORKER_CONCURRENCY,
         )
+        self._mcp_endpoint = MCP_WIKIPEDIA_ENDPOINT
 
-    except Exception as e:
-        logger.error(f"Error processing document: {e}", exc_info=True)
-        # Publish failure event
-        publish_event(
-            "document.enrichment.failed",
-            {"document_id": event_data.get("document_id"), "error": str(e)},
-        )
+    def process_event(self, event_data: PayloadDict) -> None:
+        """
+        Process document.uploaded event.
 
+        Args:
+            event_data: Parsed event data as dictionary
+        """
+        document_id = str(event_data.get("document_id", ""))
+        workspace_id = str(event_data.get("workspace_id", ""))
+        metadata = dict(event_data.get("metadata", {}))
 
-def on_message(
-    ch: BlockingChannel, method: pika.spec.Basic.Deliver, properties: Any, body: bytes
-) -> None:
-    """
-    RabbitMQ message callback.
+        try:
+            event = DocumentUploadedEvent(
+                document_id=document_id,
+                workspace_id=workspace_id,
+                filename=str(event_data.get("filename", "")),
+                storage_path=str(event_data.get("storage_path", "")),
+                metadata=metadata,
+            )
 
-    TODO: Deserialize message body from JSON
-    TODO: Route to appropriate handler based on routing_key
-    TODO: Acknowledge message after processing
-    TODO: Add error handling and message rejection on failures
+            logger.info(
+                "Enriching document",
+                document_id=event.document_id,
+                filename=event.filename,
+            )
 
-    Args:
-        ch: Channel
-        method: Delivery method
-        properties: Message properties
-        body: Message body (JSON bytes)
-    """
-    try:
-        event_data = json.loads(body)
-        routing_key = method.routing_key
+            # TODO: Fetch document text from storage
+            # text = blob_storage.get(event.storage_path)
+            text = ""  # Placeholder
 
-        logger.info(f"Received message with routing_key={routing_key}")
+            # Extract entities and enrich
+            entities = self._extract_entities(text)
+            enrichments: list[dict[str, str]] = []
 
-        if routing_key == "document.uploaded":
-            process_document_uploaded(event_data)
+            for entity in entities:
+                wiki_data = self._query_wikipedia_mcp(entity)
+                if wiki_data:
+                    enrichments.append({"entity": entity, "data": str(wiki_data)})
 
-        # Acknowledge message
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+            # Publish success event
+            enriched_event = DocumentEnrichedEvent(
+                document_id=event.document_id,
+                workspace_id=event.workspace_id,
+                enrichments=enrichments,
+                entity_count=len(entities),
+                enrichment_count=len(enrichments),
+                metadata=metadata,
+            )
+            self.publish_event("document.enriched", {
+                "document_id": enriched_event.document_id,
+                "workspace_id": enriched_event.workspace_id,
+                "enrichments": enriched_event.enrichments,
+                "entity_count": enriched_event.entity_count,
+                "enrichment_count": enriched_event.enrichment_count,
+                "metadata": enriched_event.metadata,
+            })
 
-    except Exception as e:
-        logger.error(f"Error processing message: {e}", exc_info=True)
-        # Reject message (don't requeue to avoid infinite loops)
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            logger.info(
+                "Document enrichment completed",
+                document_id=event.document_id,
+                entity_count=len(entities),
+                enrichment_count=len(enrichments),
+            )
 
+        except Exception as e:
+            logger.error(
+                "Document enrichment failed",
+                document_id=document_id,
+                error=str(e),
+            )
+            # Publish failure event
+            failure = DocumentEnrichmentFailedEvent(
+                document_id=document_id,
+                workspace_id=workspace_id,
+                error=str(e),
+                metadata=metadata,
+            )
+            self.publish_event("document.enrichment.failed", {
+                "document_id": failure.document_id,
+                "workspace_id": failure.workspace_id,
+                "error": failure.error,
+                "metadata": failure.metadata,
+            })
+            raise
 
-def start_consumer() -> None:
-    """
-    Start consuming messages from RabbitMQ.
+    def _extract_entities(self, text: str) -> list[str]:
+        """
+        Extract key entities/concepts from document text.
 
-    TODO: Set QoS for prefetch_count (limit concurrent processing)
-    TODO: Register message callback
-    TODO: Start consuming (blocking call)
-    TODO: Add error handling
-    """
-    global channel
-    if not channel:
-        logger.error("Channel not initialized")
-        return
+        TODO: Implement entity extraction:
+        1. Use NLP techniques (spaCy, NLTK, or LLM-based extraction)
+        2. Filter entities by relevance and type
+        3. Return list of entity strings
 
-    # TODO: Implement
-    logger.info("Starting enrichment worker consumer")
+        Args:
+            text: Document text content
 
+        Returns:
+            List of extracted entity strings
+        """
+        logger.info("Extracting entities from document text")
+        # TODO: Implement entity extraction
+        # import spacy
+        # nlp = spacy.load("en_core_web_sm")
+        # doc = nlp(text)
+        # entities = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "PERSON", "GPE"]]
+        # return entities
+        return []
 
-def shutdown(signum: int, frame: Any) -> None:
-    """
-    Graceful shutdown handler.
+    def _query_wikipedia_mcp(self, entity: str) -> dict[str, str] | None:
+        """
+        Query Wikipedia MCP server for entity information.
 
-    TODO: Stop consuming messages
-    TODO: Close channel
-    TODO: Close connection
-    TODO: Exit process
+        TODO: Implement MCP protocol communication:
+        1. Send search query for entity
+        2. Parse Wikipedia results (summary, categories, links)
+        3. Handle errors and rate limiting
+        4. Return structured Wikipedia data
 
-    Args:
-        signum: Signal number
-        frame: Current stack frame
-    """
-    logger.info(f"Received signal {signum}, shutting down gracefully...")
-    global connection, channel
+        Args:
+            entity: Entity name to search for
 
-    # TODO: Implement shutdown logic
-    sys.exit(0)
+        Returns:
+            Wikipedia data dictionary or None if not found
+        """
+        logger.info("Querying Wikipedia MCP", entity=entity)
+        # TODO: Implement MCP Wikipedia query
+        # import httpx
+        # response = httpx.post(
+        #     f"{self._mcp_endpoint}/search",
+        #     json={"query": entity}
+        # )
+        # if response.status_code == 200:
+        #     return response.json()
+        # return None
+        return None
 
 
 def main() -> None:
-    """
-    Main entry point for enrichment worker.
-
-    TODO: Register signal handlers (SIGTERM, SIGINT)
-    TODO: Connect to RabbitMQ
-    TODO: Start consumer (blocking)
-    TODO: Handle unexpected errors
-    """
-    global connection, channel
-
-    # Register signal handlers
-    signal.signal(signal.SIGTERM, shutdown)
-    signal.signal(signal.SIGINT, shutdown)
-
-    logger.info("Starting Enrichment Worker")
-
-    try:
-        # Connect to RabbitMQ
-        connection, channel = connect_rabbitmq()
-
-        # Start consuming
-        start_consumer()
-
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        sys.exit(1)
+    """Main entry point for enricher worker."""
+    worker = EnricherWorker()
+    worker.start()
 
 
 if __name__ == "__main__":

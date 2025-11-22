@@ -5,22 +5,15 @@ Consumes: embeddings.generate
 Produces: vector.index.updated
 """
 
-import json
-import logging
 import os
-import signal
-import sys
-from typing import Any
+from dataclasses import asdict
 
-import pika
-from shared.events import EmbeddingGenerateEvent, VectorIndexUpdatedEvent
+from shared.logger import create_logger
+from shared.messaging.events import EmbeddingGenerateEvent, VectorIndexUpdatedEvent
+from shared.types.common import PayloadDict
+from shared.worker import Worker
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 # Environment variables
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
@@ -31,163 +24,99 @@ WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "100"))
 
 
-class EmbeddingsWorker:
+class EmbeddingsWorker(Worker):
     """Embeddings generation worker."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the embeddings worker."""
-        self.connection = None
-        self.channel = None
-        self.should_stop = False
-
-    def connect(self):
-        """Connect to RabbitMQ."""
-        logger.info(f"Connecting to RabbitMQ: {RABBITMQ_URL}")
-        self.connection = pika.BlockingConnection(pika.URLParameters(RABBITMQ_URL))
-        self.channel = self.connection.channel()
-
-        # Declare exchange
-        self.channel.exchange_declare(
-            exchange=RABBITMQ_EXCHANGE, exchange_type="topic", durable=True
-        )
-
-        # Declare queues
-        self.channel.queue_declare(queue="embeddings.generate", durable=True)
-        self.channel.queue_declare(queue="vector.index.updated", durable=True)
-
-        # Bind queues
-        self.channel.queue_bind(
+        super().__init__(
+            worker_name="embeddings",
+            rabbitmq_url=RABBITMQ_URL,
             exchange=RABBITMQ_EXCHANGE,
-            queue="embeddings.generate",
-            routing_key="embeddings.generate",
+            exchange_type="topic",
+            consume_routing_key="embeddings.generate",
+            consume_queue="embeddings.generate",
+            prefetch_count=WORKER_CONCURRENCY,
         )
+        self._qdrant_url = QDRANT_URL
+        self._ollama_base_url = OLLAMA_BASE_URL
+        self._batch_size = BATCH_SIZE
 
-        # Set QoS
-        self.channel.basic_qos(prefetch_count=WORKER_CONCURRENCY)
-
-        logger.info("Connected to RabbitMQ successfully")
-
-    def on_embeddings_generate(self, ch, method, properties, body):
+    def process_event(self, event_data: PayloadDict) -> None:
         """
-        Handle embeddings.generate event.
+        Process embeddings.generate event.
 
         TODO: Implement embedding generation logic:
         1. Fetch chunks from PostgreSQL using event.chunk_ids
         2. Generate embeddings using Ollama/OpenAI
         3. Upsert vectors to Qdrant with metadata
         4. Publish vector.index.updated event
+
+        Args:
+            event_data: Parsed event data as dictionary
         """
-        try:
-            # Parse event
-            event_data = json.loads(body)
-            event = EmbeddingGenerateEvent(**event_data)
-
-            logger.info(
-                f"Generating embeddings for document {event.document_id}: "
-                f"{len(event.chunk_ids)} chunks"
-            )
-
-            # TODO: Fetch chunks from database
-            # chunks = db.query(Chunk).filter(Chunk.id.in_(event.chunk_ids)).all()
-
-            # TODO: Generate embeddings
-            # from shared.interfaces.vector import EmbeddingEncoder
-            # embedder = OllamaEmbeddings(
-            #     base_url=OLLAMA_BASE_URL,
-            #     model=event.embedding_model
-            # )
-            # texts = [chunk.text for chunk in chunks]
-            # vectors = embedder.encode(texts)
-
-            # TODO: Upsert to Qdrant
-            # from shared.interfaces.vector import VectorIndex
-            # vector_store = QdrantVectorStore(url=QDRANT_URL)
-            # for chunk, vector in zip(chunks, vectors):
-            #     vector_store.upsert(
-            #         id=chunk.id,
-            #         vector=vector,
-            #         metadata={
-            #             "document_id": event.document_id,
-            #             "workspace_id": event.workspace_id,
-            #             "text": chunk.text,
-            #             **chunk.metadata
-            #         }
-            #     )
-
-            # Publish vector.index.updated event
-            updated_event = VectorIndexUpdatedEvent(
-                document_id=event.document_id,
-                workspace_id=event.workspace_id,
-                chunk_count=len(event.chunk_ids),
-                collection_name="documents",
-                metadata=event.metadata,
-            )
-            self.publish_event("vector.index.updated", updated_event)
-
-            logger.info(f"Successfully indexed {len(event.chunk_ids)} vectors")
-
-            # Acknowledge message
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        except Exception as e:
-            logger.error(f"Error generating embeddings: {e}", exc_info=True)
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-
-    def publish_event(self, routing_key: str, event: Any):
-        """Publish an event to RabbitMQ."""
-        event_dict = event.__dict__
-        message = json.dumps(event_dict)
-
-        self.channel.basic_publish(
-            exchange=RABBITMQ_EXCHANGE,
-            routing_key=routing_key,
-            body=message,
-            properties=pika.BasicProperties(delivery_mode=2),
-        )
-        logger.info(f"Published event: {routing_key}")
-
-    def start(self):
-        """Start consuming messages."""
-        logger.info(f"Starting embeddings worker with concurrency {WORKER_CONCURRENCY}")
-
-        # Register signal handlers
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
-
-        # Connect
-        self.connect()
-
-        # Start consuming
-        self.channel.basic_consume(
-            queue="embeddings.generate",
-            on_message_callback=self.on_embeddings_generate,
-            auto_ack=False,
+        event = EmbeddingGenerateEvent(
+            document_id=str(event_data.get("document_id", "")),
+            workspace_id=str(event_data.get("workspace_id", "")),
+            chunk_ids=list(event_data.get("chunk_ids", [])),
+            embedding_model=str(event_data.get("embedding_model", "")),
+            metadata=dict(event_data.get("metadata", {})),
         )
 
-        logger.info("Waiting for messages. To exit press CTRL+C")
-        try:
-            self.channel.start_consuming()
-        except KeyboardInterrupt:
-            self.stop()
+        logger.info(
+            "Generating embeddings",
+            document_id=event.document_id,
+            chunk_count=len(event.chunk_ids),
+        )
 
-    def stop(self):
-        """Stop the worker gracefully."""
-        logger.info("Stopping worker...")
-        self.should_stop = True
-        if self.channel and self.channel.is_open:
-            self.channel.stop_consuming()
-        if self.connection and self.connection.is_open:
-            self.connection.close()
-        logger.info("Worker stopped")
+        # TODO: Fetch chunks from database
+        # chunks = db.query(Chunk).filter(Chunk.id.in_(event.chunk_ids)).all()
 
-    def signal_handler(self, signum, frame):
-        """Handle shutdown signals."""
-        logger.info(f"Received signal {signum}")
-        self.stop()
-        sys.exit(0)
+        # TODO: Generate embeddings
+        # from shared.documents.embedding import OllamaVectorEmbeddingEncoder
+        # embedder = OllamaVectorEmbeddingEncoder(
+        #     base_url=self._ollama_base_url,
+        #     model=event.embedding_model
+        # )
+        # texts = [chunk.text for chunk in chunks]
+        # vectors_result = embedder.encode(texts)
+        # if vectors_result.is_err():
+        #     raise RuntimeError(f"Embedding failed: {vectors_result.error}")
+        # vectors = vectors_result.unwrap()
+
+        # TODO: Upsert to Qdrant
+        # from shared.database.vector import QdrantVectorDatabase
+        # vector_store = QdrantVectorDatabase(url=self._qdrant_url)
+        # for chunk, vector in zip(chunks, vectors):
+        #     vector_store.upsert(
+        #         id=chunk.id,
+        #         vector=vector,
+        #         metadata={
+        #             "document_id": event.document_id,
+        #             "workspace_id": event.workspace_id,
+        #             "text": chunk.text,
+        #             **chunk.metadata
+        #         }
+        #     )
+
+        # Publish vector.index.updated event
+        updated_event = VectorIndexUpdatedEvent(
+            document_id=event.document_id,
+            workspace_id=event.workspace_id,
+            chunk_count=len(event.chunk_ids),
+            collection_name="documents",
+            metadata=event.metadata,
+        )
+        self.publish_event("vector.index.updated", asdict(updated_event))
+
+        logger.info(
+            "Successfully indexed vectors",
+            document_id=event.document_id,
+            chunk_count=len(event.chunk_ids),
+        )
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     worker = EmbeddingsWorker()
     worker.start()

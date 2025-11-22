@@ -1,345 +1,253 @@
 """
-Notify Worker
+Notifier Worker - WebSocket notification broadcasting.
 
 Sends notifications to clients via WebSocket when events occur.
 
-Responsibilities:
-- Consumes various system events (document.uploaded, query.response, etc.)
-- Maintains WebSocket connections to clients
-- Broadcasts notifications to appropriate users
-- Handles connection lifecycle
-
-Event Flow:
-- Consumes: *.uploaded, *.completed, *.failed, *.response
-- Publishes: WebSocket messages to connected clients
+Consumes: *.uploaded, *.completed, *.failed, *.response (wildcard patterns)
+Produces: WebSocket messages to connected clients
 """
 
-import json
-import logging
 import os
-import signal
-import sys
-from typing import Any
+from dataclasses import dataclass
 
-import pika
-from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
+from shared.logger import create_logger
+from shared.types.common import MetadataDict, PayloadDict
+from shared.worker import Worker
 
-# TODO: Add shared package imports when implementing
-# from shared.events import (various event types)
-
-# TODO: Add Socket.IO client for broadcasting
-# import socketio
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 # Configuration
-RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
-RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
-RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
-RABBITMQ_PASS = os.getenv("RABBITMQ_PASS", "guest")
-EXCHANGE_NAME = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
+RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
+WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
 
 # WebSocket Configuration
 WEBSOCKET_SERVER = os.getenv("WEBSOCKET_SERVER", "http://localhost:5000")
 
-# Global connection and channel
-connection: BlockingConnection | None = None
-channel: BlockingChannel | None = None
+
+@dataclass
+class NotificationPayload:
+    """Payload for WebSocket notifications."""
+
+    event_type: str
+    user_id: int | None
+    workspace_id: str | None
+    data: PayloadDict
+    metadata: MetadataDict
 
 
-def connect_rabbitmq() -> tuple[BlockingConnection, BlockingChannel]:
-    """
-    Establish connection to RabbitMQ.
+class NotifierWorker(Worker):
+    """Notifier worker for WebSocket broadcasting."""
 
-    TODO: Implement connection logic with credentials
-    TODO: Add retry logic with exponential backoff
-    TODO: Declare exchange (topic exchange)
-    TODO: Declare queues for all notification events
-    TODO: Bind queues with wildcard patterns (*.uploaded, *.completed, etc.)
+    def __init__(self) -> None:
+        """Initialize the notifier worker."""
+        super().__init__(
+            worker_name="notifier",
+            rabbitmq_url=RABBITMQ_URL,
+            exchange=RABBITMQ_EXCHANGE,
+            exchange_type="topic",
+            consume_routing_key="#",  # Subscribe to all events
+            consume_queue="notifier.all",
+            prefetch_count=WORKER_CONCURRENCY,
+        )
+        self._websocket_server = WEBSOCKET_SERVER
+        self._websocket_client = self._connect_websocket()
 
-    Returns:
-        Tuple of (connection, channel)
-    """
-    # TODO: Implement
-    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-    parameters = pika.ConnectionParameters(
-        host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials, heartbeat=600
-    )
+    def _connect_websocket(self) -> object | None:
+        """
+        Connect to WebSocket server for broadcasting.
 
-    logger.info(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT}")
-    # TODO: Add actual connection code
-    raise NotImplementedError("RabbitMQ connection not implemented")
+        TODO: Implement WebSocket connection:
+        1. Initialize Socket.IO client
+        2. Connect to server
+        3. Add authentication if needed
+        4. Handle connection errors
 
+        Returns:
+            Socket.IO client instance or None
+        """
+        logger.info("Connecting to WebSocket server", server=self._websocket_server)
+        # TODO: Implement WebSocket connection
+        # import socketio
+        # sio = socketio.Client()
+        # sio.connect(self._websocket_server)
+        # return sio
+        return None
 
-def connect_websocket() -> Any:
-    """
-    Connect to WebSocket server for broadcasting.
+    def process_event(self, event_data: PayloadDict) -> None:
+        """
+        Process incoming events and broadcast to clients.
 
-    TODO: Initialize Socket.IO client
-    TODO: Connect to server
-    TODO: Add authentication if needed
-    TODO: Handle connection errors
-    TODO: Return client instance
+        Args:
+            event_data: Parsed event data as dictionary
+        """
+        # Extract routing key from metadata if available
+        routing_key = str(event_data.get("_routing_key", "unknown"))
+        user_id = event_data.get("user_id")
+        workspace_id = event_data.get("workspace_id")
+        metadata = dict(event_data.get("metadata", {}))
 
-    Returns:
-        Socket.IO client instance
-    """
-    # TODO: Implement
-    logger.info(f"Connecting to WebSocket server at {WEBSOCKET_SERVER}")
-    return None
+        logger.info(
+            "Processing notification event",
+            routing_key=routing_key,
+            user_id=user_id,
+        )
 
-
-def broadcast_to_user(user_id: int, event_type: str, data: dict[str, Any]) -> None:
-    """
-    Broadcast notification to specific user via WebSocket.
-
-    TODO: Get Socket.IO client instance
-    TODO: Construct notification message
-    TODO: Emit to user's room/namespace
-    TODO: Add error handling for disconnected clients
-    TODO: Log broadcast activity
-
-    Args:
-        user_id: User ID to send notification to
-        event_type: Type of event (document.uploaded, query.response, etc.)
-        data: Event data payload
-    """
-    # TODO: Implement
-    logger.info(f"Broadcasting {event_type} to user {user_id}")
-
-
-def broadcast_to_all(event_type: str, data: dict[str, Any]) -> None:
-    """
-    Broadcast notification to all connected clients.
-
-    TODO: Get Socket.IO client instance
-    TODO: Construct notification message
-    TODO: Emit to global namespace
-    TODO: Add error handling
-    TODO: Log broadcast activity
-
-    Args:
-        event_type: Type of event
-        data: Event data payload
-    """
-    # TODO: Implement
-    logger.info(f"Broadcasting {event_type} to all users")
-
-
-def process_document_uploaded(event_data: dict[str, Any]) -> None:
-    """
-    Process document.uploaded event.
-
-    TODO: Extract user_id and document metadata
-    TODO: Broadcast notification to user
-    TODO: Include document details (filename, size, etc.)
-
-    Args:
-        event_data: Event payload from RabbitMQ
-    """
-    # TODO: Implement
-    logger.info(f"Processing document.uploaded: {event_data}")
-    user_id = event_data.get("user_id")
-    if user_id:
-        broadcast_to_user(user_id, "document.uploaded", event_data)
-
-
-def process_embeddings_completed(event_data: dict[str, Any]) -> None:
-    """
-    Process embeddings.completed event.
-
-    TODO: Extract user_id and document_id
-    TODO: Broadcast completion notification
-    TODO: Include vector count and status
-
-    Args:
-        event_data: Event payload from RabbitMQ
-    """
-    # TODO: Implement
-    logger.info(f"Processing embeddings.completed: {event_data}")
-    user_id = event_data.get("user_id")
-    if user_id:
-        broadcast_to_user(user_id, "embeddings.completed", event_data)
-
-
-def process_graph_built(event_data: dict[str, Any]) -> None:
-    """
-    Process document.graph.built event.
-
-    TODO: Extract user_id and graph metadata
-    TODO: Broadcast completion notification
-    TODO: Include entity/relationship counts
-
-    Args:
-        event_data: Event payload from RabbitMQ
-    """
-    # TODO: Implement
-    logger.info(f"Processing document.graph.built: {event_data}")
-    user_id = event_data.get("user_id")
-    if user_id:
-        broadcast_to_user(user_id, "graph.built", event_data)
-
-
-def process_query_response(event_data: dict[str, Any]) -> None:
-    """
-    Process query.response event.
-
-    TODO: Extract session_id for routing
-    TODO: Broadcast response to user's chat session
-    TODO: Include response text and sources
-
-    Args:
-        event_data: Event payload from RabbitMQ
-    """
-    # TODO: Implement
-    logger.info(f"Processing query.response: {event_data}")
-    session_id = event_data.get("session_id")
-    user_id = event_data.get("user_id")
-    if user_id:
-        broadcast_to_user(user_id, "query.response", event_data)
-
-
-def process_error_event(routing_key: str, event_data: dict[str, Any]) -> None:
-    """
-    Process error events (*.failed).
-
-    TODO: Extract user_id
-    TODO: Format error message for display
-    TODO: Broadcast error notification
-    TODO: Include error details and retry options
-
-    Args:
-        routing_key: Event routing key
-        event_data: Event payload from RabbitMQ
-    """
-    # TODO: Implement
-    logger.info(f"Processing error event {routing_key}: {event_data}")
-    user_id = event_data.get("user_id")
-    if user_id:
-        broadcast_to_user(user_id, "error", {"type": routing_key, "data": event_data})
-
-
-def on_message(
-    ch: BlockingChannel, method: Any, properties: Any, body: bytes
-) -> None:
-    """
-    RabbitMQ message callback.
-
-    TODO: Deserialize message body from JSON
-    TODO: Route to appropriate handler based on routing_key
-    TODO: Acknowledge message after processing
-    TODO: Add error handling and message rejection on failures
-
-    Args:
-        ch: Channel
-        method: Delivery method
-        properties: Message properties
-        body: Message body (JSON bytes)
-    """
-    try:
-        event_data = json.loads(body)
-        routing_key = method.routing_key
-
-        logger.info(f"Received message with routing_key={routing_key}")
-
-        # Route to handlers
+        # Route to appropriate handler based on event type
         if routing_key == "document.uploaded":
-            process_document_uploaded(event_data)
-        elif routing_key == "embeddings.completed":
-            process_embeddings_completed(event_data)
+            self._handle_document_uploaded(event_data)
+        elif routing_key == "embeddings.completed" or routing_key == "vector.index.updated":
+            self._handle_embeddings_completed(event_data)
         elif routing_key == "document.graph.built":
-            process_graph_built(event_data)
+            self._handle_graph_built(event_data)
         elif routing_key == "query.response":
-            process_query_response(event_data)
+            self._handle_query_response(event_data)
         elif ".failed" in routing_key:
-            process_error_event(routing_key, event_data)
+            self._handle_error_event(routing_key, event_data)
         else:
-            logger.warning(f"Unhandled routing_key: {routing_key}")
+            logger.debug("Unhandled event type", routing_key=routing_key)
 
-        # Acknowledge message
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        # Create notification payload
+        notification = NotificationPayload(
+            event_type=routing_key,
+            user_id=int(user_id) if user_id else None,
+            workspace_id=str(workspace_id) if workspace_id else None,
+            data=event_data,
+            metadata=metadata,
+        )
 
-    except Exception as e:
-        logger.error(f"Error processing message: {e}", exc_info=True)
-        # Reject message (don't requeue to avoid infinite loops)
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        # Broadcast to appropriate clients
+        if notification.user_id:
+            self._broadcast_to_user(notification.user_id, notification)
+        else:
+            self._broadcast_to_all(notification)
 
+    def _handle_document_uploaded(self, event_data: PayloadDict) -> None:
+        """
+        Handle document.uploaded event.
 
-def start_consumer() -> None:
-    """
-    Start consuming messages from RabbitMQ.
+        Args:
+            event_data: Event payload
+        """
+        logger.info(
+            "Document uploaded notification",
+            document_id=event_data.get("document_id"),
+            filename=event_data.get("filename"),
+        )
 
-    TODO: Set QoS for prefetch_count (limit concurrent processing)
-    TODO: Register message callback
-    TODO: Start consuming (blocking call)
-    TODO: Add error handling
-    """
-    global channel
-    if not channel:
-        logger.error("Channel not initialized")
-        return
+    def _handle_embeddings_completed(self, event_data: PayloadDict) -> None:
+        """
+        Handle embeddings.completed event.
 
-    # TODO: Implement
-    logger.info("Starting notify worker consumer")
+        Args:
+            event_data: Event payload
+        """
+        logger.info(
+            "Embeddings completed notification",
+            document_id=event_data.get("document_id"),
+            chunk_count=event_data.get("chunk_count"),
+        )
 
+    def _handle_graph_built(self, event_data: PayloadDict) -> None:
+        """
+        Handle document.graph.built event.
 
-def shutdown(signum: int, frame: Any) -> None:
-    """
-    Graceful shutdown handler.
+        Args:
+            event_data: Event payload
+        """
+        logger.info(
+            "Graph built notification",
+            document_id=event_data.get("document_id"),
+        )
 
-    TODO: Stop consuming messages
-    TODO: Disconnect from WebSocket server
-    TODO: Close channel
-    TODO: Close connection
-    TODO: Exit process
+    def _handle_query_response(self, event_data: PayloadDict) -> None:
+        """
+        Handle query.response event.
 
-    Args:
-        signum: Signal number
-        frame: Current stack frame
-    """
-    logger.info(f"Received signal {signum}, shutting down gracefully...")
-    global connection, channel
+        Args:
+            event_data: Event payload
+        """
+        logger.info(
+            "Query response notification",
+            session_id=event_data.get("session_id"),
+        )
 
-    # TODO: Implement shutdown logic
-    sys.exit(0)
+    def _handle_error_event(self, routing_key: str, event_data: PayloadDict) -> None:
+        """
+        Handle error events (*.failed).
+
+        Args:
+            routing_key: Event routing key
+            event_data: Event payload
+        """
+        logger.warning(
+            "Error event notification",
+            routing_key=routing_key,
+            error=event_data.get("error"),
+        )
+
+    def _broadcast_to_user(self, user_id: int, notification: NotificationPayload) -> None:
+        """
+        Broadcast notification to specific user via WebSocket.
+
+        TODO: Implement user-targeted broadcasting:
+        1. Get Socket.IO client instance
+        2. Construct notification message
+        3. Emit to user's room/namespace
+        4. Handle disconnected clients
+
+        Args:
+            user_id: User ID to send notification to
+            notification: Notification payload
+        """
+        logger.info(
+            "Broadcasting to user",
+            user_id=user_id,
+            event_type=notification.event_type,
+        )
+        # TODO: Implement user broadcasting
+        # if self._websocket_client:
+        #     self._websocket_client.emit(
+        #         "notification",
+        #         {
+        #             "type": notification.event_type,
+        #             "data": notification.data,
+        #         },
+        #         room=f"user_{user_id}"
+        #     )
+
+    def _broadcast_to_all(self, notification: NotificationPayload) -> None:
+        """
+        Broadcast notification to all connected clients.
+
+        TODO: Implement global broadcasting:
+        1. Get Socket.IO client instance
+        2. Construct notification message
+        3. Emit to global namespace
+        4. Handle errors
+
+        Args:
+            notification: Notification payload
+        """
+        logger.info(
+            "Broadcasting to all users",
+            event_type=notification.event_type,
+        )
+        # TODO: Implement global broadcasting
+        # if self._websocket_client:
+        #     self._websocket_client.emit(
+        #         "notification",
+        #         {
+        #             "type": notification.event_type,
+        #             "data": notification.data,
+        #         }
+        #     )
 
 
 def main() -> None:
-    """
-    Main entry point for notify worker.
-
-    TODO: Register signal handlers (SIGTERM, SIGINT)
-    TODO: Connect to WebSocket server
-    TODO: Connect to RabbitMQ
-    TODO: Start consumer (blocking)
-    TODO: Handle unexpected errors
-    """
-    global connection, channel
-
-    # Register signal handlers
-    signal.signal(signal.SIGTERM, shutdown)
-    signal.signal(signal.SIGINT, shutdown)
-
-    logger.info("Starting Notify Worker")
-
-    try:
-        # Connect to WebSocket server
-        websocket_client = connect_websocket()
-
-        # Connect to RabbitMQ
-        connection, channel = connect_rabbitmq()
-
-        # Start consuming
-        start_consumer()
-
-    except KeyboardInterrupt:
-        logger.info("Interrupted by user")
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        sys.exit(1)
+    """Main entry point for notifier worker."""
+    worker = NotifierWorker()
+    worker.start()
 
 
 if __name__ == "__main__":
