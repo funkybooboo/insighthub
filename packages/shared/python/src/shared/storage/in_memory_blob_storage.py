@@ -33,12 +33,12 @@ class InMemoryBlobStorage(BlobStorage):
             )
         return Ok(self._storage[object_name])
 
-    def delete_file(self, object_name: str) -> bool:
+    def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """Delete a file from in-memory storage."""
         if object_name in self._storage:
             del self._storage[object_name]
-            return True
-        return False
+            return Ok(True)
+        return Ok(False)
 
     def file_exists(self, object_name: str) -> bool:
         """Check if a file exists in in-memory storage."""

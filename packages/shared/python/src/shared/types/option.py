@@ -15,7 +15,7 @@ Examples:
 """
 
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar
+from typing import Callable, Generic, NoReturn, TypeVar
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -78,31 +78,31 @@ class Nothing:
         """Check if this is Nothing."""
         return True
 
-    def unwrap(self):
+    def unwrap(self) -> NoReturn:
         """Raise exception when trying to unwrap Nothing."""
         raise ValueError("Called unwrap on Nothing")
 
-    def unwrap_or(self, default):
+    def unwrap_or(self, default: T) -> T:
         """Get the default value since this is Nothing."""
         return default
 
-    def unwrap_or_else(self, f):
+    def unwrap_or_else(self, f: Callable[[], T]) -> T:
         """Compute and return default value."""
         return f()
 
-    def map(self, f):
+    def map(self, f: Callable[[T], U]) -> "Nothing":
         """Return Nothing (no value to transform)."""
         return self
 
-    def and_then(self, f):
+    def and_then(self, f: Callable[[T], "Option[U]"]) -> "Nothing":
         """Return Nothing (no value to chain)."""
         return self
 
-    def filter(self, predicate):
+    def filter(self, predicate: Callable[[T], bool]) -> "Nothing":
         """Return Nothing (no value to filter)."""
         return self
 
-    def or_else(self, f):
+    def or_else(self, f: Callable[[], "Option[T]"]) -> "Option[T]":
         """Compute and return alternative Option."""
         return f()
 

@@ -1,7 +1,8 @@
 """Document-related event schemas."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import MetadataDict
 
 
 @dataclass
@@ -16,7 +17,7 @@ class DocumentUploadedEvent:
     workspace_id: str
     filename: str
     storage_path: str
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 @dataclass
@@ -31,7 +32,7 @@ class DocumentChunksReadyEvent:
     workspace_id: str
     chunk_ids: list[str]
     chunk_count: int
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 @dataclass
@@ -45,4 +46,4 @@ class DocumentGraphBuildEvent:
     document_id: str
     workspace_id: str
     chunk_ids: list[str]
-    metadata: dict[str, Any]
+    metadata: MetadataDict

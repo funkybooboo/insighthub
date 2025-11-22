@@ -2,7 +2,7 @@
 
 import re
 
-from shared.document_chunker.document_chunker import Chunker
+from shared.documents.chunking.document_chunker import Chunker
 from shared.types.document import Chunk, Document
 
 

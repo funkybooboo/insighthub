@@ -1,5 +1,6 @@
 """Neo4j graph database implementation."""
 
+from types import TracebackType
 
 from shared.types.graph import GraphNode, GraphEdge
 from .graph_database import GraphDatabase
@@ -50,7 +51,7 @@ class Neo4jGraphDatabase(GraphDatabase):
         self.username = username
         self.password = password
         self.database = database
-        self._driver: Any = None
+        self._driver: Driver | None = None
 
     def connect(self) -> None:
         """
@@ -637,7 +638,7 @@ class Neo4jGraphDatabase(GraphDatabase):
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Context manager exit."""
         self.disconnect()

@@ -1,9 +1,13 @@
 """Graph database interface for knowledge graph operations."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING
 
+from shared.types.common import PropertiesDict
 from shared.types.graph import GraphNode, GraphEdge
+
+if TYPE_CHECKING:
+    from shared.types.common import PayloadDict
 
 
 class GraphDatabase(ABC):
@@ -219,7 +223,7 @@ class GraphDatabase(ABC):
 
     @abstractmethod
     def find_nodes_by_label(
-        self, label: str, properties: dict[str, Any] | None = None
+        self, label: str, properties: PropertiesDict | None = None
     ) -> list[GraphNode]:
         """
         Find nodes by label and optional property filters.
@@ -234,7 +238,9 @@ class GraphDatabase(ABC):
         pass
 
     @abstractmethod
-    def execute_query(self, query: str, parameters: dict[str, Any] | None = None) -> Any:
+    def execute_query(
+        self, query: str, parameters: PropertiesDict | None = None
+    ) -> list["PayloadDict"]:
         """
         Execute a raw query in the database's native query language.
 
@@ -243,7 +249,7 @@ class GraphDatabase(ABC):
             parameters: Query parameters
 
         Returns:
-            Query results in database-specific format
+            Query results as list of dictionaries
         """
         pass
 

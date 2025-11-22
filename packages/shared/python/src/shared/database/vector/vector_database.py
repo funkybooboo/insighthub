@@ -1,8 +1,8 @@
 """Vector database interface for storing and retrieving vector embeddings."""
 
 from abc import ABC, abstractmethod
-from typing import Any
 
+from shared.types.common import FilterDict, MetadataDict
 from shared.types.retrieval import RetrievalResult
 
 
@@ -20,7 +20,7 @@ class VectorDatabase(ABC):
     """
 
     @abstractmethod
-    def upsert(self, id: str, vector: list[float], metadata: dict[str, Any]) -> None:
+    def upsert(self, id: str, vector: list[float], metadata: MetadataDict) -> None:
         """
         Insert or update a vector.
 
@@ -33,7 +33,7 @@ class VectorDatabase(ABC):
 
     @abstractmethod
     def upsert_batch(
-        self, items: list[tuple[str, list[float], dict[str, Any]]]
+        self, items: list[tuple[str, list[float], MetadataDict]]
     ) -> None:
         """
         Batch upsert multiple vectors.
@@ -48,7 +48,7 @@ class VectorDatabase(ABC):
         self,
         vector: list[float],
         top_k: int = 10,
-        filters: dict[str, Any] | None = None,
+        filters: FilterDict | None = None,
     ) -> list[RetrievalResult]:
         """
         Retrieve top-k most similar vectors.
@@ -103,7 +103,7 @@ class VectorDatabase(ABC):
         pass
 
     @abstractmethod
-    def get(self, id: str) -> tuple[list[float], dict[str, Any]] | None:
+    def get(self, id: str) -> tuple[list[float], MetadataDict] | None:
         """
         Retrieve a vector and its metadata by ID.
 

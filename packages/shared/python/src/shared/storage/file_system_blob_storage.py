@@ -65,11 +65,14 @@ class FileSystemBlobStorage(BlobStorage):
                 BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR")
             )
 
-    def delete_file(self, object_name: str) -> bool:
+    def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """Delete a file from file system storage."""
         full_path = self._get_full_path(object_name)
 
-        if full_path.exists():
+        if not full_path.exists():
+            return Ok(False)
+
+        try:
             full_path.unlink()
 
             try:
@@ -80,8 +83,11 @@ class FileSystemBlobStorage(BlobStorage):
             except OSError:
                 pass
 
-            return True
-        return False
+            return Ok(True)
+        except OSError as e:
+            return Err(
+                BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR")
+            )
 
     def file_exists(self, object_name: str) -> bool:
         """Check if a file exists in file system storage."""

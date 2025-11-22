@@ -2,14 +2,18 @@
 
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import requests
 
+from shared.types.common import MetadataDict
 from .retriever import Retriever, RetrievedContent
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from bs4 import BeautifulSoup
 
 try:
     from bs4 import BeautifulSoup
@@ -164,7 +168,7 @@ class URLRetriever(Retriever):
 
         return content.decode("utf-8", errors="replace")
 
-    def _extract_text(self, soup: Any) -> str:
+    def _extract_text(self, soup: "BeautifulSoup") -> str:
         """
         Extract clean text content from parsed HTML.
 
@@ -188,8 +192,8 @@ class URLRetriever(Retriever):
         return text.strip()
 
     def _extract_metadata(
-        self, soup: Any, url: str, response: requests.Response
-    ) -> dict[str, Any]:
+        self, soup: "BeautifulSoup", url: str, response: requests.Response
+    ) -> MetadataDict:
         """
         Extract metadata from the page.
 
@@ -201,7 +205,7 @@ class URLRetriever(Retriever):
         Returns:
             Metadata dictionary
         """
-        metadata: dict[str, Any] = {
+        metadata: MetadataDict = {
             "url": url,
             "domain": urlparse(url).netloc,
             "status_code": response.status_code,

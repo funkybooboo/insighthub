@@ -2,7 +2,8 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import MetadataDict
 
 
 @dataclass
@@ -18,7 +19,7 @@ class RetrievedContent:
 
     source: str
     content: str
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 class Retriever(ABC):

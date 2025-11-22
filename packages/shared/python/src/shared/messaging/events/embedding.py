@@ -1,7 +1,8 @@
 """Embedding-related event schemas."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import MetadataDict
 
 
 @dataclass
@@ -16,7 +17,7 @@ class EmbeddingGenerateEvent:
     workspace_id: str
     chunk_ids: list[str]
     embedding_model: str
-    metadata: dict[str, Any]
+    metadata: MetadataDict
 
 
 @dataclass
@@ -31,4 +32,4 @@ class VectorIndexUpdatedEvent:
     workspace_id: str
     chunk_count: int
     collection_name: str
-    metadata: dict[str, Any]
+    metadata: MetadataDict
