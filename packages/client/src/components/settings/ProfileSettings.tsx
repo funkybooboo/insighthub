@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
-import api from '../../services/api';
+import apiService from '../../services/api';
 import { setUser } from '../../store/slices/authSlice';
 
 interface ProfileFormData {
@@ -13,7 +13,7 @@ interface User {
     id?: number;
     username?: string;
     email?: string;
-    full_name?: string;
+    full_name?: string | null;
 }
 
 interface ProfileSettingsProps {
@@ -42,12 +42,12 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setMessage(null);
 
         try {
-            const response = await api.patch('/auth/profile', {
+            const response = await apiService.updateProfile({
                 full_name: data.full_name,
                 email: data.email,
             });
 
-            dispatch(setUser(response.data.user));
+            dispatch(setUser(response.user));
             setMessage({
                 type: 'success',
                 text: 'Profile updated successfully',

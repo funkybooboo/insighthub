@@ -55,7 +55,7 @@ const ChatBot = () => {
         if (!activeWorkspaceId) return;
         const loadDocuments = async () => {
             try {
-                await apiService.listDocuments();
+                await apiService.listDocuments(activeWorkspaceId);
             } catch (error) {
                 console.error('Error loading documents on mount:', error);
             }
@@ -250,7 +250,7 @@ const ChatBot = () => {
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-gray-900">
-            <DocumentManager />
+            <DocumentManager workspaceId={activeWorkspaceId} />
             <ChatMessages messages={messages} error={error} isBotTyping={isBotTyping} />
             <ChatInput onSubmit={onSubmit} onCancel={onCancel} isTyping={isTyping} />
         </div>

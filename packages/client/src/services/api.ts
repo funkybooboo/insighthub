@@ -137,17 +137,21 @@ class ApiService {
     }
 
     /**
-     * Upload a document (PDF or TXT) to the server
+     * Upload a document (PDF or TXT) to a workspace
      */
-    async uploadDocument(file: File): Promise<UploadResponse> {
+    async uploadDocument(workspaceId: number, file: File): Promise<UploadResponse> {
         const formData = new FormData();
         formData.append('file', file);
 
-        const { data } = await this.client.post<UploadResponse>('/api/documents/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
+        const { data } = await this.client.post<UploadResponse>(
+            `/api/workspaces/${workspaceId}/documents/upload`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
 
         return data;
     }
@@ -161,18 +165,22 @@ class ApiService {
     }
 
     /**
-     * List all uploaded documents
+     * List documents in a workspace
      */
-    async listDocuments(): Promise<DocumentsListResponse> {
-        const { data } = await this.client.get<DocumentsListResponse>('/api/documents');
+    async listDocuments(workspaceId: number): Promise<DocumentsListResponse> {
+        const { data } = await this.client.get<DocumentsListResponse>(
+            `/api/workspaces/${workspaceId}/documents`
+        );
         return data;
     }
 
     /**
-     * Delete a document by ID
+     * Delete a document from a workspace
      */
-    async deleteDocument(docId: number): Promise<{ message: string }> {
-        const { data } = await this.client.delete<{ message: string }>(`/api/documents/${docId}`);
+    async deleteDocument(workspaceId: number, docId: number): Promise<{ message: string }> {
+        const { data } = await this.client.delete<{ message: string }>(
+            `/api/workspaces/${workspaceId}/documents/${docId}`
+        );
         return data;
     }
 
@@ -214,6 +222,21 @@ class ApiService {
     async updatePreferences(request: UpdatePreferencesRequest): Promise<UserResponse> {
         const { data } = await this.client.patch<UserResponse>('/api/auth/preferences', request);
         return data;
+    }
+
+    /**
+     * Update user profile
+     */
+    async updateProfile(request: { full_name?: string; email?: string }): Promise<{ user: UserResponse }> {
+        const { data } = await this.client.patch<{ user: UserResponse }>('/api/auth/profile', request);
+        return data;
+    }
+
+    /**
+     * Change user password
+     */
+    async changePassword(request: { current_password: string; new_password: string }): Promise<void> {
+        await this.client.post('/api/auth/change-password', request);
     }
 
     /**

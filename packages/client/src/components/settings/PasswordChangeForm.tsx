@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import api from '../../services/api';
+import apiService from '../../services/api';
 
 interface PasswordFormData {
     currentPassword: string;
@@ -28,7 +28,7 @@ export default function PasswordChangeForm() {
         setMessage(null);
 
         try {
-            await api.post('/auth/change-password', {
+            await apiService.changePassword({
                 current_password: data.currentPassword,
                 new_password: data.newPassword,
             });

@@ -3,10 +3,11 @@ import DocumentList, { type DocumentListRef } from './DocumentList';
 import FileUpload from './FileUpload';
 
 interface DocumentManagerProps {
+    workspaceId: number;
     isExpanded?: boolean;
 }
 
-const DocumentManager = ({ isExpanded: initialExpanded = false }: DocumentManagerProps) => {
+const DocumentManager = ({ workspaceId, isExpanded: initialExpanded = false }: DocumentManagerProps) => {
     const [isExpanded, setIsExpanded] = useState(initialExpanded);
     const [documentCount, setDocumentCount] = useState(0);
     const documentListRef = useRef<DocumentListRef>(null);
@@ -70,9 +71,10 @@ const DocumentManager = ({ isExpanded: initialExpanded = false }: DocumentManage
 
             {isExpanded && (
                 <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <FileUpload onUploadSuccess={handleDocumentChange} />
+                    <FileUpload workspaceId={workspaceId} onUploadSuccess={handleDocumentChange} />
                     <DocumentList
                         ref={documentListRef}
+                        workspaceId={workspaceId}
                         onDocumentChange={handleDocumentChange}
                         onDocumentCountChange={handleDocumentCountChange}
                     />
