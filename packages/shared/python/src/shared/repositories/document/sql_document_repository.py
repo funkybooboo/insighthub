@@ -1,22 +1,22 @@
-"""SQL implementation of document repository."""
+"""SQL implementation of document repository using SqlDatabase."""
 
-from sqlalchemy.orm import Session
-
+from typing import List
 from shared.models.document import Document
-from shared.types.option import Nothing, Option, Some
+from shared.types.option import Option, Some, Nothing
 
 from .document_repository import DocumentRepository
+from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlDocumentRepository(DocumentRepository):
-    """Repository for Document operations using SQL database."""
+    """Repository for Document operations using direct SQL queries."""
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: SqlDatabase) -> None:
         """
-        Initialize repository with database session.
+        Initialize repository with SqlDatabase.
 
         Args:
-            db: SQLAlchemy database session
+            db: SqlDatabase instance
         """
         self._db = db
 
@@ -32,68 +32,73 @@ class SqlDocumentRepository(DocumentRepository):
         rag_collection: str | None = None,
     ) -> Document:
         """Create a new document."""
-        document = Document(
-            user_id=user_id,
-            filename=filename,
-            file_path=file_path,
-            file_size=file_size,
-            mime_type=mime_type,
-            content_hash=content_hash,
-            chunk_count=chunk_count,
-            rag_collection=rag_collection,
-        )
-        self._db.add(document)
-        self._db.commit()
-        self._db.refresh(document)
-        return document
+        query = """
+        INSERT INTO document 
+            (user_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, created_at, updated_at)
+        VALUES 
+            (%(user_id)s, %(filename)s, %(file_path)s, %(file_size)s, %(mime_type)s, %(content_hash)s, %(chunk_count)s, %(rag_collection)s, NOW(), NOW())
+        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, created_at, updated_at;
+        """
+        params = {
+            "user_id": user_id,
+            "filename": filename,
+            "file_path": file_path,
+            "file_size": file_size,
+            "mime_type": mime_type,
+            "content_hash": content_hash,
+            "chunk_count": chunk_count,
+            "rag_collection": rag_collection,
+        }
+        row = self._db.fetchone(query, params)
+        return Document(**row)
 
     def get_by_id(self, document_id: int) -> Option[Document]:
         """Get document by ID."""
-        document = self._db.query(Document).filter(Document.id == document_id).first()
-        if document is None:
+        query = "SELECT * FROM document WHERE id = %(id)s;"
+        row = self._db.fetchone(query, {"id": document_id})
+        if row is None:
             return Nothing()
-        return Some(document)
+        return Some(Document(**row))
 
-    def get_by_user(self, user_id: int, skip: int, limit: int) -> list[Document]:
+    def get_by_user(self, user_id: int, skip: int, limit: int) -> List[Document]:
         """Get all documents for a user with pagination."""
-        return (
-            self._db.query(Document)
-            .filter(Document.user_id == user_id)
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        query = """
+        SELECT * FROM document
+        WHERE user_id = %(user_id)s
+        OFFSET %(skip)s
+        LIMIT %(limit)s;
+        """
+        rows = self._db.fetchall(query, {"user_id": user_id, "skip": skip, "limit": limit})
+        return [Document(**row) for row in rows]
 
     def get_by_content_hash(self, content_hash: str) -> Option[Document]:
         """Get document by content hash."""
-        document = (
-            self._db.query(Document).filter(Document.content_hash == content_hash).first()
-        )
-        if document is None:
+        query = "SELECT * FROM document WHERE content_hash = %(content_hash)s;"
+        row = self._db.fetchone(query, {"content_hash": content_hash})
+        if row is None:
             return Nothing()
-        return Some(document)
+        return Some(Document(**row))
 
     def update(self, document_id: int, **kwargs: str | int) -> Option[Document]:
         """Update document fields."""
-        result = self.get_by_id(document_id)
-        if result.is_nothing():
-            return Nothing()
+        if not kwargs:
+            return self.get_by_id(document_id)
 
-        document = result.unwrap()
-        for key, value in kwargs.items():
-            if hasattr(document, key):
-                setattr(document, key, value)
-        self._db.commit()
-        self._db.refresh(document)
-        return Some(document)
+        set_clause = ", ".join(f"{key} = %({key})s" for key in kwargs.keys())
+        kwargs["id"] = document_id
+        query = f"""
+        UPDATE document
+        SET {set_clause}, updated_at = NOW()
+        WHERE id = %(id)s
+        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, created_at, updated_at;
+        """
+        row = self._db.fetchone(query, kwargs)
+        if row is None:
+            return Nothing()
+        return Some(Document(**row))
 
     def delete(self, document_id: int) -> bool:
         """Delete document by ID."""
-        result = self.get_by_id(document_id)
-        if result.is_nothing():
-            return False
-
-        document = result.unwrap()
-        self._db.delete(document)
-        self._db.commit()
+        query = "DELETE FROM document WHERE id = %(id)s;"
+        self._db.execute(query, {"id": document_id})
         return True
