@@ -1,20 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
-import api from '../../services/api';
+import apiService, { type DefaultRagConfig } from '../../services/api';
 
-interface RagConfigData {
-    embedding_model: string;
-    embedding_dim?: number;
-    retriever_type: string;
-    chunk_size: number;
-    chunk_overlap: number;
-    top_k: number;
-    rerank_enabled: boolean;
-    rerank_model?: string;
-}
-
-const DEFAULT_CONFIG: RagConfigData = {
+const DEFAULT_CONFIG: DefaultRagConfig = {
     embedding_model: 'nomic-embed-text',
     retriever_type: 'vector',
     chunk_size: 1000,
@@ -23,9 +10,15 @@ const DEFAULT_CONFIG: RagConfigData = {
     rerank_enabled: false,
 };
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return 'An unexpected error occurred';
+}
+
 export default function RagConfigSettings() {
-    const { token } = useSelector((state: RootState) => state.auth);
-    const [config, setConfig] = useState<RagConfigData>(DEFAULT_CONFIG);
+    const [config, setConfig] = useState<DefaultRagConfig>(DEFAULT_CONFIG);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -37,19 +30,12 @@ export default function RagConfigSettings() {
     const loadConfig = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/auth/default-rag-config', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (response.data) {
-                setConfig(response.data);
+            const data = await apiService.getDefaultRagConfig();
+            if (data) {
+                setConfig(data);
             }
-        } catch (error: any) {
-            // If no config exists yet, use defaults
-            if (error.response?.status === 404) {
-                setConfig(DEFAULT_CONFIG);
-            } else {
-                setMessage({ type: 'error', text: 'Failed to load RAG configuration' });
-            }
+        } catch (error: unknown) {
+            setMessage({ type: 'error', text: getErrorMessage(error) });
         } finally {
             setLoading(false);
         }
@@ -61,21 +47,19 @@ export default function RagConfigSettings() {
         setMessage(null);
 
         try {
-            await api.put('/auth/default-rag-config', config, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await apiService.saveDefaultRagConfig(config);
             setMessage({ type: 'success', text: 'Default RAG configuration saved successfully' });
-        } catch (error: any) {
+        } catch (error: unknown) {
             setMessage({
                 type: 'error',
-                text: error.response?.data?.detail || 'Failed to save RAG configuration',
+                text: getErrorMessage(error),
             });
         } finally {
             setSaving(false);
         }
     };
 
-    const handleChange = (field: keyof RagConfigData, value: string | number | boolean) => {
+    const handleChange = (field: keyof DefaultRagConfig, value: string | number | boolean | undefined) => {
         setConfig((prev) => ({ ...prev, [field]: value }));
     };
 

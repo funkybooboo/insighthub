@@ -1,5 +1,6 @@
 import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react';
 import apiService, { type Document } from '@/services/api';
+import { ConfirmDialog } from '@/components/shared';
 
 interface DocumentListProps {
     onDocumentChange?: () => void;
@@ -10,12 +11,23 @@ export interface DocumentListRef {
     refresh: () => Promise<void>;
 }
 
+interface DeleteConfirmState {
+    isOpen: boolean;
+    docId: number | null;
+    filename: string;
+}
+
 const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
     ({ onDocumentChange, onDocumentCountChange }, ref) => {
         const [documents, setDocuments] = useState<Document[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState('');
         const [deletingId, setDeletingId] = useState<number | null>(null);
+        const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
+            isOpen: false,
+            docId: null,
+            filename: '',
+        });
 
         const loadDocuments = useCallback(async () => {
             try {
@@ -40,10 +52,15 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
             refresh: loadDocuments,
         }));
 
-        const handleDelete = async (docId: number, filename: string) => {
-            if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
-                return;
-            }
+        const handleDeleteClick = (docId: number, filename: string) => {
+            setDeleteConfirm({ isOpen: true, docId, filename });
+        };
+
+        const handleConfirmDelete = async () => {
+            if (!deleteConfirm.docId) return;
+
+            const { docId, filename } = deleteConfirm;
+            setDeleteConfirm({ isOpen: false, docId: null, filename: '' });
 
             try {
                 setDeletingId(docId);
@@ -57,6 +74,10 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
             } finally {
                 setDeletingId(null);
             }
+        };
+
+        const handleCancelDelete = () => {
+            setDeleteConfirm({ isOpen: false, docId: null, filename: '' });
         };
 
         const formatFileSize = (bytes: number): string => {
@@ -185,7 +206,7 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                                 </div>
                                 <div className="w-20 text-right">
                                     <button
-                                        onClick={() => handleDelete(doc.id, doc.filename)}
+                                        onClick={() => handleDeleteClick(doc.id, doc.filename)}
                                         disabled={deletingId === doc.id}
                                         className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Delete document"
@@ -213,6 +234,17 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                         ))}
                     </div>
                 )}
+
+                {/* Delete Confirmation Dialog */}
+                <ConfirmDialog
+                    isOpen={deleteConfirm.isOpen}
+                    title="Delete Document"
+                    message={`Are you sure you want to delete "${deleteConfirm.filename}"? This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    variant="danger"
+                    onConfirm={handleConfirmDelete}
+                    onCancel={handleCancelDelete}
+                />
             </div>
         );
     }

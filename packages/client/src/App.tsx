@@ -11,6 +11,7 @@ import WorkspaceSelector from './components/workspace/WorkspaceSelector';
 import WorkspaceSettings from './components/workspace/WorkspaceSettings';
 import { SettingsPage } from './components/settings';
 import WorkspacesPage from './pages/WorkspacesPage';
+import WorkspaceDetailPage from './pages/WorkspaceDetailPage';
 import { setTheme } from './store/slices/themeSlice';
 import { useStatusUpdates } from './hooks/useStatusUpdates';
 import type { RootState } from './store';
@@ -81,6 +82,14 @@ function App() {
                     element={
                         <ProtectedRoute>
                             <WorkspacesPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/workspaces/:workspaceId"
+                    element={
+                        <ProtectedRoute>
+                            <WorkspaceDetailPage />
                         </ProtectedRoute>
                     }
                 />

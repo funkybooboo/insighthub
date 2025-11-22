@@ -11,7 +11,7 @@ interface DocumentStatusUpdate {
     error: string | null;
     chunk_count: number | null;
     filename: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
 }
 
 interface WorkspaceStatusUpdate {
@@ -20,7 +20,7 @@ interface WorkspaceStatusUpdate {
     status: WorkspaceStatus;
     message: string | null;
     name: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
 }
 
 interface StatusState {

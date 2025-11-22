@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { socket } from '../services/socket';
+import socketService from '../services/socket';
 import type { RootState } from '../store';
 import { updateDocumentStatus, updateWorkspaceStatus } from '../store/slices/statusSlice';
 
@@ -12,7 +12,7 @@ interface DocumentStatusUpdate {
     error: string | null;
     chunk_count: number | null;
     filename: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
 }
 
 interface WorkspaceStatusUpdate {
@@ -21,12 +21,12 @@ interface WorkspaceStatusUpdate {
     status: 'provisioning' | 'ready' | 'error';
     message: string | null;
     name: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
 }
 
 /**
  * Hook to subscribe to real-time status updates via WebSocket.
- * 
+ *
  * Automatically subscribes when user is authenticated and updates Redux store
  * when status updates are received.
  */
@@ -35,38 +35,41 @@ export function useStatusUpdates() {
     const { user } = useSelector((state: RootState) => state.auth);
 
     useEffect(() => {
-        if (!user || !socket.connected) {
+        if (!user || !socketService.isConnected()) {
             return;
         }
 
         // Subscribe to status updates for this user
-        socket.emit('subscribe_status', { user_id: user.id });
+        socketService.emit('subscribe_status', { user_id: user.id });
 
         // Listen for document status updates
-        const handleDocumentStatus = (data: DocumentStatusUpdate) => {
-            console.log('Document status update:', data);
-            dispatch(updateDocumentStatus(data));
+        const handleDocumentStatus = (data: unknown) => {
+            const update = data as DocumentStatusUpdate;
+            console.log('Document status update:', update);
+            dispatch(updateDocumentStatus(update));
         };
 
         // Listen for workspace status updates
-        const handleWorkspaceStatus = (data: WorkspaceStatusUpdate) => {
-            console.log('Workspace status update:', data);
-            dispatch(updateWorkspaceStatus(data));
+        const handleWorkspaceStatus = (data: unknown) => {
+            const update = data as WorkspaceStatusUpdate;
+            console.log('Workspace status update:', update);
+            dispatch(updateWorkspaceStatus(update));
         };
 
         // Listen for subscription confirmation
-        const handleSubscribed = (data: { user_id: number; room: string }) => {
-            console.log('Subscribed to status updates:', data);
+        const handleSubscribed = (data: unknown) => {
+            const subscribed = data as { user_id: number; room: string };
+            console.log('Subscribed to status updates:', subscribed);
         };
 
-        socket.on('document_status', handleDocumentStatus);
-        socket.on('workspace_status', handleWorkspaceStatus);
-        socket.on('subscribed', handleSubscribed);
+        socketService.on('document_status', handleDocumentStatus);
+        socketService.on('workspace_status', handleWorkspaceStatus);
+        socketService.on('subscribed', handleSubscribed);
 
         return () => {
-            socket.off('document_status', handleDocumentStatus);
-            socket.off('workspace_status', handleWorkspaceStatus);
-            socket.off('subscribed', handleSubscribed);
+            socketService.off('document_status', handleDocumentStatus);
+            socketService.off('workspace_status', handleWorkspaceStatus);
+            socketService.off('subscribed', handleSubscribed);
         };
     }, [user, dispatch]);
 }

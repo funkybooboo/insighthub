@@ -288,6 +288,41 @@ class ApiService {
         );
         return data;
     }
+
+    /**
+     * Get user's default RAG config
+     */
+    async getDefaultRagConfig(): Promise<DefaultRagConfig | null> {
+        try {
+            const { data } = await this.client.get<DefaultRagConfig>('/api/auth/default-rag-config');
+            return data;
+        } catch (error) {
+            // Return null if config doesn't exist yet
+            if ((error as { response?: { status: number } }).response?.status === 404) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Save user's default RAG config
+     */
+    async saveDefaultRagConfig(config: DefaultRagConfig): Promise<DefaultRagConfig> {
+        const { data } = await this.client.put<DefaultRagConfig>('/api/auth/default-rag-config', config);
+        return data;
+    }
+}
+
+export interface DefaultRagConfig {
+    embedding_model: string;
+    embedding_dim?: number;
+    retriever_type: string;
+    chunk_size: number;
+    chunk_overlap: number;
+    top_k: number;
+    rerank_enabled: boolean;
+    rerank_model?: string;
 }
 
 export const apiService = new ApiService();

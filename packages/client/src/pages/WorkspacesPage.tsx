@@ -1,28 +1,38 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { StatusBadge, LoadingSpinner } from '../components/shared';
 import type { RootState } from '../store';
 import type { WorkspaceStatus } from '../store/slices/statusSlice';
-import api from '../services/api';
+import type { Workspace as BaseWorkspace } from '../types/workspace';
+import apiService from '../services/api';
 
-interface Workspace {
-    id: number;
-    name: string;
-    description: string | null;
-    created_at: string;
-    updated_at: string;
-    document_count: number;
+interface WorkspaceWithStatus extends BaseWorkspace {
     status: WorkspaceStatus;
     status_message: string | null;
 }
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof AxiosError) {
+        return error.response?.data?.detail || error.message;
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return 'An unexpected error occurred';
+}
+
 export default function WorkspacesPage() {
-    const { token } = useSelector((state: RootState) => state.auth);
     const statusUpdates = useSelector((state: RootState) => state.status.workspaces);
-    const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [workspaces, setWorkspaces] = useState<WorkspaceWithStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newWorkspaceName, setNewWorkspaceName] = useState('');
+    const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
+    const [isCreating, setIsCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
 
     useEffect(() => {
         loadWorkspaces();
@@ -48,33 +58,48 @@ export default function WorkspacesPage() {
     const loadWorkspaces = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/workspaces', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setWorkspaces(response.data);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || 'Failed to load workspaces');
+            const data = await apiService.listWorkspaces();
+            // Add default status for workspaces that don't have one
+            const workspacesWithStatus: WorkspaceWithStatus[] = data.map((ws) => ({
+                ...ws,
+                status: 'ready' as WorkspaceStatus,
+                status_message: null,
+            }));
+            setWorkspaces(workspacesWithStatus);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
     };
 
-    const createWorkspace = async () => {
+    const handleCreateWorkspace = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newWorkspaceName.trim()) return;
+
+        setIsCreating(true);
+        setCreateError(null);
+
         try {
-            const name = prompt('Enter workspace name:');
-            if (!name) return;
+            const workspace = await apiService.createWorkspace({
+                name: newWorkspaceName.trim(),
+                description: newWorkspaceDescription.trim() || undefined,
+            });
 
-            const description = prompt('Enter workspace description (optional):');
+            const workspaceWithStatus: WorkspaceWithStatus = {
+                ...workspace,
+                status: 'provisioning',
+                status_message: null,
+            };
 
-            const response = await api.post(
-                '/workspaces',
-                { name, description },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setWorkspaces((prev) => [...prev, response.data]);
-        } catch (err: any) {
-            alert(err.response?.data?.detail || 'Failed to create workspace');
+            setWorkspaces((prev) => [...prev, workspaceWithStatus]);
+            setShowCreateModal(false);
+            setNewWorkspaceName('');
+            setNewWorkspaceDescription('');
+        } catch (err: unknown) {
+            setCreateError(getErrorMessage(err));
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -119,7 +144,7 @@ export default function WorkspacesPage() {
                         </p>
                     </div>
                     <button
-                        onClick={createWorkspace}
+                        onClick={() => setShowCreateModal(true)}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
                     >
                         Create Workspace
@@ -158,7 +183,7 @@ export default function WorkspacesPage() {
                                 )}
 
                                 <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                    <span>{workspace.document_count} documents</span>
+                                    <span>{workspace.document_count ?? 0} documents</span>
                                     <span>
                                         Updated {new Date(workspace.updated_at).toLocaleDateString()}
                                     </span>
@@ -180,6 +205,80 @@ export default function WorkspacesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create Workspace Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                            Create New Workspace
+                        </h2>
+                        <form onSubmit={handleCreateWorkspace}>
+                            {createError && (
+                                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg text-sm">
+                                    {createError}
+                                </div>
+                            )}
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Workspace Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newWorkspaceName}
+                                    onChange={(e) => {
+                                        setNewWorkspaceName(e.target.value);
+                                        setCreateError(null);
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                                    placeholder="e.g., Research Papers"
+                                    maxLength={100}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Description (optional)
+                                </label>
+                                <textarea
+                                    value={newWorkspaceDescription}
+                                    onChange={(e) => {
+                                        setNewWorkspaceDescription(e.target.value);
+                                        setCreateError(null);
+                                    }}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                                    placeholder="What is this workspace for?"
+                                    maxLength={500}
+                                    rows={3}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        setNewWorkspaceName('');
+                                        setNewWorkspaceDescription('');
+                                        setCreateError(null);
+                                    }}
+                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    disabled={isCreating}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isCreating || !newWorkspaceName.trim()}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isCreating ? 'Creating...' : 'Create'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

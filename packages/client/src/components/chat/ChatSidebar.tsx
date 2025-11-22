@@ -1,10 +1,16 @@
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { createSession, setActiveSession, deleteSession } from '@/store/slices/chatSlice';
+import { ConfirmDialog } from '@/components/shared';
 
 const ChatSidebar = () => {
     const dispatch = useDispatch();
     const { sessions, activeSessionId } = useSelector((state: RootState) => state.chat);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; sessionId: string | null }>({
+        isOpen: false,
+        sessionId: null,
+    });
 
     const handleNewChat = () => {
         const newSessionId = `session-${Date.now()}`;
@@ -15,11 +21,20 @@ const ChatSidebar = () => {
         dispatch(setActiveSession(sessionId));
     };
 
-    const handleDeleteSession = (sessionId: string, event: React.MouseEvent) => {
+    const handleDeleteClick = (sessionId: string, event: React.MouseEvent) => {
         event.stopPropagation();
-        if (confirm('Are you sure you want to delete this chat?')) {
-            dispatch(deleteSession(sessionId));
+        setDeleteConfirm({ isOpen: true, sessionId });
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteConfirm.sessionId) {
+            dispatch(deleteSession(deleteConfirm.sessionId));
         }
+        setDeleteConfirm({ isOpen: false, sessionId: null });
+    };
+
+    const handleCancelDelete = () => {
+        setDeleteConfirm({ isOpen: false, sessionId: null });
     };
 
     const formatDate = (timestamp: number): string => {
@@ -127,7 +142,7 @@ const ChatSidebar = () => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={(e) => handleDeleteSession(session.id, e)}
+                                        onClick={(e) => handleDeleteClick(session.id, e)}
                                         className="opacity-0 group-hover:opacity-100 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-opacity"
                                         title="Delete chat"
                                     >
@@ -158,6 +173,17 @@ const ChatSidebar = () => {
                     {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} saved locally
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                title="Delete Chat"
+                message="Are you sure you want to delete this chat? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
+            />
         </div>
     );
 };

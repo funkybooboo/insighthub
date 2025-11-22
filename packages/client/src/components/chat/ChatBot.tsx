@@ -38,17 +38,9 @@ const ChatBot = () => {
     // Get active session
     const activeSession = sessions.find((s) => s.id === activeSessionId);
 
-    // Show message if no workspace is selected
-    if (!activeWorkspaceId) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-                <p className="text-lg">Please create or select a workspace to start chatting</p>
-            </div>
-        );
-    }
-
     // Create initial session if none exists
     useEffect(() => {
+        if (!activeWorkspaceId) return;
         if (!activeSessionId && sessions.length === 0) {
             const newSessionId = `session-${Date.now()}`;
             dispatch(createSession({ id: newSessionId }));
@@ -56,10 +48,11 @@ const ChatBot = () => {
             // Set the first session as active if there's no active session
             dispatch(setActiveSession(sessions[0].id));
         }
-    }, [activeSessionId, sessions, dispatch]);
+    }, [activeSessionId, sessions, dispatch, activeWorkspaceId]);
 
     // Load documents on mount
     useEffect(() => {
+        if (!activeWorkspaceId) return;
         const loadDocuments = async () => {
             try {
                 await apiService.listDocuments();
@@ -69,9 +62,11 @@ const ChatBot = () => {
         };
 
         loadDocuments();
-    }, []);
+    }, [activeWorkspaceId]);
 
     useEffect(() => {
+        if (!activeWorkspaceId) return;
+
         // Connect to socket on mount
         socketService.connect();
 
@@ -171,7 +166,7 @@ const ChatBot = () => {
             socketService.removeAllListeners();
             socketService.disconnect();
         };
-    }, [activeSessionId, dispatch]);
+    }, [activeSessionId, activeWorkspaceId, dispatch]);
 
     const onSubmit = async ({ prompt }: ChatFormData) => {
         if (!activeSessionId) {
@@ -243,6 +238,15 @@ const ChatBot = () => {
             content: msg.content,
             role: msg.role,
         })) || [];
+
+    // Show message if no workspace is selected
+    if (!activeWorkspaceId) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                <p className="text-lg">Please create or select a workspace to start chatting</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-gray-900">
