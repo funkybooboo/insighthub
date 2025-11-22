@@ -3,16 +3,39 @@
 from abc import ABC, abstractmethod
 from typing import BinaryIO
 
+from shared.types.result import Result
+
+
+class BlobStorageError:
+    """Error type for blob storage failures."""
+
+    def __init__(self, message: str, code: str = "STORAGE_ERROR") -> None:
+        """
+        Initialize blob storage error.
+
+        Args:
+            message: Error message
+            code: Error code for categorization
+        """
+        self.message = message
+        self.code = code
+
+    def __str__(self) -> str:
+        """Return string representation."""
+        return f"[{self.code}] {self.message}"
+
 
 class BlobStorage(ABC):
     """
     Abstract base class for blob storage.
-    
-    Implementations: MinIO, S3, FileSystem, InMemory
+
+    Implementations: S3BlobStorage, FileSystemBlobStorage, InMemoryBlobStorage
     """
 
     @abstractmethod
-    def upload_file(self, file_obj: BinaryIO, object_name: str) -> str:
+    def upload_file(
+        self, file_obj: BinaryIO, object_name: str
+    ) -> Result[str, BlobStorageError]:
         """
         Upload a file to blob storage.
 
@@ -21,12 +44,12 @@ class BlobStorage(ABC):
             object_name: Name/key for the object in storage
 
         Returns:
-            URL or key to access the uploaded file
+            Result containing object key on success, or BlobStorageError on failure
         """
         pass
 
     @abstractmethod
-    def download_file(self, object_name: str) -> bytes:
+    def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
         """
         Download a file from blob storage.
 
@@ -34,7 +57,7 @@ class BlobStorage(ABC):
             object_name: Name/key of the object to download
 
         Returns:
-            File content as bytes
+            Result containing file content as bytes, or BlobStorageError on failure
         """
         pass
 
@@ -47,7 +70,7 @@ class BlobStorage(ABC):
             object_name: Name/key of the object to delete
 
         Returns:
-            True if successful, False otherwise
+            True if deleted, False if not found
         """
         pass
 

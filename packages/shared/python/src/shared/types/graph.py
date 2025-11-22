@@ -1,7 +1,8 @@
 """Graph data types for Graph RAG."""
 
 from dataclasses import dataclass
-from typing import Any
+
+from shared.types.common import PropertiesDict
 
 
 @dataclass
@@ -19,7 +20,7 @@ class GraphNode:
 
     id: str
     labels: list[str]
-    properties: dict[str, Any]
+    properties: PropertiesDict
 
 
 @dataclass
@@ -39,4 +40,4 @@ class GraphEdge:
     source: str
     target: str
     label: str
-    properties: dict[str, Any]
+    properties: PropertiesDict

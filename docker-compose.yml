@@ -156,6 +156,29 @@ services:
     networks:
       - insighthub
 
+  neo4j:
+    labels:
+      project: insighthub
+    image: neo4j:5-community
+    container_name: insighthub-neo4j
+    restart: unless-stopped
+    ports:
+      - '7474:7474'   # HTTP (Browser)
+      - '7687:7687'   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/insighthub_dev
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - insighthub
+
 volumes:
   postgres_data:
     name: insighthub_postgres_data
@@ -169,6 +192,8 @@ volumes:
     name: insighthub_redis_data
   qdrant_data:
     name: insighthub_qdrant_data
+  neo4j_data:
+    name: insighthub_neo4j_data
 
 networks:
   insighthub:

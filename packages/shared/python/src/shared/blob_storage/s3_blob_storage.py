@@ -1,39 +1,46 @@
-"""MinIO blob storage implementation."""
+"""MinIO/S3 blob storage implementation."""
 
 import hashlib
-import logging
-from io import BytesIO
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
 
-from minio import Minio
-from minio.error import S3Error
+from shared.logger import create_logger
+from shared.types.result import Err, Ok, Result
 
-from .blob_storage import BlobStorage
+from .blob_storage import BlobStorage, BlobStorageError
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from minio import Minio as MinioClient
+
+try:
+    from minio import Minio
+    from minio.error import S3Error
+
+    MINIO_AVAILABLE = True
+except ImportError:
+    Minio = None
+    S3Error = Exception
+    MINIO_AVAILABLE = False
+
+logger = create_logger("s3-blob-storage")
 
 
 class S3BlobStorage(BlobStorage):
     """
     MinIO/S3-compatible blob storage implementation.
-    
+
     Used by server and workers to upload/download documents.
-    
+
     Example:
-        storage = MinIOBlobStorage(
+        storage = S3BlobStorage(
             endpoint="minio:9000",
             access_key="insighthub",
             secret_key="insighthub_dev_secret",
             bucket_name="documents",
-            secure=False,  # True for HTTPS
+            secure=False,
         )
-        
-        # Upload
-        with open("document.pdf", "rb") as f:
-            storage.upload_file(f, "hash/document.pdf")
-        
-        # Download
-        content = storage.download_file("hash/document.pdf")
+        result = storage.upload_file(file_obj, "hash/document.pdf")
+        if result.is_ok():
+            object_key = result.unwrap()
     """
 
     def __init__(
@@ -42,8 +49,8 @@ class S3BlobStorage(BlobStorage):
         access_key: str,
         secret_key: str,
         bucket_name: str,
-        secure: bool = False,
-    ):
+        secure: bool,
+    ) -> None:
         """
         Initialize MinIO storage.
 
@@ -53,142 +60,116 @@ class S3BlobStorage(BlobStorage):
             secret_key: Secret key
             bucket_name: Bucket name
             secure: Use HTTPS
-        """
-        self.endpoint = endpoint
-        self.access_key = access_key
-        self.secret_key = secret_key
-        self.bucket_name = bucket_name
-        self.secure = secure
 
-        # Create MinIO client
-        self.client = Minio(
-            endpoint=self.endpoint,
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            secure=self.secure,
+        Raises:
+            RuntimeError: If minio library is not available
+        """
+        if not MINIO_AVAILABLE or Minio is None:
+            raise RuntimeError(
+                "minio library not available. Install: pip install minio"
+            )
+
+        self._endpoint = endpoint
+        self._bucket_name = bucket_name
+
+        self._client: "MinioClient" = Minio(
+            endpoint=endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure,
         )
 
-        # Ensure bucket exists
         self._ensure_bucket_exists()
 
     def _ensure_bucket_exists(self) -> None:
         """Create bucket if it doesn't exist."""
         try:
-            if not self.client.bucket_exists(self.bucket_name):
-                self.client.make_bucket(self.bucket_name)
-                logger.info(f"Created bucket: {self.bucket_name}")
+            if not self._client.bucket_exists(self._bucket_name):
+                self._client.make_bucket(self._bucket_name)
+                logger.info("Created bucket", bucket=self._bucket_name)
             else:
-                logger.info(f"Bucket already exists: {self.bucket_name}")
+                logger.info("Bucket exists", bucket=self._bucket_name)
         except S3Error as e:
-            logger.error(f"Error checking/creating bucket: {e}")
-            raise
+            logger.error("Error checking/creating bucket", error=str(e))
+            raise RuntimeError(f"Failed to ensure bucket exists: {e}") from e
 
-    def upload_file(self, file_obj: BinaryIO, object_name: str) -> str:
-        """
-        Upload file to MinIO.
-
-        Args:
-            file_obj: File-like object
-            object_name: Object key (e.g., "hash/document.pdf")
-
-        Returns:
-            Object key
-        """
+    def upload_file(
+        self, file_obj: BinaryIO, object_name: str
+    ) -> Result[str, BlobStorageError]:
+        """Upload file to MinIO."""
         try:
-            # Get file size
-            file_obj.seek(0, 2)  # Seek to end
+            file_obj.seek(0, 2)
             file_size = file_obj.tell()
-            file_obj.seek(0)  # Reset to beginning
+            file_obj.seek(0)
 
-            # Upload
-            self.client.put_object(
-                bucket_name=self.bucket_name,
+            self._client.put_object(
+                bucket_name=self._bucket_name,
                 object_name=object_name,
                 data=file_obj,
                 length=file_size,
             )
 
-            logger.info(f"Uploaded file: {object_name} ({file_size} bytes)")
-            return object_name
+            logger.info(
+                "Uploaded file", object_name=object_name, size_bytes=file_size
+            )
+            return Ok(object_name)
 
         except S3Error as e:
-            logger.error(f"Error uploading file {object_name}: {e}")
-            raise
+            logger.error("Error uploading file", object_name=object_name, error=str(e))
+            return Err(
+                BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR")
+            )
 
-    def download_file(self, object_name: str) -> bytes:
-        """
-        Download file from MinIO.
-
-        Args:
-            object_name: Object key
-
-        Returns:
-            File content as bytes
-        """
+    def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
+        """Download file from MinIO."""
         try:
-            response = self.client.get_object(
-                bucket_name=self.bucket_name, object_name=object_name
+            response = self._client.get_object(
+                bucket_name=self._bucket_name, object_name=object_name
             )
             data = response.read()
             response.close()
             response.release_conn()
 
-            logger.info(f"Downloaded file: {object_name} ({len(data)} bytes)")
-            return data
+            logger.info(
+                "Downloaded file", object_name=object_name, size_bytes=len(data)
+            )
+            return Ok(data)
 
         except S3Error as e:
-            logger.error(f"Error downloading file {object_name}: {e}")
-            raise
+            logger.error(
+                "Error downloading file", object_name=object_name, error=str(e)
+            )
+            return Err(
+                BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR")
+            )
 
     def delete_file(self, object_name: str) -> bool:
-        """
-        Delete file from MinIO.
-
-        Args:
-            object_name: Object key
-
-        Returns:
-            True if successful
-        """
+        """Delete file from MinIO."""
         try:
-            self.client.remove_object(bucket_name=self.bucket_name, object_name=object_name)
-            logger.info(f"Deleted file: {object_name}")
+            self._client.remove_object(
+                bucket_name=self._bucket_name, object_name=object_name
+            )
+            logger.info("Deleted file", object_name=object_name)
             return True
-
         except S3Error as e:
-            logger.error(f"Error deleting file {object_name}: {e}")
+            logger.error("Error deleting file", object_name=object_name, error=str(e))
             return False
 
     def file_exists(self, object_name: str) -> bool:
-        """
-        Check if file exists in MinIO.
-
-        Args:
-            object_name: Object key
-
-        Returns:
-            True if exists
-        """
+        """Check if file exists in MinIO."""
         try:
-            self.client.stat_object(bucket_name=self.bucket_name, object_name=object_name)
+            self._client.stat_object(
+                bucket_name=self._bucket_name, object_name=object_name
+            )
             return True
         except S3Error:
             return False
 
     def calculate_hash(self, file_obj: BinaryIO) -> str:
-        """
-        Calculate SHA-256 hash of file.
-
-        Args:
-            file_obj: File-like object
-
-        Returns:
-            SHA-256 hex digest
-        """
+        """Calculate SHA-256 hash of file."""
         file_obj.seek(0)
         sha256_hash = hashlib.sha256()
 
-        # Read file in chunks to handle large files
         for chunk in iter(lambda: file_obj.read(4096), b""):
             sha256_hash.update(chunk)
 

@@ -3,7 +3,9 @@
 import hashlib
 from typing import BinaryIO
 
-from .blob_storage import BlobStorage
+from shared.types.result import Err, Ok, Result
+
+from .blob_storage import BlobStorage, BlobStorageError
 
 
 class InMemoryBlobStorage(BlobStorage):
@@ -11,77 +13,39 @@ class InMemoryBlobStorage(BlobStorage):
 
     def __init__(self) -> None:
         """Initialize in-memory storage."""
-        self.storage: dict[str, bytes] = {}
+        self._storage: dict[str, bytes] = {}
 
-    def upload_file(self, file_obj: BinaryIO, object_name: str) -> str:
-        """
-        Upload a file to in-memory storage.
-
-        Args:
-            file_obj: File-like object to upload
-            object_name: Name/key for the object
-
-        Returns:
-            str: Object name/key
-        """
+    def upload_file(
+        self, file_obj: BinaryIO, object_name: str
+    ) -> Result[str, BlobStorageError]:
+        """Upload a file to in-memory storage."""
         file_obj.seek(0)
-        self.storage[object_name] = file_obj.read()
-        return object_name
+        self._storage[object_name] = file_obj.read()
+        return Ok(object_name)
 
-    def download_file(self, object_name: str) -> bytes:
-        """
-        Download a file from in-memory storage.
-
-        Args:
-            object_name: Name/key of the object to download
-
-        Returns:
-            bytes: File content
-
-        Raises:
-            Exception: If file not found
-        """
-        if object_name not in self.storage:
-            raise Exception(f"File not found: {object_name}")
-        return self.storage[object_name]
+    def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
+        """Download a file from in-memory storage."""
+        if object_name not in self._storage:
+            return Err(
+                BlobStorageError(
+                    f"File not found: {object_name}", code="NOT_FOUND"
+                )
+            )
+        return Ok(self._storage[object_name])
 
     def delete_file(self, object_name: str) -> bool:
-        """
-        Delete a file from in-memory storage.
-
-        Args:
-            object_name: Name/key of the object to delete
-
-        Returns:
-            bool: True if deletion was successful
-        """
-        if object_name in self.storage:
-            del self.storage[object_name]
+        """Delete a file from in-memory storage."""
+        if object_name in self._storage:
+            del self._storage[object_name]
             return True
         return False
 
     def file_exists(self, object_name: str) -> bool:
-        """
-        Check if a file exists in in-memory storage.
-
-        Args:
-            object_name: Name/key of the object to check
-
-        Returns:
-            bool: True if file exists, False otherwise
-        """
-        return object_name in self.storage
+        """Check if a file exists in in-memory storage."""
+        return object_name in self._storage
 
     def calculate_hash(self, file_obj: BinaryIO) -> str:
-        """
-        Calculate SHA-256 hash of a file.
-
-        Args:
-            file_obj: File-like object
-
-        Returns:
-            str: SHA-256 hash hex digest
-        """
+        """Calculate SHA-256 hash of a file."""
         sha256_hash = hashlib.sha256()
         file_obj.seek(0)
         for byte_block in iter(lambda: file_obj.read(4096), b""):
