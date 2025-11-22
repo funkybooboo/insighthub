@@ -1,5 +1,6 @@
 """Test context for dependency injection in tests."""
 
+from shared.database.sql import SqlDatabase
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -8,7 +9,6 @@ from shared.repositories import (
 )
 from shared.storage import BlobStorage
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
-from sqlalchemy.orm import Session
 
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
@@ -24,16 +24,16 @@ from src.infrastructure.factories import (
 class UnitTestContext:
     """Test context for unit tests using in-memory implementations.
 
-    This context always uses in-memory implementations (SQLite, InMemoryBlobStorage)
+    This context always uses in-memory implementations (InMemoryBlobStorage)
     for fast, isolated unit tests that don't require external dependencies.
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: SqlDatabase):
         """
         Initialize unit test context with dependencies.
 
         Args:
-            db: Database session (should be SQLite in-memory)
+            db: SqlDatabase instance
         """
         self.db = db
 
@@ -66,12 +66,12 @@ class IntegrationTestContext:
     interactions with real databases.
     """
 
-    def __init__(self, db: Session, blob_storage: BlobStorage):
+    def __init__(self, db: SqlDatabase, blob_storage: BlobStorage):
         """
         Initialize integration test context with dependencies.
 
         Args:
-            db: Database session (should be PostgreSQL from testcontainer)
+            db: SqlDatabase instance (should be PostgreSQL from testcontainer)
             blob_storage: Blob storage instance (should be MinIO from testcontainer)
         """
         self.db = db
@@ -95,12 +95,12 @@ class IntegrationTestContext:
         )
 
 
-def create_unit_test_context(db: Session) -> UnitTestContext:
+def create_unit_test_context(db: SqlDatabase) -> UnitTestContext:
     """
     Factory function to create unit test context.
 
     Args:
-        db: Database session (should be SQLite in-memory)
+        db: SqlDatabase instance
 
     Returns:
         UnitTestContext: Test context with in-memory implementations
@@ -109,14 +109,14 @@ def create_unit_test_context(db: Session) -> UnitTestContext:
 
 
 def create_integration_test_context(
-    db: Session,
+    db: SqlDatabase,
     blob_storage: BlobStorage,
 ) -> IntegrationTestContext:
     """
     Factory function to create integration test context.
 
     Args:
-        db: Database session (should be PostgreSQL from testcontainer)
+        db: SqlDatabase instance (should be PostgreSQL from testcontainer)
         blob_storage: Blob storage instance (should be MinIO from testcontainer)
 
     Returns:

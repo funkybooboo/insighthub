@@ -4,8 +4,8 @@ from enum import Enum
 
 from shared.types.option import Nothing, Option, Some
 
-from .vector_embedding_encoder import VectorEmbeddingEncoder
 from .ollama_vector_embedding_encoder import OllamaVectorEmbeddingEncoder
+from .vector_embedding_encoder import VectorEmbeddingEncoder
 
 
 class EmbeddingEncoderType(Enum):

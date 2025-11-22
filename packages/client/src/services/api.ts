@@ -227,15 +227,24 @@ class ApiService {
     /**
      * Update user profile
      */
-    async updateProfile(request: { full_name?: string; email?: string }): Promise<{ user: UserResponse }> {
-        const { data } = await this.client.patch<{ user: UserResponse }>('/api/auth/profile', request);
+    async updateProfile(request: {
+        full_name?: string;
+        email?: string;
+    }): Promise<{ user: UserResponse }> {
+        const { data } = await this.client.patch<{ user: UserResponse }>(
+            '/api/auth/profile',
+            request
+        );
         return data;
     }
 
     /**
      * Change user password
      */
-    async changePassword(request: { current_password: string; new_password: string }): Promise<void> {
+    async changePassword(request: {
+        current_password: string;
+        new_password: string;
+    }): Promise<void> {
         await this.client.post('/api/auth/change-password', request);
     }
 
@@ -266,8 +275,14 @@ class ApiService {
     /**
      * Update a workspace
      */
-    async updateWorkspace(workspaceId: number, request: UpdateWorkspaceRequest): Promise<Workspace> {
-        const { data } = await this.client.patch<Workspace>(`/api/workspaces/${workspaceId}`, request);
+    async updateWorkspace(
+        workspaceId: number,
+        request: UpdateWorkspaceRequest
+    ): Promise<Workspace> {
+        const { data } = await this.client.patch<Workspace>(
+            `/api/workspaces/${workspaceId}`,
+            request
+        );
         return data;
     }
 
@@ -275,7 +290,9 @@ class ApiService {
      * Delete a workspace
      */
     async deleteWorkspace(workspaceId: number): Promise<{ message: string }> {
-        const { data } = await this.client.delete<{ message: string }>(`/api/workspaces/${workspaceId}`);
+        const { data } = await this.client.delete<{ message: string }>(
+            `/api/workspaces/${workspaceId}`
+        );
         return data;
     }
 
@@ -283,14 +300,19 @@ class ApiService {
      * Get RAG config for a workspace
      */
     async getRagConfig(workspaceId: number): Promise<RagConfig> {
-        const { data } = await this.client.get<RagConfig>(`/api/workspaces/${workspaceId}/rag-config`);
+        const { data } = await this.client.get<RagConfig>(
+            `/api/workspaces/${workspaceId}/rag-config`
+        );
         return data;
     }
 
     /**
      * Create RAG config for a workspace
      */
-    async createRagConfig(workspaceId: number, request: CreateRagConfigRequest): Promise<RagConfig> {
+    async createRagConfig(
+        workspaceId: number,
+        request: CreateRagConfigRequest
+    ): Promise<RagConfig> {
         const { data } = await this.client.post<RagConfig>(
             `/api/workspaces/${workspaceId}/rag-config`,
             request
@@ -317,7 +339,9 @@ class ApiService {
      */
     async getDefaultRagConfig(): Promise<DefaultRagConfig | null> {
         try {
-            const { data } = await this.client.get<DefaultRagConfig>('/api/auth/default-rag-config');
+            const { data } = await this.client.get<DefaultRagConfig>(
+                '/api/auth/default-rag-config'
+            );
             return data;
         } catch (error) {
             // Return null if config doesn't exist yet
@@ -332,7 +356,10 @@ class ApiService {
      * Save user's default RAG config
      */
     async saveDefaultRagConfig(config: DefaultRagConfig): Promise<DefaultRagConfig> {
-        const { data } = await this.client.put<DefaultRagConfig>('/api/auth/default-rag-config', config);
+        const { data } = await this.client.put<DefaultRagConfig>(
+            '/api/auth/default-rag-config',
+            config
+        );
         return data;
     }
 }

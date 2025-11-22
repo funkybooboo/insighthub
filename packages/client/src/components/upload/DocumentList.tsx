@@ -269,7 +269,11 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                                             onClick={() => handleDeleteClick(doc.id, doc.filename)}
                                             disabled={deletingId === doc.id || isProcessing}
                                             className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title={isProcessing ? 'Cannot delete while processing' : 'Delete document'}
+                                            title={
+                                                isProcessing
+                                                    ? 'Cannot delete while processing'
+                                                    : 'Delete document'
+                                            }
                                         >
                                             {deletingId === doc.id ? (
                                                 <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />

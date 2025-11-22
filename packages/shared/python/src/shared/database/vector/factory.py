@@ -4,8 +4,8 @@ from enum import Enum
 
 from shared.types.option import Nothing, Option, Some
 
-from .vector_database import VectorDatabase
 from .qdrant_vector_database import QdrantVectorDatabase
+from .vector_database import VectorDatabase
 
 
 class VectorDatabaseType(Enum):

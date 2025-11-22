@@ -4,11 +4,11 @@ import os
 from pathlib import Path
 
 from flask import Blueprint, Response, g, jsonify, request
+from shared.exceptions import ValidationError
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from src.infrastructure.auth import get_current_user, require_auth
-from packages.shared.python.src.shared.errors import ValidationError
 
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 

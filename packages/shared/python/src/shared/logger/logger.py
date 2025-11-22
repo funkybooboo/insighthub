@@ -35,34 +35,76 @@ class SecretsFilter(logging.Filter):
     # Patterns for sensitive data
     SECRET_PATTERNS: list[tuple[re.Pattern[str], str]] = [
         # API keys (common formats)
-        (re.compile(r'api[_-]?key["\s:=]+["\']?[\w\-]{20,}["\']?', re.IGNORECASE), 'api_key="[REDACTED]"'),
-        (re.compile(r'apikey["\s:=]+["\']?[\w\-]{20,}["\']?', re.IGNORECASE), 'apikey="[REDACTED]"'),
+        (
+            re.compile(r'api[_-]?key["\s:=]+["\']?[\w\-]{20,}["\']?', re.IGNORECASE),
+            'api_key="[REDACTED]"',
+        ),
+        (
+            re.compile(r'apikey["\s:=]+["\']?[\w\-]{20,}["\']?', re.IGNORECASE),
+            'apikey="[REDACTED]"',
+        ),
         # Bearer tokens
-        (re.compile(r'Bearer\s+[\w\-_.]+', re.IGNORECASE), 'Bearer [REDACTED]'),
+        (re.compile(r"Bearer\s+[\w\-_.]+", re.IGNORECASE), "Bearer [REDACTED]"),
         # Authorization headers
-        (re.compile(r'Authorization["\s:=]+["\']?[\w\-_.]+["\']?', re.IGNORECASE), 'Authorization="[REDACTED]"'),
+        (
+            re.compile(r'Authorization["\s:=]+["\']?[\w\-_.]+["\']?', re.IGNORECASE),
+            'Authorization="[REDACTED]"',
+        ),
         # Passwords
-        (re.compile(r'password["\s:=]+["\']?[^\s"\']+["\']?', re.IGNORECASE), 'password="[REDACTED]"'),
+        (
+            re.compile(r'password["\s:=]+["\']?[^\s"\']+["\']?', re.IGNORECASE),
+            'password="[REDACTED]"',
+        ),
         (re.compile(r'passwd["\s:=]+["\']?[^\s"\']+["\']?', re.IGNORECASE), 'passwd="[REDACTED]"'),
         (re.compile(r'pwd["\s:=]+["\']?[^\s"\']+["\']?', re.IGNORECASE), 'pwd="[REDACTED]"'),
         # Secret keys
-        (re.compile(r'secret[_-]?key["\s:=]+["\']?[\w\-]{16,}["\']?', re.IGNORECASE), 'secret_key="[REDACTED]"'),
-        (re.compile(r'secret["\s:=]+["\']?[\w\-]{16,}["\']?', re.IGNORECASE), 'secret="[REDACTED]"'),
+        (
+            re.compile(r'secret[_-]?key["\s:=]+["\']?[\w\-]{16,}["\']?', re.IGNORECASE),
+            'secret_key="[REDACTED]"',
+        ),
+        (
+            re.compile(r'secret["\s:=]+["\']?[\w\-]{16,}["\']?', re.IGNORECASE),
+            'secret="[REDACTED]"',
+        ),
         # AWS credentials
-        (re.compile(r'aws[_-]?access[_-]?key[_-]?id["\s:=]+["\']?[\w]{16,}["\']?', re.IGNORECASE), 'aws_access_key_id="[REDACTED]"'),
-        (re.compile(r'aws[_-]?secret[_-]?access[_-]?key["\s:=]+["\']?[\w/+=]{16,}["\']?', re.IGNORECASE), 'aws_secret_access_key="[REDACTED]"'),
+        (
+            re.compile(
+                r'aws[_-]?access[_-]?key[_-]?id["\s:=]+["\']?[\w]{16,}["\']?', re.IGNORECASE
+            ),
+            'aws_access_key_id="[REDACTED]"',
+        ),
+        (
+            re.compile(
+                r'aws[_-]?secret[_-]?access[_-]?key["\s:=]+["\']?[\w/+=]{16,}["\']?', re.IGNORECASE
+            ),
+            'aws_secret_access_key="[REDACTED]"',
+        ),
         # JWT tokens (three base64 parts separated by dots)
-        (re.compile(r'eyJ[\w\-_]+\.eyJ[\w\-_]+\.[\w\-_]+'), '[JWT_REDACTED]'),
+        (re.compile(r"eyJ[\w\-_]+\.eyJ[\w\-_]+\.[\w\-_]+"), "[JWT_REDACTED]"),
         # Connection strings with credentials
-        (re.compile(r'://[^:]+:[^@]+@', re.IGNORECASE), '://[CREDENTIALS_REDACTED]@'),
+        (re.compile(r"://[^:]+:[^@]+@", re.IGNORECASE), "://[CREDENTIALS_REDACTED]@"),
         # Private keys
-        (re.compile(r'-----BEGIN\s+[\w\s]+PRIVATE\s+KEY-----[\s\S]*?-----END\s+[\w\s]+PRIVATE\s+KEY-----'), '[PRIVATE_KEY_REDACTED]'),
+        (
+            re.compile(
+                r"-----BEGIN\s+[\w\s]+PRIVATE\s+KEY-----[\s\S]*?-----END\s+[\w\s]+PRIVATE\s+KEY-----"
+            ),
+            "[PRIVATE_KEY_REDACTED]",
+        ),
         # Token patterns
-        (re.compile(r'token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE), 'token="[REDACTED]"'),
+        (
+            re.compile(r'token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE),
+            'token="[REDACTED]"',
+        ),
         # Access tokens
-        (re.compile(r'access[_-]?token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE), 'access_token="[REDACTED]"'),
+        (
+            re.compile(r'access[_-]?token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE),
+            'access_token="[REDACTED]"',
+        ),
         # Refresh tokens
-        (re.compile(r'refresh[_-]?token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE), 'refresh_token="[REDACTED]"'),
+        (
+            re.compile(r'refresh[_-]?token["\s:=]+["\']?[\w\-_.]{20,}["\']?', re.IGNORECASE),
+            'refresh_token="[REDACTED]"',
+        ),
     ]
 
     def filter(self, record: logging.LogRecord) -> bool:

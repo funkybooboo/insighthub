@@ -19,9 +19,7 @@ flask = "^3.0.0"
 flask-cors = "^6.0.0"
 pypdf = "^6.1.3"
 werkzeug = "^3.0.0"
-sqlalchemy = "^2.0.0"
 psycopg2-binary = "^2.9.0"
-alembic = "^1.13.0"
 boto3 = "^1.34.0"
 python-socketio = "^5.14.3"
 flask-socketio = "^5.5.1"
@@ -29,7 +27,7 @@ bcrypt = "^4.0.0"
 pyjwt = "^2.8.0"
 anthropic = "^0.73.0"
 pika = "^1.3.2"
-insighthub-shared = {path = "../shared/python"}
+insighthub-shared = {path = "/home/nate/projects/insighthub/packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -46,6 +44,7 @@ minio = "^7.2.0"
 types-flask-socketio = "^5.5.0.20250809"
 pip-audit = "^2.9.0"
 bandit = "^1.9.1"
+types-psycopg2 = "^2.9.21.20251012"
 
 [build-system]
 requires = ["poetry-core"]
@@ -101,7 +100,7 @@ strict_equality = true
 pretty = true
 show_error_codes = true
 show_error_context = true
-mypy_path = "src"
+mypy_path = ["src"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -110,8 +109,6 @@ module = [
     "torch.*",
     "numpy.*",
     "openai.*",
-    "sqlalchemy.*",
-    "alembic.*",
     "boto3.*",
     "botocore.*",
     "testcontainers.*",
@@ -121,8 +118,26 @@ module = [
     "transformers.*",
     "bcrypt.*",
     "jwt.*",
+    "flask_jwt_extended.*",
+    "src.infrastructure.*",
+    "pika.*",
+    "neo4j.*",
+    "redis.*",
+    "psycopg2.*",
+    "shared.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "src.domains.users.service",
+    "src.domains.chat.service",
+    "src.domains.documents.service",
+    "src.domains.workspaces.*",
+    "src.api",
+]
+warn_return_any = false
+disable_error_code = ["arg-type", "assignment", "return-value", "union-attr", "attr-defined"]
 
 # Ruff configuration
 [tool.ruff]

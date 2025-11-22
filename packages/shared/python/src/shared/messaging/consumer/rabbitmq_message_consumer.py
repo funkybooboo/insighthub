@@ -61,9 +61,7 @@ class RabbitMQConsumer(MessageConsumer):
         """Establish connection to RabbitMQ."""
         logger.info("Connecting to RabbitMQ", url=self._rabbitmq_url)
 
-        self._connection = pika.BlockingConnection(
-            pika.URLParameters(self._rabbitmq_url)
-        )
+        self._connection = pika.BlockingConnection(pika.URLParameters(self._rabbitmq_url))
         self._channel = self._connection.channel()
 
         self._channel.exchange_declare(

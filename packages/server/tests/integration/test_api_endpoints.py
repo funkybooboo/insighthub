@@ -9,7 +9,8 @@ from typing import Any
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-from shared.storage.minio_storage import MinIOBlobStorage
+from shared.storage import BlobStorage
+from shared.storage.s3_blob_storage import S3BlobStorage
 from testcontainers.minio import MinioContainer
 from testcontainers.postgres import PostgresContainer
 
@@ -25,11 +26,12 @@ def test_blob_storage(minio_container: MinioContainer) -> BlobStorage:
         endpoint = f"http://{endpoint}"
 
     # Create blob storage with explicit config (cleaner than env vars)
-    return MinIOBlobStorage(
-        endpoint_url=endpoint,
+    return S3BlobStorage(
+        endpoint=endpoint,
         access_key=minio_config["access_key"],
         secret_key=minio_config["secret_key"],
         bucket_name="test-bucket",
+        secure=False,
     )
 
 
@@ -86,21 +88,28 @@ def test_user(app: Flask) -> Generator[Any, None, None]:
     from src.infrastructure.database import get_db
 
     db = next(get_db())
-    user = User(
-        username="test_user",
-        email="test@example.com",
-        full_name="Test User",
+    password_hash = User.hash_password("test_password")
+
+    row = db.fetchone(
+        """
+        INSERT INTO users (username, email, password_hash, full_name)
+        VALUES (%(username)s, %(email)s, %(password_hash)s, %(full_name)s)
+        RETURNING *
+        """,
+        {
+            "username": "test_user",
+            "email": "test@example.com",
+            "password_hash": password_hash,
+            "full_name": "Test User",
+        },
     )
-    user.set_password("test_password")
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    assert row is not None
+    user = User(**row)
 
     yield user
 
-    db.delete(user)
-    db.commit()
-    db.close()
+    # Cleanup
+    db.execute("DELETE FROM users WHERE id = %(id)s", {"id": user.id})
 
 
 @pytest.fixture(scope="function")

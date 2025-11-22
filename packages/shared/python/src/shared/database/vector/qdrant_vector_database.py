@@ -5,6 +5,7 @@ import uuid
 from typing import Any
 
 from shared.types.retrieval import RetrievalResult
+
 from .vector_database import VectorDatabase
 
 logger = logging.getLogger(__name__)
@@ -14,26 +15,26 @@ try:
     from qdrant_client.http import models
     from qdrant_client.http.models import (
         Distance,
-        VectorParams,
-        PointStruct,
-        Filter,
         FieldCondition,
+        Filter,
         MatchValue,
         PointIdsList,
+        PointStruct,
+        VectorParams,
     )
 
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    QdrantClient = None  # type: ignore
-    models = None  # type: ignore
-    Distance = None  # type: ignore
-    VectorParams = None  # type: ignore
-    PointStruct = None  # type: ignore
-    Filter = None  # type: ignore
-    FieldCondition = None  # type: ignore
-    MatchValue = None  # type: ignore
-    PointIdsList = None  # type: ignore
+    QdrantClient = None
+    models = None
+    Distance = None
+    VectorParams = None
+    PointStruct = None
+    Filter = None
+    FieldCondition = None
+    MatchValue = None
+    PointIdsList = None
 
 
 class QdrantVectorDatabase(VectorDatabase):
@@ -72,9 +73,7 @@ class QdrantVectorDatabase(VectorDatabase):
             api_key: Optional API key for Qdrant Cloud
         """
         if not QDRANT_AVAILABLE:
-            raise ImportError(
-                "Qdrant client not installed. Please run: pip install qdrant-client"
-            )
+            raise ImportError("Qdrant client not installed. Please run: pip install qdrant-client")
 
         self.url = url
         self.collection_name = collection_name
@@ -175,9 +174,7 @@ class QdrantVectorDatabase(VectorDatabase):
         )
         logger.debug(f"Upserted vector: {id}")
 
-    def upsert_batch(
-        self, items: list[tuple[str, list[float], dict[str, Any]]]
-    ) -> None:
+    def upsert_batch(self, items: list[tuple[str, list[float], dict[str, Any]]]) -> None:
         """
         Batch upsert multiple vectors.
 
@@ -392,9 +389,7 @@ class QdrantVectorDatabase(VectorDatabase):
         Returns:
             Vector count
         """
-        collection_info = self._client.get_collection(
-            collection_name=self.collection_name
-        )
+        collection_info = self._client.get_collection(collection_name=self.collection_name)
         return collection_info.points_count or 0
 
     def get_collection_info(self) -> dict[str, Any]:

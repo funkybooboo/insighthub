@@ -1,5 +1,6 @@
 """Unit tests for DocumentService."""
 
+import hashlib
 import io
 from datetime import datetime
 from typing import BinaryIO
@@ -8,6 +9,9 @@ import pytest
 from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
+from shared.storage.blob_storage import BlobStorageError
+from shared.types.option import Nothing, Option, Some
+from shared.types.result import Err, Ok, Result
 
 from src.domains.documents.exceptions import (
     DocumentNotFoundError,
@@ -24,24 +28,24 @@ class FakeBlobStorage(BlobStorage):
         """Initialize with in-memory storage."""
         self.storage: dict[str, bytes] = {}
 
-    def upload_file(self, file_obj: BinaryIO, blob_key: str) -> str:
+    def upload_file(self, file_obj: BinaryIO, blob_key: str) -> Result[str, BlobStorageError]:
         """Upload a file to in-memory storage."""
         file_obj.seek(0)
         self.storage[blob_key] = file_obj.read()
-        return blob_key
+        return Ok(blob_key)
 
-    def download_file(self, blob_key: str) -> bytes:
+    def download_file(self, blob_key: str) -> Result[bytes, BlobStorageError]:
         """Download a file from in-memory storage."""
         if blob_key not in self.storage:
-            raise FileNotFoundError(f"Blob not found: {blob_key}")
-        return self.storage[blob_key]
+            return Err(BlobStorageError(f"Blob not found: {blob_key}"))
+        return Ok(self.storage[blob_key])
 
-    def delete_file(self, blob_key: str) -> bool:
+    def delete_file(self, blob_key: str) -> Result[bool, BlobStorageError]:
         """Delete a file from in-memory storage."""
         if blob_key in self.storage:
             del self.storage[blob_key]
-            return True
-        return False
+            return Ok(True)
+        return Ok(False)
 
     def file_exists(self, blob_key: str) -> bool:
         """Check if file exists."""
@@ -55,8 +59,6 @@ class FakeBlobStorage(BlobStorage):
 
     def calculate_hash(self, file_obj: BinaryIO) -> str:
         """Calculate hash of file."""
-        import hashlib
-
         file_obj.seek(0)
         content = file_obj.read()
         file_obj.seek(0)
@@ -79,6 +81,7 @@ class FakeDocumentRepository(DocumentRepository):
         file_size: int,
         mime_type: str,
         content_hash: str,
+        workspace_id: int | None = None,
         chunk_count: int | None = None,
         rag_collection: str | None = None,
     ) -> Document:
@@ -91,6 +94,7 @@ class FakeDocumentRepository(DocumentRepository):
             file_size=file_size,
             mime_type=mime_type,
             content_hash=content_hash,
+            workspace_id=workspace_id,
             chunk_count=chunk_count,
             rag_collection=rag_collection,
             created_at=datetime.now(),
@@ -100,38 +104,36 @@ class FakeDocumentRepository(DocumentRepository):
         self.next_id += 1
         return doc
 
-    def get_by_id(self, document_id: int) -> Document | None:
+    def get_by_id(self, document_id: int) -> Option[Document]:
         """Get document by ID."""
-        return self.documents.get(document_id)
+        doc = self.documents.get(document_id)
+        if doc is None:
+            return Nothing()
+        return Some(doc)
 
-    def get_by_content_hash(self, content_hash: str) -> Document | None:
+    def get_by_content_hash(self, content_hash: str) -> Option[Document]:
         """Get document by content hash."""
         for doc in self.documents.values():
             if doc.content_hash == content_hash:
-                return doc
-        return None
+                return Some(doc)
+        return Nothing()
 
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
         """Get all documents for a user."""
         user_docs = [doc for doc in self.documents.values() if doc.user_id == user_id]
         return user_docs[skip : skip + limit]
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> list[Document]:
-        """Get all documents."""
-        all_docs = list(self.documents.values())
-        return all_docs[skip : skip + limit]
-
-    def update(self, document_id: int, **kwargs: str | int) -> Document | None:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Option[Document]:
         """Update document fields."""
         doc = self.documents.get(document_id)
         if not doc:
-            return None
+            return Nothing()
 
         for key, value in kwargs.items():
             if hasattr(doc, key):
                 setattr(doc, key, value)
 
-        return doc
+        return Some(doc)
 
     def delete(self, document_id: int) -> bool:
         """Delete document by ID."""

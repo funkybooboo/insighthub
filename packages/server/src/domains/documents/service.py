@@ -4,10 +4,12 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 from pypdf import PdfReader
-from shared.messaging import RabbitMQPublisher
+from shared.messaging import RabbitMQPublisher, publish_document_status
 from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
+from shared.types.option import Nothing, Some
+from shared.types.result import Err, Ok
 
 from .dtos import DocumentListResponse, DocumentUploadResponse
 from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
@@ -215,6 +217,15 @@ class DocumentService:
             mime_type=mime_type,
         )
 
+        # Publish initial status update (pending -> processing)
+        workspace_id = document.workspace_id or 0
+        publish_document_status(
+            document_id=document.id,
+            workspace_id=workspace_id,
+            status="pending",
+            message="Document uploaded, waiting for processing",
+        )
+
         # Publish document.uploaded event to RabbitMQ for async processing
         if self.message_publisher:
             try:
@@ -223,6 +234,7 @@ class DocumentService:
                     message={
                         "document_id": document.id,
                         "user_id": user_id,
+                        "workspace_id": workspace_id,
                         "filename": filename,
                         "file_path": document.file_path,
                         "mime_type": mime_type,
@@ -266,23 +278,36 @@ class DocumentService:
         Returns:
             Optional[bytes]: File content if found, None otherwise
         """
-        document = self.repository.get_by_id(document_id)
-        if not document:
-            return None
-
-        try:
-            return self.blob_storage.download_file(document.file_path)
-        except Exception as e:
-            print(f"Error downloading document: {e}")
-            return None
+        doc_result = self.repository.get_by_id(document_id)
+        match doc_result:
+            case Some(document):
+                download_result = self.blob_storage.download_file(document.file_path)
+                match download_result:
+                    case Ok(content):
+                        return content
+                    case Err(error):
+                        print(f"Error downloading document: {error}")
+                        return None
+            case Nothing():
+                return None
 
     def get_document_by_id(self, document_id: int) -> Document | None:
         """Get document by ID."""
-        return self.repository.get_by_id(document_id)
+        result = self.repository.get_by_id(document_id)
+        match result:
+            case Some(document):
+                return document
+            case Nothing():
+                return None
 
     def get_document_by_hash(self, content_hash: str) -> Document | None:
         """Get document by content hash."""
-        return self.repository.get_by_content_hash(content_hash)
+        result = self.repository.get_by_content_hash(content_hash)
+        match result:
+            case Some(document):
+                return document
+            case Nothing():
+                return None
 
     def list_user_documents(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
         """List all documents for a user with pagination."""
@@ -290,7 +315,12 @@ class DocumentService:
 
     def update_document(self, document_id: int, **kwargs: str | int) -> Document | None:
         """Update document fields."""
-        return self.repository.update(document_id, **kwargs)
+        result = self.repository.update(document_id, **kwargs)
+        match result:
+            case Some(document):
+                return document
+            case Nothing():
+                return None
 
     def delete_document(self, document_id: int, delete_from_storage: bool = True) -> bool:
         """
@@ -304,12 +334,15 @@ class DocumentService:
             bool: True if deletion was successful, False otherwise
         """
         if delete_from_storage:
-            document = self.repository.get_by_id(document_id)
-            if document:
-                try:
-                    self.blob_storage.delete_file(document.file_path)
-                except Exception as e:
-                    print(f"Error deleting from blob storage: {e}")
+            result = self.repository.get_by_id(document_id)
+            match result:
+                case Some(document):
+                    try:
+                        self.blob_storage.delete_file(document.file_path)
+                    except Exception as e:
+                        print(f"Error deleting from blob storage: {e}")
+                case Nothing():
+                    pass
 
         return self.repository.delete(document_id)
 

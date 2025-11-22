@@ -32,9 +32,7 @@ class VectorDatabase(ABC):
         pass
 
     @abstractmethod
-    def upsert_batch(
-        self, items: list[tuple[str, list[float], MetadataDict]]
-    ) -> None:
+    def upsert_batch(self, items: list[tuple[str, list[float], MetadataDict]]) -> None:
         """
         Batch upsert multiple vectors.
 

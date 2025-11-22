@@ -1,21 +1,33 @@
 """Socket.IO event handlers for chat domain."""
 
 import uuid
-from typing import TYPE_CHECKING, Any
+from typing import TypedDict
 
 from flask import current_app
-from flask_socketio import emit
+from flask_socketio import SocketIO, emit
 
 from src.infrastructure.database import get_db
-
-if TYPE_CHECKING:
-    from src.context import AppContext
 
 # Track active request IDs per client
 _active_requests: dict[str, str] = {}
 
 
-def handle_chat_message(data: dict[str, Any]) -> None:
+class ChatMessageData(TypedDict, total=False):
+    """TypedDict for chat message request data."""
+
+    message: str
+    session_id: str | int | None
+    rag_type: str
+    client_id: str
+
+
+class CancelMessageData(TypedDict, total=False):
+    """TypedDict for cancel message request data."""
+
+    client_id: str
+
+
+def handle_chat_message(data: ChatMessageData) -> None:
     """
     Handle streaming chat messages via Socket.IO.
 
@@ -89,7 +101,7 @@ def handle_chat_message(data: dict[str, Any]) -> None:
                 db.close()
 
 
-def handle_cancel_message(data: dict[str, Any] | None = None) -> None:
+def handle_cancel_message(data: CancelMessageData | None = None) -> None:
     """
     Handle cancellation of streaming chat messages via Socket.IO.
 
@@ -133,7 +145,7 @@ def handle_cancel_message(data: dict[str, Any] | None = None) -> None:
                 db.close()
 
 
-def register_socket_handlers(socketio: Any) -> None:
+def register_socket_handlers(socketio: SocketIO) -> None:
     """Register Socket.IO event handlers for chat domain."""
     socketio.on_event("chat_message", handle_chat_message)
-    socketio.on_event("cancel_chat", handle_cancel_chat)
+    socketio.on_event("cancel_chat", handle_cancel_message)

@@ -15,9 +15,7 @@ class InMemoryBlobStorage(BlobStorage):
         """Initialize in-memory storage."""
         self._storage: dict[str, bytes] = {}
 
-    def upload_file(
-        self, file_obj: BinaryIO, object_name: str
-    ) -> Result[str, BlobStorageError]:
+    def upload_file(self, file_obj: BinaryIO, object_name: str) -> Result[str, BlobStorageError]:
         """Upload a file to in-memory storage."""
         file_obj.seek(0)
         self._storage[object_name] = file_obj.read()
@@ -26,11 +24,7 @@ class InMemoryBlobStorage(BlobStorage):
     def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
         """Download a file from in-memory storage."""
         if object_name not in self._storage:
-            return Err(
-                BlobStorageError(
-                    f"File not found: {object_name}", code="NOT_FOUND"
-                )
-            )
+            return Err(BlobStorageError(f"File not found: {object_name}", code="NOT_FOUND"))
         return Ok(self._storage[object_name])
 
     def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:

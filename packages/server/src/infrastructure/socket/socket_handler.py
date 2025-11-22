@@ -1,11 +1,10 @@
 """General Socket.IO infrastructure for real-time communication."""
 
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Mapping
 
 from flask_socketio import SocketIO, emit
 
-EventHandler = Callable[[dict[str, Any]], None]
+EventHandler = Callable[[Mapping[str, object]], None]
 
 
 class SocketHandler:

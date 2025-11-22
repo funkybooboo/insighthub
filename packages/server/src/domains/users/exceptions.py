@@ -1,6 +1,6 @@
 """User domain exceptions."""
 
-from packages.shared.python.src.shared.errors import AlreadyExistsError, NotFoundError, ValidationError
+from shared.exceptions import AlreadyExistsError, NotFoundError, ValidationError
 
 
 class UserNotFoundError(NotFoundError):

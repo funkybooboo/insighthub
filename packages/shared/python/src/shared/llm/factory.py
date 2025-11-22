@@ -1,11 +1,10 @@
 """Factory for creating LLM provider instances."""
 
+from .claude_llm_provider import ClaudeLlmProvider
+from .huggingface_llm_provider import HuggingFaceLlmProvider
 from .llm_provider import LlmProvider
 from .ollama_llm_provider import OllamaLlmProvider
 from .openai_llm_provider import OpenAiLlmProvider
-from .claude_llm_provider import ClaudeLlmProvider
-from .huggingface_llm_provider import HuggingFaceLlmProvider
-
 
 SUPPORTED_LLM_PROVIDERS = ["ollama", "openai", "claude", "huggingface"]
 

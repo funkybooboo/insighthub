@@ -65,9 +65,7 @@ class S3BlobStorage(BlobStorage):
             RuntimeError: If minio library is not available
         """
         if not MINIO_AVAILABLE or Minio is None:
-            raise RuntimeError(
-                "minio library not available. Install: pip install minio"
-            )
+            raise RuntimeError("minio library not available. Install: pip install minio")
 
         self._endpoint = endpoint
         self._bucket_name = bucket_name
@@ -93,9 +91,7 @@ class S3BlobStorage(BlobStorage):
             logger.error("Error checking/creating bucket", error=str(e))
             raise RuntimeError(f"Failed to ensure bucket exists: {e}") from e
 
-    def upload_file(
-        self, file_obj: BinaryIO, object_name: str
-    ) -> Result[str, BlobStorageError]:
+    def upload_file(self, file_obj: BinaryIO, object_name: str) -> Result[str, BlobStorageError]:
         """Upload file to MinIO."""
         try:
             file_obj.seek(0, 2)
@@ -109,16 +105,12 @@ class S3BlobStorage(BlobStorage):
                 length=file_size,
             )
 
-            logger.info(
-                "Uploaded file", object_name=object_name, size_bytes=file_size
-            )
+            logger.info("Uploaded file", object_name=object_name, size_bytes=file_size)
             return Ok(object_name)
 
         except S3Error as e:
             logger.error("Error uploading file", object_name=object_name, error=str(e))
-            return Err(
-                BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR")
-            )
+            return Err(BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR"))
 
     def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
         """Download file from MinIO."""
@@ -130,18 +122,12 @@ class S3BlobStorage(BlobStorage):
             response.close()
             response.release_conn()
 
-            logger.info(
-                "Downloaded file", object_name=object_name, size_bytes=len(data)
-            )
+            logger.info("Downloaded file", object_name=object_name, size_bytes=len(data))
             return Ok(data)
 
         except S3Error as e:
-            logger.error(
-                "Error downloading file", object_name=object_name, error=str(e)
-            )
-            return Err(
-                BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR")
-            )
+            logger.error("Error downloading file", object_name=object_name, error=str(e))
+            return Err(BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR"))
 
     def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """Delete file from MinIO."""
@@ -151,23 +137,17 @@ class S3BlobStorage(BlobStorage):
             if not exists:
                 return Ok(False)
 
-            self._client.remove_object(
-                bucket_name=self._bucket_name, object_name=object_name
-            )
+            self._client.remove_object(bucket_name=self._bucket_name, object_name=object_name)
             logger.info("Deleted file", object_name=object_name)
             return Ok(True)
         except S3Error as e:
             logger.error("Error deleting file", object_name=object_name, error=str(e))
-            return Err(
-                BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR")
-            )
+            return Err(BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR"))
 
     def file_exists(self, object_name: str) -> bool:
         """Check if file exists in MinIO."""
         try:
-            self._client.stat_object(
-                bucket_name=self._bucket_name, object_name=object_name
-            )
+            self._client.stat_object(bucket_name=self._bucket_name, object_name=object_name)
             return True
         except S3Error:
             return False

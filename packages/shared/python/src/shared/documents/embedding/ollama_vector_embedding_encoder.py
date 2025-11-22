@@ -57,9 +57,7 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
         self._timeout = timeout
         self._dimension: int | None = None
 
-    def encode(
-        self, texts: Iterable[str]
-    ) -> Result[list[list[float]], EmbeddingError]:
+    def encode(self, texts: Iterable[str]) -> Result[list[list[float]], EmbeddingError]:
         """
         Batch encode multiple texts into vectors.
 
@@ -114,26 +112,16 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
 
         except requests.exceptions.ConnectionError as e:
             logger.error("Connection failed to Ollama", error=str(e))
-            return Err(
-                EmbeddingError(
-                    f"Connection failed to Ollama: {e}", code="CONNECTION_ERROR"
-                )
-            )
+            return Err(EmbeddingError(f"Connection failed to Ollama: {e}", code="CONNECTION_ERROR"))
         except requests.exceptions.Timeout as e:
             logger.error("Request timeout to Ollama", error=str(e))
-            return Err(
-                EmbeddingError(f"Request timeout: {e}", code="TIMEOUT_ERROR")
-            )
+            return Err(EmbeddingError(f"Request timeout: {e}", code="TIMEOUT_ERROR"))
         except requests.exceptions.HTTPError as e:
             logger.error("HTTP error from Ollama", error=str(e))
-            return Err(
-                EmbeddingError(f"HTTP error: {e}", code="HTTP_ERROR")
-            )
+            return Err(EmbeddingError(f"HTTP error: {e}", code="HTTP_ERROR"))
         except requests.exceptions.RequestException as e:
             logger.error("Failed to get embedding from Ollama", error=str(e))
-            return Err(
-                EmbeddingError(f"Ollama embedding failed: {e}", code="REQUEST_ERROR")
-            )
+            return Err(EmbeddingError(f"Ollama embedding failed: {e}", code="REQUEST_ERROR"))
 
     def get_dimension(self) -> int:
         """

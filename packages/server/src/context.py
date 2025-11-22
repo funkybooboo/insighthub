@@ -1,9 +1,9 @@
 """Application context for dependency injection."""
 
-from sqlalchemy.orm import Session
-
+from shared.database.sql import SqlDatabase
 from shared.messaging import RabbitMQPublisher
 from shared.storage import BlobStorage
+
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
 from src.domains.users.service import UserService
@@ -23,7 +23,7 @@ class AppContext:
 
     def __init__(
         self,
-        db: Session,
+        db: SqlDatabase,
         blob_storage: BlobStorage | None = None,
         message_publisher: RabbitMQPublisher | None = None,
     ):
@@ -31,7 +31,7 @@ class AppContext:
         Initialize application context with dependencies.
 
         Args:
-            db: Database session
+            db: SqlDatabase instance
             blob_storage: Optional blob storage instance (creates one if not provided)
             message_publisher: Optional RabbitMQ publisher (creates one if not provided)
         """
@@ -66,12 +66,12 @@ class AppContext:
         )
 
 
-def create_app_context(db: Session) -> AppContext:
+def create_app_context(db: SqlDatabase) -> AppContext:
     """
     Factory function to create application context.
 
     Args:
-        db: Database session
+        db: SqlDatabase instance
 
     Returns:
         AppContext: Application context with all services initialized

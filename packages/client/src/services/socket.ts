@@ -30,12 +30,39 @@ export interface ChatCancelledData {
     status: string;
 }
 
+export interface DocumentStatusData {
+    document_id: number;
+    workspace_id: number;
+    status: 'pending' | 'processing' | 'ready' | 'failed';
+    message?: string;
+    error?: string;
+    progress?: number;
+    timestamp: string;
+}
+
+export interface WorkspaceStatusData {
+    workspace_id: number;
+    user_id: number;
+    status: 'provisioning' | 'ready' | 'error';
+    message?: string;
+    error?: string;
+    timestamp: string;
+}
+
+export interface SubscribedData {
+    user_id: number;
+    room: string;
+}
+
 export type ChatChunkCallback = (data: ChatChunkData) => void;
 export type ChatCompleteCallback = (data: ChatCompleteData) => void;
 export type ChatCancelledCallback = (data: ChatCancelledData) => void;
 export type ErrorCallback = (data: ErrorData) => void;
 export type ConnectedCallback = () => void;
 export type DisconnectedCallback = () => void;
+export type DocumentStatusCallback = (data: DocumentStatusData) => void;
+export type WorkspaceStatusCallback = (data: WorkspaceStatusData) => void;
+export type SubscribedCallback = (data: SubscribedData) => void;
 
 class SocketService {
     private socket: Socket | null = null;
@@ -160,6 +187,46 @@ class SocketService {
             throw new Error('Socket not connected. Call connect() first.');
         }
         this.socket.on('disconnect', callback);
+    }
+
+    /**
+     * Subscribe to status updates for a user
+     */
+    subscribeToStatus(userId: number): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.emit('subscribe_status', { user_id: userId });
+    }
+
+    /**
+     * Listen for document status updates
+     */
+    onDocumentStatus(callback: DocumentStatusCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('document_status', callback);
+    }
+
+    /**
+     * Listen for workspace status updates
+     */
+    onWorkspaceStatus(callback: WorkspaceStatusCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('workspace_status', callback);
+    }
+
+    /**
+     * Listen for subscription confirmation
+     */
+    onSubscribed(callback: SubscribedCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('subscribed', callback);
     }
 
     /**

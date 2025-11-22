@@ -1,11 +1,10 @@
 """SQL implementation of user repository using SqlDatabase."""
 
-from typing import List
+from shared.database.sql.sql_database import SqlDatabase
 from shared.models.user import User
-from shared.types.option import Option, Some, Nothing
+from shared.types.option import Nothing, Option, Some
 
 from .user_repository import UserRepository
-from shared.database.sql.sql_database import SqlDatabase
 
 
 class SqlUserRepository(UserRepository):
@@ -26,23 +25,24 @@ class SqlUserRepository(UserRepository):
         """Create a new user with hashed password."""
         hashed_password = User.hash_password(password)
         query = """
-        INSERT INTO "user" (username, email, full_name, password, created_at, updated_at)
-        VALUES (%(username)s, %(email)s, %(full_name)s, %(password)s, NOW(), NOW())
-        RETURNING id, username, email, full_name, password, created_at, updated_at;
+        INSERT INTO users (username, email, full_name, password_hash)
+        VALUES (%(username)s, %(email)s, %(full_name)s, %(password_hash)s)
+        RETURNING id, username, email, password_hash, full_name, theme_preference, created_at, updated_at;
         """
         params = {
             "username": username,
             "email": email,
             "full_name": full_name,
-            "password": hashed_password,
+            "password_hash": hashed_password,
         }
         row = self._db.fetchone(query, params)
-        user = User(**row)
-        return user
+        if row is None:
+            raise ValueError("Failed to create user")
+        return User(**row)
 
     def get_by_id(self, user_id: int) -> Option[User]:
         """Get user by ID."""
-        query = 'SELECT * FROM "user" WHERE id = %(id)s;'
+        query = "SELECT * FROM users WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": user_id})
         if row is None:
             return Nothing()
@@ -50,7 +50,7 @@ class SqlUserRepository(UserRepository):
 
     def get_by_username(self, username: str) -> Option[User]:
         """Get user by username."""
-        query = 'SELECT * FROM "user" WHERE username = %(username)s;'
+        query = "SELECT * FROM users WHERE username = %(username)s;"
         row = self._db.fetchone(query, {"username": username})
         if row is None:
             return Nothing()
@@ -58,15 +58,15 @@ class SqlUserRepository(UserRepository):
 
     def get_by_email(self, email: str) -> Option[User]:
         """Get user by email."""
-        query = 'SELECT * FROM "user" WHERE email = %(email)s;'
+        query = "SELECT * FROM users WHERE email = %(email)s;"
         row = self._db.fetchone(query, {"email": email})
         if row is None:
             return Nothing()
         return Some(User(**row))
 
-    def get_all(self, skip: int, limit: int) -> List[User]:
+    def get_all(self, skip: int, limit: int) -> list[User]:
         """Get all users with pagination."""
-        query = 'SELECT * FROM "user" OFFSET %(skip)s LIMIT %(limit)s;'
+        query = "SELECT * FROM users OFFSET %(skip)s LIMIT %(limit)s;"
         rows = self._db.fetchall(query, {"skip": skip, "limit": limit})
         return [User(**row) for row in rows]
 
@@ -76,12 +76,12 @@ class SqlUserRepository(UserRepository):
             return self.get_by_id(user_id)
 
         set_clause = ", ".join(f"{key} = %({key})s" for key in kwargs.keys())
-        kwargs["id"] = user_id
+        kwargs["id"] = str(user_id)
         query = f"""
-        UPDATE "user"
+        UPDATE users
         SET {set_clause}, updated_at = NOW()
         WHERE id = %(id)s
-        RETURNING id, username, email, full_name, password, created_at, updated_at;
+        RETURNING *;
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
@@ -90,6 +90,6 @@ class SqlUserRepository(UserRepository):
 
     def delete(self, user_id: int) -> bool:
         """Delete user by ID."""
-        query = 'DELETE FROM "user" WHERE id = %(id)s;'
+        query = "DELETE FROM users WHERE id = %(id)s;"
         self._db.execute(query, {"id": user_id})
         return True

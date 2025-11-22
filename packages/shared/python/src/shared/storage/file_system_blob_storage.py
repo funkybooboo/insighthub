@@ -29,9 +29,7 @@ class FileSystemBlobStorage(BlobStorage):
         full_path.parent.mkdir(parents=True, exist_ok=True)
         return full_path
 
-    def upload_file(
-        self, file_obj: BinaryIO, object_name: str
-    ) -> Result[str, BlobStorageError]:
+    def upload_file(self, file_obj: BinaryIO, object_name: str) -> Result[str, BlobStorageError]:
         """Upload a file to file system storage."""
         try:
             full_path = self._get_full_path(object_name)
@@ -42,28 +40,20 @@ class FileSystemBlobStorage(BlobStorage):
 
             return Ok(object_name)
         except OSError as e:
-            return Err(
-                BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR")
-            )
+            return Err(BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR"))
 
     def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
         """Download a file from file system storage."""
         full_path = self._get_full_path(object_name)
 
         if not full_path.exists():
-            return Err(
-                BlobStorageError(
-                    f"File not found: {object_name}", code="NOT_FOUND"
-                )
-            )
+            return Err(BlobStorageError(f"File not found: {object_name}", code="NOT_FOUND"))
 
         try:
             with open(full_path, "rb") as f:
                 return Ok(f.read())
         except OSError as e:
-            return Err(
-                BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR")
-            )
+            return Err(BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR"))
 
     def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
         """Delete a file from file system storage."""
@@ -85,9 +75,7 @@ class FileSystemBlobStorage(BlobStorage):
 
             return Ok(True)
         except OSError as e:
-            return Err(
-                BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR")
-            )
+            return Err(BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR"))
 
     def file_exists(self, object_name: str) -> bool:
         """Check if a file exists in file system storage."""

@@ -11,7 +11,11 @@ class ChatSessionRepository(ABC):
 
     @abstractmethod
     def create(
-        self, user_id: int, title: str | None = None, rag_type: str | None = None
+        self,
+        user_id: int,
+        title: str | None = None,
+        workspace_id: int | None = None,
+        rag_type: str = "vector",
     ) -> ChatSession:
         """
         Create a new chat session.
@@ -19,7 +23,8 @@ class ChatSessionRepository(ABC):
         Args:
             user_id: Owner user ID
             title: Optional session title
-            rag_type: Optional RAG type (vector, graph)
+            workspace_id: Workspace ID (optional)
+            rag_type: RAG type (vector, graph), defaults to vector
 
         Returns:
             Created chat session
@@ -55,7 +60,7 @@ class ChatSessionRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, session_id: int, **kwargs: str) -> Option[ChatSession]:
+    def update(self, session_id: int, **kwargs: str | int | None) -> Option[ChatSession]:
         """
         Update session fields.
 

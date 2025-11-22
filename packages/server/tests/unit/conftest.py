@@ -2,9 +2,11 @@
 
 from collections.abc import Generator
 from io import BytesIO
+from pathlib import Path
 
+import psycopg2
 import pytest
-from shared.database import Base
+from shared.database.sql import PostgresSQLDatabase
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -12,47 +14,68 @@ from shared.repositories import (
     UserRepository,
 )
 from shared.storage import BlobStorage
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
+from testcontainers.postgres import PostgresContainer
 
 from tests.context import UnitTestContext, create_unit_test_context
 
 
-@pytest.fixture(scope="function")
-def unit_db_engine() -> Generator[Engine, None, None]:
-    """Create an in-memory SQLite database engine for unit tests."""
-    # Use SQLite in-memory database
-    engine = create_engine("sqlite:///:memory:", echo=False)
+def _run_migrations(db_url: str) -> None:
+    """Run migration SQL files against the database."""
+    migrations_dir = Path(__file__).parent.parent.parent / "migrations"
+    migration_files = sorted(migrations_dir.glob("*.sql"))
 
-    # Create all tables
-    Base.metadata.create_all(bind=engine)
-
-    yield engine
-
-    # Drop all tables after test
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
-
-
-@pytest.fixture(scope="function")
-def db_session(unit_db_engine: Engine) -> Generator[Session, None, None]:
-    """Create a database session for unit tests."""
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=unit_db_engine)
-    session = SessionLocal()
-
+    conn = psycopg2.connect(db_url)
     try:
-        yield session
+        with conn.cursor() as cur:
+            for migration_file in migration_files:
+                sql = migration_file.read_text()
+                cur.execute(sql)
+        conn.commit()
     finally:
-        session.rollback()
-        session.close()
+        conn.close()
+
+
+def _drop_all_tables(db_url: str) -> None:
+    """Drop all tables from the database."""
+    conn = psycopg2.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@pytest.fixture(scope="session", autouse=False)
+def unit_postgres_container() -> Generator[PostgresContainer, None, None]:
+    """Start a PostgreSQL container for unit tests."""
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        yield postgres
 
 
 @pytest.fixture(scope="function")
-def test_context(db_session: Session) -> UnitTestContext:
+def db_url(unit_postgres_container: PostgresContainer) -> Generator[str, None, None]:
+    """Get database URL and run migrations for unit tests."""
+    url = unit_postgres_container.get_connection_url()
+    _run_migrations(url)
+    yield url
+    _drop_all_tables(url)
+
+
+@pytest.fixture(scope="function")
+def db(db_url: str) -> Generator[PostgresSQLDatabase, None, None]:
+    """Create a test database connection for unit tests."""
+    database = PostgresSQLDatabase(db_url)
+    try:
+        yield database
+    finally:
+        database.close()
+
+
+@pytest.fixture(scope="function")
+def test_context(db: PostgresSQLDatabase) -> UnitTestContext:
     """Create a test context for unit tests with in-memory implementations."""
-    return create_unit_test_context(db=db_session)
+    return create_unit_test_context(db=db)
 
 
 @pytest.fixture(scope="function")

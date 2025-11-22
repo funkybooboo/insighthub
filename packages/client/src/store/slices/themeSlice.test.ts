@@ -41,7 +41,7 @@ describe('themeSlice', () => {
                     theme: themeReducer,
                 },
             });
-            
+
             newStore.dispatch(setTheme('light'));
             expect(localStorage.getItem('theme')).toBe('light');
             expect(newStore.getState().theme.theme).toBe('light');

@@ -1,9 +1,8 @@
 """Request validation middleware."""
 
 import logging
-from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class RequestValidationMiddleware:
         """Set up request validation before each request."""
 
         @app.before_request
-        def validate_request() -> Any:
+        def validate_request() -> tuple[Response, int] | None:
             """Validate the incoming request."""
             # Skip validation for health checks and OPTIONS requests
             if request.method == "OPTIONS" or request.path in ["/health", "/heartbeat"]:

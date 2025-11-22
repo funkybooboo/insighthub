@@ -38,9 +38,7 @@ class Retriever(ABC):
     """
 
     @abstractmethod
-    def retrieve(
-        self, query: str, max_results: int = 5
-    ) -> list[RetrievedContent]:
+    def retrieve(self, query: str, max_results: int = 5) -> list[RetrievedContent]:
         """
         Retrieve content matching the query.
 

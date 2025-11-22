@@ -48,12 +48,7 @@ def create_blob_storage(
         return Nothing()
 
     if storage_enum == BlobStorageType.S3:
-        if (
-            endpoint is None
-            or access_key is None
-            or secret_key is None
-            or bucket_name is None
-        ):
+        if endpoint is None or access_key is None or secret_key is None or bucket_name is None:
             return Nothing()
         return Some(
             S3BlobStorage(

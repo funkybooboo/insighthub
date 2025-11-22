@@ -114,7 +114,7 @@ Option = Some[T] | Nothing
 def from_nullable(value: T | None) -> Option[T]:
     """
     Convert a nullable value to Option.
-    
+
     Examples:
         >>> from_nullable(42)
         Some(42)
@@ -126,10 +126,10 @@ def from_nullable(value: T | None) -> Option[T]:
     return Some(value)
 
 
-def from_result(result, error_value=None) -> Option:
+def from_result(result: "Some[T] | Nothing", error_value: U | None = None) -> Option[T]:
     """
     Convert a Result to Option, discarding error information.
-    
+
     Use when you don't care about the specific error, just whether
     the operation succeeded.
     """

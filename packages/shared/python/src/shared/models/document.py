@@ -1,48 +1,27 @@
 """Document model."""
 
-from typing import TYPE_CHECKING
-
-from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from shared.sql_database.base import Base, TimestampMixin
-
-if TYPE_CHECKING:
-    from shared.models.user import User
-    from shared.models.workspace import Workspace
+from dataclasses import dataclass, field
+from datetime import datetime
 
 
-class Document(Base, TimestampMixin):
+@dataclass
+class Document:
     """Document model for storing uploaded documents."""
 
-    __tablename__ = "documents"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    workspace_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=True, index=True
-    )
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    file_path: Mapped[str] = mapped_column(String(1024), nullable=False)
-    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
-    content_hash: Mapped[str] = mapped_column(
-        String(64), nullable=False, index=True
-    )  # SHA-256 hash
-    chunk_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    rag_collection: Mapped[str | None] = mapped_column(
-        String(255), nullable=True
-    )  # Vector store collection name
-    processing_status: Mapped[str] = mapped_column(
-        String(50), nullable=False, server_default="pending", index=True
-    )  # 'pending', 'processing', 'ready', 'failed'
-    processing_error: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="documents")
-    workspace: Mapped["Workspace | None"] = relationship("Workspace", back_populates="documents")
+    id: int
+    user_id: int
+    filename: str
+    file_path: str
+    file_size: int
+    mime_type: str
+    content_hash: str  # SHA-256 hash
+    workspace_id: int | None = None
+    chunk_count: int | None = None
+    rag_collection: str | None = None  # Vector store collection name
+    processing_status: str = "pending"  # 'pending', 'processing', 'ready', 'failed'
+    processing_error: str | None = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, filename={self.filename}, user_id={self.user_id})>"

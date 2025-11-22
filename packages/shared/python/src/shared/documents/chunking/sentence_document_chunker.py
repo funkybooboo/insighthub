@@ -21,9 +21,9 @@ class SentenceDocumentChunker(Chunker):
 
     # Sentence splitting pattern - handles common sentence endings
     SENTENCE_PATTERN: re.Pattern[str] = re.compile(
-        r'(?<=[.!?])\s+(?=[A-Z])|'  # Standard sentence endings
-        r'(?<=[.!?])\s*\n+|'        # Sentence endings followed by newlines
-        r'\n{2,}'                    # Paragraph breaks
+        r"(?<=[.!?])\s+(?=[A-Z])|"  # Standard sentence endings
+        r"(?<=[.!?])\s*\n+|"  # Sentence endings followed by newlines
+        r"\n{2,}"  # Paragraph breaks
     )
 
     def __init__(self, chunk_size: int, overlap: int) -> None:
@@ -90,7 +90,10 @@ class SentenceDocumentChunker(Chunker):
             sentence_length = len(sentence)
 
             # If adding this sentence would exceed chunk_size and we have content
-            if current_chunk_length + sentence_length > self._chunk_size and current_chunk_sentences:
+            if (
+                current_chunk_length + sentence_length > self._chunk_size
+                and current_chunk_sentences
+            ):
                 # Create chunk from current sentences
                 chunk_text = " ".join(current_chunk_sentences)
                 chunks.append(

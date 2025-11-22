@@ -1,11 +1,10 @@
 """Wikipedia content retriever implementation."""
 
 import logging
-from typing import Any
 
 import requests
 
-from .retriever import Retriever, RetrievedContent
+from .retriever import RetrievedContent, Retriever
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +36,7 @@ class WikipediaRetriever(Retriever):
         self.timeout = timeout
         self.base_url = f"https://{language}.wikipedia.org/w/api.php"
 
-    def retrieve(
-        self, query: str, max_results: int = 5
-    ) -> list[RetrievedContent]:
+    def retrieve(self, query: str, max_results: int = 5) -> list[RetrievedContent]:
         """
         Search Wikipedia and retrieve matching articles.
 
@@ -60,9 +57,7 @@ class WikipediaRetriever(Retriever):
                 "format": "json",
             }
 
-            response = requests.get(
-                self.base_url, params=search_params, timeout=self.timeout
-            )
+            response = requests.get(self.base_url, params=search_params, timeout=self.timeout)
             response.raise_for_status()
             search_data = response.json()
 

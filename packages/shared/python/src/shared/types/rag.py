@@ -1,10 +1,10 @@
 """RAG configuration and result types."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 from datetime import datetime
+from typing import Dict, Optional
 
-from shared.types.common import PrimitiveValue, MetadataValue
+from shared.types.common import PrimitiveValue
 
 
 @dataclass
@@ -18,6 +18,7 @@ class ChunkerConfig:
         overlap: Overlap between consecutive chunks
         min_chunk_size: Minimum allowed chunk size
     """
+
     strategy: str
     chunk_size: int
     overlap: int = 0
@@ -32,6 +33,7 @@ class RagConfig:
     This model represents both the DB-persistent configuration and runtime
     configuration needed by the RAG pipelines.
     """
+
     id: Optional[str] = None
     workspace_id: str = ""
     rag_type: str = "vector"  # 'vector', 'graph', or 'hybrid'
@@ -52,7 +54,7 @@ class RagConfig:
 class SearchResult:
     """
     Result from RAG retrieval.
-    
+
     Attributes:
         content: Retrieved text content
         score: Relevance score
@@ -60,6 +62,7 @@ class SearchResult:
         document_id: Source document ID
         chunk_id: Chunk identifier
     """
+
     content: str
     score: float
     metadata: Dict[str, PrimitiveValue]

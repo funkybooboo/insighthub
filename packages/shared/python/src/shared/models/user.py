@@ -1,44 +1,23 @@
 """User model."""
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass, field
+from datetime import datetime
 
 import bcrypt
-from sqlalchemy import Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from shared.sql_database.base import Base, TimestampMixin
-
-if TYPE_CHECKING:
-    from shared.models.chat import ChatSession
-    from shared.models.document import Document
-    from shared.models.workspace import DefaultRagConfig, Workspace
 
 
-class User(Base, TimestampMixin):
+@dataclass
+class User:
     """User model for storing user metadata."""
 
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    theme_preference: Mapped[str] = mapped_column(String(10), nullable=False, server_default="dark")
-
-    # Relationships
-    documents: Mapped[list["Document"]] = relationship(
-        "Document", back_populates="user", cascade="all, delete-orphan"
-    )
-    chat_sessions: Mapped[list["ChatSession"]] = relationship(
-        "ChatSession", back_populates="user", cascade="all, delete-orphan"
-    )
-    workspaces: Mapped[list["Workspace"]] = relationship(
-        "Workspace", back_populates="user", cascade="all, delete-orphan"
-    )
-    default_rag_config: Mapped["DefaultRagConfig | None"] = relationship(
-        "DefaultRagConfig", back_populates="user", uselist=False, cascade="all, delete-orphan"
-    )
+    username: str
+    email: str
+    password_hash: str
+    id: int = 0
+    full_name: str | None = None
+    theme_preference: str = "dark"
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def set_password(self, password: str) -> None:
         """Hash and set the user's password."""
@@ -48,6 +27,12 @@ class User(Base, TimestampMixin):
     def check_password(self, password: str) -> bool:
         """Check if the provided password matches the stored hash."""
         return bcrypt.checkpw(password.encode("utf-8"), self.password_hash.encode("utf-8"))
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        """Hash a password and return the hash string."""
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, email={self.email})>"

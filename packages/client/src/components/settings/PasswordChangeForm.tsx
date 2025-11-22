@@ -117,8 +117,7 @@ export default function PasswordChangeForm() {
                     <input
                         {...register('confirmPassword', {
                             required: 'Please confirm your password',
-                            validate: (value) =>
-                                value === newPassword || 'Passwords do not match',
+                            validate: (value) => value === newPassword || 'Passwords do not match',
                         })}
                         type="password"
                         id="confirmPassword"

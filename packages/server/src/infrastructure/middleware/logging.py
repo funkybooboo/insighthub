@@ -2,7 +2,6 @@
 
 import logging
 import time
-from typing import Any
 
 from flask import Flask, Request, Response, g, request
 
@@ -88,7 +87,7 @@ class RequestLoggingMiddleware:
             return req.headers.get("X-Real-IP", "")
         return req.remote_addr or "unknown"
 
-    def _sanitize_headers(self, headers: dict[str, Any]) -> dict[str, Any]:
+    def _sanitize_headers(self, headers: dict[str, str]) -> dict[str, str]:
         """
         Remove sensitive headers from logging.
 

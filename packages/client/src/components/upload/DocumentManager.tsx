@@ -7,7 +7,10 @@ interface DocumentManagerProps {
     isExpanded?: boolean;
 }
 
-const DocumentManager = ({ workspaceId, isExpanded: initialExpanded = false }: DocumentManagerProps) => {
+const DocumentManager = ({
+    workspaceId,
+    isExpanded: initialExpanded = false,
+}: DocumentManagerProps) => {
     const [isExpanded, setIsExpanded] = useState(initialExpanded);
     const [documentCount, setDocumentCount] = useState(0);
     const documentListRef = useRef<DocumentListRef>(null);

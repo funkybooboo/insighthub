@@ -18,6 +18,7 @@ class DocumentRepository(ABC):
         file_size: int,
         mime_type: str,
         content_hash: str,
+        workspace_id: int | None = None,
         chunk_count: int | None = None,
         rag_collection: str | None = None,
     ) -> Document:
@@ -31,6 +32,7 @@ class DocumentRepository(ABC):
             file_size: File size in bytes
             mime_type: MIME type
             content_hash: SHA-256 hash of content
+            workspace_id: Workspace ID (optional)
             chunk_count: Number of chunks (optional)
             rag_collection: RAG collection name (optional)
 
@@ -81,7 +83,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, document_id: int, **kwargs: str | int) -> Option[Document]:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Option[Document]:
         """
         Update document fields.
 

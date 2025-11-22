@@ -99,9 +99,7 @@ describe('workspaceSlice', () => {
 
             expect(state.workspaces).toHaveLength(1);
             expect(state.activeWorkspaceId).toBe(mockWorkspace.id);
-            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(
-                mockWorkspace.id.toString()
-            );
+            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(mockWorkspace.id.toString());
         });
 
         it('should not change active workspace if workspaces already exist', () => {
@@ -180,9 +178,7 @@ describe('workspaceSlice', () => {
 
             expect(state.workspaces).toHaveLength(1);
             expect(state.activeWorkspaceId).toBe(mockWorkspace2.id);
-            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(
-                mockWorkspace2.id.toString()
-            );
+            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(mockWorkspace2.id.toString());
         });
 
         it('should set active workspace to null if all workspaces removed', () => {
@@ -205,9 +201,7 @@ describe('workspaceSlice', () => {
             const state = workspaceReducer(initialState, setActiveWorkspace(mockWorkspace.id));
 
             expect(state.activeWorkspaceId).toBe(mockWorkspace.id);
-            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(
-                mockWorkspace.id.toString()
-            );
+            expect(localStorage.getItem(ACTIVE_WORKSPACE_KEY)).toBe(mockWorkspace.id.toString());
         });
     });
 

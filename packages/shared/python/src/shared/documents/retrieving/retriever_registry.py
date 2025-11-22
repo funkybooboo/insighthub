@@ -1,8 +1,6 @@
 """Registry for managing multiple retrievers."""
 
-from typing import Any
-
-from .retriever import Retriever, RetrievedContent
+from .retriever import RetrievedContent, Retriever
 
 
 class RetrieverRegistry:
@@ -72,9 +70,7 @@ class RetrieverRegistry:
         """
         return list(self._retrievers.keys())
 
-    def retrieve(
-        self, source: str, query: str, max_results: int = 5
-    ) -> list[RetrievedContent]:
+    def retrieve(self, source: str, query: str, max_results: int = 5) -> list[RetrievedContent]:
         """
         Retrieve content from a specific source.
 
@@ -121,7 +117,7 @@ class RetrieverRegistry:
                 try:
                     source_results = retriever.retrieve(query, max_results_per_source)
                     results[source] = source_results
-                except Exception as e:
+                except Exception:
                     # Log error but continue with other sources
                     results[source] = []
 
@@ -152,9 +148,7 @@ class RetrieverRegistry:
 
         return merged
 
-    def retrieve_by_id(
-        self, source: str, identifier: str
-    ) -> RetrievedContent | None:
+    def retrieve_by_id(self, source: str, identifier: str) -> RetrievedContent | None:
         """
         Retrieve specific content by identifier from a source.
 

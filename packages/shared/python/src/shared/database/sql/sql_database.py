@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, List, Dict
+from typing import Any, Dict, List, Optional
+
 
 class SqlDatabase(ABC):
     """Abstract interface for SQL databases."""
@@ -22,4 +23,9 @@ class SqlDatabase(ABC):
     @abstractmethod
     def execute_many(self, query: str, params_list: List[dict]) -> None:
         """Execute a query with multiple sets of parameters."""
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        """Close the database connection."""
         pass

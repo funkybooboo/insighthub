@@ -95,16 +95,16 @@ describe('MyComponent', () => {
                 <MyComponent />
             </Provider>
         );
-        
+
         expect(screen.getByText('Hello')).toBeInTheDocument();
     });
-    
+
     it('should handle user interactions', async () => {
         render(<MyComponent />);
-        
+
         const button = screen.getByRole('button');
         await userEvent.click(button);
-        
+
         await waitFor(() => {
             expect(screen.getByText('Clicked')).toBeInTheDocument();
         });
@@ -126,7 +126,7 @@ describe('counterSlice', () => {
             value: 0,
         });
     });
-    
+
     it('should handle increment', () => {
         const actual = reducer({ value: 0 }, increment());
         expect(actual.value).toBe(1);
@@ -159,14 +159,14 @@ describe('API Service', () => {
         const data = await apiService.getData();
         expect(data).toEqual({ data: 'test' });
     });
-    
+
     it('should handle errors', async () => {
         server.use(
             http.get('/api/data', () => {
                 return new HttpResponse(null, { status: 500 });
             })
         );
-        
+
         await expect(apiService.getData()).rejects.toThrow();
     });
 });
@@ -184,7 +184,7 @@ describe('validateEmail', () => {
     it('should accept valid emails', () => {
         expect(validateEmail('test@example.com').valid).toBe(true);
     });
-    
+
     it('should reject invalid emails', () => {
         const result = validateEmail('invalid');
         expect(result.valid).toBe(false);
@@ -234,6 +234,7 @@ export const Loading: Story = {
 Run `task test:coverage` to generate a coverage report.
 
 Coverage goals:
+
 - **Statements**: > 80%
 - **Branches**: > 75%
 - **Functions**: > 80%
@@ -242,10 +243,12 @@ Coverage goals:
 ### Coverage Reports
 
 Coverage reports are generated in:
+
 - `coverage/` directory (HTML report)
 - Console output (summary)
 
 View HTML report:
+
 ```bash
 task test:coverage
 open coverage/index.html
@@ -280,15 +283,15 @@ open coverage/index.html
 ```typescript
 it('should submit form with valid data', async () => {
     render(<LoginForm />);
-    
+
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
     const submitButton = screen.getByRole('button', { name: /login/i });
-    
+
     await userEvent.type(emailInput, 'test@example.com');
     await userEvent.type(passwordInput, 'password123');
     await userEvent.click(submitButton);
-    
+
     await waitFor(() => {
         expect(screen.getByText(/success/i)).toBeInTheDocument();
     });
@@ -300,12 +303,12 @@ it('should submit form with valid data', async () => {
 ```typescript
 it('should load data on mount', async () => {
     vi.mocked(apiService.getData).mockResolvedValue({ data: 'test' });
-    
+
     render(<DataComponent />);
-    
+
     // Initially shows loading
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
-    
+
     // Wait for data to load
     await waitFor(() => {
         expect(screen.getByText('test')).toBeInTheDocument();
@@ -332,13 +335,13 @@ it('should display user info from Redux', () => {
             isAuthenticated: true,
         },
     });
-    
+
     render(
         <Provider store={store}>
             <UserMenu />
         </Provider>
     );
-    
+
     expect(screen.getByText('testuser')).toBeInTheDocument();
 });
 ```
@@ -350,9 +353,9 @@ it('should display error message on failure', async () => {
     vi.mocked(apiService.getData).mockRejectedValue(
         new Error('Failed to fetch')
     );
-    
+
     render(<DataComponent />);
-    
+
     await waitFor(() => {
         expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();
     });
@@ -386,10 +389,10 @@ import { screen } from '@testing-library/react';
 
 it('debugging test', () => {
     render(<MyComponent />);
-    
+
     // Print DOM tree
     screen.debug();
-    
+
     // Print specific element
     screen.debug(screen.getByRole('button'));
 });
@@ -398,6 +401,7 @@ it('debugging test', () => {
 ## Continuous Integration
 
 Tests run automatically on:
+
 - Every push to remote
 - Every pull request
 - Before deployment
@@ -409,6 +413,7 @@ See `.github/workflows/client-ci.yml` for CI configuration.
 ### Tests timeout
 
 Increase timeout in vitest.config.ts:
+
 ```typescript
 export default defineConfig({
     test: {
@@ -420,6 +425,7 @@ export default defineConfig({
 ### Act warnings
 
 Wrap state updates in `waitFor`:
+
 ```typescript
 await waitFor(() => {
     expect(screen.getByText('Updated')).toBeInTheDocument();
@@ -429,6 +435,7 @@ await waitFor(() => {
 ### localStorage issues
 
 Clear localStorage in beforeEach:
+
 ```typescript
 beforeEach(() => {
     localStorage.clear();
@@ -438,6 +445,7 @@ beforeEach(() => {
 ### Mock not working
 
 Ensure mocks are set up before tests run:
+
 ```typescript
 vi.mock('./api', () => ({
     apiService: {

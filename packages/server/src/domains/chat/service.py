@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from shared.llm import LlmProvider
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from shared.types.option import Nothing, Some
 
 from .dtos import ChatResponse as ChatResponseDTO
 from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
@@ -140,7 +141,12 @@ class ChatService:
 
     def get_session_by_id(self, session_id: int) -> ChatSession | None:
         """Get chat session by ID."""
-        return self.session_repository.get_by_id(session_id)
+        result = self.session_repository.get_by_id(session_id)
+        match result:
+            case Some(session):
+                return session
+            case Nothing():
+                return None
 
     def list_user_sessions(
         self, user_id: int, skip: int = 0, limit: int = 100
@@ -150,7 +156,12 @@ class ChatService:
 
     def update_session(self, session_id: int, **kwargs: str) -> ChatSession | None:
         """Update chat session fields."""
-        return self.session_repository.update(session_id, **kwargs)
+        result = self.session_repository.update(session_id, **kwargs)
+        match result:
+            case Some(session):
+                return session
+            case Nothing():
+                return None
 
     def delete_session(self, session_id: int) -> bool:
         """Delete chat session by ID."""
@@ -177,7 +188,12 @@ class ChatService:
 
     def get_message_by_id(self, message_id: int) -> ChatMessage | None:
         """Get chat message by ID."""
-        return self.message_repository.get_by_id(message_id)
+        result = self.message_repository.get_by_id(message_id)
+        match result:
+            case Some(message):
+                return message
+            case Nothing():
+                return None
 
     def list_session_messages(
         self, session_id: int, skip: int = 0, limit: int = 100

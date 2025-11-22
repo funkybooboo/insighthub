@@ -21,7 +21,9 @@ export default function RagConfigSettings() {
     const [config, setConfig] = useState<DefaultRagConfig>(DEFAULT_CONFIG);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+        null
+    );
 
     useEffect(() => {
         loadConfig();
@@ -59,7 +61,10 @@ export default function RagConfigSettings() {
         }
     };
 
-    const handleChange = (field: keyof DefaultRagConfig, value: string | number | boolean | undefined) => {
+    const handleChange = (
+        field: keyof DefaultRagConfig,
+        value: string | number | boolean | undefined
+    ) => {
         setConfig((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -67,7 +72,9 @@ export default function RagConfigSettings() {
         return (
             <div className="p-6 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading configuration...</p>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Loading configuration...
+                </p>
             </div>
         );
     }
@@ -79,7 +86,8 @@ export default function RagConfigSettings() {
                     Default RAG Configuration
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    These settings will be used as defaults when creating new workspaces. You can override them per workspace.
+                    These settings will be used as defaults when creating new workspaces. You can
+                    override them per workspace.
                 </p>
             </div>
 
@@ -113,7 +121,9 @@ export default function RagConfigSettings() {
                             >
                                 <option value="nomic-embed-text">Nomic Embed Text</option>
                                 <option value="text-embedding-ada-002">OpenAI Ada-002</option>
-                                <option value="all-MiniLM-L6-v2">Sentence Transformers MiniLM</option>
+                                <option value="all-MiniLM-L6-v2">
+                                    Sentence Transformers MiniLM
+                                </option>
                             </select>
                             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 The model used to convert text into vector embeddings
@@ -127,7 +137,12 @@ export default function RagConfigSettings() {
                             <input
                                 type="number"
                                 value={config.embedding_dim || ''}
-                                onChange={(e) => handleChange('embedding_dim', e.target.value ? parseInt(e.target.value) : undefined)}
+                                onChange={(e) =>
+                                    handleChange(
+                                        'embedding_dim',
+                                        e.target.value ? parseInt(e.target.value) : undefined
+                                    )
+                                }
                                 placeholder="Auto-detect"
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                             />
@@ -175,7 +190,9 @@ export default function RagConfigSettings() {
                             <input
                                 type="number"
                                 value={config.chunk_size}
-                                onChange={(e) => handleChange('chunk_size', parseInt(e.target.value))}
+                                onChange={(e) =>
+                                    handleChange('chunk_size', parseInt(e.target.value))
+                                }
                                 min="100"
                                 max="5000"
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -192,7 +209,9 @@ export default function RagConfigSettings() {
                             <input
                                 type="number"
                                 value={config.chunk_overlap}
-                                onChange={(e) => handleChange('chunk_overlap', parseInt(e.target.value))}
+                                onChange={(e) =>
+                                    handleChange('chunk_overlap', parseInt(e.target.value))
+                                }
                                 min="0"
                                 max="1000"
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
@@ -241,7 +260,10 @@ export default function RagConfigSettings() {
                                 onChange={(e) => handleChange('rerank_enabled', e.target.checked)}
                                 className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
-                            <label htmlFor="rerank_enabled" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            <label
+                                htmlFor="rerank_enabled"
+                                className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >
                                 Enable Reranking
                             </label>
                         </div>

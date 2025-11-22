@@ -232,9 +232,10 @@ class TestUserMapper:
     def sample_user(self) -> User:
         """Provide a sample user."""
         user = User(
-            id=1,
             username="testuser",
             email="test@example.com",
+            password_hash="hashed_password",
+            id=1,
             full_name="Test User",
         )
         user.created_at = datetime(2024, 1, 1, 12, 0, 0)
@@ -253,9 +254,10 @@ class TestUserMapper:
     def test_user_to_dict_with_none_full_name(self) -> None:
         """Test mapping user with None full_name."""
         user = User(
-            id=1,
             username="testuser",
             email="test@example.com",
+            password_hash="hashed_password",
+            id=1,
             full_name=None,
         )
         user.created_at = datetime(2024, 1, 1)
@@ -283,9 +285,10 @@ class TestUserMapper:
     def test_users_to_dicts_multiple_users(self, sample_user: User) -> None:
         """Test mapping multiple users."""
         user2 = User(
-            id=2,
             username="anotheruser",
             email="another@example.com",
+            password_hash="hashed_password",
+            id=2,
             full_name="Another User",
         )
         user2.created_at = datetime(2024, 1, 2)
@@ -301,9 +304,10 @@ class TestUserMapper:
     def test_users_to_dicts_all_are_dicts(self, sample_user: User) -> None:
         """Test that all items in result are dictionaries."""
         user2 = User(
-            id=2,
             username="user2",
             email="user2@example.com",
+            password_hash="hashed_password",
+            id=2,
             full_name="User Two",
         )
         user2.created_at = datetime(2024, 1, 2)
@@ -367,9 +371,10 @@ class TestMapperEdgeCases:
         """Test that UserMapper handles long names correctly."""
         long_name = "A" * 1000
         user = User(
-            id=1,
             username="testuser",
             email="test@example.com",
+            password_hash="hashed_password",
+            id=1,
             full_name=long_name,
         )
         user.created_at = datetime(2024, 1, 1)
