@@ -1,27 +1,15 @@
-# InsightHub CLI
+# insighthub-cli
 
-Command-line interface for InsightHub operations.
-
-## Features
-
-- Document management
-- Workspace operations
-- RAG configuration
-- User management
-
-## Installation
+To install dependencies:
 
 ```bash
-cd packages/cli
-poetry install
+bun install
 ```
 
-## Usage
+To run:
 
 ```bash
-insighthub --help
+bun run index.ts
 ```
 
-## Development
-
-This package is separate from the server and can be developed independently.
+This project was created using `bun init` in bun v1.3.0. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
