@@ -9,7 +9,7 @@ node_modules/
 out/
 dist/
 *.tgz
-insighthub-cli-*
+bin/
 
 # -----------------------------
 # Code coverage
