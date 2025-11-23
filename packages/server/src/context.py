@@ -84,8 +84,23 @@ def create_llm() -> LlmProvider:
 def create_message_publisher() -> RabbitMQPublisher | None:
     """Create message publisher from config (None if not configured)."""
     # RabbitMQ is optional - return None if not configured
-    # Add RabbitMQ config to config.py when needed
-    return None
+    if not config.RABBITMQ_HOST:
+        return None
+
+    try:
+        publisher = RabbitMQPublisher(
+            host=config.RABBITMQ_HOST,
+            port=config.RABBITMQ_PORT,
+            username=config.RABBITMQ_USER,
+            password=config.RABBITMQ_PASS,
+            exchange=config.RABBITMQ_EXCHANGE,
+            exchange_type=config.RABBITMQ_EXCHANGE_TYPE,
+        )
+        publisher.connect()
+        return publisher
+    except Exception:
+        # RabbitMQ connection failed - continue without messaging
+        return None
 
 
 class AppContext:
