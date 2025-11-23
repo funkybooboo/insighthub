@@ -53,10 +53,12 @@ function App() {
     }, [theme]);
 
     useEffect(() => {
-        if (user?.theme_preference && user.theme_preference !== theme) {
+        if (user?.theme_preference) {
             dispatch(setTheme(user.theme_preference as 'light' | 'dark'));
         }
-    }, [user, theme, dispatch]);
+        // Only sync from user on login/user data change, not on theme toggle
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.theme_preference, dispatch]);
 
     return (
         <BrowserRouter>
