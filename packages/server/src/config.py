@@ -110,3 +110,11 @@ RATE_LIMIT_PER_HOUR: Final[int] = int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
 # Performance Monitoring Configuration
 SLOW_REQUEST_THRESHOLD: Final[float] = float(os.getenv("SLOW_REQUEST_THRESHOLD", "1.0"))
 ENABLE_PERFORMANCE_STATS: Final[bool] = os.getenv("ENABLE_PERFORMANCE_STATS", "true").lower() == "true"
+
+# RabbitMQ Configuration
+RABBITMQ_HOST: Final[str] = os.getenv("RABBITMQ_HOST", "")
+RABBITMQ_PORT: Final[int] = int(os.getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_USER: Final[str] = os.getenv("RABBITMQ_USER", "guest")
+RABBITMQ_PASS: Final[str] = os.getenv("RABBITMQ_PASS", "guest")
+RABBITMQ_EXCHANGE: Final[str] = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
+RABBITMQ_EXCHANGE_TYPE: Final[str] = os.getenv("RABBITMQ_EXCHANGE_TYPE", "topic")

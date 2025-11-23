@@ -4,6 +4,8 @@ Flask application factory for InsightHub RAG system.
 This module provides the main Flask application with all routes registered.
 """
 
+import atexit
+
 from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
@@ -16,7 +18,7 @@ from src import config
 
 # Create logger using shared library
 logger = create_logger("api", LogLevel.INFO)
-from src.context import AppContext
+from src.context import AppContext, create_message_publisher
 from src.domains.auth.routes import auth_bp
 from src.domains.chat.routes import chat_bp
 from src.domains.chat.socket_handlers import (
@@ -46,8 +48,11 @@ from src.infrastructure.socket import SocketHandler
 class InsightHubApp(Flask):
     """Typed Flask subclass with custom InsightHub attributes."""
 
+    from shared.messaging import RabbitMQPublisher
+
     performance_monitoring: PerformanceMonitoringMiddleware
     status_consumer: StatusConsumer | None
+    message_publisher: RabbitMQPublisher | None
 
 
 # Load environment variables
@@ -129,6 +134,24 @@ def create_app() -> InsightHubApp:
     except Exception as e:
         logger.error("Could not initialize database", error=str(e))
 
+    # Initialize message publisher (singleton for the app lifetime)
+    app.message_publisher = create_message_publisher()
+    if app.message_publisher:
+        logger.info("Message publisher initialized and connected to RabbitMQ")
+
+        # Register cleanup handler for graceful shutdown
+        def cleanup_publisher() -> None:
+            if app.message_publisher:
+                try:
+                    app.message_publisher.disconnect()
+                    logger.info("Message publisher disconnected")
+                except Exception as e:
+                    logger.warning(f"Error disconnecting message publisher: {e}")
+
+        atexit.register(cleanup_publisher)
+    else:
+        logger.info("Message publisher disabled (RabbitMQ not configured)")
+
     # Register blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
@@ -177,7 +200,7 @@ def create_app() -> InsightHubApp:
     def before_request() -> None:
         """Set up database session and application context before each request."""
         g.db = next(get_db())
-        g.app_context = AppContext(g.db)
+        g.app_context = AppContext(g.db, message_publisher=app.message_publisher)
 
     @app.teardown_appcontext
     def teardown_db(error: BaseException | None) -> None:
