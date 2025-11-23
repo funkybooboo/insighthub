@@ -1,0 +1,40 @@
+meta {
+  name: Create Workspace With RAG Config
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/workspaces
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "RAG Workspace",
+    "rag_config": {
+      "retriever_type": "hybrid",
+      "chunk_size": 500,
+      "top_k": 10
+    }
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.rag_config.retriever_type: eq "hybrid"
+}
+
+tests {
+  test("should create workspace with custom RAG config", function() {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().rag_config.retriever_type).to.equal("hybrid");
+    expect(res.getBody().rag_config.chunk_size).to.equal(500);
+    expect(res.getBody().rag_config.top_k).to.equal(10);
+  });
+}

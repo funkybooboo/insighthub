@@ -1,0 +1,31 @@
+meta {
+  name: Get RAG Config
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}/rag-config
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.embedding_model: isDefined
+  res.body.retriever_type: isDefined
+}
+
+tests {
+  test("should return RAG config", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().embedding_model).to.be.a("string");
+    expect(res.getBody().retriever_type).to.be.a("string");
+    expect(res.getBody().chunk_size).to.be.a("number");
+    expect(res.getBody().top_k).to.be.a("number");
+  });
+}

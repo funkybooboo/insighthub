@@ -1,0 +1,35 @@
+meta {
+  name: Update Workspace Success
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "Updated Workspace Name",
+    "description": "Updated description"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.name: eq "Updated Workspace Name"
+}
+
+tests {
+  test("should update workspace and return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().name).to.equal("Updated Workspace Name");
+    expect(res.getBody().description).to.equal("Updated description");
+  });
+}

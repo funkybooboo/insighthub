@@ -1,0 +1,25 @@
+meta {
+  name: Delete Workspace Success
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should delete workspace and return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

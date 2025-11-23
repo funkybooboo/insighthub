@@ -1,0 +1,25 @@
+meta {
+  name: Get Workspace Not Found
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/workspaces/99999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("should return 404 for nonexistent workspace", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}

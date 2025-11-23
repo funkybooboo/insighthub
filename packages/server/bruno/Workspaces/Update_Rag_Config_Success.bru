@@ -1,0 +1,36 @@
+meta {
+  name: Update RAG Config Success
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}/rag-config
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "retriever_type": "graph",
+    "top_k": 15
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.retriever_type: eq "graph"
+  res.body.top_k: eq 15
+}
+
+tests {
+  test("should update RAG config and return 200", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().retriever_type).to.equal("graph");
+    expect(res.getBody().top_k).to.equal(15);
+  });
+}

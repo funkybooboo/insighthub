@@ -1,0 +1,31 @@
+meta {
+  name: Update Workspace Not Found
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/workspaces/99999
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "New Name"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+tests {
+  test("should return 404 for nonexistent workspace", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+}
