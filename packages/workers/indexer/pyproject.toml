@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "insighthub-worker-enricher"
+name = "insighthub-worker-indexer"
 version = "0.1.0"
-description = "Enrichment worker - adds external knowledge to documents"
+description = "Vector indexer worker - stores embeddings in vector database"
 authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
 

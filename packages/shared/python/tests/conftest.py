@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.fixture
-def sample_user_data():
+def sample_user_data() -> dict[str, str | int]:
     """Sample user data for testing."""
     return {
         "id": 1,
@@ -15,7 +15,7 @@ def sample_user_data():
 
 
 @pytest.fixture
-def sample_document_data():
+def sample_document_data() -> dict[str, str | int]:
     """Sample document data for testing."""
     return {
         "id": 1,
@@ -30,7 +30,7 @@ def sample_document_data():
 
 
 @pytest.fixture
-def sample_workspace_data():
+def sample_workspace_data() -> dict[str, str | int | bool]:
     """Sample workspace data for testing."""
     return {
         "id": 1,

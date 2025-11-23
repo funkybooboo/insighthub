@@ -13,7 +13,7 @@ tasks:
   up:
     desc: Start production (infrastructure + server + client)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --profile prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d
       - cmd: 'echo "Production services started:"'
         silent: true
       - cmd: 'echo "  - Server (prod): http://localhost:5000"'
@@ -24,7 +24,7 @@ tasks:
   up-dev:
     desc: Start development (infrastructure + server + client)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d
       - cmd: 'echo "Development services started:"'
         silent: true
       - cmd: 'echo "  - Server (dev): http://localhost:5000"'
@@ -72,7 +72,7 @@ tasks:
   up-workers-dev:
     desc: Start development workers (requires up-dev or up-infra)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile workers
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile workers up -d
       - cmd: 'echo "Development worker processes started:"'
         silent: true
       - cmd: 'echo "  - Ingestion worker (document parsing)"'
@@ -91,7 +91,7 @@ tasks:
   up-workers:
     desc: Start production workers (requires up or up-infra)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --profile workers
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile workers up -d
       - cmd: 'echo "Production worker processes started:"'
         silent: true
       - cmd: 'echo "  - Ingestion worker (document parsing)"'
@@ -110,7 +110,7 @@ tasks:
   up-full:
     desc: Start everything in development (infrastructure + dev + workers)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --profile dev --profile workers
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev --profile workers up -d
       - cmd: 'echo "Full development stack started:"'
         silent: true
       - cmd: 'echo "  - Server (dev): http://localhost:5000"'
@@ -123,7 +123,7 @@ tasks:
   down:
     desc: Stop all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml down
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers down
 
   # --------------------------------------------------------------------------
   # Restart services
@@ -144,7 +144,7 @@ tasks:
   ps:
     desc: Show status of all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml ps
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers ps
 
   # --------------------------------------------------------------------------
   # Build images
@@ -182,7 +182,7 @@ tasks:
   clean:
     desc: Remove all containers, images, and volumes
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml down -v --rmi all
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers down -v --rmi all
       - task: server:clean
       - task: client:clean
 
@@ -192,7 +192,7 @@ tasks:
   logs:
     desc: Show logs from all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml logs -f
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers logs -f
 
   logs-server:
     desc: Show server logs (production)

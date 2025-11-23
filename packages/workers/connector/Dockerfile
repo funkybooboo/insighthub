@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Enricher Worker
+# Multi-stage Dockerfile for Connector Worker
 
 FROM python:3.11-slim AS base
 
@@ -22,7 +22,7 @@ COPY packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
 RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
 
 # Copy dependency files
-COPY packages/workers/enricher/pyproject.toml packages/workers/enricher/poetry.lock* ./
+COPY packages/workers/connector/pyproject.toml packages/workers/connector/poetry.lock* ./
 
 # Development stage
 FROM base AS development
@@ -31,7 +31,7 @@ FROM base AS development
 RUN poetry install --no-root
 
 # Copy source code
-COPY packages/workers/enricher/src ./src
+COPY packages/workers/connector/src ./src
 
 # Run worker
 CMD ["poetry", "run", "python", "-m", "src.main"]
@@ -43,7 +43,7 @@ FROM base AS production
 RUN poetry install --only main --no-root
 
 # Copy source code
-COPY packages/workers/enricher/src ./src
+COPY packages/workers/connector/src ./src
 
 # Run worker with optimizations
 CMD ["poetry", "run", "python", "-O", "-m", "src.main"]

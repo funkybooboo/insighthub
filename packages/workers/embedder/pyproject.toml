@@ -1,16 +1,17 @@
-[project]
-name = "insighthub-worker-embeddings"
+[tool.poetry]
+name = "insighthub-worker-embedder"
 version = "0.1.0"
-description = ""
-authors = [
-    {name = "Nate Stott",email = "nate.stott@pm.me"}
-]
+description = "Embeddings worker - generates vector embeddings from text chunks"
+authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
-requires-python = "^3.11"
-dependencies = [
-    "insighthub-shared @ file:///home/nate/projects/insighthub/packages/shared/python"
-]
 
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+mypy = "^1.8.0"
+ruff = "^0.2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

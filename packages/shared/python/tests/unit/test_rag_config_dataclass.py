@@ -3,14 +3,14 @@ from datetime import datetime
 from shared.types import RagConfig
 
 
-def test_rag_config_defaults_and_mutable():
+def test_rag_config_defaults_and_mutable() -> None:
     cfg1 = RagConfig()
     cfg2 = RagConfig()
     # default config instances should be equal (same default values)
     assert cfg1 == cfg2
 
 
-def test_rag_config_custom_values():
+def test_rag_config_custom_values() -> None:
     cfg = RagConfig(
         workspace_id="w1",
         rag_type="graph",
@@ -40,7 +40,7 @@ def test_rag_config_custom_values():
     assert cfg.updated_at is None
 
 
-def test_rag_config_datetime_fields():
+def test_rag_config_datetime_fields() -> None:
     now = datetime.utcnow()
     cfg = RagConfig(created_at=now, updated_at=now)
     assert cfg.created_at == now

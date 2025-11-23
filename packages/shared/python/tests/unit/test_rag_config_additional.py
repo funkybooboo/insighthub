@@ -1,8 +1,9 @@
 import datetime as _dt
+
 from shared.types import RagConfig
 
 
-def test_rag_config_field_types_and_defaults():
+def test_rag_config_field_types_and_defaults() -> None:
     cfg = RagConfig()
     assert isinstance(cfg.workspace_id, str)
     assert isinstance(cfg.rag_type, str)

@@ -7,7 +7,7 @@ a consistent API for nullable value handling.
 
 import pytest
 
-from shared.types.option import Some, Nothing, Option
+from shared.types.option import Nothing, Option, Some
 
 
 class TestSomeBehavior:
@@ -37,7 +37,7 @@ class TestSomeBehavior:
         option = Some(42)
 
         with pytest.raises(AttributeError):
-            option.value = 100  # type: ignore
+            option.value = 100  # type: ignore[misc]
 
     def test_some_with_none_value(self) -> None:
         """Some can contain None as a value."""
@@ -99,13 +99,15 @@ class TestNothingBehavior:
         option: Option[int] = Nothing()
 
         assert option.unwrap_or(42) == 42
-        assert option.unwrap_or("default") == "default"
 
     def test_nothing_map_returns_nothing(self) -> None:
         """Nothing.map() returns Nothing unchanged."""
         option: Option[int] = Nothing()
 
-        mapped = option.map(lambda x: x * 2)
+        def double(x: int) -> int:
+            return x * 2
+
+        mapped = option.map(double)
 
         assert mapped.is_nothing()
 
@@ -120,7 +122,7 @@ class TestOptionUsagePatterns:
     def test_option_replaces_none_check(self) -> None:
         """Option makes null handling explicit."""
 
-        def find_user(user_id: int) -> Option[dict]:
+        def find_user(user_id: int) -> Option[dict[str, str]]:
             users = {1: {"name": "Alice"}, 2: {"name": "Bob"}}
             if user_id in users:
                 return Some(users[user_id])
@@ -170,7 +172,13 @@ class TestOptionUsagePatterns:
         """Chaining map operations on Option."""
         option = Some(10)
 
-        result = option.map(lambda x: x * 2).map(lambda x: x + 5).map(str)
+        def double(x: int) -> int:
+            return x * 2
+
+        def add_five(x: int) -> int:
+            return x + 5
+
+        result = option.map(double).map(add_five).map(str)
 
         assert result.is_some()
         assert result.unwrap() == "25"
@@ -179,8 +187,14 @@ class TestOptionUsagePatterns:
         """Map on Nothing short-circuits the chain."""
         option: Option[int] = Nothing()
 
+        def double(x: int) -> int:
+            return x * 2
+
+        def add_five(x: int) -> int:
+            return x + 5
+
         # None of these functions should be called
-        result = option.map(lambda x: x * 2).map(lambda x: x + 5)
+        result = option.map(double).map(add_five)
 
         assert result.is_nothing()
 
@@ -201,6 +215,6 @@ class TestOptionTypeContract:
         some = Some(42)
         nothing = Nothing()
 
-        assert type(some) != type(nothing)
+        assert not isinstance(some, type(nothing))
         assert isinstance(some, Some)
         assert isinstance(nothing, Nothing)

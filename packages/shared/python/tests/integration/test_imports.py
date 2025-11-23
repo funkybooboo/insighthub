@@ -5,15 +5,13 @@ These tests ensure all public modules and types can be imported
 without errors, validating the package structure is correct.
 """
 
-import pytest
-
 
 class TestTypeImports:
     """Test that core type imports work."""
 
     def test_document_and_chunk_types(self) -> None:
         """Test importing Document and Chunk types."""
-        from shared.types import Document, Chunk
+        from shared.types import Chunk, Document
 
         # Verify they are importable and are classes
         assert Document is not None
@@ -21,15 +19,15 @@ class TestTypeImports:
 
     def test_graph_types(self) -> None:
         """Test importing GraphNode and GraphEdge types."""
-        from shared.types import GraphNode, GraphEdge
+        from shared.types import GraphEdge, GraphNode
 
         assert GraphNode is not None
         assert GraphEdge is not None
 
     def test_result_and_option_types(self) -> None:
         """Test importing Result and Option types."""
-        from shared.types.result import Ok, Err, Result
-        from shared.types.option import Some, Nothing, Option
+        from shared.types.option import Nothing, Some
+        from shared.types.result import Err, Ok
 
         assert Ok is not None
         assert Err is not None
@@ -50,36 +48,36 @@ class TestComponentImports:
 
     def test_document_chunking_imports(self) -> None:
         """Test importing document chunking components."""
-        from shared.document_chunking import Chunker, SentenceChunker
-
         from abc import ABCMeta
 
+        from shared.documents.chunking import Chunker, SentenceDocumentChunker
+
         assert isinstance(Chunker, ABCMeta)
-        assert SentenceChunker is not None
+        assert SentenceDocumentChunker is not None
 
     def test_vector_embedding_imports(self) -> None:
         """Test importing vector embedding components."""
-        from shared.vector_embedding import EmbeddingEncoder, OllamaEmbeddings
-
         from abc import ABCMeta
 
-        assert isinstance(EmbeddingEncoder, ABCMeta)
-        assert OllamaEmbeddings is not None
+        from shared.documents.embedding import OllamaVectorEmbeddingEncoder, VectorEmbeddingEncoder
+
+        assert isinstance(VectorEmbeddingEncoder, ABCMeta)
+        assert OllamaVectorEmbeddingEncoder is not None
 
     def test_vector_database_imports(self) -> None:
         """Test importing vector database components."""
-        from shared.vector_database import VectorDatabase, QdrantVectorDatabase
-
         from abc import ABCMeta
+
+        from shared.database.vector import QdrantVectorDatabase, VectorDatabase
 
         assert isinstance(VectorDatabase, ABCMeta)
         assert QdrantVectorDatabase is not None
 
     def test_parsing_imports(self) -> None:
         """Test importing parsing components."""
-        from shared.parsing import DocumentParser, ParserFactory
-
         from abc import ABCMeta
+
+        from shared.documents.parsing import DocumentParser, ParserFactory
 
         assert isinstance(DocumentParser, ABCMeta)
         assert ParserFactory is not None
@@ -153,31 +151,27 @@ class TestDataTypeInstantiation:
 
 
 class TestBlobStorageImports:
-    """Test that blob_storage module imports work."""
+    """Test that storage module imports work."""
 
     def test_blob_storage_interface(self) -> None:
         """Test importing BlobStorage interface."""
-        from shared.blob_storage import BlobStorage
-
         from abc import ABCMeta
+
+        from shared.storage import BlobStorage
 
         assert isinstance(BlobStorage, ABCMeta)
 
     def test_storage_implementations(self) -> None:
         """Test importing storage implementations."""
-        from shared.blob_storage import (
-            InMemoryBlobStorage,
-            FileSystemBlobStorage,
-            MinIOBlobStorage,
-        )
+        from shared.storage import FileSystemBlobStorage, InMemoryBlobStorage, S3BlobStorage
 
         assert InMemoryBlobStorage is not None
         assert FileSystemBlobStorage is not None
-        assert MinIOBlobStorage is not None
+        assert S3BlobStorage is not None
 
     def test_storage_factory(self) -> None:
         """Test importing storage factory."""
-        from shared.blob_storage import create_blob_storage, BlobStorageType
+        from shared.storage import BlobStorageType, create_blob_storage
 
         assert create_blob_storage is not None
         assert BlobStorageType.IN_MEMORY.value == "in_memory"
@@ -190,19 +184,19 @@ class TestLlmProviderImports:
 
     def test_llm_provider_interface(self) -> None:
         """Test importing LlmProvider interface."""
-        from shared.llm_provider import LlmProvider
-
         from abc import ABCMeta
+
+        from shared.llm import LlmProvider
 
         assert isinstance(LlmProvider, ABCMeta)
 
     def test_llm_provider_implementations(self) -> None:
         """Test importing LLM provider implementations."""
-        from shared.llm_provider import (
-            OllamaLlmProvider,
-            OpenAiLlmProvider,
+        from shared.llm import (
             ClaudeLlmProvider,
             HuggingFaceLlmProvider,
+            OllamaLlmProvider,
+            OpenAiLlmProvider,
         )
 
         assert OllamaLlmProvider is not None
@@ -212,7 +206,7 @@ class TestLlmProviderImports:
 
     def test_llm_provider_factory(self) -> None:
         """Test importing LLM provider factory."""
-        from shared.llm_provider import create_llm_provider, SUPPORTED_LLM_PROVIDERS
+        from shared.llm import SUPPORTED_LLM_PROVIDERS, create_llm_provider
 
         assert create_llm_provider is not None
         assert "ollama" in SUPPORTED_LLM_PROVIDERS
@@ -226,8 +220,8 @@ class TestMessagingImports:
 
     def test_rabbitmq_classes(self) -> None:
         """Test importing RabbitMQ classes."""
-        from shared.messaging import RabbitMQPublisher, RabbitMQConsumer
-        from shared.workers import Worker
+        from shared.messaging import RabbitMQConsumer, RabbitMQPublisher
+        from shared.worker import Worker
 
         assert RabbitMQPublisher is not None
         assert RabbitMQConsumer is not None
@@ -239,7 +233,7 @@ class TestModelImports:
 
     def test_model_imports(self) -> None:
         """Test importing SQLAlchemy models."""
-        from shared.models import Document, User, ChatSession, ChatMessage
+        from shared.models import ChatMessage, ChatSession, Document, User
 
         assert Document is not None
         assert User is not None
@@ -252,14 +246,9 @@ class TestRepositoryImports:
 
     def test_repository_interfaces(self) -> None:
         """Test importing repository interfaces."""
-        from shared.repositories import (
-            DocumentRepository,
-            UserRepository,
-            ChatSessionRepository,
-            ChatMessageRepository,
-        )
-
         from abc import ABCMeta
+
+        from shared.repositories import DocumentRepository, UserRepository
 
         assert isinstance(DocumentRepository, ABCMeta)
         assert isinstance(UserRepository, ABCMeta)

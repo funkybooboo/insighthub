@@ -1,9 +1,7 @@
-import pytest
-
 from shared.types import RagConfig
 
 
-def test_rag_config_defaults():
+def test_rag_config_defaults() -> None:
     cfg = RagConfig()
     assert cfg.rag_type == "vector"
     assert cfg.chunking_strategy == "sentence"
@@ -14,7 +12,7 @@ def test_rag_config_defaults():
     assert cfg.chunk_size > 0
 
 
-def test_rag_config_mutation_safe():
+def test_rag_config_mutation_safe() -> None:
     cfg = RagConfig()
     # mutate a few fields to ensure mutability
     cfg.rag_type = "graph"
@@ -23,7 +21,7 @@ def test_rag_config_mutation_safe():
     assert cfg.chunk_size == 512
 
 
-def test_rag_config_fields_exist():
+def test_rag_config_fields_exist() -> None:
     cfg = RagConfig()
     for field in [
         "workspace_id",

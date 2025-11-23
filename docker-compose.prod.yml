@@ -86,176 +86,6 @@ services:
   # ============================================================================
   # Production Workers - Background processing (optimized)
   # ============================================================================
-  
-  worker-ingestion-prod:
-    labels:
-      project: insighthub
-      worker: ingestion
-    image: insighthub-worker-ingestion:prod
-    container_name: insighthub-worker-ingestion-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: ./packages/workers/ingestion
-      dockerfile: Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:-http://minio:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-insighthub}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-insighthub_dev_secret}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: ingestion
-      WORKER_CONCURRENCY: ${INGESTION_WORKER_CONCURRENCY:-4}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  worker-embeddings-prod:
-    labels:
-      project: insighthub
-      worker: embeddings
-    image: insighthub-worker-embeddings:prod
-    container_name: insighthub-worker-embeddings-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: ./packages/workers/embeddings
-      dockerfile: Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-documents}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: embeddings
-      WORKER_CONCURRENCY: ${EMBEDDINGS_WORKER_CONCURRENCY:-2}
-      BATCH_SIZE: ${EMBEDDINGS_BATCH_SIZE:-100}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  worker-graph-prod:
-    labels:
-      project: insighthub
-      worker: graph
-    image: insighthub-worker-graph:prod
-    container_name: insighthub-worker-graph-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: ./packages/workers/graph
-      dockerfile: Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-llama3.2:1b}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: graph
-      WORKER_CONCURRENCY: ${GRAPH_WORKER_CONCURRENCY:-2}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  worker-enrichment-prod:
-    labels:
-      project: insighthub
-      worker: enrichment
-    image: insighthub-worker-enrichment:prod
-    container_name: insighthub-worker-enrichment-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: ./packages/workers/enrichment
-      dockerfile: Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
-      SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
-      WORKER_NAME: enrichment
-      WORKER_CONCURRENCY: ${ENRICHMENT_WORKER_CONCURRENCY:-3}
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  worker-query-prod:
-    labels:
-      project: insighthub
-      worker: query
-    image: insighthub-worker-query:prod
-    container_name: insighthub-worker-query-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: ./packages/workers/query
-      dockerfile: Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: query
-      WORKER_CONCURRENCY: ${QUERY_WORKER_CONCURRENCY:-4}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
 
   worker-retriever-prod:
     labels:
@@ -268,8 +98,8 @@ services:
       - workers
     restart: unless-stopped
     build:
-      context: ./packages/workers/retriever
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/workers/retriever/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -280,6 +110,208 @@ services:
       WORKER_NAME: retriever
       WORKER_CONCURRENCY: ${RETRIEVER_WORKER_CONCURRENCY:-5}
     depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-parser-prod:
+    labels:
+      project: insighthub
+      worker: parser
+    image: insighthub-worker-parser:prod
+    container_name: insighthub-worker-parser-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/parser/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-insighthub}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-insighthub_dev_secret}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: parser
+      WORKER_CONCURRENCY: ${PARSER_WORKER_CONCURRENCY:-4}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-chucker-prod:
+    labels:
+      project: insighthub
+      worker: chucker
+    image: insighthub-worker-chucker:prod
+    container_name: insighthub-worker-chucker-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/chucker/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: chucker
+      WORKER_CONCURRENCY: ${CHUCKER_WORKER_CONCURRENCY:-4}
+      CHUNK_SIZE: ${CHUNK_SIZE:-1000}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-embedder-prod:
+    labels:
+      project: insighthub
+      worker: embedder
+    image: insighthub-worker-embedder:prod
+    container_name: insighthub-worker-embedder-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/embedder/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-documents}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: embedder
+      WORKER_CONCURRENCY: ${EMBEDDER_WORKER_CONCURRENCY:-2}
+      BATCH_SIZE: ${EMBEDDER_BATCH_SIZE:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-indexer-prod:
+    labels:
+      project: insighthub
+      worker: indexer
+    image: insighthub-worker-indexer:prod
+    container_name: insighthub-worker-indexer-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/indexer/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-documents}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: indexer
+      WORKER_CONCURRENCY: ${INDEXER_WORKER_CONCURRENCY:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-connector-prod:
+    labels:
+      project: insighthub
+      worker: connector
+    image: insighthub-worker-connector:prod
+    container_name: insighthub-worker-connector-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/connector/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      NEO4J_URL: ${NEO4J_URL:-bolt://neo4j:7687}
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-insighthub_dev}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: connector
+      WORKER_CONCURRENCY: ${CONNECTOR_WORKER_CONCURRENCY:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-enricher-prod:
+    labels:
+      project: insighthub
+      worker: enricher
+    image: insighthub-worker-enricher:prod
+    container_name: insighthub-worker-enricher-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/enricher/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
+      SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
+      WORKER_NAME: enricher
+      WORKER_CONCURRENCY: ${ENRICHER_WORKER_CONCURRENCY:-3}
+    depends_on:
+      postgres:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:

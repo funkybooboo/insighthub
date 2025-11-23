@@ -1,8 +1,9 @@
 import datetime as _dt
+
 from shared.types import RagConfig
 
 
-def test_rag_config_defaults_fields_exist():
+def test_rag_config_defaults_fields_exist() -> None:
     cfg = RagConfig()
     # basic type expectations for essential fields
     assert isinstance(cfg.workspace_id, str)
@@ -19,7 +20,7 @@ def test_rag_config_defaults_fields_exist():
     assert (cfg.updated_at is None) or isinstance(cfg.updated_at, _dt.datetime)
 
 
-def test_rag_config_mutable_fields():
+def test_rag_config_mutable_fields() -> None:
     cfg = RagConfig()
     cfg.rag_type = "graph"
     cfg.chunk_size = 256

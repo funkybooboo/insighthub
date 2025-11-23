@@ -7,14 +7,13 @@ not HOW it does it (implementation details).
 
 import pytest
 
-from shared.llm_provider import (
-    create_llm_provider,
+from shared.llm import (
     SUPPORTED_LLM_PROVIDERS,
-    LlmProvider,
-    OllamaLlmProvider,
-    OpenAiLlmProvider,
     ClaudeLlmProvider,
     HuggingFaceLlmProvider,
+    OllamaLlmProvider,
+    OpenAiLlmProvider,
+    create_llm_provider,
 )
 
 

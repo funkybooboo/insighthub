@@ -5,15 +5,9 @@ These tests verify WHAT storage does (inputs/outputs),
 not HOW it does it (implementation details).
 """
 
-import pytest
 from io import BytesIO
 
-from shared.blob_storage import (
-    BlobStorage,
-    InMemoryBlobStorage,
-    create_blob_storage,
-    BlobStorageType,
-)
+from shared.storage import BlobStorageType, InMemoryBlobStorage, create_blob_storage
 
 
 class TestInMemoryStorageBehavior:
@@ -29,7 +23,8 @@ class TestInMemoryStorageBehavior:
 
         # Download should return same content
         downloaded = storage.download_file("test.txt")
-        assert downloaded == content
+        assert downloaded.is_ok()
+        assert downloaded.unwrap() == content
 
     def test_file_exists_returns_true_after_upload(self) -> None:
         """Given uploaded content, file_exists returns True."""
@@ -56,7 +51,8 @@ class TestInMemoryStorageBehavior:
         result = storage.delete_file("to-delete.txt")
 
         # Verify gone
-        assert result is True
+        assert result.is_ok()
+        assert result.unwrap() is True
         assert storage.file_exists("to-delete.txt") is False
 
     def test_upload_overwrites_existing(self) -> None:
@@ -67,7 +63,8 @@ class TestInMemoryStorageBehavior:
         storage.upload_file(BytesIO(b"updated"), "file.txt")
 
         downloaded = storage.download_file("file.txt")
-        assert downloaded == b"updated"
+        assert downloaded.is_ok()
+        assert downloaded.unwrap() == b"updated"
 
     def test_upload_returns_object_name(self) -> None:
         """Upload returns the object name/key."""
@@ -75,7 +72,8 @@ class TestInMemoryStorageBehavior:
 
         result = storage.upload_file(BytesIO(b"content"), "my-file.txt")
 
-        assert result == "my-file.txt"
+        assert result.is_ok()
+        assert result.unwrap() == "my-file.txt"
 
     def test_calculate_hash_returns_consistent_hash(self) -> None:
         """Calculate hash returns same hash for same content."""
@@ -94,31 +92,36 @@ class TestBlobStorageFactoryBehavior:
     """Test storage factory input/output behavior."""
 
     def test_create_in_memory_returns_in_memory_storage(self) -> None:
-        """Given 'in_memory' type, returns InMemoryBlobStorage."""
-        storage = create_blob_storage("in_memory")
+        """Given 'in_memory' type, returns Some(InMemoryBlobStorage)."""
+        result = create_blob_storage("in_memory")
 
-        assert isinstance(storage, InMemoryBlobStorage)
+        assert result.is_some()
+        assert isinstance(result.unwrap(), InMemoryBlobStorage)
 
     def test_create_with_enum_works(self) -> None:
         """Factory accepts BlobStorageType enum values."""
-        storage = create_blob_storage(BlobStorageType.IN_MEMORY.value)
+        result = create_blob_storage(BlobStorageType.IN_MEMORY.value)
 
-        assert isinstance(storage, InMemoryBlobStorage)
+        assert result.is_some()
+        assert isinstance(result.unwrap(), InMemoryBlobStorage)
 
     def test_create_file_system_requires_base_path(self) -> None:
         """File system storage requires base_path parameter."""
-        with pytest.raises(ValueError, match="base_path"):
-            create_blob_storage("file_system")
+        result = create_blob_storage("file_system")
+
+        assert result.is_nothing()
 
     def test_create_s3_requires_credentials(self) -> None:
         """S3 storage requires all credentials."""
-        with pytest.raises(ValueError):
-            create_blob_storage("s3")
+        result = create_blob_storage("s3")
 
-    def test_create_invalid_type_raises(self) -> None:
-        """Invalid storage type raises ValueError."""
-        with pytest.raises(ValueError):
-            create_blob_storage("invalid_type")
+        assert result.is_nothing()
+
+    def test_create_invalid_type_returns_nothing(self) -> None:
+        """Invalid storage type returns Nothing."""
+        result = create_blob_storage("invalid_type")
+
+        assert result.is_nothing()
 
 
 class TestBlobStorageTypeEnum:

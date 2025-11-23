@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "insighthub-worker-enricher"
+name = "insighthub-worker-chucker"
 version = "0.1.0"
-description = "Enrichment worker - adds external knowledge to documents"
+description = "Document chunker worker - splits documents into smaller chunks"
 authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
 

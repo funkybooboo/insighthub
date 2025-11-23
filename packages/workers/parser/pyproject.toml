@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "insighthub-worker-enricher"
+name = "insighthub-worker-parser"
 version = "0.1.0"
-description = "Enrichment worker - adds external knowledge to documents"
+description = "Document parser worker - extracts text from various file formats"
 authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
 
