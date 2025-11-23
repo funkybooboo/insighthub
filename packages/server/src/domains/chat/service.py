@@ -1,12 +1,12 @@
 """Chat service implementation."""
 
 import json
-import logging
 import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 
 from shared.llm import LlmProvider
+from shared.logger import create_logger
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
 from shared.types.option import Nothing, Some
@@ -16,7 +16,7 @@ from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
 from .exceptions import EmptyMessageError
 from .mappers import ChatMapper
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 @dataclass

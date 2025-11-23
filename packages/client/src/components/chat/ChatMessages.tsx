@@ -65,14 +65,14 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
             <div
                 ref={scrollContainerRef}
                 onScroll={handleScroll}
-                className="h-full overflow-y-auto px-6 py-6"
+                className="h-full overflow-y-auto px-4 sm:px-6 lg:px-8 py-8"
             >
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="max-w-3xl mx-auto space-y-5">
                     {messages.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
-                            <div className="w-16 h-16 mb-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <div className="w-14 h-14 mb-5 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                                 <svg
-                                    className="w-8 h-8 text-blue-600 dark:text-blue-400"
+                                    className="w-7 h-7 text-white"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -80,15 +80,15 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
-                                        strokeWidth={2}
+                                        strokeWidth={1.5}
                                         d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                                     />
                                 </svg>
                             </div>
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
                                 Start a conversation
                             </h2>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
+                            <p className="text-gray-500 dark:text-gray-400 max-w-sm text-sm leading-relaxed">
                                 Ask questions about your documents and get insights powered by AI
                             </p>
                         </div>
@@ -102,10 +102,10 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-4xl rounded-2xl px-4 py-3 ${
+                                        className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
                                             message.role === 'user'
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                                                ? 'bg-blue-600 text-white rounded-br-md'
+                                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md shadow-sm border border-gray-100 dark:border-gray-700/50'
                                         }`}
                                     >
                                         <MarkdownRenderer
@@ -124,7 +124,7 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                     )}
                     {error && (
                         <div className="flex justify-center">
-                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 px-4 py-3 rounded-lg max-w-md">
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/50 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl max-w-md text-sm">
                                 {error}
                             </div>
                         </div>
@@ -135,11 +135,11 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
             {showScrollButton && (
                 <button
                     onClick={scrollToBottom}
-                    className="absolute bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-10"
+                    className="absolute bottom-6 right-6 bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-white text-white dark:text-gray-900 rounded-full p-2.5 shadow-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 z-10"
                     title="Scroll to bottom"
                     aria-label="Scroll to bottom"
                 >
-                    <FaArrowDown className="w-5 h-5" />
+                    <FaArrowDown className="w-4 h-4" />
                 </button>
             )}
         </div>

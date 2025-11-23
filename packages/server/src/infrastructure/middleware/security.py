@@ -1,12 +1,11 @@
 """Security headers middleware."""
 
-import logging
-
 from flask import Flask, Response
+from shared.logger import create_logger
 
 from src import config
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class SecurityHeadersMiddleware:

@@ -32,6 +32,11 @@ FLASK_DEBUG: Final[bool] = os.getenv("FLASK_DEBUG", "True").lower() == "true"
 DATABASE_URL: Final[str] = os.getenv(
     "DATABASE_URL", "postgresql://insighthub:insighthub_dev@localhost:5432/insighthub"
 )
+POSTGRES_HOST: Final[str] = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT: Final[int] = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB: Final[str] = os.getenv("POSTGRES_DB", "insighthub")
+POSTGRES_USER: Final[str] = os.getenv("POSTGRES_USER", "insighthub")
+POSTGRES_PASSWORD: Final[str] = os.getenv("POSTGRES_PASSWORD", "insighthub")
 
 # Repository Implementation Configuration
 USER_REPOSITORY_TYPE: Final[str] = os.getenv("USER_REPOSITORY_TYPE", "sql")
@@ -93,3 +98,15 @@ JWT_EXPIRE_MINUTES: Final[int] = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
 
 # CORS Configuration
 CORS_ORIGINS: Final[str] = os.getenv("CORS_ORIGINS", "*")
+
+# Logging Configuration
+LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
+
+# Rate Limiting Configuration
+RATE_LIMIT_ENABLED: Final[bool] = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
+RATE_LIMIT_PER_MINUTE: Final[int] = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+RATE_LIMIT_PER_HOUR: Final[int] = int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
+
+# Performance Monitoring Configuration
+SLOW_REQUEST_THRESHOLD: Final[float] = float(os.getenv("SLOW_REQUEST_THRESHOLD", "1.0"))
+ENABLE_PERFORMANCE_STATS: Final[bool] = os.getenv("ENABLE_PERFORMANCE_STATS", "true").lower() == "true"

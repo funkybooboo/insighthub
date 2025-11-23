@@ -1,13 +1,13 @@
 """Performance monitoring middleware."""
 
-import logging
 import time
 from collections import defaultdict
 from typing import TypedDict
 
 from flask import Flask, Response, g, request
+from shared.logger import create_logger
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class EndpointStats(TypedDict):

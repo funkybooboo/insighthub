@@ -67,11 +67,22 @@ class S3BlobStorage(BlobStorage):
         if not MINIO_AVAILABLE or Minio is None:
             raise RuntimeError("minio library not available. Install: pip install minio")
 
-        self._endpoint = endpoint
+        # Strip protocol prefix if present (Minio expects host:port format)
+        parsed_endpoint = endpoint
+        if parsed_endpoint.startswith("http://"):
+            parsed_endpoint = parsed_endpoint[7:]
+            # If secure was explicitly set, respect it; otherwise use False for http://
+        elif parsed_endpoint.startswith("https://"):
+            parsed_endpoint = parsed_endpoint[8:]
+            # If secure was explicitly set, respect it; otherwise use True for https://
+            if not secure:
+                secure = True
+
+        self._endpoint = parsed_endpoint
         self._bucket_name = bucket_name
 
         self._client: "MinioClient" = Minio(
-            endpoint=endpoint,
+            endpoint=parsed_endpoint,
             access_key=access_key,
             secret_key=secret_key,
             secure=secure,

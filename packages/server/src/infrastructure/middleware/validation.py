@@ -1,10 +1,9 @@
 """Request validation middleware."""
 
-import logging
-
 from flask import Flask, Response, jsonify, request
+from shared.logger import create_logger
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class RequestValidationMiddleware:

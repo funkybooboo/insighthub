@@ -227,14 +227,8 @@ class ApiService {
     /**
      * Update user profile
      */
-    async updateProfile(request: {
-        full_name?: string;
-        email?: string;
-    }): Promise<{ user: UserResponse }> {
-        const { data } = await this.client.patch<{ user: UserResponse }>(
-            '/api/auth/profile',
-            request
-        );
+    async updateProfile(request: { full_name?: string; email?: string }): Promise<UserResponse> {
+        const { data } = await this.client.patch<UserResponse>('/api/auth/profile', request);
         return data;
     }
 

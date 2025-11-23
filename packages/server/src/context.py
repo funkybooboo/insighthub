@@ -1,21 +1,91 @@
 """Application context for dependency injection."""
 
-from shared.database.sql import SqlDatabase
+from shared.database.sql import PostgresSQLDatabase, SqlDatabase
+from shared.llm import LlmProvider, create_llm_provider
 from shared.messaging import RabbitMQPublisher
-from shared.storage import BlobStorage
+from shared.repositories import (
+    SqlChatMessageRepository,
+    SqlChatSessionRepository,
+    SqlDocumentRepository,
+    SqlUserRepository,
+    SqlWorkspaceRepository,
+)
+from shared.storage import BlobStorage, FileSystemBlobStorage, S3BlobStorage
 
+from src import config
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
 from src.domains.users.service import UserService
-from src.infrastructure.factories import (
-    create_chat_message_repository,
-    create_chat_session_repository,
-    create_document_repository,
-    create_user_repository,
-)
-from src.infrastructure.llm import create_llm_provider
-from src.infrastructure.messaging import create_rabbitmq_publisher
-from src.infrastructure.storage import create_blob_storage
+from src.domains.workspaces.service import WorkspaceService
+
+
+def create_database() -> SqlDatabase:
+    """Create database instance from config."""
+    return PostgresSQLDatabase(
+        host=config.POSTGRES_HOST,
+        port=config.POSTGRES_PORT,
+        database=config.POSTGRES_DB,
+        user=config.POSTGRES_USER,
+        password=config.POSTGRES_PASSWORD,
+    )
+
+
+def create_blob_storage() -> BlobStorage:
+    """Create blob storage instance from config."""
+    if config.BLOB_STORAGE_TYPE == "s3":
+        return S3BlobStorage(
+            endpoint=config.S3_ENDPOINT_URL,
+            access_key=config.S3_ACCESS_KEY,
+            secret_key=config.S3_SECRET_KEY,
+            bucket_name=config.S3_BUCKET_NAME,
+            secure=False,
+        )
+    else:
+        return FileSystemBlobStorage(base_path=config.FILE_SYSTEM_STORAGE_PATH)
+
+
+def create_llm() -> LlmProvider:
+    """Create LLM provider instance from config."""
+    provider_type = config.LLM_PROVIDER
+
+    if provider_type == "ollama":
+        return create_llm_provider(
+            provider_type="ollama",
+            base_url=config.OLLAMA_BASE_URL,
+            model_name=config.OLLAMA_LLM_MODEL,
+        )
+    elif provider_type == "openai":
+        return create_llm_provider(
+            provider_type="openai",
+            api_key=config.OPENAI_API_KEY,
+            model_name=config.OPENAI_MODEL,
+        )
+    elif provider_type == "claude":
+        return create_llm_provider(
+            provider_type="claude",
+            api_key=config.ANTHROPIC_API_KEY,
+            model_name=config.ANTHROPIC_MODEL,
+        )
+    elif provider_type == "huggingface":
+        return create_llm_provider(
+            provider_type="huggingface",
+            api_key=config.HUGGINGFACE_API_KEY,
+            model_name=config.HUGGINGFACE_MODEL,
+        )
+    else:
+        # Default to ollama
+        return create_llm_provider(
+            provider_type="ollama",
+            base_url=config.OLLAMA_BASE_URL,
+            model_name=config.OLLAMA_LLM_MODEL,
+        )
+
+
+def create_message_publisher() -> RabbitMQPublisher | None:
+    """Create message publisher from config (None if not configured)."""
+    # RabbitMQ is optional - return None if not configured
+    # Add RabbitMQ config to config.py when needed
+    return None
 
 
 class AppContext:
@@ -42,17 +112,18 @@ class AppContext:
 
         # Initialize RabbitMQ publisher (None if disabled)
         self.message_publisher = (
-            message_publisher if message_publisher is not None else create_rabbitmq_publisher()
+            message_publisher if message_publisher is not None else create_message_publisher()
         )
 
-        # Initialize LLM provider using factory
-        self.llm_provider = create_llm_provider()
+        # Initialize LLM provider
+        self.llm_provider = create_llm()
 
-        # Create repositories
-        user_repo = create_user_repository(db)
-        document_repo = create_document_repository(db)
-        session_repo = create_chat_session_repository(db)
-        message_repo = create_chat_message_repository(db)
+        # Create repositories using shared library SQL implementations
+        user_repo = SqlUserRepository(db)
+        document_repo = SqlDocumentRepository(db)
+        session_repo = SqlChatSessionRepository(db)
+        message_repo = SqlChatMessageRepository(db)
+        workspace_repo = SqlWorkspaceRepository(db)
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=user_repo)
@@ -64,6 +135,7 @@ class AppContext:
         self.chat_service = ChatService(
             session_repository=session_repo, message_repository=message_repo
         )
+        self.workspace_service = WorkspaceService(workspace_repo=workspace_repo)
 
 
 def create_app_context(db: SqlDatabase) -> AppContext:

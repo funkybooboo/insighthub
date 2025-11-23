@@ -8,12 +8,13 @@ from shared.exceptions import ValidationError
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
+from src import config
 from src.infrastructure.auth import get_current_user, require_auth
 
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/documents")
 
-# Configuration
-UPLOAD_FOLDER = Path(os.getenv("UPLOAD_FOLDER", "uploads"))
+# Configuration from centralized config
+UPLOAD_FOLDER = Path(config.UPLOAD_FOLDER)
 
 # Ensure upload directory exists
 UPLOAD_FOLDER.mkdir(exist_ok=True)

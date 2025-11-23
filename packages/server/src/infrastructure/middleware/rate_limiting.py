@@ -1,12 +1,12 @@
 """Rate limiting middleware."""
 
-import logging
 import time
 from collections import defaultdict
 
 from flask import Flask, Request, Response, jsonify, request
+from shared.logger import create_logger
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class RateLimitMiddleware:

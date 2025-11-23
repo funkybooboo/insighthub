@@ -42,12 +42,12 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setMessage(null);
 
         try {
-            const response = await apiService.updateProfile({
+            const updatedUser = await apiService.updateProfile({
                 full_name: data.full_name,
                 email: data.email,
             });
 
-            dispatch(setUser(response.user));
+            dispatch(setUser(updatedUser));
             setMessage({
                 type: 'success',
                 text: 'Profile updated successfully',

@@ -1,11 +1,11 @@
 """Request and response logging middleware."""
 
-import logging
 import time
 
 from flask import Flask, Request, Response, g, request
+from shared.logger import create_logger
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class RequestLoggingMiddleware:

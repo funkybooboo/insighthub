@@ -21,7 +21,7 @@ RUN chown -R app:app /app
 FROM base AS dependencies
 
 # Copy package files
-COPY --chown=app:app package.json bun.lock ./
+COPY --chown=app:app packages/client/package.json packages/client/bun.lock ./
 
 # Install dependencies
 USER app
@@ -33,7 +33,7 @@ RUN bun install --frozen-lockfile
 FROM dependencies AS development
 
 # Copy application code
-COPY --chown=app:app . .
+COPY --chown=app:app packages/client/ .
 
 # Expose Vite dev server port
 EXPOSE 5173
@@ -57,7 +57,7 @@ CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 FROM dependencies AS builder
 
 # Copy application code
-COPY --chown=app:app . .
+COPY --chown=app:app packages/client/ .
 
 # Switch to app user for build
 USER app
@@ -81,11 +81,11 @@ RUN addgroup -g 101 -S nginx 2>/dev/null || true \
 COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
-COPY --chown=nginx:nginx default.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx packages/client/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx packages/client/default.conf /etc/nginx/conf.d/default.conf
 
 # Copy and set permissions for entrypoint
-COPY --chown=nginx:nginx --chmod=755 docker-entrypoint.sh /usr/local/bin/
+COPY --chown=nginx:nginx --chmod=755 packages/client/docker-entrypoint.sh /usr/local/bin/
 
 # Create directory for runtime config and ensure nginx can write to it
 RUN mkdir -p /usr/share/nginx/html && chown -R nginx:nginx /usr/share/nginx/html \

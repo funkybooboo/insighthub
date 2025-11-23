@@ -1,11 +1,11 @@
 """Socket.IO event handlers for status updates."""
 
-import logging
 from typing import TypedDict
 
 from flask_socketio import SocketIO, emit, join_room
+from shared.logger import create_logger
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class SubscribeStatusData(TypedDict):

@@ -873,6 +873,26 @@ flask = ">=0.9"
 Werkzeug = ">=0.7"
 
 [[package]]
+name = "flask-jwt-extended"
+version = "4.7.1"
+description = "Extended JWT integration with Flask"
+optional = false
+python-versions = "<4,>=3.9"
+groups = ["main"]
+files = [
+    {file = "Flask_JWT_Extended-4.7.1-py2.py3-none-any.whl", hash = "sha256:52f35bf0985354d7fb7b876e2eb0e0b141aaff865a22ff6cc33d9a18aa987978"},
+    {file = "flask_jwt_extended-4.7.1.tar.gz", hash = "sha256:8085d6757505b6f3291a2638c84d207e8f0ad0de662d1f46aa2f77e658a0c976"},
+]
+
+[package.dependencies]
+Flask = ">=2.0,<4.0"
+PyJWT = ">=2.0,<3.0"
+Werkzeug = ">=0.14"
+
+[package.extras]
+asymmetric-crypto = ["cryptography (>=3.3.1)"]
+
+[[package]]
 name = "flask-socketio"
 version = "5.5.1"
 description = "Socket.IO integration for Flask applications"
@@ -1295,7 +1315,7 @@ optional = false
 python-versions = ">=3.11,<4.0"
 groups = ["main"]
 files = [
-    {file = "insighthub_shared-0.1.1-py3-none-any.whl", hash = "sha256:3daa55c93297f577f552e2d1577c966603f4e5b43ebca8fd391d93e74a8d4577"},
+    {file = "insighthub_shared-0.1.1-py3-none-any.whl", hash = "sha256:c71ee44977d21f9069c0b354f01b61541dc1a90ed4f9fcb597286ce26e54aab7"},
 ]
 
 [package.dependencies]
@@ -4617,4 +4637,4 @@ h11 = ">=0.16.0,<1"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "b0e40c9b623210146e4d2099b8edf777224f84dd5a12177c6bf89f8bda7a4d66"
+content-hash = "0cb5f4caf3ae80163aa3cbe19f4439d0c01a4462c1cad528f3645be9c126c784"

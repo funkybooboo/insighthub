@@ -152,32 +152,32 @@ tasks:
   build:
     desc: Build all production images
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod --profile workers build
 
   build-dev:
     desc: Build all development images
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev --profile workers build
 
   build-server:
     desc: Build server production image
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build server-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod build server-prod
 
   build-server-dev:
     desc: Build server development image
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build server-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev build server-dev
 
   build-client:
     desc: Build client production image
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build client-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod build client-prod
 
   build-client-dev:
     desc: Build client development image
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build client-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev build client-dev
 
   clean:
     desc: Remove all containers, images, and volumes

@@ -7,7 +7,6 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
 import ChatSidebar from './components/chat/ChatSidebar';
 import UserMenu from './components/auth/UserMenu';
-import WorkspaceSelector from './components/workspace/WorkspaceSelector';
 import WorkspaceSettings from './components/workspace/WorkspaceSettings';
 import { SettingsPage } from './components/settings';
 import WorkspacesPage from './pages/WorkspacesPage';
@@ -18,17 +17,16 @@ import type { RootState } from './store';
 
 function MainApp() {
     return (
-        <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                <WorkspaceSelector />
-                <div className="flex items-center gap-2 px-4">
-                    <WorkspaceSettings />
-                    <UserMenu />
-                </div>
-            </div>
-            <div className="flex-1 flex overflow-hidden">
-                <ChatSidebar />
-                <main className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+        <div className="h-screen flex bg-gray-100 dark:bg-gray-950">
+            <ChatSidebar />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <header className="h-14 flex items-center justify-end px-6 bg-white dark:bg-gray-900 border-b border-gray-200/80 dark:border-gray-800">
+                    <div className="flex items-center gap-3">
+                        <WorkspaceSettings />
+                        <UserMenu />
+                    </div>
+                </header>
+                <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900">
                     <ChatBot />
                 </main>
             </div>
@@ -56,8 +54,6 @@ function App() {
         if (user?.theme_preference) {
             dispatch(setTheme(user.theme_preference as 'light' | 'dark'));
         }
-        // Only sync from user on login/user data change, not on theme toggle
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.theme_preference, dispatch]);
 
     return (

@@ -1,14 +1,13 @@
 """User service implementation."""
 
-import logging
-
+from shared.logger import create_logger
 from shared.models import User
 from shared.repositories import UserRepository
 from shared.types.option import Nothing, Some
 
 from .exceptions import UserAlreadyExistsError, UserAuthenticationError
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 class UserService:

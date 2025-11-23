@@ -1,20 +1,21 @@
 """JWT token utilities for authentication."""
 
-import logging
-import os
 from datetime import datetime, timedelta
 from typing import cast
 
 import jwt
 from flask import g, request
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from shared.logger import create_logger
 from shared.models import User
 
-logger = logging.getLogger(__name__)
+from src import config
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+logger = create_logger(__name__)
+
+SECRET_KEY = config.JWT_SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = config.JWT_EXPIRE_MINUTES
 
 
 def create_access_token(user_id: int) -> str:
@@ -31,7 +32,7 @@ def create_access_token(user_id: int) -> str:
     payload = {"user_id": user_id, "exp": expire}
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     logger.info(
-        f"Created access token for user_id={user_id}, expires in {ACCESS_TOKEN_EXPIRE_MINUTES} minutes"
+        "Created access token", user_id=user_id, expires_in_minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
     return token
 
@@ -51,13 +52,13 @@ def decode_access_token(token: str) -> dict[str, int]:
     """
     try:
         payload = cast(dict[str, int], jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]))
-        logger.debug(f"Successfully decoded token for user_id={payload.get('user_id')}")
+        logger.debug("Successfully decoded token", user_id=payload.get("user_id"))
         return payload
     except ExpiredSignatureError:
         logger.warning("Token decode failed: token has expired")
         raise InvalidTokenError("Token has expired") from None
     except Exception as e:
-        logger.warning(f"Token decode failed: {str(e)}")
+        logger.warning("Token decode failed", error=str(e))
         raise InvalidTokenError("Invalid token") from e
 
 
@@ -86,8 +87,8 @@ def get_current_user() -> User:
 
     user = cast(User | None, g.app_context.user_service.get_user_by_id(user_id))
     if not user:
-        logger.warning(f"Authentication failed: user not found (user_id={user_id})")
+        logger.warning("Authentication failed: user not found", user_id=user_id)
         raise InvalidTokenError("User not found")
 
-    logger.debug(f"User authenticated successfully: user_id={user.id}, username={user.username}")
+    logger.debug("User authenticated successfully", user_id=user.id, username=user.username)
     return user

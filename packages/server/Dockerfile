@@ -35,12 +35,12 @@ WORKDIR /app
 # ============================================================================
 FROM base AS dependencies
 
-# First install shared library dependencies
-COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock /tmp/shared/
-RUN cd /tmp/shared && poetry install --no-root --only main
+# Copy and install shared package wheel
+COPY --chown=app:app packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
+RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
 
 # Copy server dependency files
-COPY --chown=app:app pyproject.toml poetry.lock ./
+COPY --chown=app:app packages/server/pyproject.toml packages/server/poetry.lock ./
 
 # Install server dependencies (without dev dependencies)
 RUN poetry install --no-root --only main
@@ -50,12 +50,12 @@ RUN poetry install --no-root --only main
 # ============================================================================
 FROM base AS dependencies-dev
 
-# First install shared library dependencies
-COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock /tmp/shared/
-RUN cd /tmp/shared && poetry install --no-root
+# Copy and install shared package wheel
+COPY --chown=app:app packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
+RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
 
 # Copy server dependency files
-COPY --chown=app:app pyproject.toml poetry.lock ./
+COPY --chown=app:app packages/server/pyproject.toml packages/server/poetry.lock ./
 
 # Install all dependencies (including dev)
 RUN poetry install --no-root
@@ -65,19 +65,14 @@ RUN poetry install --no-root
 # ============================================================================
 FROM dependencies-dev AS development
 
-# Copy shared library source
-COPY --chown=app:app ../shared/python/src /tmp/shared/src
-COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock ../shared/python/README.md /tmp/shared/
-RUN cd /tmp/shared && poetry install
-
 # Copy application code
-COPY --chown=app:app . .
+COPY --chown=app:app packages/server/ .
 
 # Install the project in editable mode
 RUN poetry install --only-root
 
 # Copy and set permissions for entrypoint
-COPY --chown=app:app --chmod=755 docker-entrypoint.sh /usr/local/bin/
+COPY --chown=app:app --chmod=755 packages/server/docker-entrypoint.sh /usr/local/bin/
 
 # Switch to non-root user
 USER app
@@ -107,7 +102,7 @@ CMD ["poetry", "run", "python", "-m", "flask", "--app", "src.api:app", "run", "-
 FROM dependencies-dev AS builder
 
 # Copy application code
-COPY --chown=app:app . .
+COPY --chown=app:app packages/server/ .
 
 # Install the project
 RUN poetry install --only-root
@@ -122,21 +117,16 @@ RUN poetry run mypy src tests || true
 # ============================================================================
 FROM dependencies AS production
 
-# Copy shared library source
-COPY --chown=app:app ../shared/python/src /tmp/shared/src
-COPY --chown=app:app ../shared/python/pyproject.toml ../shared/python/poetry.lock ../shared/python/README.md /tmp/shared/
-RUN cd /tmp/shared && poetry install --only main --only-root
-
 # Copy application code
-COPY --chown=app:app src ./src
-COPY --chown=app:app migrations ./migrations
-COPY --chown=app:app README.md ./
+COPY --chown=app:app packages/server/src ./src
+COPY --chown=app:app packages/server/migrations ./migrations
+COPY --chown=app:app packages/server/README.md ./
 
 # Install the project (root only)
 RUN poetry install --only-root
 
 # Copy and set permissions for entrypoint
-COPY --chown=app:app --chmod=755 docker-entrypoint.sh /usr/local/bin/
+COPY --chown=app:app --chmod=755 packages/server/docker-entrypoint.sh /usr/local/bin/
 
 # Create uploads directory with proper permissions
 RUN mkdir -p /app/uploads && chown -R app:app /app/uploads

@@ -1,24 +1,19 @@
 """Workspace API endpoints for InsightHub."""
 
-import contextlib
-import os
-from pathlib import Path
 from typing import TypedDict
 
 from flask import Blueprint, Response, g, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
 from shared.models.workspace import RagConfig, Workspace
-from werkzeug.datastructures import FileStorage
-from werkzeug.utils import secure_filename
 
 from src.domains.workspaces.service import WorkspaceService
-from src.infrastructure.database import get_db_connection
+from src.infrastructure.auth import get_current_user, require_auth
 
 workspace_bp = Blueprint("workspaces", __name__, url_prefix="/api/workspaces")
 
-# Upload configuration
-UPLOAD_FOLDER = Path(os.getenv("UPLOAD_FOLDER", "uploads"))
-UPLOAD_FOLDER.mkdir(exist_ok=True)
+
+def get_workspace_service() -> WorkspaceService:
+    """Get workspace service from app context."""
+    return g.app_context.workspace_service
 
 
 class RagConfigDict(TypedDict, total=False):
@@ -55,7 +50,7 @@ class WorkspaceDict(TypedDict, total=False):
     session_count: int
 
 
-def workspace_to_dict(workspace: Workspace, include_stats: bool = False) -> WorkspaceDict:
+def workspace_to_dict(workspace: Workspace, rag_config: RagConfig | None = None) -> WorkspaceDict:
     """Convert workspace model to dict for JSON response."""
     result: WorkspaceDict = {
         "id": workspace.id,
@@ -69,9 +64,8 @@ def workspace_to_dict(workspace: Workspace, include_stats: bool = False) -> Work
         "updated_at": workspace.updated_at.isoformat(),
     }
 
-    # Include RAG config if loaded
-    if workspace.rag_config:
-        result["rag_config"] = rag_config_to_dict(workspace.rag_config)
+    if rag_config:
+        result["rag_config"] = rag_config_to_dict(rag_config)
 
     return result
 
@@ -95,8 +89,8 @@ def rag_config_to_dict(config: RagConfig) -> RagConfigDict:
 
 
 @workspace_bp.route("", methods=["POST"])
-@jwt_required()
-async def create_workspace() -> tuple[Response, int]:
+@require_auth
+def create_workspace() -> tuple[Response, int]:
     """
     Create a new workspace with RAG configuration.
 
@@ -126,32 +120,29 @@ async def create_workspace() -> tuple[Response, int]:
         if len(name) < 1 or len(name) > 100:
             return jsonify({"error": "Workspace name must be 1-100 characters"}), 400
 
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
         # Extract RAG config if provided
         rag_config_data = data.get("rag_config")
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            workspace = await service.create_workspace(
-                name=name,
-                user_id=user_id,
-                description=description,
-                rag_config_data=rag_config_data,
-            )
+        service = get_workspace_service()
+        workspace = service.create_workspace(
+            name=name,
+            user_id=user_id,
+            description=description,
+            rag_config_data=rag_config_data,
+        )
 
-            # Reload to get the rag_config relationship
-            workspace = await service.get_workspace(workspace.id, user_id)
-
-            return jsonify(workspace_to_dict(workspace)), 201
+        rag_config = service.get_rag_config(workspace.id, user_id)
+        return jsonify(workspace_to_dict(workspace, rag_config)), 201
 
     except Exception as e:
         return jsonify({"error": f"Failed to create workspace: {str(e)}"}), 500
 
 
 @workspace_bp.route("", methods=["GET"])
-@jwt_required()
-async def list_workspaces() -> tuple[Response, int]:
+@require_auth
+def list_workspaces() -> tuple[Response, int]:
     """
     List all workspaces for the authenticated user.
 
@@ -159,62 +150,62 @@ async def list_workspaces() -> tuple[Response, int]:
     - include_inactive: boolean (default: false)
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
         include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            workspaces = await service.list_workspaces(user_id, include_inactive)
+        service = get_workspace_service()
+        workspaces = service.list_workspaces(user_id, include_inactive)
 
-            # Get stats for each workspace
-            result = []
-            for ws in workspaces:
-                ws_dict = workspace_to_dict(ws)
-                stats = await service.get_workspace_stats(ws.id, user_id)
-                if stats:
-                    ws_dict["document_count"] = stats.document_count
-                    ws_dict["session_count"] = stats.chat_session_count
-                result.append(ws_dict)
+        # Get stats for each workspace
+        result = []
+        for ws in workspaces:
+            rag_config = service.get_rag_config(ws.id, user_id)
+            ws_dict = workspace_to_dict(ws, rag_config)
+            stats = service.get_workspace_stats(ws.id, user_id)
+            if stats:
+                ws_dict["document_count"] = stats.document_count
+                ws_dict["session_count"] = stats.chat_session_count
+            result.append(ws_dict)
 
-            return jsonify(result), 200
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to list workspaces: {str(e)}"}), 500
 
 
 @workspace_bp.route("/<workspace_id>", methods=["GET"])
-@jwt_required()
-async def get_workspace(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def get_workspace(workspace_id: str) -> tuple[Response, int]:
     """
     Get a specific workspace by ID.
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            workspace = await service.get_workspace(workspace_id, user_id)
+        service = get_workspace_service()
+        workspace = service.get_workspace(workspace_id, user_id)
 
-            if not workspace:
-                return jsonify({"error": "Workspace not found"}), 404
+        if not workspace:
+            return jsonify({"error": "Workspace not found"}), 404
 
-            ws_dict = workspace_to_dict(workspace)
+        rag_config = service.get_rag_config(workspace_id, user_id)
+        ws_dict = workspace_to_dict(workspace, rag_config)
 
-            # Include stats
-            stats = await service.get_workspace_stats(workspace_id, user_id)
-            if stats:
-                ws_dict["document_count"] = stats.document_count
-                ws_dict["session_count"] = stats.chat_session_count
+        # Include stats
+        stats = service.get_workspace_stats(workspace_id, user_id)
+        if stats:
+            ws_dict["document_count"] = stats.document_count
+            ws_dict["session_count"] = stats.chat_session_count
 
-            return jsonify(ws_dict), 200
+        return jsonify(ws_dict), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to get workspace: {str(e)}"}), 500
 
 
 @workspace_bp.route("/<workspace_id>", methods=["PUT", "PATCH"])
-@jwt_required()
-async def update_workspace(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def update_workspace(workspace_id: str) -> tuple[Response, int]:
     """
     Update a workspace.
 
@@ -227,7 +218,7 @@ async def update_workspace(workspace_id: str) -> tuple[Response, int]:
     """
     try:
         data = request.get_json()
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
         # Build update dict with only provided fields
         update_data = {}
@@ -250,264 +241,255 @@ async def update_workspace(workspace_id: str) -> tuple[Response, int]:
         if not update_data:
             return jsonify({"error": "No valid fields to update"}), 400
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            workspace = await service.update_workspace(workspace_id, user_id, **update_data)
+        service = get_workspace_service()
+        workspace = service.update_workspace(workspace_id, user_id, **update_data)
 
-            if not workspace:
-                return jsonify({"error": "Workspace not found"}), 404
+        if not workspace:
+            return jsonify({"error": "Workspace not found"}), 404
 
-            return jsonify(workspace_to_dict(workspace)), 200
+        rag_config = service.get_rag_config(workspace_id, user_id)
+        return jsonify(workspace_to_dict(workspace, rag_config)), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to update workspace: {str(e)}"}), 500
 
 
 @workspace_bp.route("/<workspace_id>", methods=["DELETE"])
-@jwt_required()
-async def delete_workspace(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def delete_workspace(workspace_id: str) -> tuple[Response, int]:
     """
     Delete a workspace and all its data (cascades to documents, chats, etc.).
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            success = await service.delete_workspace(workspace_id, user_id)
+        service = get_workspace_service()
+        success = service.delete_workspace(workspace_id, user_id)
 
-            if not success:
-                return jsonify({"error": "Workspace not found"}), 404
+        if not success:
+            return jsonify({"error": "Workspace not found"}), 404
 
-            return jsonify({"message": "Workspace deleted successfully"}), 200
+        return jsonify({"message": "Workspace deleted successfully"}), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to delete workspace: {str(e)}"}), 500
 
 
 @workspace_bp.route("/<workspace_id>/stats", methods=["GET"])
-@jwt_required()
-async def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
     """
     Get statistics for a workspace.
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            stats = await service.get_workspace_stats(workspace_id, user_id)
+        service = get_workspace_service()
+        stats = service.get_workspace_stats(workspace_id, user_id)
 
-            if not stats:
-                return jsonify({"error": "Workspace not found"}), 404
+        if not stats:
+            return jsonify({"error": "Workspace not found"}), 404
 
-            return (
-                jsonify(
-                    {
-                        "workspace_id": stats.workspace_id,
-                        "document_count": stats.document_count,
-                        "total_document_size": stats.total_document_size,
-                        "chunk_count": stats.chunk_count,
-                        "chat_session_count": stats.chat_session_count,
-                        "total_message_count": stats.total_message_count,
-                        "last_activity": (
-                            stats.last_activity.isoformat() if stats.last_activity else None
-                        ),
-                    }
-                ),
-                200,
-            )
+        return (
+            jsonify(
+                {
+                    "workspace_id": stats.workspace_id,
+                    "document_count": stats.document_count,
+                    "total_document_size": stats.total_document_size,
+                    "chunk_count": stats.chunk_count,
+                    "chat_session_count": stats.chat_session_count,
+                    "total_message_count": stats.total_message_count,
+                    "last_activity": (
+                        stats.last_activity.isoformat() if stats.last_activity else None
+                    ),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         return jsonify({"error": f"Failed to get workspace stats: {str(e)}"}), 500
 
 
 @workspace_bp.route("/<workspace_id>/rag-config", methods=["GET"])
-@jwt_required()
-async def get_rag_config(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def get_rag_config(workspace_id: str) -> tuple[Response, int]:
     """
     Get RAG configuration for a workspace.
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            config = await service.get_rag_config(workspace_id, user_id)
+        service = get_workspace_service()
+        rag_cfg = service.get_rag_config(workspace_id, user_id)
 
-            if not config:
-                return jsonify({"error": "Workspace not found"}), 404
+        if not rag_cfg:
+            return jsonify({"error": "Workspace not found"}), 404
 
-            return jsonify(rag_config_to_dict(config)), 200
+        return jsonify(rag_config_to_dict(rag_cfg)), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to get RAG config: {str(e)}"}), 500
 
 
+@workspace_bp.route("/<workspace_id>/rag-config", methods=["POST"])
+@require_auth
+def create_rag_config(workspace_id: str) -> tuple[Response, int]:
+    """
+    Create RAG configuration for a workspace.
+
+    Note: RAG config is automatically created with workspace, so this
+    endpoint returns the existing config or updates it with provided values.
+
+    Request Body:
+    {
+        "embedding_model": "nomic-embed-text",
+        "embedding_dim": 768,
+        "retriever_type": "vector",
+        "chunk_size": 1000,
+        "chunk_overlap": 200,
+        "top_k": 8,
+        "rerank_enabled": false,
+        "rerank_model": null
+    }
+    """
+    try:
+        user_id = get_current_user().id
+        data = request.get_json() or {}
+
+        service = get_workspace_service()
+
+        # Check if workspace exists and user has access
+        workspace = service.get_workspace(workspace_id, user_id)
+        if not workspace:
+            return jsonify({"error": "Workspace not found"}), 404
+
+        # Get existing config (should always exist as it's created with workspace)
+        rag_cfg = service.get_rag_config(workspace_id, user_id)
+
+        if rag_cfg:
+            # Update with provided values
+            update_fields = {}
+            allowed_fields = [
+                "embedding_model",
+                "embedding_dim",
+                "retriever_type",
+                "chunk_size",
+                "chunk_overlap",
+                "top_k",
+                "rerank_enabled",
+                "rerank_model",
+            ]
+            for field in allowed_fields:
+                if field in data:
+                    update_fields[field] = data[field]
+
+            if update_fields:
+                rag_cfg = service.update_rag_config(workspace_id, user_id, **update_fields)
+
+            if rag_cfg:
+                return jsonify(rag_config_to_dict(rag_cfg)), 200
+
+        return jsonify({"error": "RAG config not found for workspace"}), 404
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to create RAG config: {str(e)}"}), 500
+
+
+@workspace_bp.route("/<workspace_id>/rag-config", methods=["PATCH"])
+@require_auth
+def update_rag_config(workspace_id: str) -> tuple[Response, int]:
+    """
+    Update RAG configuration for a workspace.
+
+    Request Body (all fields optional):
+    {
+        "embedding_model": "nomic-embed-text",
+        "embedding_dim": 768,
+        "retriever_type": "vector",
+        "chunk_size": 1000,
+        "chunk_overlap": 200,
+        "top_k": 8,
+        "rerank_enabled": false,
+        "rerank_model": null
+    }
+    """
+    try:
+        user_id = get_current_user().id
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        # Build update dict with only provided fields
+        update_fields = {}
+        allowed_fields = [
+            "embedding_model",
+            "embedding_dim",
+            "retriever_type",
+            "chunk_size",
+            "chunk_overlap",
+            "top_k",
+            "rerank_enabled",
+            "rerank_model",
+        ]
+
+        for field in allowed_fields:
+            if field in data:
+                update_fields[field] = data[field]
+
+        if not update_fields:
+            return jsonify({"error": "No valid fields to update"}), 400
+
+        # Validate fields
+        if "retriever_type" in update_fields:
+            if update_fields["retriever_type"] not in ["vector", "graph", "hybrid"]:
+                return (
+                    jsonify({"error": "retriever_type must be 'vector', 'graph', or 'hybrid'"}),
+                    400,
+                )
+
+        if "chunk_size" in update_fields:
+            if not (100 <= update_fields["chunk_size"] <= 5000):
+                return jsonify({"error": "chunk_size must be between 100 and 5000"}), 400
+
+        if "chunk_overlap" in update_fields:
+            if not (0 <= update_fields["chunk_overlap"] <= 1000):
+                return (
+                    jsonify({"error": "chunk_overlap must be between 0 and 1000"}),
+                    400,
+                )
+
+        if "top_k" in update_fields:
+            if not (1 <= update_fields["top_k"] <= 50):
+                return jsonify({"error": "top_k must be between 1 and 50"}), 400
+
+        service = get_workspace_service()
+        rag_cfg = service.update_rag_config(workspace_id, user_id, **update_fields)
+
+        if not rag_cfg:
+            return jsonify({"error": "Workspace not found"}), 404
+
+        return jsonify(rag_config_to_dict(rag_cfg)), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to update RAG config: {str(e)}"}), 500
+
+
 @workspace_bp.route("/<workspace_id>/validate-access", methods=["GET"])
-@jwt_required()
-async def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
+@require_auth
+def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
     """
     Validate that the current user has access to a workspace.
     Useful for client-side permission checks.
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = get_current_user().id
 
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-            has_access = await service.validate_workspace_access(workspace_id, user_id)
+        service = get_workspace_service()
+        has_access = service.validate_workspace_access(workspace_id, user_id)
 
-            return jsonify({"has_access": has_access, "workspace_id": workspace_id}), 200
+        return jsonify({"has_access": has_access, "workspace_id": workspace_id}), 200
 
     except Exception as e:
         return jsonify({"error": f"Failed to validate access: {str(e)}"}), 500
-
-
-# ============================================================================
-# Document endpoints for workspace-specific document management
-# ============================================================================
-
-
-@workspace_bp.route("/<workspace_id>/documents", methods=["GET"])
-@jwt_required()
-async def list_workspace_documents(workspace_id: str) -> tuple[Response, int]:
-    """
-    List all documents in a workspace.
-    """
-    try:
-        user_id = get_jwt_identity()
-
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-
-            # Validate access
-            if not await service.validate_workspace_access(workspace_id, user_id):
-                return jsonify({"error": "Workspace not found"}), 404
-
-            documents = await service.get_workspace_documents(workspace_id, user_id)
-
-            return (
-                jsonify(
-                    {
-                        "documents": [
-                            {
-                                "id": doc.id,
-                                "filename": doc.filename,
-                                "file_size": doc.file_size,
-                                "mime_type": doc.mime_type,
-                                "chunk_count": doc.chunk_count,
-                                "processing_status": doc.processing_status,
-                                "processing_error": doc.processing_error,
-                                "created_at": doc.created_at.isoformat(),
-                                "updated_at": doc.updated_at.isoformat(),
-                            }
-                            for doc in documents
-                        ],
-                        "count": len(documents),
-                    }
-                ),
-                200,
-            )
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to list documents: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>/documents/upload", methods=["POST"])
-@jwt_required()
-async def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
-    """
-    Upload a document to a workspace.
-    """
-    try:
-        user_id = get_jwt_identity()
-
-        # Validate file is present
-        if "file" not in request.files:
-            return jsonify({"error": "No file part in request"}), 400
-
-        file: FileStorage = request.files["file"]
-
-        if not file.filename or file.filename == "":
-            return jsonify({"error": "No file selected"}), 400
-
-        # Validate file type
-        filename = secure_filename(file.filename)
-        allowed_extensions = {"txt", "pdf", "md"}
-        extension = filename.rsplit(".", 1)[1].lower() if "." in filename else ""
-        if extension not in allowed_extensions:
-            return jsonify({"error": f"File type not allowed. Allowed: {allowed_extensions}"}), 400
-
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-
-            # Validate workspace access
-            workspace = await service.get_workspace(workspace_id, user_id)
-            if not workspace:
-                return jsonify({"error": "Workspace not found"}), 404
-
-            # Save file temporarily
-            file_path = UPLOAD_FOLDER / filename
-            file.save(str(file_path))
-
-            try:
-                # Use the document service from app context
-                with open(file_path, "rb") as f:
-                    response_dto = g.app_context.document_service.upload_document_with_user(
-                        user_id=user_id,
-                        filename=filename,
-                        file_obj=f,
-                    )
-
-                # Associate document with workspace
-                document = g.app_context.document_service.get_document_by_id(
-                    response_dto.document.id
-                )
-                if document:
-                    document = await service.add_document_to_workspace(
-                        workspace_id, user_id, document
-                    )
-
-                status_code = 200 if "already exists" in response_dto.message else 201
-                return jsonify(response_dto.to_dict()), status_code
-
-            finally:
-                # Clean up temp file
-                if file_path.exists():
-                    os.remove(file_path)
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to upload document: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>/documents/<int:document_id>", methods=["DELETE"])
-@jwt_required()
-async def delete_workspace_document(workspace_id: str, document_id: int) -> tuple[Response, int]:
-    """
-    Delete a document from a workspace.
-    """
-    try:
-        user_id = get_jwt_identity()
-
-        async with get_db_connection() as db:
-            service = WorkspaceService(db)
-
-            # Validate workspace access and delete document
-            success = await service.remove_document_from_workspace(
-                workspace_id, document_id, user_id
-            )
-
-            if not success:
-                return jsonify({"error": "Document not found in workspace"}), 404
-
-            # Also delete from blob storage via document service
-            with contextlib.suppress(Exception):
-                g.app_context.document_service.delete_document(
-                    document_id, delete_from_storage=True
-                )
-
-            return jsonify({"message": "Document deleted successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to delete document: {str(e)}"}), 500

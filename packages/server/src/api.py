@@ -4,17 +4,18 @@ Flask application factory for InsightHub RAG system.
 This module provides the main Flask application with all routes registered.
 """
 
-import logging
-import os
-
 from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from shared.logger import LogLevel, create_logger
 from shared.messaging import StatusConsumer
 from shared.messaging.status_consumer import create_status_consumer
 
 from src import config
+
+# Create logger using shared library
+logger = create_logger("api", LogLevel.INFO)
 from src.context import AppContext
 from src.domains.auth.routes import auth_bp
 from src.domains.chat.routes import chat_bp
@@ -23,6 +24,7 @@ from src.domains.chat.socket_handlers import (
 )
 from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
+from src.domains.workspaces.routes import workspace_bp
 from src.domains.status.socket_handlers import (
     DocumentStatusData,
     WorkspaceStatusData,
@@ -78,10 +80,16 @@ def create_app() -> InsightHubApp:
     app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
     app.config["DEBUG"] = config.FLASK_DEBUG
 
-    # Set up logging
-    log_level = os.getenv("LOG_LEVEL", "INFO")
-    logging.basicConfig(level=getattr(logging, log_level.upper(), logging.INFO))
-    app.logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
+    # Set up logging using shared logger
+    log_level_map = {
+        "DEBUG": LogLevel.DEBUG,
+        "INFO": LogLevel.INFO,
+        "WARNING": LogLevel.WARNING,
+        "ERROR": LogLevel.ERROR,
+        "CRITICAL": LogLevel.CRITICAL,
+    }
+    log_level = log_level_map.get(config.LOG_LEVEL.upper(), LogLevel.INFO)
+    logger.set_level(log_level)
 
     # Initialize middleware (order matters!)
     # 1. Security headers (first, to add headers to all responses)
@@ -94,12 +102,11 @@ def create_app() -> InsightHubApp:
     )
 
     # 3. Rate limiting (after validation, before business logic)
-    rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
     RateLimitMiddleware(
         app,
-        requests_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
-        requests_per_hour=int(os.getenv("RATE_LIMIT_PER_HOUR", "1000")),
-        enabled=rate_limit_enabled,
+        requests_per_minute=config.RATE_LIMIT_PER_MINUTE,
+        requests_per_hour=config.RATE_LIMIT_PER_HOUR,
+        enabled=config.RATE_LIMIT_ENABLED,
     )
 
     # 4. Request logging (log after rate limiting)
@@ -108,8 +115,8 @@ def create_app() -> InsightHubApp:
     # 5. Performance monitoring (monitor everything)
     performance_monitoring = PerformanceMonitoringMiddleware(
         app,
-        slow_request_threshold=float(os.getenv("SLOW_REQUEST_THRESHOLD", "1.0")),
-        enable_stats=os.getenv("ENABLE_PERFORMANCE_STATS", "true").lower() == "true",
+        slow_request_threshold=config.SLOW_REQUEST_THRESHOLD,
+        enable_stats=config.ENABLE_PERFORMANCE_STATS,
     )
 
     # Store performance monitoring instance for access in routes
@@ -118,16 +125,17 @@ def create_app() -> InsightHubApp:
     # Initialize database
     try:
         init_db()
-        app.logger.info("Database initialized successfully")
+        logger.info("Database initialized successfully")
     except Exception as e:
-        app.logger.error(f"Could not initialize database: {e}")
+        logger.error("Could not initialize database", error=str(e))
 
     # Register blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(documents_bp)
     app.register_blueprint(chat_bp)
-    app.logger.info("All blueprints registered")
+    app.register_blueprint(workspace_bp)
+    logger.info("All blueprints registered")
 
     # Initialize SocketIO with the app
     socketio.init_app(app)
@@ -156,13 +164,13 @@ def create_app() -> InsightHubApp:
     )
 
     if status_consumer:
-        app.logger.info("Status update consumer started")
+        logger.info("Status update consumer started")
         # Store consumer reference for graceful shutdown
         app.status_consumer = status_consumer
     else:
-        app.logger.info("Status update consumer disabled (RabbitMQ not configured)")
+        logger.info("Status update consumer disabled (RabbitMQ not configured)")
 
-    app.logger.info("Socket.IO initialized")
+    logger.info("Socket.IO initialized")
 
     # Database session and application context management
     @app.before_request
@@ -186,17 +194,15 @@ def run_server(host: str | None = None, port: int | None = None, debug: bool | N
     Run the Flask development server with Socket.IO support.
 
     Args:
-        host: Host to bind to (defaults to FLASK_HOST env var or 0.0.0.0)
-        port: Port to listen on (defaults to FLASK_PORT env var or 5000)
-        debug: Enable debug mode (defaults to FLASK_DEBUG env var or True)
+        host: Host to bind to (defaults to config.FLASK_HOST)
+        port: Port to listen on (defaults to config.FLASK_PORT)
+        debug: Enable debug mode (defaults to config.FLASK_DEBUG)
     """
     app = create_app()
 
-    server_host = host or os.getenv("FLASK_HOST", "0.0.0.0")
-    server_port = port or int(os.getenv("FLASK_PORT", "5000"))
-    server_debug = (
-        debug if debug is not None else os.getenv("FLASK_DEBUG", "True").lower() == "true"
-    )
+    server_host = host or config.FLASK_HOST
+    server_port = port or config.FLASK_PORT
+    server_debug = debug if debug is not None else config.FLASK_DEBUG
 
     socketio.run(
         app, host=server_host, port=server_port, debug=server_debug, allow_unsafe_werkzeug=True

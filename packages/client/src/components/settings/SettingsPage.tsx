@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { FaTimes } from 'react-icons/fa';
 import type { RootState } from '../../store';
 import PasswordChangeForm from './PasswordChangeForm';
 import ThemePreferences from './ThemePreferences';
@@ -9,6 +11,7 @@ import RagConfigSettings from './RagConfigSettings';
 type SettingsTab = 'profile' | 'password' | 'preferences' | 'rag-config';
 
 export default function SettingsPage() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
     const { user } = useSelector((state: RootState) => state.auth);
 
@@ -19,8 +22,23 @@ export default function SettingsPage() {
         { id: 'rag-config' as SettingsTab, label: 'RAG Config' },
     ];
 
+    const handleClose = () => {
+        navigate('/');
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+            {/* Close Button */}
+            <div className="absolute top-4 right-4">
+                <button
+                    onClick={handleClose}
+                    className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+                    title="Close settings"
+                >
+                    <FaTimes className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                </button>
+            </div>
+
             <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
