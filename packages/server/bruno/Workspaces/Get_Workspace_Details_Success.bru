@@ -1,0 +1,36 @@
+meta {
+  name: Get_Workspace_Details_Success
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isDefined
+  res.body.name: isDefined
+  res.body.rag_config: isDefined
+}
+
+tests {
+  test("should return workspace details with RAG config", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.have.property('id');
+    expect(res.getBody()).to.have.property('name');
+    expect(res.getBody()).to.have.property('rag_config');
+    expect(res.getBody().rag_config).to.have.property('embedding_model');
+    expect(res.getBody().rag_config).to.have.property('retriever_type');
+  });
+}
+
+docs {
+  Get detailed information about a specific workspace including RAG configuration
+}

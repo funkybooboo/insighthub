@@ -6,6 +6,7 @@ from shared.messaging import RabbitMQPublisher
 from shared.repositories import (
     SqlChatMessageRepository,
     SqlChatSessionRepository,
+    SqlDefaultRagConfigRepository,
     SqlDocumentRepository,
     SqlUserRepository,
     SqlWorkspaceRepository,
@@ -13,9 +14,9 @@ from shared.repositories import (
 from shared.storage import BlobStorage, FileSystemBlobStorage, S3BlobStorage
 
 from src import config
-from src.domains.chat.service import ChatService
-from src.domains.documents.service import DocumentService
-from src.domains.users.service import UserService
+from src.domains.workspaces.chat.service import ChatService
+from src.domains.workspaces.documents.service import DocumentService
+from src.domains.auth.service import UserService
 from src.domains.workspaces.service import WorkspaceService
 
 
@@ -135,6 +136,7 @@ class AppContext:
         session_repo = SqlChatSessionRepository(db)
         message_repo = SqlChatMessageRepository(db)
         workspace_repo = SqlWorkspaceRepository(db)
+        default_rag_config_repo = SqlDefaultRagConfigRepository(db)
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=user_repo)
@@ -146,7 +148,13 @@ class AppContext:
         self.chat_service = ChatService(
             session_repository=session_repo, message_repository=message_repo
         )
-        self.workspace_service = WorkspaceService(workspace_repo=workspace_repo)
+        self.workspace_service = WorkspaceService(
+            workspace_repo=workspace_repo,
+            message_publisher=self.message_publisher,
+        )
+
+        # Initialize repositories
+        self.default_rag_config_repository = default_rag_config_repo
 
 
 def create_app_context(db: SqlDatabase) -> AppContext:

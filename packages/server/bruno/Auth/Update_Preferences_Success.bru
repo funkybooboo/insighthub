@@ -1,0 +1,26 @@
+meta {
+  name: Update_Preferences_Success
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{base_url}}/api/auth/preferences
+  body: json
+  auth: bearer
+}
+
+body {
+  {
+    "theme_preference": "dark"
+  }
+}
+
+assert {
+  res.status == 200
+  res.body.theme_preference == "dark"
+}
+
+docs {
+  Update user preferences successfully
+}

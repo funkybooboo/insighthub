@@ -4,21 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TypedDict, Optional
 
+from shared.messaging import RabbitMQPublisher
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
 
 
-class RagConfigInput(TypedDict, total=False):
-    """TypedDict for RAG configuration input."""
 
-    embedding_model: str
-    embedding_dim: int | None
-    retriever_type: str
-    chunk_size: int
-    chunk_overlap: int
-    top_k: int
-    rerank_enabled: bool
-    rerank_model: str | None
 
 
 # Type for update data fields
@@ -41,55 +32,73 @@ class WorkspaceStats:
 class WorkspaceService:
     """Service for workspace operations."""
 
-    def __init__(self, workspace_repo: WorkspaceRepository):
+    def __init__(
+        self,
+        workspace_repo: WorkspaceRepository,
+        message_publisher: RabbitMQPublisher | None = None,
+    ):
         self._repo = workspace_repo
+        self._message_publisher = message_publisher
 
     def create_workspace(
         self,
         name: str,
         user_id: int,
         description: str | None = None,
-        rag_config_data: RagConfigInput | None = None,
+        rag_config: dict | None = None,
     ) -> Workspace:
         """
-        Create a new workspace with optional RAG configuration.
+        Create a new workspace with RAG configuration.
 
         Args:
             name: Workspace name
             user_id: Owner user ID
             description: Optional description
-            rag_config_data: Optional RAG configuration dict
+            rag_config: Optional RAG configuration (uses defaults if not provided)
 
         Returns:
             Created workspace
         """
+        # Create workspace with provisioning status
         workspace = self._repo.create(
             user_id=user_id,
             name=name,
             description=description,
         )
 
-        # Create RAG config
-        if rag_config_data:
+        # Create RAG config for the workspace
+        if rag_config:
             self._repo.create_rag_config(
                 workspace_id=workspace.id,
-                embedding_model=rag_config_data.get("embedding_model", "nomic-embed-text"),
-                embedding_dim=rag_config_data.get("embedding_dim"),
-                retriever_type=rag_config_data.get("retriever_type", "vector"),
-                chunk_size=rag_config_data.get("chunk_size", 1000),
-                chunk_overlap=rag_config_data.get("chunk_overlap", 200),
-                top_k=rag_config_data.get("top_k", 8),
-                rerank_enabled=rag_config_data.get("rerank_enabled", False),
-                rerank_model=rag_config_data.get("rerank_model"),
+                embedding_model=rag_config.get("embedding_model", "nomic-embed-text"),
+                embedding_dim=rag_config.get("embedding_dim"),
+                retriever_type=rag_config.get("retriever_type", "vector"),
+                chunk_size=rag_config.get("chunk_size", 1000),
+                chunk_overlap=rag_config.get("chunk_overlap", 200),
+                top_k=rag_config.get("top_k", 8),
+                rerank_enabled=rag_config.get("rerank_enabled", False),
+                rerank_model=rag_config.get("rerank_model"),
             )
         else:
-            # Create default RAG config
+            # Use default RAG config
             self._repo.create_rag_config(workspace_id=workspace.id)
 
-        # Mark workspace as ready
-        workspace = self._repo.update(workspace.id, status="ready")
-        if workspace is None:
-            raise ValueError("Failed to update workspace status")
+        # Publish workspace provision requested event
+        if self._message_publisher:
+            try:
+                event_data = {
+                    "workspace_id": workspace.id,
+                    "user_id": user_id,
+                    "name": workspace.name,
+                    "rag_config": rag_config or {},
+                }
+                self._message_publisher.publish(
+                    routing_key="workspace.provision_requested",
+                    message=event_data,
+                )
+            except Exception as e:
+                # Log error but don't fail workspace creation
+                print(f"Failed to publish workspace provision event: {e}")
 
         return workspace
 
@@ -176,6 +185,22 @@ class WorkspaceService:
         if not workspace:
             return False
 
+        # Publish workspace deletion requested event before deleting
+        if self._message_publisher:
+            try:
+                event_data = {
+                    "workspace_id": workspace.id,
+                    "user_id": user_id,
+                    "name": workspace.name,
+                }
+                self._message_publisher.publish(
+                    routing_key="workspace.deletion_requested",
+                    message=event_data,
+                )
+            except Exception as e:
+                # Log error but continue with deletion
+                print(f"Failed to publish workspace deletion event: {e}")
+
         return self._repo.delete(workspace.id)
 
     def get_workspace_stats(
@@ -211,49 +236,7 @@ class WorkspaceService:
             last_activity=None,  # Could add if needed
         )
 
-    def get_rag_config(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-    ) -> Optional[RagConfig]:
-        """
-        Get RAG configuration for a workspace.
 
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-
-        Returns:
-            RagConfig or None if not found
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
-        if not workspace:
-            return None
-
-        return self._repo.get_rag_config(workspace.id)
-
-    def update_rag_config(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-        **update_data: UpdateValue,
-    ) -> Optional[RagConfig]:
-        """
-        Update RAG configuration for a workspace.
-
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-            **update_data: Fields to update
-
-        Returns:
-            Updated RagConfig or None if not found
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
-        if not workspace:
-            return None
-
-        return self._repo.update_rag_config(workspace.id, **update_data)
 
     def validate_workspace_access(
         self,

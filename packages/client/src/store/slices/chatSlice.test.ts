@@ -219,7 +219,7 @@ describe('chatSlice', () => {
                 addMessageToSession({ sessionId: 'session-1', message })
             );
 
-            expect(state.sessions[0].title).toBe('a'.repeat(50) + '...');
+            expect(state.sessions[0].title).toBe('a'.repeat(40) + '...');
         });
 
         it('should not auto-generate title from bot message', () => {

@@ -3,6 +3,7 @@
 import pytest
 from datetime import datetime
 from typing import Optional
+from unittest.mock import Mock
 
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
@@ -144,9 +145,15 @@ def fake_repository() -> FakeWorkspaceRepository:
 
 
 @pytest.fixture
-def service(fake_repository: FakeWorkspaceRepository) -> WorkspaceService:
-    """Provide a WorkspaceService with fake repository."""
-    return WorkspaceService(workspace_repo=fake_repository)
+def mock_message_publisher() -> Mock:
+    """Mock message publisher."""
+    return Mock()
+
+
+@pytest.fixture
+def service(fake_repository: FakeWorkspaceRepository, mock_message_publisher: Mock) -> WorkspaceService:
+    """Provide a WorkspaceService with fake repository and message publisher."""
+    return WorkspaceService(workspace_repo=fake_repository, message_publisher=mock_message_publisher)
 
 
 class TestWorkspaceServiceCreate:
@@ -176,14 +183,14 @@ class TestWorkspaceServiceCreate:
         assert workspace.name == "Minimal Workspace"
         assert workspace.description is None
 
-    def test_create_workspace_sets_status_to_ready(self, service: WorkspaceService) -> None:
-        """create_workspace sets status to ready."""
+    def test_create_workspace_sets_status_to_provisioning(self, service: WorkspaceService) -> None:
+        """create_workspace sets status to provisioning."""
         workspace = service.create_workspace(
             name="Test",
             user_id=1,
         )
 
-        assert workspace.status == "ready"
+        assert workspace.status == "provisioning"
 
     def test_create_workspace_creates_default_rag_config(
         self, service: WorkspaceService, fake_repository: FakeWorkspaceRepository
@@ -207,7 +214,7 @@ class TestWorkspaceServiceCreate:
         workspace = service.create_workspace(
             name="Custom Config Workspace",
             user_id=1,
-            rag_config_data={
+            rag_config={
                 "embedding_model": "text-embedding-3-small",
                 "retriever_type": "hybrid",
                 "chunk_size": 500,
@@ -231,6 +238,35 @@ class TestWorkspaceServiceCreate:
         assert ws1.id == 1
         assert ws2.id == 2
         assert ws3.id == 3
+
+    def test_create_workspace_publishes_provision_event(
+        self, service: WorkspaceService, mock_message_publisher: Mock
+    ) -> None:
+        """create_workspace publishes workspace.provision_requested event."""
+        workspace = service.create_workspace(name="Test", user_id=1)
+
+        mock_message_publisher.publish.assert_called_once_with(
+            routing_key="workspace.provision_requested",
+            message={
+                "workspace_id": workspace.id,
+                "user_id": 1,
+                "name": "Test",
+                "rag_config": None,
+            },
+        )
+
+    def test_create_workspace_handles_publish_failure(
+        self, service: WorkspaceService, mock_message_publisher: Mock
+    ) -> None:
+        """create_workspace continues even if message publishing fails."""
+        mock_message_publisher.publish.side_effect = Exception("RabbitMQ error")
+
+        workspace = service.create_workspace(name="Test", user_id=1)
+
+        # Workspace should still be created despite publish failure
+        assert workspace is not None
+        assert workspace.name == "Test"
+        mock_message_publisher.publish.assert_called_once()
 
 
 class TestWorkspaceServiceList:
@@ -396,6 +432,36 @@ class TestWorkspaceServiceDelete:
 
         assert result is False
 
+    def test_delete_workspace_publishes_deletion_event(
+        self, service: WorkspaceService, mock_message_publisher: Mock
+    ) -> None:
+        """delete_workspace publishes workspace.deletion_requested event."""
+        created = service.create_workspace(name="To Delete", user_id=1)
+
+        service.delete_workspace(workspace_id=created.id, user_id=1)
+
+        mock_message_publisher.publish.assert_called_once_with(
+            routing_key="workspace.deletion_requested",
+            message={
+                "workspace_id": created.id,
+                "user_id": 1,
+                "name": "To Delete",
+            },
+        )
+
+    def test_delete_workspace_handles_publish_failure(
+        self, service: WorkspaceService, mock_message_publisher: Mock
+    ) -> None:
+        """delete_workspace continues even if message publishing fails."""
+        created = service.create_workspace(name="To Delete", user_id=1)
+        mock_message_publisher.publish.side_effect = Exception("RabbitMQ error")
+
+        result = service.delete_workspace(workspace_id=created.id, user_id=1)
+
+        # Deletion should still succeed despite publish failure
+        assert result is True
+        mock_message_publisher.publish.assert_called_once()
+
 
 class TestWorkspaceServiceStats:
     """Tests for workspace statistics."""
@@ -435,61 +501,7 @@ class TestWorkspaceServiceStats:
         assert stats is None
 
 
-class TestWorkspaceServiceRagConfig:
-    """Tests for RAG configuration operations."""
 
-    def test_get_rag_config_returns_config(self, service: WorkspaceService) -> None:
-        """get_rag_config returns RagConfig."""
-        created = service.create_workspace(name="Test", user_id=1)
-
-        config = service.get_rag_config(workspace_id=created.id, user_id=1)
-
-        assert config is not None
-        assert isinstance(config, RagConfig)
-        assert config.workspace_id == created.id
-
-    def test_get_rag_config_returns_none_for_nonexistent(self, service: WorkspaceService) -> None:
-        """get_rag_config returns None for nonexistent workspace."""
-        config = service.get_rag_config(workspace_id=999, user_id=1)
-
-        assert config is None
-
-    def test_get_rag_config_returns_none_for_wrong_user(self, service: WorkspaceService) -> None:
-        """get_rag_config returns None when user doesn't own workspace."""
-        created = service.create_workspace(name="Test", user_id=1)
-
-        config = service.get_rag_config(workspace_id=created.id, user_id=2)
-
-        assert config is None
-
-    def test_update_rag_config_returns_updated_config(self, service: WorkspaceService) -> None:
-        """update_rag_config returns updated RagConfig."""
-        created = service.create_workspace(name="Test", user_id=1)
-
-        updated = service.update_rag_config(
-            workspace_id=created.id,
-            user_id=1,
-            retriever_type="graph",
-            chunk_size=500,
-            top_k=15,
-        )
-
-        assert updated is not None
-        assert updated.retriever_type == "graph"
-        assert updated.chunk_size == 500
-        assert updated.top_k == 15
-
-    def test_update_rag_config_returns_none_for_nonexistent(
-        self, service: WorkspaceService
-    ) -> None:
-        """update_rag_config returns None for nonexistent workspace."""
-        result = service.update_rag_config(
-            workspace_id=999,
-            user_id=1,
-            chunk_size=500,
-        )
-
-        assert result is None
 
 
 class TestWorkspaceServiceValidateAccess:

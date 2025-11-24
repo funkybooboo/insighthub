@@ -32,6 +32,6 @@ tests {
     expect(res.getStatus()).to.equal(201);
     expect(res.getBody().name).to.equal("Test Workspace");
     expect(res.getBody().id).to.be.a("number");
-    expect(res.getBody().status).to.equal("ready");
+    expect(res.getBody().status).to.equal("provisioning");
   });
 }

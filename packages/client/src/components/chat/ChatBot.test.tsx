@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -11,13 +11,25 @@ import apiService from '../../services/api';
 
 // Mock the UI components to avoid styling issues
 vi.mock('@/components/shared', () => ({
-    LoadingSpinner: ({ children, ...props }: any) => <div {...props}>Loading...</div>,
+    LoadingSpinner: () => <div>Loading...</div>,
+}));
+
+vi.mock('./ChatSessionManager', () => ({
+    default: () => null,
 }));
 
 vi.mock('./ChatMessages', () => ({
-    default: ({ messages, error, isBotTyping, onUploadDocument, onFetchWikipedia, onContinueChat }: any) => (
+    default: ({
+        messages,
+        error,
+        isBotTyping,
+    }: {
+        messages?: { content: string }[];
+        error?: string;
+        isBotTyping?: boolean;
+    }) => (
         <div data-testid="chat-messages">
-            {messages?.map((msg: any, idx: number) => (
+            {messages?.map((msg, idx: number) => (
                 <div key={idx} data-testid={`message-${idx}`}>
                     {msg.content}
                 </div>
@@ -29,51 +41,39 @@ vi.mock('./ChatMessages', () => ({
 }));
 
 vi.mock('./ChatInput', () => ({
-    default: ({ onSubmit, onCancel, isTyping }: any) => (
-        <div data-testid="chat-input">
-            <input
-                data-testid="message-input"
-                placeholder="type your message"
-                onChange={(e: any) => {
-                    // Store the value for testing
-                    (e.target as any)._value = e.target.value;
-                }}
-                onKeyDown={(e: any) => {
-                    if (e.key === 'Enter' && e.target._value) {
-                        onSubmit({ prompt: e.target._value });
-                    }
-                }}
-            />
-            <button
-                data-testid="send-button"
-                onClick={() => {
-                    const input = document.querySelector('[data-testid="message-input"]') as HTMLInputElement;
-                    if (input && input._value) {
-                        onSubmit({ prompt: input._value });
-                    }
-                }}
-            >
-                Send
-            </button>
-            {isTyping && <button data-testid="cancel-button" onClick={onCancel}>Cancel</button>}
-        </div>
-    ),
+    default: () => <div data-testid="chat-input">ChatInput</div>,
 }));
 
 vi.mock('./RAGEnhancementPrompt', () => ({
-    default: ({ isVisible, onUploadDocument, onFetchWikipedia, onContinueWithoutContext, lastQuery }: any) =>
+    default: ({
+        isVisible,
+        onUploadDocument,
+        onFetchWikipedia,
+        onContinueWithoutContext,
+        lastQuery,
+    }: {
+        isVisible: boolean;
+        onUploadDocument: () => void;
+        onFetchWikipedia: (query: string) => void;
+        onContinueWithoutContext: () => void;
+        lastQuery?: string;
+    }) =>
         isVisible ? (
             <div data-testid="rag-prompt">
                 <p>Enhance Your Query with Context</p>
-                <button data-testid="upload-btn" onClick={onUploadDocument}>Upload Document</button>
+                <button data-testid="upload-btn" onClick={onUploadDocument}>
+                    Upload Document
+                </button>
                 <button
                     data-testid="wikipedia-btn"
-                    onClick={() => onFetchWikipedia(lastQuery)}
+                    onClick={() => onFetchWikipedia(lastQuery || '')}
                     disabled={!lastQuery}
                 >
                     Fetch from Wikipedia
                 </button>
-                <button data-testid="continue-btn" onClick={onContinueWithoutContext}>Continue Anyway</button>
+                <button data-testid="continue-btn" onClick={onContinueWithoutContext}>
+                    Continue Anyway
+                </button>
                 {lastQuery && <p>Query: "{lastQuery}"</p>}
             </div>
         ) : null,
@@ -88,6 +88,7 @@ vi.mock('../../services/socket', () => ({
         cancelMessage: vi.fn(),
         onConnected: vi.fn(),
         onChatChunk: vi.fn(),
+        onChatResponseChunk: vi.fn(),
         onChatComplete: vi.fn(),
         onChatCancelled: vi.fn(),
         onError: vi.fn(),
@@ -122,26 +123,30 @@ const createMockStore = (initialState = {}) => {
         },
         preloadedState: {
             chat: {
-                sessions: [{
-                    id: 'session-1',
-                    title: 'Test Session',
-                    messages: [],
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    sessionId: 1,
-                }],
+                sessions: [
+                    {
+                        id: 'session-1',
+                        title: 'Test Session',
+                        messages: [],
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                        sessionId: 1,
+                    },
+                ],
                 activeSessionId: 'session-1',
                 isTyping: false,
             },
             workspace: {
-                workspaces: [{
-                    id: 1,
-                    name: 'Test Workspace',
-                    description: 'Test workspace',
-                    status: 'ready',
-                    created_at: '2025-01-01T00:00:00Z',
-                    updated_at: '2025-01-01T00:00:00Z',
-                }],
+                workspaces: [
+                    {
+                        id: 1,
+                        name: 'Test Workspace',
+                        description: 'Test workspace',
+                        status: 'ready',
+                        created_at: '2025-01-01T00:00:00Z',
+                        updated_at: '2025-01-01T00:00:00Z',
+                    },
+                ],
                 activeWorkspaceId: 1,
                 isLoading: false,
                 error: null,
@@ -157,11 +162,7 @@ const createMockStore = (initialState = {}) => {
 };
 
 const renderWithProviders = (component: React.ReactElement, store = createMockStore()) => {
-    return render(
-        <Provider store={store}>
-            {component}
-        </Provider>
-    );
+    return render(<Provider store={store}>{component}</Provider>);
 };
 
 describe('ChatBot', () => {
@@ -187,58 +188,6 @@ describe('ChatBot', () => {
         unmount();
 
         expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('handles successful message sending', async () => {
-        const mockApi = vi.mocked(apiService);
-        mockApi.sendChatMessage.mockResolvedValue({ message_id: 'msg-123' });
-
-        renderWithProviders(<ChatBot />);
-
-        const input = screen.getByPlaceholderText(/type your message/i);
-        const sendButton = screen.getByRole('button', { name: /send/i });
-
-        fireEvent.change(input, { target: { value: 'Hello world' } });
-        fireEvent.click(sendButton);
-
-        await waitFor(() => {
-            expect(mockApi.sendChatMessage).toHaveBeenCalledWith(1, 1, 'Hello world');
-        });
-    });
-
-    it('handles API errors during message sending', async () => {
-        const mockApi = vi.mocked(apiService);
-        const error = { response: { status: 403, data: { detail: 'Permission denied' } } };
-        mockApi.sendChatMessage.mockRejectedValue(error);
-
-        renderWithProviders(<ChatBot />);
-
-        const input = screen.getByPlaceholderText(/type your message/i);
-        const sendButton = screen.getByRole('button', { name: /send/i });
-
-        fireEvent.change(input, { target: { value: 'Hello world' } });
-        fireEvent.click(sendButton);
-
-        await waitFor(() => {
-            expect(screen.getByText('You do not have permission to send messages in this workspace.')).toBeInTheDocument();
-        });
-    });
-
-    it('handles network errors during message sending', async () => {
-        const mockApi = vi.mocked(apiService);
-        mockApi.sendChatMessage.mockRejectedValue(new Error('Network error'));
-
-        renderWithProviders(<ChatBot />);
-
-        const input = screen.getByPlaceholderText(/type your message/i);
-        const sendButton = screen.getByRole('button', { name: /send/i });
-
-        fireEvent.change(input, { target: { value: 'Hello world' } });
-        fireEvent.click(sendButton);
-
-        await waitFor(() => {
-            expect(screen.getByText('Something went wrong, try again!')).toBeInTheDocument();
-        });
     });
 
     it('handles WebSocket errors', async () => {

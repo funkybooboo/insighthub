@@ -254,12 +254,9 @@ class ChatService:
         )
         logger.debug(f"User message stored: message_id={user_message.id}, session_id={session.id}")
 
-        # TODO: Query RAG system
-        # from src.rag.factory import create_rag
-        # rag = create_rag(rag_type=rag_type, ...)
-        # results = rag.query(message, top_k=5)
-        # answer = results["answer"]
-        # context_chunks = results["context"]
+        # TODO: Query RAG system via RabbitMQ workers
+        # This will be implemented using message queues and background workers
+        # For now, return mock response
 
         # Mock response for now
         answer = f"Mock response to: {message}"
@@ -475,23 +472,16 @@ class ChatService:
         # Before generating LLM response, retrieve relevant context from RAG system
         #
         # Implementation steps:
-        # 1. Import RAG system: from src.rag.factory import create_rag
-        # 2. Initialize RAG with appropriate type:
-        #    rag = create_rag(
-        #        rag_type=rag_type,  # "vector" or "graph"
-        #        embedding_type="ollama",
-        #        ...
-        #    )
-        # 3. Retrieve relevant chunks:
-        #    rag_results = rag.retrieve(query=message, top_k=5)
-        # 4. Format context for LLM:
+        # 1. Send message to RAG worker via RabbitMQ
+        # 2. Wait for RAG worker response with context
+        # 3. Format context for LLM:
         #    context_str = "\n\n".join([
         #        f"[{i+1}] {chunk['text']}"
         #        for i, chunk in enumerate(rag_results)
         #    ])
-        # 5. Prepend context to conversation or use system message:
+        # 4. Prepend context to conversation or use system message:
         #    system_message = f"Use the following context to answer:\n{context_str}"
-        # 6. Store context metadata in message for later analysis
+        # 5. Store context metadata in message for later analysis
 
         # Generate LLM response
         logger.debug(f"Generating LLM response: session_id={session.id}")
@@ -523,7 +513,7 @@ class ChatService:
         # Build response DTO
         return ChatResponseDTO(
             answer=llm_answer,
-            context=[],  # No RAG context for now
+            context=[],  # TODO: Add RAG context from worker response
             session_id=session.id,
             documents_count=documents_count,
         )

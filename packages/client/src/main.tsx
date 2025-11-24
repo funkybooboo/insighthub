@@ -6,15 +6,18 @@ import { store } from './store';
 import './index.css';
 import 'react-loading-skeleton/dist/skeleton.css';
 import App from './App.tsx';
+import ErrorBoundary from './components/shared/ErrorBoundary';
 
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <Provider store={store}>
-            <QueryClientProvider client={queryClient}>
-                <App />
-            </QueryClientProvider>
-        </Provider>
+        <ErrorBoundary>
+            <Provider store={store}>
+                <QueryClientProvider client={queryClient}>
+                    <App />
+                </QueryClientProvider>
+            </Provider>
+        </ErrorBoundary>
     </StrictMode>
 );

@@ -6,11 +6,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
-import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
 import DocumentList, { type DocumentListRef } from './DocumentList';
 import apiService, { type Document } from '../../services/api';
-import statusReducer from '../../store/slices/statusSlice';
 
 // Mock useSelector
 vi.mock('react-redux', async () => {
@@ -38,8 +35,6 @@ vi.mock('react-redux', () => ({
 // Mock window.confirm
 const mockConfirm = vi.fn();
 window.confirm = mockConfirm;
-
-
 
 describe('DocumentList', () => {
     const mockDocuments: Document[] = [
@@ -563,7 +558,9 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />);
+            render(
+                <DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />
+            );
 
             await waitFor(() => {
                 expect(mockOnDocumentCountChange).toHaveBeenCalledWith(2);
@@ -575,7 +572,9 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [],
             });
-            render(<DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />);
+            render(
+                <DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />
+            );
 
             await waitFor(() => {
                 expect(mockOnDocumentCountChange).toHaveBeenCalledWith(0);

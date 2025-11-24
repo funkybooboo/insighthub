@@ -32,6 +32,7 @@ src/components/
 Main chat interface component that orchestrates the entire chat experience.
 
 **Props**:
+
 ```typescript
 interface ChatBotProps {
     sessionId?: string; // Optional session ID to resume
@@ -39,6 +40,7 @@ interface ChatBotProps {
 ```
 
 **Features**:
+
 - Real-time message streaming via Socket.IO
 - Conversation session management
 - Typing indicators
@@ -46,16 +48,19 @@ interface ChatBotProps {
 - Error handling and retry logic
 
 **State Management**:
+
 - Uses Redux Toolkit for global chat state
 - Local state for current message input
 - Ref for accumulating streaming tokens
 
 **WebSocket Events**:
+
 - `chat_chunk`: Receives streaming tokens
 - `chat_complete`: Message completion event
 - `error`: Error notifications
 
 **React 19 Features**:
+
 - Uses `useTransition` for smooth streaming UI updates
 - Concurrent rendering support with React 18 features
 - Automatic batching for performance optimization
@@ -67,6 +72,7 @@ interface ChatBotProps {
 Displays the conversation history with proper formatting and styling.
 
 **Props**:
+
 ```typescript
 interface ChatMessagesProps {
     messages: ChatMessage[];
@@ -75,6 +81,7 @@ interface ChatMessagesProps {
 ```
 
 **Features**:
+
 - Auto-scrolling to latest message
 - Message role-based styling
 - Markdown rendering for assistant messages
@@ -88,6 +95,7 @@ interface ChatMessagesProps {
 Input component for composing and sending chat messages.
 
 **Props**:
+
 ```typescript
 interface ChatInputProps {
     onSendMessage: (message: string) => void;
@@ -97,6 +105,7 @@ interface ChatInputProps {
 ```
 
 **Features**:
+
 - Multi-line text input with auto-resize
 - Enter to send, Shift+Enter for new line
 - Character limit indicator
@@ -110,6 +119,7 @@ interface ChatInputProps {
 Sidebar component for managing chat sessions.
 
 **Props**:
+
 ```typescript
 interface ChatSidebarProps {
     sessions: ChatSession[];
@@ -121,6 +131,7 @@ interface ChatSidebarProps {
 ```
 
 **Features**:
+
 - Session list with search and filter
 - Create new session
 - Delete session with confirmation
@@ -136,6 +147,7 @@ interface ChatSidebarProps {
 Component for uploading documents to the system.
 
 **Props**:
+
 ```typescript
 interface DocumentUploadProps {
     onUploadComplete: (document: Document) => void;
@@ -145,6 +157,7 @@ interface DocumentUploadProps {
 ```
 
 **Features**:
+
 - Drag-and-drop file upload
 - File type validation (PDF, DOCX, HTML, TXT)
 - File size validation
@@ -159,6 +172,7 @@ interface DocumentUploadProps {
 Displays list of uploaded documents with management options.
 
 **Props**:
+
 ```typescript
 interface DocumentListProps {
     documents: Document[];
@@ -168,6 +182,7 @@ interface DocumentListProps {
 ```
 
 **Features**:
+
 - Document listing with metadata (file size, type, status)
 - Download document functionality
 - Delete document with confirmation
@@ -184,6 +199,7 @@ interface DocumentListProps {
 Reusable button component with consistent styling and variants.
 
 **Props**:
+
 ```typescript
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger';
@@ -193,6 +209,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 ```
 
 **Features**:
+
 - Multiple visual variants (primary, secondary, danger)
 - Size variations (small, medium, large)
 - Loading state with spinner
@@ -206,6 +223,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 Form input component with validation support.
 
 **Props**:
+
 ```typescript
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -215,6 +233,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 ```
 
 **Features**:
+
 - Floating label animation
 - Error state styling
 - Helper text display
@@ -228,6 +247,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 Modal dialog component for confirmations and forms.
 
 **Props**:
+
 ```typescript
 interface ModalProps {
     isOpen: boolean;
@@ -238,6 +258,7 @@ interface ModalProps {
 ```
 
 **Features**:
+
 - Backdrop overlay with click-to-close
 - Escape key to close
 - Focus trap for accessibility
@@ -387,10 +408,10 @@ React 19 introduces new concurrent features that are utilized:
 const [isPending, startTransition] = useTransition();
 
 const handleSubmit = () => {
-  startTransition(() => {
-    // Update state that might cause re-renders
-    setMessages(newMessages);
-  });
+    startTransition(() => {
+        // Update state that might cause re-renders
+        setMessages(newMessages);
+    });
 };
 
 // useDeferredValue for non-critical updates
@@ -436,7 +457,7 @@ describe('Button', () => {
   it('calls onClick when clicked', () => {
     const handleClick = jest.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
-    
+
     fireEvent.click(screen.getByText('Click me'));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -511,15 +532,15 @@ Encapsulate component logic in custom hooks:
 ```typescript
 // Custom hook for chat functionality
 export const useChat = (sessionId: string) => {
-  const [messages, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
-  
-  // Socket.IO integration
-  useEffect(() => {
-    // Connect and listen for events
-  }, [sessionId]);
+    const [messages, setMessages] = useState([]);
+    const [isTyping, setIsTyping] = useState(false);
 
-  return { messages, isTyping, sendMessage, /* ... */};
+    // Socket.IO integration
+    useEffect(() => {
+        // Connect and listen for events
+    }, [sessionId]);
+
+    return { messages, isTyping, sendMessage /* ... */ };
 };
 ```
 
@@ -538,7 +559,7 @@ const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  
+
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };

@@ -1,0 +1,20 @@
+meta {
+  name: Get_Default_RAG_Config
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{base_url}}/api/auth/default-rag-config
+  auth: bearer
+}
+
+assert {
+  res.status == 200
+  res.body.retriever_type == "vector"
+  res.body.chunk_size > 0
+}
+
+docs {
+  Get user's default RAG configuration
+}

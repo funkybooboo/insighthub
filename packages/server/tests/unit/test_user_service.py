@@ -6,8 +6,8 @@ from typing import Optional
 from shared.models import User
 from shared.repositories import UserRepository
 
-from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
-from src.domains.users.service import UserService
+from src.domains.auth.exceptions import UserAlreadyExistsError, UserAuthenticationError
+from src.domains.auth.service import UserService
 
 
 class FakeUserRepository(UserRepository):

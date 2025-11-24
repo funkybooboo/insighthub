@@ -114,7 +114,9 @@ const SettingsPage: React.FC = () => {
 
     return (
         <div className="container mx-auto p-4 max-w-2xl">
-            <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">User Settings</h1>
+            <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+                User Settings
+            </h1>
 
             <section className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
                 <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
@@ -141,7 +143,9 @@ const SettingsPage: React.FC = () => {
                 <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
                     Default RAG Configuration
                 </h2>
-                {isLoading && <p className="text-gray-600 dark:text-gray-400">Loading RAG configuration...</p>}
+                {isLoading && (
+                    <p className="text-gray-600 dark:text-gray-400">Loading RAG configuration...</p>
+                )}
                 {error && <p className="text-red-500 mb-4">Error: {error}</p>}
 
                 {!isLoading && (

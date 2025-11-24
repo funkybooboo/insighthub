@@ -10,7 +10,7 @@ from shared.repositories import (
 
 from .routes import chat_bp
 from .service import ChatService
-from .socket_handlers import register_socket_handlers
+from .events import register_socket_handlers
 
 __all__ = [
     "ChatSession",

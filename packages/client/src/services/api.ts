@@ -162,7 +162,13 @@ class ApiService {
     /**
      * Send a chat message to a specific workspace and session
      */
-    async sendChatMessage(workspaceId: number, sessionId: number, content: string, messageType?: string, ignoreRag?: boolean): Promise<{ message_id: string }> {
+    async sendChatMessage(
+        workspaceId: number,
+        sessionId: number,
+        content: string,
+        messageType?: string,
+        ignoreRag?: boolean
+    ): Promise<{ message_id: string }> {
         const { data } = await this.client.post<{ message_id: string }>(
             `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/messages`,
             { content, message_type: messageType || 'user', ignore_rag: ignoreRag }
@@ -173,7 +179,11 @@ class ApiService {
     /**
      * Cancel a chat message streaming
      */
-    async cancelChatMessage(workspaceId: number, sessionId: number, messageId?: string): Promise<{ message: string }> {
+    async cancelChatMessage(
+        workspaceId: number,
+        sessionId: number,
+        messageId?: string
+    ): Promise<{ message: string }> {
         const { data } = await this.client.post<{ message: string }>(
             `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/cancel`,
             { message_id: messageId }
@@ -388,7 +398,10 @@ class ApiService {
     /**
      * Create a new chat session for a workspace
      */
-    async createChatSession(workspaceId: number, title?: string): Promise<{ session_id: number; title: string }> {
+    async createChatSession(
+        workspaceId: number,
+        title?: string
+    ): Promise<{ session_id: number; title: string }> {
         const { data } = await this.client.post<{ session_id: number; title: string }>(
             `/api/workspaces/${workspaceId}/chat/sessions`,
             { title }
@@ -399,10 +412,24 @@ class ApiService {
     /**
      * Get all chat sessions for a workspace
      */
-    async getChatSessions(workspaceId: number): Promise<Array<{ session_id: number; title: string; created_at: string; updated_at: string; message_count: number }>> {
-        const { data } = await this.client.get<Array<{ session_id: number; title: string; created_at: string; updated_at: string; message_count: number }>>(
-            `/api/workspaces/${workspaceId}/chat/sessions`
-        );
+    async getChatSessions(workspaceId: number): Promise<
+        Array<{
+            session_id: number;
+            title: string;
+            created_at: string;
+            updated_at: string;
+            message_count: number;
+        }>
+    > {
+        const { data } = await this.client.get<
+            Array<{
+                session_id: number;
+                title: string;
+                created_at: string;
+                updated_at: string;
+                message_count: number;
+            }>
+        >(`/api/workspaces/${workspaceId}/chat/sessions`);
         return data;
     }
 

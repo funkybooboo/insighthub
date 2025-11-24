@@ -3,6 +3,46 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { ChatSession, ChatState, Message, Context } from '@/types/chat';
 import { chatStorage } from '@/lib/chatStorage';
 
+// Generate a meaningful session title from the first message
+function generateSessionTitle(message: string): string {
+    // Clean up the message
+    const cleaned = message.trim();
+
+    // If it's a question, try to extract the key topic
+    if (
+        cleaned.toLowerCase().startsWith('what') ||
+        cleaned.toLowerCase().startsWith('how') ||
+        cleaned.toLowerCase().startsWith('why') ||
+        cleaned.toLowerCase().startsWith('when') ||
+        cleaned.toLowerCase().startsWith('where') ||
+        cleaned.toLowerCase().startsWith('can you') ||
+        cleaned.toLowerCase().startsWith('tell me')
+    ) {
+        // Take first 60 characters and ensure it ends at a word boundary
+        let title = cleaned.slice(0, 60);
+        const lastSpace = title.lastIndexOf(' ');
+        if (lastSpace > 20) {
+            // Only break at space if we have at least 20 chars
+            title = title.slice(0, lastSpace);
+        }
+
+        // Capitalize first letter
+        title = title.charAt(0).toUpperCase() + title.slice(1);
+
+        return title + (cleaned.length > title.length ? '...' : '');
+    }
+
+    // For other types of messages, take the first meaningful part
+    const words = cleaned.split(' ').filter((word) => word.length > 2);
+    if (words.length >= 2) {
+        const title = words.slice(0, 6).join(' '); // Take up to 6 meaningful words
+        return title.length > 50 ? title.slice(0, 47) + '...' : title;
+    }
+
+    // Fallback to first part of message
+    return cleaned.slice(0, 40) + (cleaned.length > 40 ? '...' : '');
+}
+
 const initialState: ChatState = {
     sessions: chatStorage.loadSessions(),
     activeSessionId: null,
@@ -40,9 +80,7 @@ const chatSlice = createSlice({
 
                 // Auto-generate title from first user message
                 if (session.title === 'New Chat' && action.payload.message.role === 'user') {
-                    session.title =
-                        action.payload.message.content.slice(0, 50) +
-                        (action.payload.message.content.length > 50 ? '...' : '');
+                    session.title = generateSessionTitle(action.payload.message.content);
                 }
 
                 chatStorage.saveSessions(state.sessions);

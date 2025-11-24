@@ -20,18 +20,21 @@ from src import config
 logger = create_logger("api", LogLevel.INFO)
 from src.context import AppContext, create_message_publisher
 from src.domains.auth.routes import auth_bp
-from src.domains.chat.routes import chat_bp
-from src.domains.chat.socket_handlers import (
-    register_socket_handlers as register_chat_socket_handlers,
-)
 from src.domains.health.routes import health_bp
 from src.domains.workspaces.routes import workspace_bp
-from src.domains.status.socket_handlers import (
-    DocumentStatusData,
+from src.domains.workspaces.chat.routes import chat_bp
+from src.domains.workspaces.chat.events import register_socket_handlers
+from src.domains.workspaces.documents.routes import documents_bp
+from src.domains.workspaces.rag_config.routes import rag_config_bp
+from src.domains.workspaces.chat.events import (
     WorkspaceStatusData,
-    broadcast_document_status,
     broadcast_workspace_status,
     register_status_socket_handlers,
+)
+from src.domains.workspaces.documents.status import (
+    DocumentStatusData,
+    broadcast_document_status,
+    emit_wikipedia_fetch_status,
 )
 from src.infrastructure.database import get_db, init_db
 from src.infrastructure.middleware import (
@@ -155,6 +158,8 @@ def create_app() -> InsightHubApp:
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(documents_bp)
+    app.register_blueprint(rag_config_bp)
     app.register_blueprint(workspace_bp)
     logger.info("All blueprints registered")
 
@@ -165,7 +170,7 @@ def create_app() -> InsightHubApp:
     SocketHandler(socketio)
 
     # Register domain-specific socket handlers
-    register_chat_socket_handlers(socketio)
+    register_socket_handlers(socketio)
 
     # Register status socket handlers
     register_status_socket_handlers(socketio)

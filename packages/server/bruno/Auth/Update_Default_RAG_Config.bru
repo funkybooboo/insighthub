@@ -1,0 +1,34 @@
+meta {
+  name: Update_Default_RAG_Config
+  type: http
+  seq: 17
+}
+
+put {
+  url: {{base_url}}/api/auth/default-rag-config
+  body: json
+  auth: bearer
+}
+
+body {
+  {
+    "embedding_model": "nomic-embed-text",
+    "embedding_dim": 768,
+    "retriever_type": "vector",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "top_k": 8,
+    "rerank_enabled": false,
+    "rerank_model": null
+  }
+}
+
+assert {
+  res.status == 200
+  res.body.retriever_type == "vector"
+  res.body.chunk_size == 1000
+}
+
+docs {
+  Update user's default RAG configuration
+}

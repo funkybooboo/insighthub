@@ -16,7 +16,7 @@ from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
-from src.domains.users.service import UserService
+from src.domains.auth.service import UserService
 from src import config
 
 

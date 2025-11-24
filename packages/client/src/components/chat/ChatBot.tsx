@@ -53,19 +53,21 @@ const ChatBot = () => {
             if (!activeSessionId && sessions.length === 0) {
                 try {
                     // Generate a title based on current time or use default
-                    const now = new Date();
-                    const title = `Chat ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-                    // Create backend session first
-                    const result = await apiService.createChatSession(activeWorkspaceId, title);
+                    // Create backend session with generic title (will be updated with first message)
+                    const result = await apiService.createChatSession(
+                        activeWorkspaceId,
+                        'New Chat'
+                    );
 
                     // Create local session representation
                     const newSessionId = `session-${result.session_id}`;
-                    dispatch(createSession({
-                        id: newSessionId,
-                        title: result.title,
-                        sessionId: result.session_id
-                    }));
+                    dispatch(
+                        createSession({
+                            id: newSessionId,
+                            title: result.title,
+                            sessionId: result.session_id,
+                        })
+                    );
 
                     // Set as active
                     dispatch(setActiveSession(newSessionId));
@@ -142,18 +144,27 @@ const ChatBot = () => {
                 if (!backendSessionId) {
                     throw new Error('No backend session ID available');
                 }
-                await apiService.sendChatMessage(activeWorkspaceId, backendSessionId, prompt, undefined, ignoreRag);
+                await apiService.sendChatMessage(
+                    activeWorkspaceId,
+                    backendSessionId,
+                    prompt,
+                    undefined,
+                    ignoreRag
+                );
             } catch (error: unknown) {
                 console.error('Error sending message:', error);
 
                 // Handle different error types
                 let errorMessage = 'Something went wrong, try again!';
                 if (error && typeof error === 'object' && 'response' in error) {
-                    const axiosError = error as { response?: { status?: number; data?: { detail?: string } } };
+                    const axiosError = error as {
+                        response?: { status?: number; data?: { detail?: string } };
+                    };
                     if (axiosError.response?.status === 401) {
                         errorMessage = 'Authentication failed. Please log in again.';
                     } else if (axiosError.response?.status === 403) {
-                        errorMessage = 'You do not have permission to send messages in this workspace.';
+                        errorMessage =
+                            'You do not have permission to send messages in this workspace.';
                     } else if (axiosError.response?.status === 404) {
                         errorMessage = 'Workspace or session not found.';
                     } else if (axiosError.response?.data?.detail) {
@@ -328,7 +339,11 @@ const ChatBot = () => {
         try {
             if (activeWorkspaceId && activeSession?.sessionId) {
                 // Cancel via API
-                await apiService.cancelChatMessage(activeWorkspaceId, activeSession.sessionId, currentBotMessageId.current || undefined);
+                await apiService.cancelChatMessage(
+                    activeWorkspaceId,
+                    activeSession.sessionId,
+                    currentBotMessageId.current || undefined
+                );
             } else {
                 console.warn('Cannot cancel: missing workspace or session ID');
             }

@@ -26,7 +26,11 @@ describe('RAGEnhancementPrompt', () => {
     it('handles props correctly', () => {
         // Test that component accepts all required props without errors
         expect(() => render(<RAGEnhancementPrompt {...defaultProps} />)).not.toThrow();
-        expect(() => render(<RAGEnhancementPrompt {...defaultProps} lastQuery={undefined} />)).not.toThrow();
-        expect(() => render(<RAGEnhancementPrompt {...defaultProps} isVisible={false} />)).not.toThrow();
+        expect(() =>
+            render(<RAGEnhancementPrompt {...defaultProps} lastQuery={undefined} />)
+        ).not.toThrow();
+        expect(() =>
+            render(<RAGEnhancementPrompt {...defaultProps} isVisible={false} />)
+        ).not.toThrow();
     });
 });

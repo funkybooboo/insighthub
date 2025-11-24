@@ -26,7 +26,7 @@ class TestWorkspaceCreateEndpoint:
         assert data["name"] == "Test Workspace"
         assert data["description"] == "A test workspace"
         assert "id" in data
-        assert data["status"] == "ready"
+        assert data["status"] == "provisioning"
 
     def test_create_workspace_with_rag_config(
         self, client: FlaskClient, auth_headers: dict[str, str]
