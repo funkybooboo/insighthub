@@ -476,7 +476,7 @@ This document provides a detailed breakdown of every significant user action wit
 **User Action**: User clicks "Delete" button on the Workspace Details page, confirms deletion in the dialog.
 
 **Client-Side Flow**:
-*   **UI State**: Delete Confirmation dialog opens. "Delete Workspace" button disabled during deletion.
+*   **UI State**: Delete Confirmation dialog opens. "Delete" button disabled during deletion.
 *   **Redux Actions**:
     *   `statusSlice.updateWorkspaceStatus` dispatched immediately with `status: 'deleting'` for the specific workspace.
     *   `workspaceSlice.removeWorkspace` is implicitly triggered by a `useEffect` in `WorkspaceDetailPage.tsx` when the workspace's status transitions from `deleting` to `ready` (signaling backend completion) and `isWorkspaceBeingDeleted` is true.
@@ -603,7 +603,7 @@ This document provides a detailed breakdown of every significant user action wit
 *   **Publishes `document.uploaded` event to RabbitMQ** (payload includes document_id, workspace_id, file_path_in_blob_storage).
 *   **Worker (Ingestion Worker Chain)**:
 *   **Parser Worker**: Consumes `document.uploaded`. Parses document text. Publishes `document.parsed`.
-*   **Chunker Worker**: Consumes `document.parsed`. Chunks text. Publishes `document.chunked`.
+*   **Chunker Worker**: Consumes `document.chunked`. Chunks text. Publishes `document.chunked`.
 *   **Embedder Worker**: Consumes `document.chunked`. Generates embeddings. Publishes `document.embedded`.
 *   **Indexer Worker**: Consumes `document.embedded`. Indexes vectors/graphs in Qdrant/Neo4j. Publishes `document.indexed`.
 *   **All Workers**: Send granular status updates to server via `document_status` WebSocket events as they process.
@@ -680,4 +680,136 @@ This document provides a detailed breakdown of every significant user action wit
 *   The deleted document disappears from the document list.
 
 ---
-   
+
+## User Actions
+
+### Workspaces Page (`WorkspacesPage.tsx`)
+
+*   **Create Workspace Button**:
+    *   User clicks the "Create Workspace" button.
+*   **Create New Workspace Modal**:
+    *   User types a name into the "Workspace Name" input field.
+    *   User types a description into the "Description (optional)" textarea.
+    *   User clicks the "RAG Configuration" toggle to expand/collapse advanced settings.
+    *   User interacts with the `RagConfigForm` within the modal (see `RagConfigForm.tsx` actions below).
+    *   User clicks the "Cancel" button to close the modal without creating a workspace.
+    *   User clicks the "Create Workspace" button to submit the form and create a new workspace.
+*   **Workspace Card**:
+    *   User clicks on an existing workspace card to view its details.
+*   **Error State**:
+    *   User clicks the "Retry" button if an error occurs while loading workspaces.
+
+### Workspace Detail Page (`WorkspaceDetailPage.tsx`)
+
+*   **Navigation**:
+    *   User clicks the "Workspaces" breadcrumb link to return to the Workspaces Page.
+*   **Action Buttons**:
+    *   User clicks the "Edit" button to open the "Edit Workspace" modal.
+        *   **Edit Workspace Modal**:
+            *   User types a new name into the "Workspace Name" input field.
+            *   User types a new description into the "Description (optional)" textarea.
+            *   User clicks the "Cancel" button to discard changes.
+            *   User clicks the "Save" button to update the workspace.
+    *   User clicks the "Open in Chat" button to navigate to the chat interface for the current workspace.
+    *   User clicks the "Delete" button to open the "Delete Workspace" confirmation dialog.
+        *   **Delete Confirmation Dialog**:
+            *   User clicks "Cancel" to close the dialog.
+            *   User clicks "Delete Workspace" to confirm deletion.
+*   **Document Management**:
+    *   User interacts with the `FileUpload` component (e.g., selects files for upload, drags and drops files).
+    *   User interacts with the `DocumentList` component (e.g., views documents, initiates document deletion or modification if available).
+
+### Settings Page (`SettingsPage.tsx`)
+
+*   **Default RAG Configuration Section**:
+    *   User clicks "Edit Configuration" to enable editing mode.
+    *   User interacts with the `RagConfigForm` (see `RagConfigForm.tsx` actions below) to modify default RAG settings.
+    *   User clicks "Cancel" to revert changes.
+    *   User clicks "Save Changes" to save the new default RAG configuration.
+
+### RAG Configuration Form (`RagConfigForm.tsx`) - Used in Create Workspace Modal and Settings Page
+
+*   **RAG Type Selection**:
+    *   User selects an option from the "RAG Type" dropdown (e.g., "Vector RAG", "Graph RAG").
+*   **Vector RAG Options (visible when "Vector RAG" is selected)**:
+    *   User selects an option from the "Embedding Model" dropdown.
+    *   User changes the value in the "Chunk Size" input field.
+    *   User changes the value in the "Chunk Overlap" input field.
+    *   User changes the value in the "Top K (Retrieval)" input field.
+    *   User toggles the "Enable Reranking" checkbox.
+    *   If "Enable Reranking" is checked:
+        *   User selects an option from the "Rerank Model" dropdown.
+*   **Graph RAG Options (visible when "Graph RAG" is selected)**:
+    *   User changes the value in the "Max Hops (Graph Traversal)" input field.
+    *   User selects an option from the "Entity Extraction Model" dropdown.
+    *   User selects an option from the "Relationship Extraction Model" dropdown.
+
+### User Authentication (`LoginForm.tsx`, `SignupForm.tsx`)
+
+*   **Login Form**:
+    *   User types in "Username" input field.
+    *   User types in "Password" input field.
+    *   User clicks "Sign in" button.
+    *   User clicks "Sign up" link to navigate to the signup page.
+*   **Signup Form**:
+    *   User types in "Username" input field.
+    *   User types in "Email" input field.
+    *   User types in "Full Name (optional)" input field.
+    *   User types in "Password" input field.
+    *   User types in "Confirm Password" input field.
+    *   User clicks "Sign up" button.
+    *   User clicks "Sign in" link to navigate to the login page.
+
+### Theme Toggle (`ThemeToggle.tsx`)
+
+*   **Click the theme toggle button**: Switches the application's theme between light and dark mode.
+
+### Chat Interface (`ChatBot.tsx`, `ChatInput.tsx`, `ChatMessages.tsx`, `ContextDisplay.tsx`)
+
+*   **Chat Input**:
+    *   User types a message in the `textarea` field.
+    *   User presses "Enter" key to submit the message.
+    *   User presses "Ctrl+C" key (globally or within the textarea) to cancel the current bot response.
+    *   User clicks "Send" button (up arrow icon) to submit the message.
+    *   User clicks "Cancel" button (cross icon, visible when bot is typing) to cancel the current bot response.
+*   **Chat Messages Display**:
+    *   User scrolls within the chat message area.
+    *   User clicks "Scroll to bottom" button to scroll to the most recent message.
+    *   User clicks "Fetch from Wikipedia?" button (displayed when no context is found) to initiate a Wikipedia search.
+    *   User clicks the expand/collapse button (showing "X relevant context snippets") to toggle the visibility of detailed context snippets.
+*   **RAG Enhancement Prompt (within ChatBot)**:
+    *   User clicks "Upload a Document" button (from RAG Enhancement Prompt).
+    *   User clicks "Fetch from Wikipedia" button (from RAG Enhancement Prompt).
+    *   User clicks "Continue without additional context" button (from RAG Enhancement Prompt).
+
+### Workspace Column (`WorkspaceColumn.tsx`, `WorkspaceHeader.tsx`)
+
+*   **Workspace Selector**:
+    *   User clicks the workspace selection button (active workspace header) to toggle the visibility of the workspace dropdown menu.
+    *   User clicks on a workspace name in the dropdown to set it as the active workspace.
+    *   User clicks "Create New Workspace" button in the dropdown to open the "Create New Workspace" modal.
+    *   User clicks "Workspace Settings" link in the dropdown to navigate to the `WorkspaceDetailPage` for the active workspace.
+
+### Chat Session List (`ChatSessionList.tsx`)
+
+*   **New Chat Button**:
+    *   User clicks "New Chat" button to create a new chat session.
+*   **Chat Session Item**:
+    *   User clicks on a chat session in the list to select it.
+    *   User clicks the "Delete" icon next to a chat session to open a confirmation dialog.
+        *   User clicks "Delete" button in confirmation dialog to delete the chat session.
+        *   User clicks "Cancel" button in confirmation dialog to close it.
+
+### Document Management (within DocumentManager) (`DocumentManager.tsx`, `FileUpload.tsx`, `DocumentList.tsx`)
+
+*   **Document Manager Section**:
+    *   User clicks the "Documents" header button to toggle the expansion/collapse of the document manager section.
+*   **File Upload**:
+    *   User clicks the "Drop files here or click to upload" area to open the file selection dialog.
+    *   User selects a file in the file selection dialog to trigger the upload process.
+    *   User drags and drops a file onto the "Drop files here or click to upload" area to trigger the upload process.
+*   **Document List**:
+    *   User clicks "Retry" button (if an error occurs while loading documents) to retry loading.
+    *   User clicks the "Delete" icon next to a document to open a confirmation dialog.
+        *   User clicks "Delete" button in confirmation dialog to delete the document.
+        *   User clicks "Cancel" button in confirmation dialog to close it.
