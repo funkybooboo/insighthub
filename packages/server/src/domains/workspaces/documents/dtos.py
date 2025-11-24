@@ -23,6 +23,8 @@ class DocumentResponse:
     file_size: int
     mime_type: str
     chunk_count: int | None
+    processing_status: str
+    processing_error: str | None
     created_at: datetime
 
     def to_dict(self) -> dict[str, str | int | None]:
@@ -33,6 +35,8 @@ class DocumentResponse:
             "file_size": self.file_size,
             "mime_type": self.mime_type,
             "chunk_count": self.chunk_count,
+            "processing_status": self.processing_status,
+            "processing_error": self.processing_error,
             "created_at": self.created_at.isoformat(),
         }
 
@@ -60,10 +64,12 @@ class DocumentListResponse:
 
     documents: list[DocumentResponse]
     count: int
+    total: int
 
     def to_dict(self) -> dict[str, list[dict[str, str | int | None]] | int]:
         """Convert to dictionary for JSON serialization."""
         return {
             "documents": [doc.to_dict() for doc in self.documents],
             "count": self.count,
+            "total": self.total,
         }

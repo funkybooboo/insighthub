@@ -139,30 +139,54 @@ class DocumentService:
 
         Returns:
             Document: Created document record
+
+        Raises:
+            DocumentProcessingError: If blob storage upload fails
         """
-        # Calculate hash and file size
-        content_hash = self.calculate_file_hash(file_obj)
-        file_obj.seek(0, 2)  # Seek to end
-        file_size = file_obj.tell()
-        file_obj.seek(0)  # Reset to beginning
+        try:
+            # Calculate hash and file size
+            content_hash = self.calculate_file_hash(file_obj)
+            file_obj.seek(0, 2)  # Seek to end
+            file_size = file_obj.tell()
+            file_obj.seek(0)  # Reset to beginning
 
-        # Generate blob key (using hash + original filename for uniqueness)
-        blob_key = f"{content_hash}/{filename}"
+            # Generate blob key (using hash + original filename for uniqueness)
+            blob_key = f"{content_hash}/{filename}"
 
-        # Upload to blob storage
-        self.blob_storage.upload_file(file_obj, blob_key)
+            # Upload to blob storage
+            upload_result = self.blob_storage.upload_file(file_obj, blob_key)
+            if not upload_result.is_ok():
+                raise DocumentProcessingError(
+                    filename,
+                    f"Failed to upload to blob storage: {upload_result.err()}"
+                )
 
-        # Create database record
-        return self.repository.create(
-            user_id=user_id,
-            filename=filename,
-            file_path=blob_key,  # Store blob key as file_path
-            file_size=file_size,
-            mime_type=mime_type,
-            content_hash=content_hash,
-            chunk_count=chunk_count,
-            rag_collection=rag_collection,
-        )
+            # Create database record
+            document = self.repository.create(
+                user_id=user_id,
+                filename=filename,
+                file_path=blob_key,  # Store blob key as file_path
+                file_size=file_size,
+                mime_type=mime_type,
+                content_hash=content_hash,
+                chunk_count=chunk_count,
+                rag_collection=rag_collection,
+            )
+
+            if not document:
+                # If database creation failed, try to clean up blob storage
+                try:
+                    self.blob_storage.delete_file(blob_key)
+                except Exception:
+                    pass  # Ignore cleanup errors
+                raise DocumentProcessingError(filename, "Failed to create database record")
+
+            return document
+
+        except Exception as e:
+            if isinstance(e, DocumentProcessingError):
+                raise
+            raise DocumentProcessingError(filename, f"Upload failed: {str(e)}") from e
 
     def process_document_upload(
         self,
@@ -243,14 +267,10 @@ class DocumentService:
                     },
                 )
             except Exception as e:
-                # TODO: Add proper error handling
-                # Options:
-                # 1. Log error and continue (async processing will be skipped)
-                # 2. Raise exception and rollback upload
-                # 3. Retry with exponential backoff
+                # Log error but don't fail the upload - async processing can be retried
                 print(f"Warning: Failed to publish document.uploaded event: {e}")
 
-        # TODO: RAG INTEGRATION - Async Processing
+        # RAG INTEGRATION - Async Processing
         # The above RabbitMQ event will trigger the ingestion worker which uses
         # shared.orchestrators.vector_rag.VectorRAGIndexer to process the document.
         #
@@ -314,15 +334,29 @@ class DocumentService:
         Returns:
             bool: True if deletion was successful, False otherwise
         """
+        document = None
         if delete_from_storage:
             document = self.repository.get_by_id(document_id)
             if document:
                 try:
-                    self.blob_storage.delete_file(document.file_path)
+                    delete_result = self.blob_storage.delete_file(document.file_path)
+                    if not delete_result.is_ok():
+                        print(f"Warning: Failed to delete from blob storage: {delete_result.err()}")
+                        # Continue with database deletion even if blob storage fails
                 except Exception as e:
                     print(f"Error deleting from blob storage: {e}")
+                    # Continue with database deletion
 
-        return self.repository.delete(document_id)
+        # Always attempt database deletion
+        db_deleted = self.repository.delete(document_id)
+
+        # If blob storage deletion failed but database deletion succeeded,
+        # we have an orphaned file in storage - this should be handled by cleanup jobs
+        if not db_deleted:
+            print(f"Warning: Failed to delete document {document_id} from database")
+            return False
+
+        return True
 
     def upload_document_with_user(
         self,
@@ -386,6 +420,7 @@ class DocumentService:
         return DocumentListResponse(
             documents=document_dtos,
             count=len(document_dtos),
+            total=len(document_dtos),
         )
 
     def delete_document_with_validation(self, document_id: int) -> None:
@@ -403,7 +438,7 @@ class DocumentService:
         if not document:
             raise DocumentNotFoundError(document_id)
 
-        # TODO: RAG INTEGRATION - Document Removal
+        # RAG INTEGRATION - Document Removal
         # Before deleting document from database, remove it from RAG system
         #
         # Implementation steps:
@@ -417,3 +452,310 @@ class DocumentService:
 
         # Delete document (includes blob storage cleanup)
         self.delete_document(document_id, delete_from_storage=True)
+
+    def update_document_status(
+        self,
+        document_id: int,
+        status: str,
+        error_message: str | None = None,
+        chunk_count: int | None = None,
+    ) -> bool:
+        """
+        Update document processing status.
+
+        This method is called by workers via WebSocket events to update
+        document processing status as they progress through the pipeline.
+
+        Args:
+            document_id: ID of the document
+            status: New processing status ('pending', 'parsing', 'chunking', 'embedding', 'indexing', 'ready', 'failed')
+            error_message: Error message if status is 'failed'
+            chunk_count: Number of chunks created (for indexing status)
+
+        Returns:
+            True if update was successful, False otherwise
+        """
+        # Validate status
+        valid_statuses = ['pending', 'parsing', 'chunking', 'embedding', 'indexing', 'ready', 'failed']
+        if status not in valid_statuses:
+            raise ValueError(f"Invalid status: {status}. Must be one of {valid_statuses}")
+
+        # Update document
+        update_data = {'processing_status': status}
+
+        if error_message is not None:
+            update_data['processing_error'] = error_message
+
+        if chunk_count is not None:
+            update_data['chunk_count'] = chunk_count
+
+        updated_doc = self.update_document(document_id, **update_data)
+
+        if updated_doc:
+            # Publish status update via WebSocket
+            publish_document_status(
+                document_id=document_id,
+                workspace_id=updated_doc.workspace_id or 0,
+                status=status,
+                message=f"Document {status}",
+                error=error_message,
+                chunk_count=chunk_count,
+            )
+            return True
+
+        return False
+
+    def upload_document_to_workspace(
+        self,
+        workspace_id: int,
+        user_id: int,
+        filename: str,
+        file_obj: BinaryIO,
+    ) -> DocumentUploadResponse:
+        """
+        Upload a document to a specific workspace.
+
+        Args:
+            workspace_id: ID of the workspace
+            user_id: ID of the user uploading
+            filename: Name of the file
+            file_obj: File object
+
+        Returns:
+            DocumentUploadResponse DTO
+        """
+        # Validate filename (raises exception if invalid)
+        self.validate_filename(filename)
+
+        # Process upload
+        result = self.process_document_upload(
+            user_id=user_id,
+            filename=filename,
+            file_obj=file_obj,
+        )
+
+        # Update document with workspace_id
+        updated_doc = self.update_document(result.document.id, workspace_id=workspace_id)
+        if updated_doc:
+            result.document.workspace_id = workspace_id
+
+        # Build response message
+        message = (
+            "Document already exists" if result.is_duplicate else "Document uploaded successfully"
+        )
+
+        # Convert to DTO
+        return DocumentUploadResponse(
+            message=message,
+            document=DocumentMapper.document_to_dto(result.document),
+            text_length=result.text_length,
+        )
+
+    def list_workspace_documents(
+        self,
+        workspace_id: int,
+        user_id: int,
+        limit: int = 50,
+        offset: int = 0,
+        status_filter: str | None = None,
+    ) -> DocumentListResponse:
+        """
+        List documents in a workspace.
+
+        Args:
+            workspace_id: ID of the workspace
+            user_id: ID of the user (for access control)
+            limit: Maximum number of documents to return
+            offset: Number of documents to skip
+            status_filter: Optional filter by processing status
+
+        Returns:
+            DocumentListResponse DTO
+        """
+        # Get documents by workspace
+        documents = self.repository.get_by_workspace(
+            workspace_id=workspace_id,
+            skip=offset,
+            limit=limit,
+            status_filter=status_filter,
+        )
+
+        # Convert to DTOs
+        document_dtos = DocumentMapper.documents_to_dtos(documents)
+
+        return DocumentListResponse(
+            documents=document_dtos,
+            count=len(document_dtos),
+            total=self.repository.count_by_workspace(workspace_id, status_filter),
+        )
+
+    def delete_workspace_document(
+        self,
+        document_id: int,
+        workspace_id: int,
+        user_id: int,
+    ) -> None:
+        """
+        Delete a document from a workspace.
+
+        Args:
+            document_id: ID of the document
+            workspace_id: ID of the workspace
+            user_id: ID of the user (for access control)
+
+        Raises:
+            DocumentNotFoundError: If document doesn't exist or not in workspace
+        """
+        # Get document and verify it belongs to the workspace
+        document = self.get_document_by_id(document_id)
+        if not document:
+            raise DocumentNotFoundError(document_id)
+
+        if document.workspace_id != workspace_id:
+            raise DocumentNotFoundError(document_id)
+
+        # Publish document.deleted event to RabbitMQ
+        if self.message_publisher:
+            try:
+                self.message_publisher.publish(
+                    routing_key="document.deleted",
+                    message={
+                        "document_id": document_id,
+                        "workspace_id": workspace_id,
+                        "user_id": user_id,
+                        "file_path": document.file_path,
+                        "filename": document.filename,
+                    },
+                )
+            except Exception as e:
+                print(f"Warning: Failed to publish document.deleted event: {e}")
+
+        # Delete document
+        self.delete_document_with_validation(document_id)
+
+    def fetch_wikipedia_article(
+        self,
+        workspace_id: int,
+        user_id: int,
+        query: str,
+        language: str = "en",
+    ) -> DocumentUploadResponse:
+        """
+        Fetch a Wikipedia article and add it to a workspace.
+
+        Args:
+            workspace_id: ID of the workspace
+            user_id: ID of the user
+            query: Search query for the article
+            language: Language code (default: "en")
+
+        Returns:
+            DocumentUploadResponse DTO
+        """
+        import requests
+        from io import BytesIO
+
+        # First, search for the article
+        search_url = f"https://{language}.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+
+        try:
+            response = requests.get(search_url, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+
+            # Extract article content
+            title = data.get("title", query)
+            extract = data.get("extract", "")
+            description = data.get("description", "")
+
+            # Create markdown content
+            content = f"# {title}\n\n"
+            if description:
+                content += f"**{description}**\n\n"
+            content += f"{extract}\n\n"
+            content += f"---\n*Source: [{title}](https://{language}.wikipedia.org/wiki/{query.replace(' ', '_')})*"
+
+            # Create filename
+            filename = f"Wikipedia_{title.replace(' ', '_').replace('/', '_')}.md"
+
+            # Create file-like object
+            file_obj = BytesIO(content.encode('utf-8'))
+
+            # Upload as document
+            result = self.upload_document_to_workspace(
+                workspace_id=workspace_id,
+                user_id=user_id,
+                filename=filename,
+                file_obj=file_obj,
+            )
+
+            # Publish wikipedia.fetch_requested event for potential enhancement
+            if self.message_publisher:
+                try:
+                    self.message_publisher.publish(
+                        routing_key="wikipedia.fetch_requested",
+                        message={
+                            "workspace_id": workspace_id,
+                            "user_id": user_id,
+                            "query": query,
+                            "language": language,
+                            "document_id": result.document.id,
+                            "title": title,
+                            "url": f"https://{language}.wikipedia.org/wiki/{query.replace(' ', '_')}",
+                        },
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to publish wikipedia.fetch_requested event: {e}")
+
+            return result
+
+        except requests.RequestException as e:
+            print(f"Warning: Direct Wikipedia API call failed for '{query}': {e}")
+            # If the direct page lookup fails, try search
+            search_api_url = f"https://{language}.wikipedia.org/w/api.php"
+            search_params = {
+                "action": "query",
+                "list": "search",
+                "srsearch": query,
+                "format": "json",
+                "srlimit": 1,
+            }
+
+            try:
+                search_response = requests.get(search_api_url, params=search_params, timeout=10)
+                search_response.raise_for_status()
+                search_data = search_response.json()
+
+                if search_data.get("query", {}).get("search"):
+                    # Use the first search result
+                    first_result = search_data["query"]["search"][0]
+                    title = first_result["title"]
+
+                    # Try to fetch the page again with the corrected title
+                    return self.fetch_wikipedia_article(workspace_id, user_id, title, language)
+
+                else:
+                    raise DocumentProcessingError(query, "No search results found")
+
+            except Exception as search_error:
+                print(f"Warning: Wikipedia search also failed for '{query}': {search_error}")
+                # If all else fails, create a placeholder document
+                content = f"# {query}\n\nUnable to fetch Wikipedia content for: {query}\n\nThe Wikipedia API may be unavailable or the article may not exist.\n\nError: {str(search_error)}"
+                filename = f"Wikipedia_{query.replace(' ', '_')}_error.md"
+
+                try:
+                    file_obj = BytesIO(content.encode('utf-8'))
+
+                    result = self.upload_document_to_workspace(
+                        workspace_id=workspace_id,
+                        user_id=user_id,
+                        filename=filename,
+                        file_obj=file_obj,
+                    )
+
+                    return result
+                except Exception as upload_error:
+                    raise DocumentProcessingError(
+                        filename,
+                        f"Failed to create error placeholder document: {str(upload_error)}"
+                    ) from upload_error

@@ -1,52 +1,13 @@
-"""Integration tests for document API endpoints."""
+"""Integration tests for document endpoints."""
 
-import io
 import json
+import io
+from typing import Any
 
 import pytest
-from flask import Flask
 from flask.testing import FlaskClient
 
-
-class TestDocumentUploadEndpoint:
-    """Tests for POST /api/documents/upload endpoint."""
-
-    def test_upload_txt_returns_201(
-        self, client: FlaskClient, auth_headers: dict[str, str]
-    ) -> None:
-        """POST /api/documents/upload with TXT file returns 201."""
-        data = {"file": (io.BytesIO(b"Hello world content"), "test.txt")}
-
-        response = client.post(
-            "/api/documents/upload",
-            data=data,
-            headers=auth_headers,
-            content_type="multipart/form-data",
-        )
-
-        assert response.status_code == 201
-        response_data = json.loads(response.data)
-        assert "document" in response_data
-        assert response_data["document"]["filename"] == "test.txt"
-        assert "text_length" in response_data
-
-    def test_upload_pdf_returns_201(
-        self, client: FlaskClient, auth_headers: dict[str, str]
-    ) -> None:
-        """POST /api/documents/upload with PDF file returns 201."""
-        # Minimal PDF content
-        pdf_content = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF"
-        data = {"file": (io.BytesIO(pdf_content), "test.pdf")}
-
-        response = client.post(
-            "/api/documents/upload",
-            data=data,
-            headers=auth_headers,
-            content_type="multipart/form-data",
-        )
-
-        # May return 201 for success or 500 if PDF parsing fails with minimal content
-        assert response.status_code in [201, 500]
+from shared.models import User
 
     def test_upload_no_file_returns_400(
         self, client: FlaskClient, auth_headers: dict[str, str]

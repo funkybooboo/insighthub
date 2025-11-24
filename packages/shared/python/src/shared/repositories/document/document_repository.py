@@ -108,3 +108,39 @@ class DocumentRepository(ABC):
             True if deleted, False if not found
         """
         pass
+
+    @abstractmethod
+    def get_by_workspace(
+        self,
+        workspace_id: int,
+        skip: int = 0,
+        limit: int = 50,
+        status_filter: str | None = None,
+    ) -> list[Document]:
+        """
+        Get documents by workspace ID with pagination and optional status filter.
+
+        Args:
+            workspace_id: Workspace ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            status_filter: Optional filter by processing status
+
+        Returns:
+            List of documents
+        """
+        pass
+
+    @abstractmethod
+    def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
+        """
+        Count documents in a workspace with optional status filter.
+
+        Args:
+            workspace_id: Workspace ID
+            status_filter: Optional filter by processing status
+
+        Returns:
+            Number of documents
+        """
+        pass

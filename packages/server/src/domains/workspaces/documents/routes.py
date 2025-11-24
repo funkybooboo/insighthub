@@ -5,6 +5,8 @@ from werkzeug.datastructures import FileStorage
 
 from src.infrastructure.auth import get_current_user, require_auth
 
+from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
+
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/workspaces")
 
 
@@ -63,30 +65,29 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
         if file.mimetype not in allowed_types:
             return jsonify({"error": "Unsupported file type. Allowed: PDF, TXT, DOCX"}), 415
 
-        # TODO: Validate workspace access
-        # TODO: Upload document via service
-        # document = g.app_context.document_service.upload_document(
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id,
-        #     file=file,
-        #     filename=file.filename
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
 
-        # Mock response for now
-        mock_document = {
-            "id": 1,
-            "filename": file.filename,
-            "file_size": file_size,
-            "mime_type": file.mimetype,
-            "chunk_count": 10,
-            "created_at": "2025-01-01T00:00:00Z"
-        }
+        # Upload document via service
+        document_service = g.app_context.document_service
+        result = document_service.upload_document_to_workspace(
+            workspace_id=int(workspace_id),
+            user_id=user.id,
+            filename=file.filename,
+            file_obj=file,
+        )
 
         return jsonify({
-            "message": "Document uploaded successfully",
-            "document": mock_document
+            "message": result.message,
+            "document": result.document
         }), 201
 
+    except InvalidFileTypeError as e:
+        return jsonify({"error": f"Unsupported file type. {str(e)}"}), 415
+    except DocumentProcessingError as e:
+        return jsonify({"error": f"Document processing failed: {str(e)}"}), 400
     except ValueError as e:
         return jsonify({"error": f"Invalid workspace ID: {str(e)}"}), 400
     except Exception as e:
@@ -126,38 +127,30 @@ def list_workspace_documents(workspace_id: str) -> tuple[Response, int]:
     try:
         user = get_current_user()
 
+        # Validate workspace access first
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
         # Parse query parameters
         limit = min(int(request.args.get("limit", 50)), 100)
         offset = max(int(request.args.get("offset", 0)), 0)
         status_filter = request.args.get("status")
 
-        # TODO: Validate workspace access
-        # TODO: List documents via service
-        # result = g.app_context.document_service.list_workspace_documents(
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id,
-        #     limit=limit,
-        #     offset=offset,
-        #     status_filter=status_filter
-        # )
-
-        # Mock response for now
-        mock_documents = [
-            {
-                "id": 1,
-                "filename": "sample.pdf",
-                "file_size": 1024,
-                "mime_type": "application/pdf",
-                "chunk_count": 10,
-                "processing_status": "ready",
-                "created_at": "2025-01-01T00:00:00Z"
-            }
-        ]
+        # List documents via service
+        document_service = g.app_context.document_service
+        result = document_service.list_workspace_documents(
+            workspace_id=int(workspace_id),
+            user_id=user.id,
+            limit=limit,
+            offset=offset,
+            status_filter=status_filter
+        )
 
         return jsonify({
-            "documents": mock_documents,
-            "count": len(mock_documents),
-            "total": len(mock_documents)
+            "documents": result.documents,
+            "count": result.count,
+            "total": result.total,
         }), 200
 
     except ValueError as e:
@@ -182,14 +175,21 @@ def delete_workspace_document(workspace_id: str, doc_id: int) -> tuple[Response,
     try:
         user = get_current_user()
 
-        # TODO: Validate workspace and document access
-        # TODO: Check if document is currently being processed
-        # TODO: Delete document via service (removes from vector store too)
-        # g.app_context.document_service.delete_document(
-        #     document_id=doc_id,
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
+        # Delete document via service
+        document_service = g.app_context.document_service
+        try:
+            document_service.delete_workspace_document(
+                document_id=doc_id,
+                workspace_id=int(workspace_id),
+                user_id=user.id
+            )
+        except DocumentNotFoundError:
+            return jsonify({"error": "Document not found"}), 404
 
         return jsonify({"message": "Document deleted successfully"}), 200
 
@@ -231,7 +231,10 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
     """
     try:
         user = get_current_user()
-        data = request.get_json()
+        try:
+            data = request.get_json()
+        except Exception:
+            return jsonify({"error": "Invalid JSON payload"}), 400
 
         if not data:
             return jsonify({"error": "Request body is required"}), 400
@@ -247,31 +250,92 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
         if language not in ["en", "es", "fr", "de", "it", "pt", "ru", "ja", "zh"]:
             return jsonify({"error": "Unsupported language"}), 400
 
-        # TODO: Validate workspace access
-        # TODO: Fetch Wikipedia article via service
-        # document = g.app_context.document_service.fetch_wikipedia_article(
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id,
-        #     query=query,
-        #     language=language
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
 
-        # Mock response for now
-        mock_document = {
-            "id": 2,
-            "filename": f"Wikipedia_{query.replace(' ', '_')}.txt",
-            "file_size": 2048,
-            "mime_type": "text/plain",
-            "chunk_count": 15,
-            "created_at": "2025-01-01T00:00:00Z"
-        }
+        # Fetch Wikipedia article via service
+        document_service = g.app_context.document_service
+        result = document_service.fetch_wikipedia_article(
+            workspace_id=int(workspace_id),
+            user_id=user.id,
+            query=query,
+            language=language
+        )
 
         return jsonify({
-            "message": "Wikipedia article fetched and added to workspace",
-            "document": mock_document
+            "message": result.message,
+            "document": result.document
         }), 200
 
+    except DocumentProcessingError as e:
+        return jsonify({"error": f"Wikipedia fetch failed: {str(e)}"}), 404
     except ValueError as e:
         return jsonify({"error": f"Invalid workspace ID: {str(e)}"}), 400
     except Exception as e:
         return jsonify({"error": f"Failed to fetch Wikipedia article: {str(e)}"}), 500
+
+
+@documents_bp.route("/<workspace_id>/documents/<int:doc_id>/status", methods=["PATCH"])
+def update_document_status(workspace_id: str, doc_id: int) -> tuple[Response, int]:
+    """
+    Update document processing status.
+
+    This endpoint is called by workers to update document processing status.
+    In production, this should be authenticated with worker credentials.
+
+    Request Body:
+        {
+            "status": "parsing|chunking|embedding|indexing|ready|failed",
+            "error_message": "optional error message",
+            "chunk_count": 42
+        }
+
+    Returns:
+        200: {"message": "Status updated successfully"}
+        400: {"error": "Invalid status or request"}
+        404: {"error": "Document not found"}
+        500: {"error": "Server error"}
+    """
+    try:
+        try:
+            data = request.get_json()
+        except Exception:
+            return jsonify({"error": "Invalid JSON payload"}), 400
+
+        if not data or "status" not in data:
+            return jsonify({"error": "status is required"}), 400
+
+        status = data["status"]
+        error_message = data.get("error_message")
+        chunk_count = data.get("chunk_count")
+
+        # Validate status
+        valid_statuses = ['pending', 'parsing', 'chunking', 'embedding', 'indexing', 'ready', 'failed']
+        if status not in valid_statuses:
+            return jsonify({"error": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"}), 400
+
+        # Validate that document belongs to workspace
+        document_service = g.app_context.document_service
+        document = document_service.get_document_by_id(doc_id)
+        if not document or document.workspace_id != int(workspace_id):
+            return jsonify({"error": "Document not found in workspace"}), 404
+
+        # Update document status
+        success = document_service.update_document_status(
+            document_id=doc_id,
+            status=status,
+            error_message=error_message,
+            chunk_count=chunk_count,
+        )
+
+        if not success:
+            return jsonify({"error": "Document update failed"}), 500
+
+        return jsonify({"message": "Status updated successfully"}), 200
+
+    except ValueError as e:
+        return jsonify({"error": f"Invalid request: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Failed to update status: {str(e)}"}), 500

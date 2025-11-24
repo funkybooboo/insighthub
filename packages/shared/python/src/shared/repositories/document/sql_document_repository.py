@@ -34,9 +34,9 @@ class SqlDocumentRepository(DocumentRepository):
         """Create a new document."""
         query = """
         INSERT INTO documents
-            (user_id, workspace_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection)
+            (user_id, workspace_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, processing_status, processing_error)
         VALUES
-            (%(user_id)s, %(workspace_id)s, %(filename)s, %(file_path)s, %(file_size)s, %(mime_type)s, %(content_hash)s, %(chunk_count)s, %(rag_collection)s)
+            (%(user_id)s, %(workspace_id)s, %(filename)s, %(file_path)s, %(file_size)s, %(mime_type)s, %(content_hash)s, %(chunk_count)s, %(rag_collection)s, %(processing_status)s, %(processing_error)s)
         RETURNING *;
         """
         params = {
@@ -49,6 +49,8 @@ class SqlDocumentRepository(DocumentRepository):
             "content_hash": content_hash,
             "chunk_count": chunk_count,
             "rag_collection": rag_collection,
+            "processing_status": "pending",
+            "processing_error": None,
         }
         row = self._db.fetchone(query, params)
         if row is None:
@@ -105,3 +107,40 @@ class SqlDocumentRepository(DocumentRepository):
         query = "DELETE FROM documents WHERE id = %(id)s;"
         self._db.execute(query, {"id": document_id})
         return True
+
+    def get_by_workspace(
+        self,
+        workspace_id: int,
+        skip: int = 0,
+        limit: int = 50,
+        status_filter: str | None = None,
+    ) -> list[Document]:
+        """Get documents by workspace ID with pagination and optional status filter."""
+        base_query = """
+        SELECT * FROM documents
+        WHERE workspace_id = %(workspace_id)s
+        """
+        params = {"workspace_id": workspace_id}
+
+        if status_filter:
+            base_query += " AND processing_status = %(status_filter)s"
+            params["status_filter"] = status_filter
+
+        base_query += " ORDER BY created_at DESC LIMIT %(limit)s OFFSET %(skip)s"
+        params["limit"] = limit
+        params["skip"] = skip
+
+        rows = self._db.fetchall(base_query, params)
+        return [Document(**row) for row in rows]
+
+    def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
+        """Count documents in a workspace with optional status filter."""
+        base_query = "SELECT COUNT(*) as count FROM documents WHERE workspace_id = %(workspace_id)s"
+        params = {"workspace_id": workspace_id}
+
+        if status_filter:
+            base_query += " AND processing_status = %(status_filter)s"
+            params["status_filter"] = status_filter
+
+        row = self._db.fetchone(base_query, params)
+        return row["count"] if row else 0

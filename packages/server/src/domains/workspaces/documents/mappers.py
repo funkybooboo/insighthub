@@ -25,6 +25,8 @@ class DocumentMapper:
             file_size=document.file_size,
             mime_type=document.mime_type,
             chunk_count=document.chunk_count,
+            processing_status=document.processing_status,
+            processing_error=document.processing_error,
             created_at=document.created_at,
         )
 

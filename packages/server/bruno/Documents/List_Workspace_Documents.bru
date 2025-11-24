@@ -1,0 +1,32 @@
+meta {
+  name: List_Workspace_Documents
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/workspaces/{{workspaceId}}/documents
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.documents: isArray
+  res.body.count: isNumber
+}
+
+tests {
+  test("should return documents array with count", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(Array.isArray(res.getBody().documents)).to.be.true;
+    expect(typeof res.getBody().count).to.equal('number');
+  });
+}
+
+docs {
+  List all documents in a workspace
+}

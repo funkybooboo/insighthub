@@ -4,6 +4,7 @@ import hashlib
 import io
 from datetime import datetime
 from typing import BinaryIO, Optional
+from unittest.mock import Mock, patch
 
 import pytest
 from shared.models import Document
@@ -12,12 +13,12 @@ from shared.storage import BlobStorage
 from shared.storage.blob_storage import BlobStorageError
 from shared.types.result import Err, Ok, Result
 
-from src.domains.documents.exceptions import (
+from src.domains.workspaces.documents.exceptions import (
     DocumentNotFoundError,
     DocumentProcessingError,
     InvalidFileTypeError,
 )
-from src.domains.documents.service import DocumentService
+from src.domains.workspaces.documents.service import DocumentService
 
 
 class FakeBlobStorage(BlobStorage):
@@ -514,3 +515,167 @@ class TestDocumentDeletion:
         """Test deleting non-existent document with validation."""
         with pytest.raises(DocumentNotFoundError):
             service.delete_document_with_validation(999)
+
+
+class TestWorkspaceDocumentOperations:
+    """Tests for workspace-specific document operations."""
+
+    def test_upload_document_to_workspace_success(self, service: DocumentService) -> None:
+        """Test successful document upload to workspace."""
+        content = b"Test content"
+        file_obj = io.BytesIO(content)
+
+        result = service.upload_document_to_workspace(
+            workspace_id=1,
+            user_id=1,
+            filename="test.txt",
+            file_obj=file_obj,
+        )
+
+        assert result.document.filename == "test.txt"
+        # Note: workspace_id is set after document creation
+        assert result.text_length == len(content)
+
+    def test_list_workspace_documents_success(self, service: DocumentService) -> None:
+        """Test successful workspace document listing."""
+        # Create documents in workspace
+        file_obj1 = io.BytesIO(b"Content 1")
+        doc1 = service.upload_document(
+            user_id=1, filename="test1.txt", file_obj=file_obj1, mime_type="text/plain"
+        )
+        service.repository.update(doc1.id, workspace_id=1)
+
+        file_obj2 = io.BytesIO(b"Content 2")
+        doc2 = service.upload_document(
+            user_id=1, filename="test2.txt", file_obj=file_obj2, mime_type="text/plain"
+        )
+        service.repository.update(doc2.id, workspace_id=1)
+
+        result = service.list_workspace_documents(
+            workspace_id=1,
+            user_id=1,
+            limit=10,
+            offset=0,
+        )
+
+        assert result.count == 2
+        assert len(result.documents) == 2
+        # Note: workspace_id filtering is done at repository level
+
+    def test_list_workspace_documents_with_status_filter(self, service: DocumentService) -> None:
+        """Test workspace document listing with status filter."""
+        # Create documents with different statuses
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+        service.repository.update(doc.id, workspace_id=1, processing_status="ready")
+
+        result = service.list_workspace_documents(
+            workspace_id=1,
+            user_id=1,
+            status_filter="ready",
+        )
+
+        assert result.count == 1
+        assert result.documents[0].processing_status == "ready"
+
+    def test_delete_workspace_document_success(self, service: DocumentService) -> None:
+        """Test successful workspace document deletion."""
+        # Create document in workspace
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+        service.repository.update(doc.id, workspace_id=1)
+
+        # Should not raise exception
+        service.delete_workspace_document(
+            document_id=doc.id,
+            workspace_id=1,
+            user_id=1,
+        )
+
+        # Document should be deleted
+        assert service.get_document_by_id(doc.id) is None
+
+    def test_delete_workspace_document_not_in_workspace(self, service: DocumentService) -> None:
+        """Test deletion of document not in specified workspace."""
+        # Create document in different workspace
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+        service.repository.update(doc.id, workspace_id=2)  # Different workspace
+
+        with pytest.raises(DocumentNotFoundError):
+            service.delete_workspace_document(
+                document_id=doc.id,
+                workspace_id=1,  # Wrong workspace
+                user_id=1,
+            )
+
+    def test_update_document_status_success(self, service: DocumentService) -> None:
+        """Test successful document status update."""
+        # Create document
+        file_obj = io.BytesIO(b"Content")
+        doc = service.upload_document(
+            user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
+        )
+
+        with patch('src.domains.workspaces.documents.service.publish_document_status') as mock_publish:
+            result = service.update_document_status(
+                document_id=doc.id,
+                status="ready",
+                chunk_count=5,
+            )
+
+            assert result is True
+            mock_publish.assert_called_once()
+
+    def test_update_document_status_invalid_status(self, service: DocumentService) -> None:
+        """Test document status update with invalid status."""
+        with pytest.raises(ValueError, match="Invalid status"):
+            service.update_document_status(
+                document_id=1,
+                status="invalid_status",
+            )
+
+    def test_fetch_wikipedia_article_success(self, service: DocumentService) -> None:
+        """Test successful Wikipedia article fetching."""
+        with patch('src.domains.workspaces.documents.service.requests.get') as mock_get:
+            # Mock successful API response
+            mock_response = Mock()
+            mock_response.raise_for_status.return_value = None
+            mock_response.json.return_value = {
+                "title": "Test Article",
+                "extract": "This is a test article extract.",
+                "description": "A test description",
+            }
+            mock_get.return_value = mock_response
+
+            result = service.fetch_wikipedia_article(
+                workspace_id=1,
+                user_id=1,
+                query="test article",
+                language="en",
+            )
+
+            assert "Wikipedia_Test_Article.md" in result.document.filename
+            # Note: workspace_id is set during upload
+
+    def test_fetch_wikipedia_article_api_failure(self, service: DocumentService) -> None:
+        """Test Wikipedia fetching when API fails."""
+        with patch('src.domains.workspaces.documents.service.requests.get') as mock_get:
+            mock_get.side_effect = Exception("API error")
+
+            result = service.fetch_wikipedia_article(
+                workspace_id=1,
+                user_id=1,
+                query="test",
+                language="en",
+            )
+
+            # Should create error placeholder
+            assert "error" in result.document.filename.lower()
+            # Note: workspace_id is set during upload
