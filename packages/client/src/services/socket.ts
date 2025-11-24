@@ -19,6 +19,11 @@ export interface ChatChunkData {
     chunk: string;
 }
 
+export interface ChatResponseChunkData {
+    chunk: string;
+    message_id: string;
+}
+
 export interface ChatCompleteData {
     session_id: number;
     full_response: string;
@@ -71,6 +76,7 @@ export interface WikipediaFetchStatusData {
 }
 
 export type ChatChunkCallback = (data: ChatChunkData) => void;
+export type ChatResponseChunkCallback = (data: ChatResponseChunkData) => void;
 export type ChatCompleteCallback = (data: ChatCompleteData) => void;
 export type ChatCancelledCallback = (data: ChatCancelledData) => void;
 export type ErrorCallback = (data: ErrorData) => void;
@@ -156,6 +162,16 @@ class SocketService {
             throw new Error('Socket not connected. Call connect() first.');
         }
         this.socket.on('chat_chunk', callback);
+    }
+
+    /**
+     * Listen for chat response chunk events
+     */
+    onChatResponseChunk(callback: ChatResponseChunkCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('chat.response_chunk', callback);
     }
 
     /**

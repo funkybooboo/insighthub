@@ -189,12 +189,6 @@ describe('ChatBot', () => {
         expect(mockSocket.disconnect).toHaveBeenCalled();
     });
 
-
-        // Mock the selector to return true for processing
-        renderWithProviders(<ChatBot />, store);
-        // This test would need more setup to mock the processing state
-    });
-
     it('handles successful message sending', async () => {
         const mockApi = vi.mocked(apiService);
         mockApi.sendChatMessage.mockResolvedValue({ message_id: 'msg-123' });

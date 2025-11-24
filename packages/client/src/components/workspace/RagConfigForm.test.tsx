@@ -274,6 +274,4 @@ describe('RagConfigForm', () => {
                     // Should preserve common fields if applicable
                 })
             );
-        });
     });
-});

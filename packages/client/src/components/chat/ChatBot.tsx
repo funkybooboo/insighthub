@@ -15,6 +15,7 @@ import type { Message } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
 import RAGEnhancementPrompt from './RAGEnhancementPrompt';
+import ChatSessionManager from './ChatSessionManager';
 import { LoadingSpinner } from '@/components/shared';
 // DocumentManager is now handled in Layout.tsx
 import socketService from '@/services/socket';
@@ -47,13 +48,40 @@ const ChatBot = () => {
     // Create initial session if none exists
     useEffect(() => {
         if (!activeWorkspaceId) return;
-        if (!activeSessionId && sessions.length === 0) {
-            const newSessionId = `session-${Date.now()}`;
-            dispatch(createSession({ id: newSessionId }));
-        } else if (!activeSessionId && sessions.length > 0) {
-            // Set the first session as active if there's no active session
-            dispatch(setActiveSession(sessions[0].id));
-        }
+
+        const createInitialSession = async () => {
+            if (!activeSessionId && sessions.length === 0) {
+                try {
+                    // Generate a title based on current time or use default
+                    const now = new Date();
+                    const title = `Chat ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                    // Create backend session first
+                    const result = await apiService.createChatSession(activeWorkspaceId, title);
+
+                    // Create local session representation
+                    const newSessionId = `session-${result.session_id}`;
+                    dispatch(createSession({
+                        id: newSessionId,
+                        title: result.title,
+                        sessionId: result.session_id
+                    }));
+
+                    // Set as active
+                    dispatch(setActiveSession(newSessionId));
+                } catch (error) {
+                    console.error('Error creating initial chat session:', error);
+                    // Fallback to local session if backend fails
+                    const newSessionId = `session-${Date.now()}`;
+                    dispatch(createSession({ id: newSessionId }));
+                }
+            } else if (!activeSessionId && sessions.length > 0) {
+                // Set the first session as active if there's no active session
+                dispatch(setActiveSession(sessions[0].id));
+            }
+        };
+
+        createInitialSession();
     }, [activeWorkspaceId, sessions, dispatch, activeSessionId]);
 
     // Load documents on mount (this component no longer directly renders DocumentManager)
@@ -72,7 +100,7 @@ const ChatBot = () => {
     }, [activeWorkspaceId]);
 
     const onSubmit = useCallback(
-        async ({ prompt }: ChatFormData) => {
+        async ({ prompt }: ChatFormData, ignoreRag?: boolean) => {
             if (!activeSessionId || !activeWorkspaceId) {
                 console.error('No active session or workspace');
                 return;
@@ -110,7 +138,11 @@ const ChatBot = () => {
                 popAudio.play();
 
                 // Send message via REST API (server will stream response via WebSocket)
-                await apiService.sendChatMessage(activeWorkspaceId, activeSession?.sessionId || 0, prompt);
+                const backendSessionId = activeSession?.sessionId;
+                if (!backendSessionId) {
+                    throw new Error('No backend session ID available');
+                }
+                await apiService.sendChatMessage(activeWorkspaceId, backendSessionId, prompt, undefined, ignoreRag);
             } catch (error: unknown) {
                 console.error('Error sending message:', error);
 
@@ -162,7 +194,7 @@ const ChatBot = () => {
             console.log('Connected to chat server');
         });
 
-        socketService.onChatChunk((data) => {
+        socketService.onChatResponseChunk((data) => {
             if (!activeSessionId) return;
 
             // Append chunk to current bot message
@@ -182,7 +214,7 @@ const ChatBot = () => {
                 );
             } else {
                 // First chunk - add new bot message
-                currentBotMessageId.current = `msg-${Date.now()}`;
+                currentBotMessageId.current = data.message_id;
                 const botMessage: Message = {
                     id: currentBotMessageId.current,
                     content: currentBotMessage.current,
@@ -297,6 +329,8 @@ const ChatBot = () => {
             if (activeWorkspaceId && activeSession?.sessionId) {
                 // Cancel via API
                 await apiService.cancelChatMessage(activeWorkspaceId, activeSession.sessionId, currentBotMessageId.current || undefined);
+            } else {
+                console.warn('Cannot cancel: missing workspace or session ID');
             }
 
             // Also cancel via WebSocket for immediate response
@@ -421,7 +455,7 @@ const ChatBot = () => {
     const handleContinueChat = () => {
         setShowRAGPrompt(false); // Hide the prompt
         if (lastUserQuery.current) {
-            onSubmit({ prompt: lastUserQuery.current });
+            onSubmit({ prompt: lastUserQuery.current }, true); // Pass ignoreRag=true
             lastUserQuery.current = ''; // Clear after use
         }
     };
@@ -458,6 +492,8 @@ const ChatBot = () => {
 
     return (
         <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+            {/* ChatSessionManager handles backend session synchronization */}
+            {activeWorkspaceId && <ChatSessionManager workspaceId={activeWorkspaceId} />}
             {/* DocumentManager is now rendered in Layout.tsx */}
             <ChatMessages
                 messages={messages}
