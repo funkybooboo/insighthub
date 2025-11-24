@@ -563,7 +563,7 @@ This document provides a detailed breakdown of every significant user action wit
 *   **Error Handling**: N/A.
 *   **Success Handling**: The chat session is removed from the Redux state and the UI. If the deleted session was active, the client typically switches to the next available session or displays an empty chat state.
 
-**Backend/Worker Interactions (Expected)**:
+**Backend/Worker Interactions (Expected)**):
 *   **Server**: No direct interaction (as chat sessions are local). (Future enhancement: persist chat sessions on backend).
 *   **Workers**: No direct interaction.
 
@@ -681,135 +681,220 @@ This document provides a detailed breakdown of every significant user action wit
 
 ---
 
-## User Actions
+### Send Chat Message
 
-### Workspaces Page (`WorkspacesPage.tsx`)
+**User Action**: User types a message in the chat input field and clicks "Send" or presses "Enter".
 
-*   **Create Workspace Button**:
-    *   User clicks the "Create Workspace" button.
-*   **Create New Workspace Modal**:
-    *   User types a name into the "Workspace Name" input field.
-    *   User types a description into the "Description (optional)" textarea.
-    *   User clicks the "RAG Configuration" toggle to expand/collapse advanced settings.
-    *   User interacts with the `RagConfigForm` within the modal (see `RagConfigForm.tsx` actions below).
-    *   User clicks the "Cancel" button to close the modal without creating a workspace.
-    *   User clicks the "Create Workspace" button to submit the form and create a new workspace.
-*   **Workspace Card**:
-    *   User clicks on an existing workspace card to view its details.
-*   **Error State**:
-    *   User clicks the "Retry" button if an error occurs while loading workspaces.
+**Client-Side Flow**:
+*   **UI State**: Chat input field disabled, send button disabled. User message immediately appended to chat history with a 'pending' status.
+*   **Redux Actions**: `chatSlice.addMessage` dispatched to add the user's message. `chatSlice.startStreamingResponse` dispatched to indicate bot response is incoming.
+*   **API Call**:
+    *   **Method**: `POST`
+    *   **Endpoint**: `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` (JWT in Authorization header)
+    *   **Payload**: `{"content": "user's message content", "message_type": "user"}`
+    *   **Expected Response (Success)**: `200 OK`, `{"message": "Query received, streaming response..."}` (initial ACK). The actual bot response will be streamed via WebSocket.
+    *   **Expected Response (Failure)**: `400 Bad Request` (e.g., invalid message), `{"detail": "Error message"}` or `401 Unauthorized`.
+*   **Error Handling**: If API fails, `chatSlice.addMessage` might update the user message status to 'failed', or an error message toast is displayed.
+*   **Success Handling**: The server acknowledges the message. The client then listens for WebSocket events for the streamed bot response.
 
-### Workspace Detail Page (`WorkspaceDetailPage.tsx`)
+**Backend/Worker Interactions (Expected)**:
+*   **Server**:
+    *   Receives `POST /api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages`.
+    *   Authenticates JWT and authorizes workspace/session access.
+    *   Stores user message in PostgreSQL.
+    *   **Publishes `chat.message_received` event to RabbitMQ** (payload includes message_id, session_id, workspace_id, user_message_content).
+    *   Responds with initial success message.
+    *   **Emits real-time `chat.response_chunk` WebSocket events to the client** as the LLM generates the response.
+    *   **Emits `chat.response_complete` or `chat.error` WebSocket events** upon completion or failure.
+*   **Worker (Chat Orchestrator)**:
+    *   Consumes `chat.message_received` event.
+    *   Orchestrates the RAG pipeline:
+        1.  Retrieves relevant context from the active workspace's RAG system (Vector Store / Graph Store) based on the user's query and chat history.
+        2.  Sends the query + retrieved context to the configured LLM.
+        3.  Streams LLM response chunks back to the server.
+    *   If no context is found, it can trigger a `chat.no_context_found` event, leading to the RAG Enhancement Prompt on the client.
 
-*   **Navigation**:
-    *   User clicks the "Workspaces" breadcrumb link to return to the Workspaces Page.
-*   **Action Buttons**:
-    *   User clicks the "Edit" button to open the "Edit Workspace" modal.
-        *   **Edit Workspace Modal**:
-            *   User types a new name into the "Workspace Name" input field.
-            *   User types a new description into the "Description (optional)" textarea.
-            *   User clicks the "Cancel" button to discard changes.
-            *   User clicks the "Save" button to update the workspace.
-    *   User clicks the "Open in Chat" button to navigate to the chat interface for the current workspace.
-    *   User clicks the "Delete" button to open the "Delete Workspace" confirmation dialog.
-        *   **Delete Confirmation Dialog**:
-            *   User clicks "Cancel" to close the dialog.
-            *   User clicks "Delete Workspace" to confirm deletion.
-*   **Document Management**:
-    *   User interacts with the `FileUpload` component (e.g., selects files for upload, drags and drops files).
-    *   User interacts with the `DocumentList` component (e.g., views documents, initiates document deletion or modification if available).
+**Real-time Feedback (Client-Side)**:
+*   The bot's response is streamed into the chat interface character-by-character or word-by-word.
+*   A 'typing' indicator might be shown while the bot is generating a response.
+*   Upon completion, the bot's full message appears, and the input field is re-enabled.
+*   If `chat.no_context_found` is emitted, the RAG Enhancement Prompt appears.
 
-### Settings Page (`SettingsPage.tsx`)
+### Cancel Chat Message Streaming
 
-*   **Default RAG Configuration Section**:
-    *   User clicks "Edit Configuration" to enable editing mode.
-    *   User interacts with the `RagConfigForm` (see `RagConfigForm.tsx` actions below) to modify default RAG settings.
-    *   User clicks "Cancel" to revert changes.
-    *   User clicks "Save Changes" to save the new default RAG configuration.
+**User Action**: User clicks the "Cancel" button (cross icon) or presses "Ctrl+C" while the bot is streaming a response.
 
-### RAG Configuration Form (`RagConfigForm.tsx`) - Used in Create Workspace Modal and Settings Page
+**Client-Side Flow**:
+*   **UI State**: Bot's streaming response is immediately paused/stopped. The "Cancel" button changes back to "Send".
+*   **Redux Actions**: `chatSlice.stopStreamingResponse` dispatched.
+*   **API Call**:
+    *   **Method**: `POST`
+    *   **Endpoint**: `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/cancel` (JWT in Authorization header)
+    *   **Payload**: `{"message_id": "the_message_id_being_streamed"}` (optional, if tracking specific message streams)
+    *   **Expected Response (Success)**: `200 OK`, `{"message": "Streaming cancelled"}`
+    *   **Expected Response (Failure)**: `400 Bad Request` or `401 Unauthorized`
+*   **Error Handling**: If API fails, a console log or minor toast might appear, but UI still reflects immediate cancellation.
+*   **Success Handling**: Server acknowledges cancellation. Client UI is reset.
 
-*   **RAG Type Selection**:
-    *   User selects an option from the "RAG Type" dropdown (e.g., "Vector RAG", "Graph RAG").
-*   **Vector RAG Options (visible when "Vector RAG" is selected)**:
-    *   User selects an option from the "Embedding Model" dropdown.
-    *   User changes the value in the "Chunk Size" input field.
-    *   User changes the value in the "Chunk Overlap" input field.
-    *   User changes the value in the "Top K (Retrieval)" input field.
-    *   User toggles the "Enable Reranking" checkbox.
-    *   If "Enable Reranking" is checked:
-        *   User selects an option from the "Rerank Model" dropdown.
-*   **Graph RAG Options (visible when "Graph RAG" is selected)**:
-    *   User changes the value in the "Max Hops (Graph Traversal)" input field.
-    *   User selects an option from the "Entity Extraction Model" dropdown.
-    *   User selects an option from the "Relationship Extraction Model" dropdown.
+**Backend/Worker Interactions (Expected)**:
+*   **Server**:
+    *   Receives `POST /api/workspaces/{workspaceId}/chat/sessions/{sessionId}/cancel`.
+    *   Authenticates JWT.
+    *   Sends a signal to the appropriate worker/LLM process to stop generating further response chunks for that specific session/message.
+    *   Responds with confirmation.
+*   **Worker (Chat Orchestrator)**:
+    *   Receives cancellation signal.
+    *   Aborts the ongoing LLM generation and any further RAG processing for that message.
 
-### User Authentication (`LoginForm.tsx`, `SignupForm.tsx`)
+**Real-time Feedback (Client-Side)**:
+*   The bot's partial response stops rendering. The chat input becomes active again.
 
-*   **Login Form**:
-    *   User types in "Username" input field.
-    *   User types in "Password" input field.
-    *   User clicks "Sign in" button.
-    *   User clicks "Sign up" link to navigate to the signup page.
-*   **Signup Form**:
-    *   User types in "Username" input field.
-    *   User types in "Email" input field.
-    *   User types in "Full Name (optional)" input field.
-    *   User types in "Password" input field.
-    *   User types in "Confirm Password" input field.
-    *   User clicks "Sign up" button.
-    *   User clicks "Sign in" link to navigate to the login page.
+### RAG Enhancement Prompt (No Context Found)
 
-### Theme Toggle (`ThemeToggle.tsx`)
+**User Action**: After a query yields no relevant context, the RAG Enhancement Prompt appears with options.
 
-*   **Click the theme toggle button**: Switches the application's theme between light and dark mode.
+**Client-Side Flow**:
+*   **UI State**: Chat input disabled. Prompt options ("Upload a Document", "Fetch from Wikipedia", "Continue without additional context") are displayed.
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(true)` dispatched.
+*   **API Call**: No direct API call is made; this is a client-side prompt based on a WebSocket event (`chat.no_context_found`).
+*   **Error Handling**: N/A.
+*   **Success Handling**: N/A.
 
-### Chat Interface (`ChatBot.tsx`, `ChatInput.tsx`, `ChatMessages.tsx`, `ContextDisplay.tsx`)
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: Emits `chat.no_context_found` WebSocket event to the client based on worker feedback.
+*   **Workers**: Chat Orchestrator worker determines no context was found for the user's query and signals the server.
 
-*   **Chat Input**:
-    *   User types a message in the `textarea` field.
-    *   User presses "Enter" key to submit the message.
-    *   User presses "Ctrl+C" key (globally or within the textarea) to cancel the current bot response.
-    *   User clicks "Send" button (up arrow icon) to submit the message.
-    *   User clicks "Cancel" button (cross icon, visible when bot is typing) to cancel the current bot response.
-*   **Chat Messages Display**:
-    *   User scrolls within the chat message area.
-    *   User clicks "Scroll to bottom" button to scroll to the most recent message.
-    *   User clicks "Fetch from Wikipedia?" button (displayed when no context is found) to initiate a Wikipedia search.
-    *   User clicks the expand/collapse button (showing "X relevant context snippets") to toggle the visibility of detailed context snippets.
-*   **RAG Enhancement Prompt (within ChatBot)**:
-    *   User clicks "Upload a Document" button (from RAG Enhancement Prompt).
-    *   User clicks "Fetch from Wikipedia" button (from RAG Enhancement Prompt).
-    *   User clicks "Continue without additional context" button (from RAG Enhancement Prompt).
+**Real-time Feedback (Client-Side)**:
+*   The chat interface pauses, displaying the prompt options.
 
-### Workspace Column (`WorkspaceColumn.tsx`, `WorkspaceHeader.tsx`)
+#### Action: Upload a Document (from Prompt)
 
-*   **Workspace Selector**:
-    *   User clicks the workspace selection button (active workspace header) to toggle the visibility of the workspace dropdown menu.
-    *   User clicks on a workspace name in the dropdown to set it as the active workspace.
-    *   User clicks "Create New Workspace" button in the dropdown to open the "Create New Workspace" modal.
-    *   User clicks "Workspace Settings" link in the dropdown to navigate to the `WorkspaceDetailPage` for the active workspace.
+**User Action**: User clicks "Upload a Document" from the RAG Enhancement Prompt, selects a file(s), and confirms.
 
-### Chat Session List (`ChatSessionList.tsx`)
+**Client-Side Flow**:
+*   **UI State**: Prompt options are replaced by the file upload interface or a modal. Upload progress displayed.
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched. (Further actions mirror `Upload Document` flow).
+*   **API Call**: (Mirrors `Upload Document` flow).
+*   **Expected Response (Success)**: (Mirrors `Upload Document` flow).
+*   **Expected Response (Failure)**: (Mirrors `Upload Document` flow).
+*   **Error Handling**: (Mirrors `Upload Document` flow).
+*   **Success Handling**: Upon successful upload and document processing (`document_status: 'ready'`), the client automatically re-sends the original query that triggered the prompt.
 
-*   **New Chat Button**:
-    *   User clicks "New Chat" button to create a new chat session.
-*   **Chat Session Item**:
-    *   User clicks on a chat session in the list to select it.
-    *   User clicks the "Delete" icon next to a chat session to open a confirmation dialog.
-        *   User clicks "Delete" button in confirmation dialog to delete the chat session.
-        *   User clicks "Cancel" button in confirmation dialog to close it.
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: (Mirrors `Upload Document` flow).
+*   **Workers**: (Mirrors `Upload Document` flow).
 
-### Document Management (within DocumentManager) (`DocumentManager.tsx`, `FileUpload.tsx`, `DocumentList.tsx`)
+**Real-time Feedback (Client-Side)**:
+*   Document processing status updates are shown. Once ready, the chat re-submits the query.
 
-*   **Document Manager Section**:
-    *   User clicks the "Documents" header button to toggle the expansion/collapse of the document manager section.
-*   **File Upload**:
-    *   User clicks the "Drop files here or click to upload" area to open the file selection dialog.
-    *   User selects a file in the file selection dialog to trigger the upload process.
-    *   User drags and drops a file onto the "Drop files here or click to upload" area to trigger the upload process.
-*   **Document List**:
-    *   User clicks "Retry" button (if an error occurs while loading documents) to retry loading.
-    *   User clicks the "Delete" icon next to a document to open a confirmation dialog.
-        *   User clicks "Delete" button in confirmation dialog to delete the document.
-        *   User clicks "Cancel" button in confirmation dialog to close it.
+#### Action: Fetch from Wikipedia (from Prompt)
+
+**User Action**: User clicks "Fetch from Wikipedia" from the RAG Enhancement Prompt.
+
+**Client-Side Flow**:
+*   **UI State**: Prompt options are replaced by a loading indicator.
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched.
+*   **API Call**:
+    *   **Method**: `POST`
+    *   **Endpoint**: `/api/workspaces/{workspaceId}/documents/fetch-wikipedia` (JWT in Authorization header)
+    *   **Payload**: `{"query": "original user query"}`
+    *   **Expected Response (Success)**: `200 OK`, `{"message": "Wikipedia fetch initiated"}`.
+    *   **Expected Response (Failure)**: `400 Bad Request` or `401 Unauthorized`.
+*   **Error Handling**: Error message displayed in chat.
+*   **Success Handling**: Client awaits `wikipedia_fetch_status` WebSocket events.
+
+**Backend/Worker Interactions (Expected)**:
+*   **Server**:
+    *   Receives `POST /api/workspaces/{workspaceId}/documents/fetch-wikipedia`.
+    *   Authenticates JWT.
+    *   **Publishes `wikipedia.fetch_requested` event to RabbitMQ** (payload includes query, workspace_id).
+    *   Responds with initiation confirmation.
+*   **Worker (Wikipedia Worker)**:
+    *   Consumes `wikipedia.fetch_requested` event.
+    *   Searches Wikipedia for the query.
+    *   Fetches relevant content.
+    *   Creates new document record(s) from Wikipedia content (mirroring `Upload Document`'s ingestion chain).
+    *   Sends granular status updates via `wikipedia_fetch_status` WebSocket events.
+
+**Real-time Feedback (Client-Side)**:
+*   Loading indicator shown. `wikipedia_fetch_status` events update UI. Once content is processed (`document_status: 'ready'`), the chat re-submits the query.
+
+#### Action: Continue without additional context (from Prompt)
+
+**User Action**: User clicks "Continue without additional context" from the RAG Enhancement Prompt.
+
+**Client-Side Flow**:
+*   **UI State**: Prompt options disappear. Chat input re-enabled.
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched. The original user query is re-submitted, but this time with a flag indicating to the server to *not* attempt RAG retrieval (or proceed with minimal context).
+*   **API Call**: (Mirrors `Send Chat Message` flow, but with an additional flag in payload, e.g., `"ignore_rag": true`).
+*   **Expected Response (Success)**: (Mirrors `Send Chat Message` flow).
+*   **Expected Response (Failure)**: (Mirrors `Send Chat Message` flow).
+*   **Error Handling**: (Mirrors `Send Chat Message` flow).
+*   **Success Handling**: (Mirrors `Send Chat Message` flow).
+
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: Receives message, passes the `ignore_rag` flag to the worker.
+*   **Worker (Chat Orchestrator)**: Processes the query, but bypasses or minimizes RAG retrieval based on the `ignore_rag` flag.
+
+**Real-time Feedback (Client-Side)**:
+*   The bot provides a response, potentially less informed if no context was found.
+
+---
+
+## 7. Real-time Status Updates (WebSocket)
+
+### Document Status Updates
+
+**WebSocket Event**: `document_status`
+
+**Client-Side Flow**:
+*   **Event Listener**: Client (e.g., `socketService`, `DocumentManager` component) listens for `document_status` events.
+*   **Data Structure (Expected)**: `{"document_id": "uuid", "workspace_id": "uuid", "status": "pending" | "parsing" | "chunking" | "embedding" | "indexing" | "ready" | "failed" | "deleted", "message": "Optional status message"}`
+*   **Redux Actions**: `statusSlice.updateDocumentStatus` dispatched with the received status update.
+*   **Error Handling**: If `status` is "failed", an error message might be displayed to the user.
+*   **Success Handling**: UI (e.g., `DocumentList`) updates the status badge/indicator for the specific document.
+
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: Receives status updates from Ingestion Workers (Parser, Chunker, Embedder, Indexer) and immediately emits them as `document_status` WebSocket events to relevant clients (users subscribed to that workspace).
+*   **Workers**: After completing each stage of document processing (parsing, chunking, embedding, indexing), workers send a status update to the server.
+
+**Real-time Feedback (Client-Side)**:
+*   Document status is dynamically updated in the `DocumentList` as it progresses through ingestion.
+
+### Workspace Status Updates
+
+**WebSocket Event**: `workspace_status`
+
+**Client-Side Flow**:
+*   **Event Listener**: Client (e.g., `socketService`, `WorkspaceColumn`, `WorkspaceDetailPage`) listens for `workspace_status` events.
+*   **Data Structure (Expected)**: `{"workspace_id": "uuid", "status": "provisioning" | "ready" | "deleting" | "failed", "message": "Optional status message"}`
+*   **Redux Actions**: `statusSlice.updateWorkspaceStatus` dispatched. If `status` becomes "ready" after a "provisioning" state, it might trigger `workspaceSlice.setWorkspaceReady`. If `status` becomes "ready" after a "deleting" state, it triggers `workspaceSlice.removeWorkspace`.
+*   **Error Handling**: If `status` is "failed", an error message related to workspace provisioning/deletion is displayed.
+*   **Success Handling**: UI (e.g., workspace name in sidebar, `WorkspaceDetailPage`) updates the status badge/indicator for the specific workspace.
+
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: Receives status updates from the Orchestrator Worker regarding workspace provisioning or deletion and immediately emits them as `workspace_status` WebSocket events.
+*   **Worker (Orchestrator)**: Sends status updates to the server as it provisions or deletes workspace resources.
+
+**Real-time Feedback (Client-Side)**:
+*   Workspace status is dynamically updated (e.g., 'provisioning' with a spinner, 'ready' with a checkmark, 'deleting' with a warning). Interactive elements for the workspace may enable/disable based on its status.
+
+### Wikipedia Fetch Status Updates
+
+**WebSocket Event**: `wikipedia_fetch_status`
+
+**Client-Side Flow**:
+*   **Event Listener**: Client (e.g., `socketService`, `ChatBot` component) listens for `wikipedia_fetch_status` events.
+*   **Data Structure (Expected)**: `{"workspace_id": "uuid", "query": "string", "status": "fetching" | "processing" | "completed" | "failed", "document_ids": ["uuid", ...], "message": "Optional status message"}`
+*   **Redux Actions**: `statusSlice.updateWikipediaFetchStatus` dispatched.
+*   **Error Handling**: If `status` is "failed", an error message is displayed in the chat.
+*   **Success Handling**: UI (e.g., `ChatBot`) updates its display to show fetching progress, then re-submits the original query if `status` is "completed".
+
+**Backend/Worker Interactions (Expected)**:
+*   **Server**: Receives status updates from the Wikipedia Worker and immediately emits them as `wikipedia_fetch_status` WebSocket events.
+*   **Worker (Wikipedia Worker)**: Sends status updates to the server as it searches, fetches, and initiates ingestion of Wikipedia content.
+
+**Real-time Feedback (Client-Side)**:
+*   A loading indicator or status message is shown in the chat area while Wikipedia content is being fetched and processed. Once completed, the chat automatically re-queries.
+
+---
