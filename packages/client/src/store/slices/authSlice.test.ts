@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import authReducer, { setCredentials, logout, setLoading, setUser, type User } from './authSlice';
+import '../../test/setup';
 
 describe('authSlice', () => {
     beforeEach(() => {

@@ -1,4 +1,4 @@
-# Below is a comprehensive breakdown of **all the major parts of a Graph-RAG system** and the **algorithms / technologies** commonly used in each layer. This is a full stack view—from ingestion → storage → retrieval → reasoning.
+# Below is a comprehensive breakdown of **all the major parts of a Graph-RAG system** and the **algorithms / technologies** commonly used in each layer. This is a full stack view-from ingestion -> storage -> retrieval -> reasoning.
 #
 # ---
 #
@@ -22,7 +22,7 @@
 #   * Semantic chunking (via embedding similarity)
 # * **Document parsing**
 #
-#   * PDF → text
+#   * PDF -> text
 #   * HTML parsing
 #   * OCR (Tesseract, PaddleOCR)
 #
@@ -178,7 +178,7 @@
 # * Reciprocal Rank Fusion (RRF)
 # * Weighted scoring:
 #
-#   * α * vector_score + β * graph_score
+#   * alpha * vector_score + beta * graph_score
 # * Reranking:
 #
 #   * Cross-encoder rerankers (BERT, mini-LM)
@@ -230,7 +230,7 @@
 #
 # * Chain-of-Thought (CoT)
 # * Graph reasoning prompts
-# * Subgraph → JSON → LLM reasoning
+# * Subgraph -> JSON -> LLM reasoning
 # * Multi-hop reasoning
 # * Agentic refinement (RAG agents)
 #
@@ -304,78 +304,78 @@
 #
 # # **Want a diagram of the whole system?**
 #
-# Below is a **clean, implementation-agnostic** architecture diagram of a **Graph-RAG workflow**, expressed entirely in terms of **interfaces**, **responsibilities**, and **data flow**—not vendors or technologies.
+# Below is a **clean, implementation-agnostic** architecture diagram of a **Graph-RAG workflow**, expressed entirely in terms of **interfaces**, **responsibilities**, and **data flow**-not vendors or technologies.
 #
 # ---
 #
-# # ** Graph-RAG System — High-Level Workflow Diagram (Interface-Level)**
+# # ** Graph-RAG System - High-Level Workflow Diagram (Interface-Level)**
 #
 # ```
-#                     ┌────────────────────────────────────────┐
-#                     │            1. Document Source           │
-#                     │  (FileInput, WebInput, StreamInput)    │
-#                     └────────────────────────────────────────┘
-#                                       │
-#                                       ▼
-#                     ┌────────────────────────────────────────┐
-#                     │         2. Ingestion Pipeline           │
-#                     │ (DocumentParser, Chunker, MetadataEnricher)
-#                     └────────────────────────────────────────┘
-#                                       │
-#                                       ▼
-#             ┌──────────────────────────────────────────────────────────┐
-#             │                    3. Embedding Layer                     │
-#             │ (EmbeddingEncoder → Vector: float[], EmbedMetadataEncoder)│
-#             └──────────────────────────────────────────────────────────┘
-#                                       │
-#               ┌───────────────────────┴────────────────────────┐
-#               ▼                                                ▼
-# ┌────────────────────────────────────────────┐   ┌───────────────────────────────┐
-# │   4A. Knowledge Graph Construction Layer    │   │     4B. Vector Index Layer    │
-# │ (EntityExtractor, RelationExtractor,        │   │  (VectorIndex, VectorWriter)  │
-# │  GraphBuilder, GraphSchemaAdapter)          │   │                               │
-# └────────────────────────────────────────────┘   └───────────────────────────────┘
-#               │                                                │
-#               ▼                                                ▼
-# ┌─────────────────────────────────────────────┐   ┌────────────────────────────────────────┐
-# │         5A. Graph Store Interface           │   │           5B. Vector Store Interface   │
-# │ (GraphStore: add_nodes/edges, query_paths,  │   │ (VectorStore: upsert, similarity_search) │
-# │  query_neighbors, query_subgraph)           │   └────────────────────────────────────────┘
-# └─────────────────────────────────────────────┘
-#               │                                                │
-#               └───────────────┬────────────────────────────────┘
-#                               ▼
-#                 ┌────────────────────────────────────────┐
-#                 │          6. Retrieval Orchestrator      │
-#                 │  (retrieves via GraphRetriever +        │
-#                 │   VectorRetriever + HybridRetriever)    │
-#                 └────────────────────────────────────────┘
-#                               │
-#                               ▼
-#                 ┌────────────────────────────────────────┐
-#                 │          7. Ranking & Fusion Layer      │
-#                 │   (Ranker, Reranker, Fusion Scorer,     │
-#                 │    DiversitySelector)                   │
-#                 └────────────────────────────────────────┘
-#                               │
-#                               ▼
-#                 ┌────────────────────────────────────────┐
-#                 │        8. Context Builder               │
-#                 │  (ContextSummarizer, NodeExpander,      │
-#                 │   ContextCompressor, ProvenanceBinder)  │
-#                 └────────────────────────────────────────┘
-#                               │
-#                               ▼
-#                 ┌────────────────────────────────────────┐
-#                 │           9. LLM Reasoning Layer        │
-#                 │ (LLMInterface: generate, reason, refine)│
-#                 └────────────────────────────────────────┘
-#                               │
-#                               ▼
-#                 ┌────────────────────────────────────────┐
-#                 │            10. Final Answer             │
-#                 │   (includes summaries + citations)      │
-#                 └────────────────────────────────────────┘
+#                     +----------------------------------------+
+#                     |            1. Document Source           |
+#                     |  (FileInput, WebInput, StreamInput)    |
+#                     -----------------------------------------+
+#                                       |
+#                                       v
+#                     +----------------------------------------+
+#                     |         2. Ingestion Pipeline           |
+#                     | (DocumentParser, Chunker, MetadataEnricher)
+#                     -----------------------------------------+
+#                                       |
+#                                       v
+#             +----------------------------------------------------------+
+#             |                    3. Embedding Layer                     |
+#             | (EmbeddingEncoder -> Vector: float[], EmbedMetadataEncoder)|
+#             -----------------------------------------------------------+
+#                                       |
+#               +-----------------------+------------------------+
+#               v                                                v
+# +--------------------------------------------+   +-------------------------------+
+# |   4A. Knowledge Graph Construction Layer    |   |     4B. Vector Index Layer    |
+# | (EntityExtractor, RelationExtractor,        |   |  (VectorIndex, VectorWriter)  |
+# |  GraphBuilder, GraphSchemaAdapter)          |   |                               |
+# ---------------------------------------------+   --------------------------------+
+#               |                                                |
+#               v                                                v
+# +---------------------------------------------+   +----------------------------------------+
+# |         5A. Graph Store Interface           |   |           5B. Vector Store Interface   |
+# | (GraphStore: add_nodes/edges, query_paths,  |   | (VectorStore: upsert, similarity_search) |
+# |  query_neighbors, query_subgraph)           |   -----------------------------------------+
+# ----------------------------------------------+
+#               |                                                |
+#               ----------------+--------------------------------+
+#                               v
+#                 +----------------------------------------+
+#                 |          6. Retrieval Orchestrator      |
+#                 |  (retrieves via GraphRetriever +        |
+#                 |   VectorRetriever + HybridRetriever)    |
+#                 -----------------------------------------+
+#                               |
+#                               v
+#                 +----------------------------------------+
+#                 |          7. Ranking & Fusion Layer      |
+#                 |   (Ranker, Reranker, Fusion Scorer,     |
+#                 |    DiversitySelector)                   |
+#                 -----------------------------------------+
+#                               |
+#                               v
+#                 +----------------------------------------+
+#                 |        8. Context Builder               |
+#                 |  (ContextSummarizer, NodeExpander,      |
+#                 |   ContextCompressor, ProvenanceBinder)  |
+#                 -----------------------------------------+
+#                               |
+#                               v
+#                 +----------------------------------------+
+#                 |           9. LLM Reasoning Layer        |
+#                 | (LLMInterface: generate, reason, refine)|
+#                 -----------------------------------------+
+#                               |
+#                               v
+#                 +----------------------------------------+
+#                 |            10. Final Answer             |
+#                 |   (includes summaries + citations)      |
+#                 -----------------------------------------+
 # ```
 #
 # ---
@@ -410,7 +410,7 @@
 #
 # Responsibilities:
 #
-# * Convert input → text → structured chunks.
+# * Convert input -> text -> structured chunks.
 # * Assign IDs, metadata, timestamps.
 #
 # ---

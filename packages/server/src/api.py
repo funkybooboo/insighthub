@@ -24,7 +24,6 @@ from src.domains.chat.routes import chat_bp
 from src.domains.chat.socket_handlers import (
     register_socket_handlers as register_chat_socket_handlers,
 )
-from src.domains.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
 from src.domains.workspaces.routes import workspace_bp
 from src.domains.status.socket_handlers import (
@@ -155,7 +154,6 @@ def create_app() -> InsightHubApp:
     # Register blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
-    app.register_blueprint(documents_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(workspace_bp)
     logger.info("All blueprints registered")

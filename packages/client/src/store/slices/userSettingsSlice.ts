@@ -1,7 +1,7 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { type RootState } from '../index';
-import { api } from '../../services/api';
-import { type RagConfig, type UpdateRagConfigRequest } from '../../types/workspace';
+import apiService from '../../services/api';
+import { type RagConfig } from '../../types/workspace';
 
 interface UserSettingsState {
     defaultRagConfig: RagConfig | null;
@@ -19,24 +19,28 @@ export const fetchDefaultRagConfig = createAsyncThunk(
     'userSettings/fetchDefaultRagConfig',
     async (_, { rejectWithValue }) => {
         try {
-            const response = await api.get('/user/settings/rag');
-            return response.data as RagConfig;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || error.message);
+            return await apiService.getDefaultRagConfig();
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            return rejectWithValue(
+                err.response?.data?.message || err.message || 'An error occurred'
+            );
         }
-    },
+    }
 );
 
 export const updateDefaultRagConfig = createAsyncThunk(
     'userSettings/updateDefaultRagConfig',
-    async (ragConfig: UpdateRagConfigRequest, { rejectWithValue }) => {
+    async (ragConfig: RagConfig, { rejectWithValue }) => {
         try {
-            const response = await api.put('/user/settings/rag', ragConfig);
-            return response.data as RagConfig;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || error.message);
+            return await apiService.saveDefaultRagConfig(ragConfig as RagConfig);
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            return rejectWithValue(
+                err.response?.data?.message || err.message || 'An error occurred'
+            );
         }
-    },
+    }
 );
 
 const userSettingsSlice = createSlice({
@@ -65,10 +69,13 @@ const userSettingsSlice = createSlice({
                 state.isLoading = true;
                 state.error = null;
             })
-            .addCase(updateDefaultRagConfig.fulfilled, (state, action: PayloadAction<RagConfig>) => {
-                state.defaultRagConfig = action.payload;
-                state.isLoading = false;
-            })
+            .addCase(
+                updateDefaultRagConfig.fulfilled,
+                (state, action: PayloadAction<RagConfig>) => {
+                    state.defaultRagConfig = action.payload;
+                    state.isLoading = false;
+                }
+            )
             .addCase(updateDefaultRagConfig.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
@@ -78,10 +85,8 @@ const userSettingsSlice = createSlice({
 
 export const { clearUserSettingsError } = userSettingsSlice.actions;
 
-export const selectDefaultRagConfig = (state: RootState) =>
-    state.userSettings.defaultRagConfig;
-export const selectUserSettingsLoading = (state: RootState) =>
-    state.userSettings.isLoading;
+export const selectDefaultRagConfig = (state: RootState) => state.userSettings.defaultRagConfig;
+export const selectUserSettingsLoading = (state: RootState) => state.userSettings.isLoading;
 export const selectUserSettingsError = (state: RootState) => state.userSettings.error;
 
 export default userSettingsSlice.reducer;

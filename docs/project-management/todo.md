@@ -73,7 +73,6 @@ System includes:
 - [x] PostgreSQL schema defined
 - [x] Foreign keys and cascading deletes
 - [x] Proper indexing
-- [ ] Alembic migrations for workspace tables
 
 ---
 
@@ -314,7 +313,6 @@ Workers scaffolded in `packages/workers/`:
 - [ ] Developer onboarding guide
 - [ ] Worker implementation guide
 - [ ] Deployment guide (Swarm/K8s)
-- [ ] Contributing guide updates
 
 ---
 

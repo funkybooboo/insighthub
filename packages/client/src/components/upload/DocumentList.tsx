@@ -9,6 +9,7 @@ interface DocumentListProps {
     workspaceId: number;
     onDocumentChange?: () => void;
     onDocumentCountChange?: (count: number) => void;
+    disableActions?: boolean;
 }
 
 export interface DocumentListRef {
@@ -27,7 +28,7 @@ interface DocumentWithStatus extends Document {
 }
 
 const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
-    ({ workspaceId, onDocumentChange, onDocumentCountChange }, ref) => {
+    ({ workspaceId, onDocumentChange, onDocumentCountChange, disableActions = false }, ref) => {
         const [documents, setDocuments] = useState<DocumentWithStatus[]>([]);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState('');
@@ -203,7 +204,13 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                         </div>
                         {documents.map((doc) => {
                             const status = getDocumentStatus(doc);
-                            const isProcessing = status === 'processing' || status === 'pending';
+                            const isProcessing =
+                                status === 'processing' ||
+                                status === 'pending' ||
+                                status === 'parsing' ||
+                                status === 'chunking' ||
+                                status === 'embedding' ||
+                                status === 'indexing';
 
                             return (
                                 <div
@@ -265,34 +272,38 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                                         {formatDate(doc.created_at)}
                                     </div>
                                     <div className="w-16 text-right">
-                                        <button
-                                            onClick={() => handleDeleteClick(doc.id, doc.filename)}
-                                            disabled={deletingId === doc.id || isProcessing}
-                                            className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                                            title={
-                                                isProcessing
-                                                    ? 'Cannot delete while processing'
-                                                    : 'Delete document'
-                                            }
-                                        >
-                                            {deletingId === doc.id ? (
-                                                <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
-                                            ) : (
-                                                <svg
-                                                    className="h-5 w-5"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                    />
-                                                </svg>
-                                            )}
-                                        </button>
+                                        {!disableActions && (
+                                            <button
+                                                onClick={() =>
+                                                    handleDeleteClick(doc.id, doc.filename)
+                                                }
+                                                disabled={deletingId === doc.id || isProcessing}
+                                                className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                                title={
+                                                    isProcessing
+                                                        ? 'Cannot delete while processing'
+                                                        : 'Delete document'
+                                                }
+                                            >
+                                                {deletingId === doc.id ? (
+                                                    <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                                                ) : (
+                                                    <svg
+                                                        className="h-5 w-5"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             );

@@ -287,7 +287,7 @@ if os.getenv("PYTEST_CURRENT_TEST"):
 
 ## Best Practices
 
-### DO ✓
+### DO [x]
 
 - **Unit Tests**: Use dummy implementations (InMemoryBlobStorage, SQLite)
 - **Integration Tests**: Use testcontainers (PostgreSQL, MinIO)
@@ -297,7 +297,7 @@ if os.getenv("PYTEST_CURRENT_TEST"):
 - **Clean up**: Fixtures handle cleanup automatically
 - **Fast unit tests**: Keep unit tests under 100ms
 
-### DON'T ✗
+### DON'T [no]
 
 - **Don't use mocks** in unit tests - use real dummy implementations instead
 - **Don't test implementation details** - test behavior and interfaces

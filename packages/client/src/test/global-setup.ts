@@ -5,7 +5,7 @@
 export default function setup() {
     // Create localStorage mock
     const localStorageMock = (() => {
-        let store: Record<string, string> = {};
+        const store: Record<string, string> = {};
 
         return {
             getItem: (key: string) => store[key] || null,
@@ -16,7 +16,7 @@ export default function setup() {
                 delete store[key];
             },
             clear: () => {
-                store = {};
+                Object.keys(store).forEach((key) => delete store[key]);
             },
             key: (index: number): string | null => {
                 const keys = Object.keys(store);

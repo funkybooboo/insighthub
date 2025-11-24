@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach } from
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { apiService } from './api';
+import '../test/setup';
 import type {
     Workspace,
     RagConfig,
@@ -322,6 +323,13 @@ describe('ApiService', () => {
         it('should handle 401 unauthorized errors', async () => {
             localStorage.setItem('token', 'expired-token');
 
+            // Mock window.location.href to avoid JSDOM navigation issues
+            const originalHref = window.location.href;
+            Object.defineProperty(window.location, 'href', {
+                writable: true,
+                value: originalHref
+            });
+
             server.use(
                 http.get(`${API_BASE_URL}/api/workspaces`, () => {
                     return new HttpResponse(null, { status: 401 });
@@ -350,6 +358,237 @@ describe('ApiService', () => {
             );
 
             await expect(apiService.listWorkspaces()).rejects.toThrow();
+        });
+    });
+
+    describe('document management', () => {
+        it('should list documents for a workspace', async () => {
+            const mockDocuments = [
+                {
+                    id: 1,
+                    filename: 'test.pdf',
+                    mime_type: 'application/pdf',
+                    file_size: 1024000,
+                    chunk_count: 5,
+                    created_at: '2024-01-01T00:00:00Z',
+                },
+            ];
+
+            server.use(
+                http.get(`${API_BASE_URL}/api/workspaces/1/documents`, () => {
+                    return HttpResponse.json({ documents: mockDocuments, count: 1 });
+                })
+            );
+
+            const result = await apiService.listDocuments(1);
+            expect(result.documents).toEqual(mockDocuments);
+            expect(result.count).toBe(1);
+        });
+
+        it('should delete a document', async () => {
+            server.use(
+                http.delete(`${API_BASE_URL}/api/workspaces/1/documents/1`, () => {
+                    return HttpResponse.json({ message: 'Document deleted' });
+                })
+            );
+
+            const result = await apiService.deleteDocument(1, 1);
+            expect(result.message).toBe('Document deleted');
+        });
+    });
+
+    describe('chat functionality', () => {
+        it('should send chat message', async () => {
+            const mockResponse = {
+                answer: 'Hello, how can I help you?',
+                context: [
+                    {
+                        text: 'Some context text',
+                        score: 0.95,
+                        metadata: { source: 'document.pdf' },
+                    },
+                ],
+                session_id: 123,
+                documents_count: 5,
+            };
+
+            server.use(
+                http.post(`${API_BASE_URL}/api/chat`, async ({ request }) => {
+                    const body = await request.json();
+                    expect(body).toEqual({
+                        message: 'Hello',
+                        session_id: 123,
+                        workspace_id: 1,
+                    });
+                    return HttpResponse.json(mockResponse);
+                })
+            );
+
+            const result = await apiService.sendChatMessage({
+                message: 'Hello',
+                session_id: 123,
+                workspace_id: 1,
+            });
+
+            expect(result).toEqual(mockResponse);
+        });
+    });
+
+    describe('user profile', () => {
+        it('should update user profile', async () => {
+            const updatedUser = {
+                id: 1,
+                username: 'testuser',
+                email: 'newemail@example.com',
+                full_name: 'Updated Name',
+                created_at: '2024-01-01T00:00:00Z',
+            };
+
+            server.use(
+                http.patch(`${API_BASE_URL}/api/auth/profile`, async ({ request }) => {
+                    const body = await request.json();
+                    expect(body).toEqual({ full_name: 'Updated Name', email: 'newemail@example.com' });
+                    return HttpResponse.json(updatedUser);
+                })
+            );
+
+            const result = await apiService.updateProfile({
+                full_name: 'Updated Name',
+                email: 'newemail@example.com',
+            });
+
+            expect(result).toEqual(updatedUser);
+        });
+
+        it('should change password', async () => {
+            server.use(
+                http.post(`${API_BASE_URL}/api/auth/change-password`, async ({ request }) => {
+                    const body = await request.json();
+                    expect(body).toEqual({
+                        current_password: 'oldpass',
+                        new_password: 'newpass',
+                    });
+                    return new HttpResponse(null, { status: 200 });
+                })
+            );
+
+            // Should not throw
+            await expect(apiService.changePassword({
+                current_password: 'oldpass',
+                new_password: 'newpass',
+            })).resolves.toBeUndefined();
+        });
+    });
+
+    describe('RAG configuration', () => {
+        it('should get default RAG config', async () => {
+            const mockConfig = {
+                embedding_model: 'nomic-embed-text',
+                retriever_type: 'vector',
+                chunk_size: 1000,
+                chunk_overlap: 200,
+                top_k: 5,
+            };
+
+            server.use(
+                http.get(`${API_BASE_URL}/api/auth/default-rag-config`, () => {
+                    return HttpResponse.json(mockConfig);
+                })
+            );
+
+            const result = await apiService.getDefaultRagConfig();
+            expect(result).toEqual(mockConfig);
+        });
+
+        it('should return null when default RAG config does not exist', async () => {
+            server.use(
+                http.get(`${API_BASE_URL}/api/auth/default-rag-config`, () => {
+                    return new HttpResponse(null, { status: 404 });
+                })
+            );
+
+            const result = await apiService.getDefaultRagConfig();
+            expect(result).toBeNull();
+        });
+
+        it('should save default RAG config', async () => {
+            const mockConfig = {
+                embedding_model: 'nomic-embed-text',
+                retriever_type: 'vector',
+                chunk_size: 1000,
+                chunk_overlap: 200,
+                top_k: 5,
+            };
+
+            server.use(
+                http.put(`${API_BASE_URL}/api/auth/default-rag-config`, async ({ request }) => {
+                    const body = await request.json();
+                    expect(body).toEqual(mockConfig);
+                    return HttpResponse.json(mockConfig);
+                })
+            );
+
+            const result = await apiService.saveDefaultRagConfig(mockConfig);
+            expect(result).toEqual(mockConfig);
+        });
+    });
+
+    describe('chat functionality', () => {
+        it('should cancel chat message', async () => {
+            // Use direct mocking to avoid MSW timeout issues
+            const mockPost = vi.fn().mockResolvedValue({
+                data: { message: 'Message cancelled' }
+            });
+            (apiService as any).client.post = mockPost;
+
+            const result = await apiService.cancelChatMessage(1, 1, 'msg-123');
+            expect(result.message).toBe('Message cancelled');
+            expect(mockPost).toHaveBeenCalledWith(
+                '/api/workspaces/1/chat/sessions/1/cancel',
+                { message_id: 'msg-123' }
+            );
+        });
+    });
+            (apiService as any).client.post = mockPost;
+
+            const result = await apiService.sendChatMessage(1, 1, 'Hello world');
+            expect(result.message_id).toBe('msg-123');
+            expect(mockPost).toHaveBeenCalledWith(
+                '/api/workspaces/1/chat/sessions/1/messages',
+                { content: 'Hello world', message_type: 'user' }
+            );
+        });
+
+        it('should cancel chat message', async () => {
+            // Use direct mocking to avoid MSW timeout issues
+            const mockPost = vi.fn().mockResolvedValue({
+                data: { message: 'Message cancelled' }
+            });
+            (apiService as any).client.post = mockPost;
+
+            const result = await apiService.cancelChatMessage(1, 1, 'msg-123');
+            expect(result.message).toBe('Message cancelled');
+            expect(mockPost).toHaveBeenCalledWith(
+                '/api/workspaces/1/chat/sessions/1/cancel',
+                { message_id: 'msg-123' }
+            );
+        });
+    });
+
+    describe('Wikipedia integration', () => {
+        it('should fetch Wikipedia article', async () => {
+            // Use direct mocking to avoid MSW timeout issues
+            const mockPost = vi.fn().mockResolvedValue({
+                data: { message: 'Wikipedia article fetched successfully' }
+            });
+            (apiService as any).client.post = mockPost;
+
+            const result = await apiService.fetchWikipediaArticle(1, 'machine learning');
+            expect(result.message).toBe('Wikipedia article fetched successfully');
+            expect(mockPost).toHaveBeenCalledWith(
+                '/api/workspaces/1/documents/fetch-wikipedia',
+                { query: 'machine learning' }
+            );
         });
     });
 });

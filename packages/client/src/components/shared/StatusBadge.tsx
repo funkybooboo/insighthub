@@ -1,6 +1,17 @@
 import LoadingSpinner from './LoadingSpinner';
 
-export type Status = 'pending' | 'processing' | 'provisioning' | 'ready' | 'failed' | 'error';
+export type Status =
+    | 'pending'
+    | 'processing'
+    | 'provisioning'
+    | 'parsing'
+    | 'chunking'
+    | 'embedding'
+    | 'indexing'
+    | 'ready'
+    | 'failed'
+    | 'error'
+    | 'deleting';
 
 interface StatusBadgeProps {
     status: Status;
@@ -29,6 +40,30 @@ const statusConfig: Record<
         textColor: 'text-blue-700 dark:text-blue-300',
         showSpinner: true,
     },
+    parsing: {
+        label: 'Parsing',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        textColor: 'text-blue-700 dark:text-blue-300',
+        showSpinner: true,
+    },
+    chunking: {
+        label: 'Chunking',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        textColor: 'text-blue-700 dark:text-blue-300',
+        showSpinner: true,
+    },
+    embedding: {
+        label: 'Embedding',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        textColor: 'text-blue-700 dark:text-blue-300',
+        showSpinner: true,
+    },
+    indexing: {
+        label: 'Indexing',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+        textColor: 'text-blue-700 dark:text-blue-300',
+        showSpinner: true,
+    },
     provisioning: {
         label: 'Provisioning',
         bgColor: 'bg-blue-100 dark:bg-blue-900/30',
@@ -52,6 +87,12 @@ const statusConfig: Record<
         bgColor: 'bg-red-100 dark:bg-red-900/30',
         textColor: 'text-red-700 dark:text-red-300',
         showSpinner: false,
+    },
+    deleting: {
+        label: 'Deleting',
+        bgColor: 'bg-red-100 dark:bg-red-900/30',
+        textColor: 'text-red-700 dark:text-red-300',
+        showSpinner: true,
     },
 };
 

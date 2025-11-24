@@ -17,7 +17,7 @@ The Embeddings Worker generates vector embeddings for all document chunks and in
 - `vector.index.updated`
 
 ## Architecture
-Ingestion → Embeddings Worker → Qdrant index
+Ingestion -> Embeddings Worker -> Qdrant index
 
 ## Running Locally
 

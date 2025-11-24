@@ -6,14 +6,8 @@ import { selectIsWorkspaceProcessing } from '@/store/slices/statusSlice'; // Imp
 import TypingIndicator from './TypingIndicator';
 import MarkdownRenderer from './MarkdownRenderer';
 import ContextDisplay from './ContextDisplay';
-import { type Message as MessageType, type Context } from '../../types/chat';
+import { type Message as MessageType } from '../../types/chat';
 import { selectActiveWorkspaceId } from '@/store/slices/workspaceSlice'; // Import active workspace selector
-
-type Message = {
-    content: string;
-    role: 'user' | 'bot';
-    context?: Context[];
-};
 
 type Props = {
     messages: MessageType[];
@@ -130,7 +124,8 @@ const ChatMessages = ({ messages, error, isBotTyping, onFetchWikipedia }: Props)
                                                         <button
                                                             onClick={() =>
                                                                 onFetchWikipedia(
-                                                                    messages[messages.length - 2]?.content || ''
+                                                                    messages[messages.length - 2]
+                                                                        ?.content || ''
                                                                 )
                                                             }
                                                             className="px-3 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

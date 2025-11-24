@@ -6,10 +6,12 @@ import { AxiosError } from 'axios';
 interface FileUploadProps {
     workspaceId: number;
     onUploadSuccess?: () => void;
+    disabled?: boolean;
 }
 
-const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
+const FileUpload = ({ workspaceId, onUploadSuccess, disabled = false }: FileUploadProps) => {
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [currentFileError, setCurrentFileError] = useState(''); // Local error for file validation
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,7 +38,7 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
             setCurrentFileError('');
 
             await apiService.uploadDocument(workspaceId, file);
-            
+
             // Notify parent component that an upload was initiated (status will come via websockets)
             onUploadSuccess?.();
         } catch (err: unknown) {
@@ -104,7 +106,7 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
                     className="hidden"
                     accept=".pdf,.txt,.md"
                     onChange={handleFileChange}
-                    disabled={isUploading}
+                    disabled={isUploading || disabled}
                 />
 
                 {isUploading ? (
@@ -159,4 +161,3 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
 };
 
 export default FileUpload;
-

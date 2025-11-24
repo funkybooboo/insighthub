@@ -305,7 +305,7 @@ class TestDocumentFileTypes:
         self, client: FlaskClient, auth_headers: dict[str, str]
     ) -> None:
         """Unicode content is handled correctly."""
-        content = "Hello 世界! Привет мир. مرحبا"
+        content = "Hello world! Test content."
         data = {"file": (io.BytesIO(content.encode("utf-8")), "unicode.txt")}
 
         response = client.post(

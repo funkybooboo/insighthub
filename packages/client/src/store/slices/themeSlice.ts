@@ -10,9 +10,13 @@ interface ThemeState {
 }
 
 const getInitialTheme = (): Theme => {
-    const stored = localStorage.getItem('theme');
-    if (stored === 'light' || stored === 'dark') {
-        return stored;
+    try {
+        const stored = localStorage.getItem('theme');
+        if (stored === 'light' || stored === 'dark') {
+            return stored;
+        }
+    } catch {
+        // localStorage not available (e.g., in tests or SSR)
     }
     return 'dark';
 };
@@ -27,11 +31,19 @@ const themeSlice = createSlice({
     reducers: {
         toggleTheme: (state) => {
             state.theme = state.theme === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('theme', state.theme);
+            try {
+                localStorage.setItem('theme', state.theme);
+            } catch {
+                // localStorage not available (e.g., in tests or SSR)
+            }
         },
         setTheme: (state, action: PayloadAction<Theme>) => {
             state.theme = action.payload;
-            localStorage.setItem('theme', state.theme);
+            try {
+                localStorage.setItem('theme', state.theme);
+            } catch {
+                // localStorage not available (e.g., in tests or SSR)
+            }
         },
     },
 });

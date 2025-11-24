@@ -9,7 +9,11 @@ import apiService from '../services/api';
 import type { Workspace } from '../types/workspace';
 import { setActiveWorkspace, removeWorkspace } from '../store/slices/workspaceSlice'; // Import removeWorkspace
 import type { RootState } from '../store';
-import { type WorkspaceStatus, selectIsWorkspaceDeleting, updateWorkspaceStatus } from '../store/slices/statusSlice'; // Import selectIsWorkspaceDeleting and updateWorkspaceStatus
+import {
+    type WorkspaceStatus,
+    selectIsWorkspaceDeleting,
+    updateWorkspaceStatus,
+} from '../store/slices/statusSlice'; // Import selectIsWorkspaceDeleting and updateWorkspaceStatus
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
@@ -65,7 +69,6 @@ export default function WorkspaceDetailPage() {
         }
     }, [workspace, isWorkspaceBeingDeleted, workspaceStatus, dispatch, navigate]);
 
-
     const loadWorkspace = async (id: number) => {
         try {
             setLoading(true);
@@ -94,12 +97,14 @@ export default function WorkspaceDetailPage() {
 
         setShowDeleteConfirm(false); // Close confirmation dialog
         // Dispatch deleting status immediately for UI feedback
-        dispatch(updateWorkspaceStatus({
-            workspace_id: workspace.id,
-            user_id: -1, // User ID is not critical for status display on client
-            status: 'deleting',
-            message: 'Initiating workspace deletion...',
-        }));
+        dispatch(
+            updateWorkspaceStatus({
+                workspace_id: workspace.id,
+                user_id: -1, // User ID is not critical for status display on client
+                status: 'deleting',
+                message: 'Initiating workspace deletion...',
+            })
+        );
 
         try {
             await apiService.deleteWorkspace(workspace.id);
@@ -108,12 +113,14 @@ export default function WorkspaceDetailPage() {
         } catch (err: unknown) {
             setError(getErrorMessage(err));
             // Revert status if deletion fails immediately
-            dispatch(updateWorkspaceStatus({
-                workspace_id: workspace.id,
-                user_id: -1,
-                status: 'failed',
-                message: getErrorMessage(err),
-            }));
+            dispatch(
+                updateWorkspaceStatus({
+                    workspace_id: workspace.id,
+                    user_id: -1,
+                    status: 'failed',
+                    message: getErrorMessage(err),
+                })
+            );
         }
     };
 
@@ -174,7 +181,6 @@ export default function WorkspaceDetailPage() {
             </div>
         );
     }
-
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -394,7 +400,6 @@ export default function WorkspaceDetailPage() {
                                             Max Hops
                                         </p>
                                         <p className="font-medium text-gray-900 dark:text-white">
-                                            {/* @ts-ignore */}
                                             {workspace.rag_config.max_hops ?? 'N/A'}
                                         </p>
                                     </div>
@@ -403,7 +408,6 @@ export default function WorkspaceDetailPage() {
                                             Entity Extraction Model
                                         </p>
                                         <p className="font-medium text-gray-900 dark:text-white">
-                                            {/* @ts-ignore */}
                                             {workspace.rag_config.entity_extraction_model || 'N/A'}
                                         </p>
                                     </div>

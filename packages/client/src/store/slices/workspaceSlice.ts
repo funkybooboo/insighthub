@@ -1,18 +1,29 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Workspace, WorkspaceState } from '../../types/workspace';
+import type { RootState } from '../index';
 
 const ACTIVE_WORKSPACE_KEY = 'activeWorkspaceId';
 
 const loadActiveWorkspaceId = (): number | null => {
-    const stored = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
-    return stored ? parseInt(stored, 10) : null;
+    try {
+        const stored = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+        return stored ? parseInt(stored, 10) : null;
+    } catch {
+        // localStorage not available (e.g., in tests or SSR)
+        return null;
+    }
 };
 
 const saveActiveWorkspaceId = (id: number | null): void => {
-    if (id === null) {
-        localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
-    } else {
-        localStorage.setItem(ACTIVE_WORKSPACE_KEY, id.toString());
+    try {
+        if (id === null) {
+            localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+        } else {
+            localStorage.setItem(ACTIVE_WORKSPACE_KEY, id.toString());
+        }
+    } catch {
+        // localStorage not available (e.g., in tests or SSR)
+        // Silently ignore
     }
 };
 
@@ -80,5 +91,11 @@ export const {
     setError,
     clearError,
 } = workspaceSlice.actions;
+
+// Selectors
+export const selectActiveWorkspaceId = (state: RootState) => state.workspace.activeWorkspaceId;
+export const selectWorkspaces = (state: RootState) => state.workspace.workspaces;
+export const selectWorkspaceLoading = (state: RootState) => state.workspace.isLoading;
+export const selectWorkspaceError = (state: RootState) => state.workspace.error;
 
 export default workspaceSlice.reducer;

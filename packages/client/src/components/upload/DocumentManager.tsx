@@ -11,7 +11,7 @@ import { LoadingSpinner } from '../shared';
 import type { RootState } from '@/store';
 import { selectActiveWorkspaceId } from '@/store/slices/workspaceSlice';
 import socketService from '@/services/socket';
-import { WikipediaFetchStatus } from '@/store/slices/statusSlice'; // Import the type
+import type { WikipediaFetchStatus } from '@/store/slices/statusSlice'; // Import the type
 
 interface DocumentManagerProps {
     workspaceId: number;
@@ -28,29 +28,33 @@ const DocumentManager = ({
     const documentListRef = useRef<DocumentListRef>(null);
 
     const currentWorkspaceId = useSelector(selectActiveWorkspaceId);
-    const isWorkspaceProcessing = useSelector(selectIsWorkspaceProcessing(currentWorkspaceId || -1));
+    const isWorkspaceProcessing = useSelector(
+        selectIsWorkspaceProcessing(currentWorkspaceId || -1)
+    );
 
     // Select Wikipedia fetches for the current workspace
     const wikipediaFetches = useSelector((state: RootState) =>
         Object.values(state.status.wikipediaFetches).filter(
-            (fetch) => fetch.workspace_id === currentWorkspaceId,
-        ),
+            (fetch) => fetch.workspace_id === currentWorkspaceId
+        )
     );
 
     useEffect(() => {
         // Set up socket listeners for Wikipedia fetch status
         socketService.onWikipediaFetchStatus((data) => {
             console.log('Wikipedia fetch status update:', data);
-            dispatch(updateWikipediaFetchStatus({
-                id: data.id,
-                user_id: data.user_id,
-                workspace_id: data.workspace_id,
-                query: data.query,
-                status: data.status as WikipediaFetchStatus,
-                message: data.message,
-                error: data.error,
-                timestamp: Date.now(),
-            }));
+            dispatch(
+                updateWikipediaFetchStatus({
+                    id: data.id,
+                    user_id: data.user_id,
+                    workspace_id: data.workspace_id,
+                    query: data.query,
+                    status: data.status as WikipediaFetchStatus,
+                    message: data.message,
+                    error: data.error,
+                    timestamp: Date.now(),
+                })
+            );
 
             // If a fetch is complete (ready/failed), clear it after a delay
             if (data.status === 'ready' || data.status === 'failed') {
@@ -141,7 +145,8 @@ const DocumentManager = ({
                                               : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                                     }`}
                                 >
-                                    {(fetch.status === 'fetching' || fetch.status === 'processing') && (
+                                    {(fetch.status === 'fetching' ||
+                                        fetch.status === 'processing') && (
                                         <LoadingSpinner size="sm" />
                                     )}
                                     <span className="truncate">
@@ -174,4 +179,3 @@ const DocumentManager = ({
 };
 
 export default DocumentManager;
-

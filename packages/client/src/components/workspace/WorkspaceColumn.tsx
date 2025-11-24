@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FaPlus, FaCog } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import type { RootState } from '@/store';
+import type { RootState, AppDispatch } from '@/store';
 import {
     setWorkspaces,
     setActiveWorkspace,
@@ -17,25 +17,28 @@ import {
     selectDefaultRagConfig,
     selectUserSettingsLoading,
 } from '@/store/slices/userSettingsSlice';
-import { ConfirmDialog, LoadingSpinner } from '@/components/shared';
+import { LoadingSpinner } from '@/components/shared';
 import { apiService } from '@/services/api';
 import { validateWorkspaceName, validateDescription } from '@/lib/validation';
 import RagConfigForm from './RagConfigForm';
-import { type CreateRagConfigRequest, type Workspace, type VectorRagConfig, type GraphRagConfig } from '@/types/workspace';
-import { AxiosError } from 'axios';
+import {
+    type CreateRagConfigRequest,
+    type VectorRagConfig,
+    type GraphRagConfig,
+} from '@/types/workspace';
 import WorkspaceHeader from './WorkspaceHeader'; // Import the new component
 import { selectIsWorkspaceDeleting } from '@/store/slices/statusSlice';
 
 const WorkspaceColumn: React.FC = () => {
-    const dispatch = useDispatch<RootState>();
+    const dispatch = useDispatch<AppDispatch>();
     const workspaces = useSelector(selectWorkspaces);
     const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
     const workspacesLoading = useSelector((state: RootState) => state.workspace.isLoading);
     const workspacesError = useSelector((state: RootState) => state.workspace.error);
     const isAnyWorkspaceDeleting = useSelector((state: RootState) =>
         Object.values(state.status.workspaces).some((ws) =>
-            selectIsWorkspaceDeleting(ws.workspace_id)(state),
-        ),
+            selectIsWorkspaceDeleting(ws.workspace_id)(state)
+        )
     );
 
     const defaultRagConfig = useSelector(selectDefaultRagConfig);
@@ -55,10 +58,27 @@ const WorkspaceColumn: React.FC = () => {
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
 
+    const loadWorkspaces = useCallback(async () => {
+        dispatch(setLoading(true));
+        try {
+            const workspaceList = await apiService.listWorkspaces();
+            dispatch(setWorkspaces(workspaceList));
+
+            if (workspaceList.length > 0 && !activeWorkspaceId) {
+                dispatch(setActiveWorkspace(workspaceList[0].id));
+            }
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message =
+                err.response?.data?.message || err.message || 'Failed to load workspaces';
+            dispatch(setError(message));
+        }
+    }, [dispatch, activeWorkspaceId]);
+
     // Load workspaces on mount
     useEffect(() => {
         loadWorkspaces();
-    }, [dispatch]); // Removed loadWorkspaces from dependency array, as it's memoized
+    }, [loadWorkspaces]);
 
     // Load user's default RAG config when modal opens
     // and set it as the initial config for the workspace creation form
@@ -73,22 +93,6 @@ const WorkspaceColumn: React.FC = () => {
             setRagConfigForWorkspace(defaultRagConfig);
         }
     }, [defaultRagConfig]);
-
-    const loadWorkspaces = useCallback(async () => {
-        dispatch(setLoading(true));
-        try {
-            const workspaceList = await apiService.listWorkspaces();
-            dispatch(setWorkspaces(workspaceList));
-
-            if (workspaceList.length > 0 && !activeWorkspaceId) {
-                dispatch(setActiveWorkspace(workspaceList[0].id));
-            }
-        } catch (error) {
-            const message =
-                error instanceof AxiosError ? error.response?.data?.message : 'Failed to load workspaces';
-            dispatch(setError(message));
-        }
-    }, [dispatch, activeWorkspaceId]);
 
     const handleWorkspaceChange = (workspaceId: number) => {
         dispatch(setActiveWorkspace(workspaceId));
@@ -121,23 +125,29 @@ const WorkspaceColumn: React.FC = () => {
                     retriever_type: 'graph',
                     max_hops: (ragConfigForWorkspace as Partial<GraphRagConfig>).max_hops || 2,
                     entity_extraction_model:
-                        (ragConfigForWorkspace as Partial<GraphRagConfig>).entity_extraction_model || 'ollama',
+                        (ragConfigForWorkspace as Partial<GraphRagConfig>)
+                            .entity_extraction_model || 'ollama',
                     relationship_extraction_model:
-                        (ragConfigForWorkspace as Partial<GraphRagConfig>).relationship_extraction_model || 'ollama',
+                        (ragConfigForWorkspace as Partial<GraphRagConfig>)
+                            .relationship_extraction_model || 'ollama',
                 };
             } else {
                 // Default to vector if retriever_type is not 'graph' or undefined
                 finalRagConfig = {
                     retriever_type: 'vector',
-                    embedding_model: (ragConfigForWorkspace as Partial<VectorRagConfig>).embedding_model || 'nomic-embed-text',
-                    chunk_size: (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_size || 1000,
-                    chunk_overlap: (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_overlap || 200,
+                    embedding_model:
+                        (ragConfigForWorkspace as Partial<VectorRagConfig>).embedding_model ||
+                        'nomic-embed-text',
+                    chunk_size:
+                        (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_size || 1000,
+                    chunk_overlap:
+                        (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_overlap || 200,
                     top_k: (ragConfigForWorkspace as Partial<VectorRagConfig>).top_k || 8,
-                    rerank_enabled: (ragConfigForWorkspace as Partial<VectorRagConfig>).rerank_enabled || false,
+                    rerank_enabled:
+                        (ragConfigForWorkspace as Partial<VectorRagConfig>).rerank_enabled || false,
                     rerank_model: (ragConfigForWorkspace as Partial<VectorRagConfig>).rerank_model,
                 };
             }
-
 
             const workspace = await apiService.createWorkspace({
                 name: newWorkspaceName.trim(),
@@ -148,9 +158,10 @@ const WorkspaceColumn: React.FC = () => {
             dispatch(addWorkspace(workspace));
             dispatch(setActiveWorkspace(workspace.id));
             handleCloseModal();
-        } catch (error) {
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
             const message =
-                error instanceof AxiosError ? error.response?.data?.message : 'Failed to create workspace';
+                err.response?.data?.message || err.message || 'Failed to create workspace';
             setValidationError(message);
         } finally {
             setIsCreating(false);

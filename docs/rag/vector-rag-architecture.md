@@ -106,37 +106,37 @@
 #
 # ```
 # Raw Documents
-#       │
-#       ▼
+#       |
+#       v
 # [Document Parser]
-#       │
-#       ▼
+#       |
+#       v
 # [Chunker] --> Chunk 1, Chunk 2, ...
-#       │
-#       ▼
+#       |
+#       v
 # [Embedding Encoder] --> Embedding Vectors
-#       │
-#       ▼
-# [Vector Store] <───────────────┐
-#       │                       │
-#       ▼                       │
-# User Query                    │
-#       │                       │
-# [Query Encoder] --------------┘
-#       │
-#       ▼
+#       |
+#       v
+# [Vector Store] <---------------+
+#       |                       |
+#       v                       |
+# User Query                    |
+#       |                       |
+# [Query Encoder] --------------+
+#       |
+#       v
 # [Vector Retriever] --> Top-k Chunks
-#       │
-#       ▼
+#       |
+#       v
 # [Ranker] (optional)
-#       │
-#       ▼
+#       |
+#       v
 # [Context Builder] --> Prompt for LLM
-#       │
-#       ▼
+#       |
+#       v
 # [LLM] --> Raw Answer
-#       │
-#       ▼
+#       |
+#       v
 # [Output Formatter] --> Final Answer + Provenance
 # ```
 #

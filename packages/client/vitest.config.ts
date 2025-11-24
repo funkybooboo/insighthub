@@ -6,18 +6,9 @@ export default defineConfig({
     plugins: [react()],
     test: {
         globals: true,
-        environment: 'happy-dom',
+        environment: 'jsdom',
         globalSetup: ['./src/test/global-setup.ts'],
         setupFiles: ['./src/test/setup.ts'],
-        environmentOptions: {
-            happyDOM: {
-                settings: {
-                    disableJavaScriptEvaluation: false,
-                    disableJavaScriptFileLoading: false,
-                    enableFileSystemHttpRequests: false,
-                },
-            },
-        },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html', 'lcov'],

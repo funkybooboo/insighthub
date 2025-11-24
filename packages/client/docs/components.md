@@ -1,6 +1,6 @@
 # Component Documentation
 
-This document provides detailed information about the React components in the InsightHub client application.
+This document provides detailed information about React 19 components in the InsightHub client application.
 
 ## Table of Contents
 
@@ -9,6 +9,7 @@ This document provides detailed information about the React components in the In
 - [Document Management Components](#document-management-components)
 - [UI Components](#ui-components)
 - [Component Guidelines](#component-guidelines)
+- [React 19 Features](#react-19-features)
 
 ## Component Architecture
 
@@ -16,10 +17,10 @@ The application follows a modular component architecture with clear separation o
 
 ```
 src/components/
-├── auth/              # Authentication components
-├── chat/              # Chat interface components
-├── ui/                # Reusable UI components
-└── upload/            # Document upload components
+- auth/              # Authentication components
+- chat/              # Chat interface components
+- ui/                # Reusable UI components
+- upload/            # Document upload components
 ```
 
 ## Chat Components
@@ -31,7 +32,6 @@ src/components/
 Main chat interface component that orchestrates the entire chat experience.
 
 **Props**:
-
 ```typescript
 interface ChatBotProps {
     sessionId?: string; // Optional session ID to resume
@@ -39,7 +39,6 @@ interface ChatBotProps {
 ```
 
 **Features**:
-
 - Real-time message streaming via Socket.IO
 - Conversation session management
 - Typing indicators
@@ -47,26 +46,19 @@ interface ChatBotProps {
 - Error handling and retry logic
 
 **State Management**:
-
-- Uses Redux for global chat state
+- Uses Redux Toolkit for global chat state
 - Local state for current message input
 - Ref for accumulating streaming tokens
 
 **WebSocket Events**:
-
 - `chat_chunk`: Receives streaming tokens
 - `chat_complete`: Message completion event
 - `error`: Error notifications
 
-**Example Usage**:
-
-```tsx
-import { ChatBot } from '@/components/chat/ChatBot';
-
-function App() {
-    return <ChatBot sessionId="session-123" />;
-}
-```
+**React 19 Features**:
+- Uses `useTransition` for smooth streaming UI updates
+- Concurrent rendering support with React 18 features
+- Automatic batching for performance optimization
 
 ### ChatMessages
 
@@ -75,38 +67,19 @@ function App() {
 Displays the conversation history with proper formatting and styling.
 
 **Props**:
-
 ```typescript
 interface ChatMessagesProps {
     messages: ChatMessage[];
     isTyping: boolean;
 }
-
-interface ChatMessage {
-    id: string;
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-    timestamp: Date;
-    metadata?: Record<string, any>;
-}
 ```
 
 **Features**:
-
 - Auto-scrolling to latest message
 - Message role-based styling
 - Markdown rendering for assistant messages
 - Typing indicator animation
-
-**Example Usage**:
-
-```tsx
-import { ChatMessages } from '@/components/chat/ChatMessages';
-
-function ChatContainer({ messages, isTyping }) {
-    return <ChatMessages messages={messages} isTyping={isTyping} />;
-}
-```
+- Source citation display with links
 
 ### ChatInput
 
@@ -115,7 +88,6 @@ function ChatContainer({ messages, isTyping }) {
 Input component for composing and sending chat messages.
 
 **Props**:
-
 ```typescript
 interface ChatInputProps {
     onSendMessage: (message: string) => void;
@@ -125,21 +97,11 @@ interface ChatInputProps {
 ```
 
 **Features**:
-
-- Multi-line text input
+- Multi-line text input with auto-resize
 - Enter to send, Shift+Enter for new line
 - Character limit indicator
 - Send button with loading state
-
-**Example Usage**:
-
-```tsx
-import { ChatInput } from '@/components/chat/ChatInput';
-
-function ChatContainer({ handleSend }) {
-    return <ChatInput onSendMessage={handleSend} placeholder="Ask a question..." />;
-}
-```
+- File attachment support (planned)
 
 ### ChatSidebar
 
@@ -148,7 +110,6 @@ function ChatContainer({ handleSend }) {
 Sidebar component for managing chat sessions.
 
 **Props**:
-
 ```typescript
 interface ChatSidebarProps {
     sessions: ChatSession[];
@@ -157,40 +118,14 @@ interface ChatSidebarProps {
     onNewSession: () => void;
     onDeleteSession: (sessionId: string) => void;
 }
-
-interface ChatSession {
-    id: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-    messageCount: number;
-}
 ```
 
 **Features**:
-
-- Session list with search/filter
+- Session list with search and filter
 - Create new session
 - Delete session with confirmation
-- Session title auto-generation
-
-**Example Usage**:
-
-```tsx
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
-
-function App({ sessions, currentSessionId }) {
-    return (
-        <ChatSidebar
-            sessions={sessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={handleSelectSession}
-            onNewSession={handleNewSession}
-            onDeleteSession={handleDeleteSession}
-        />
-    );
-}
-```
+- Session title auto-generation from first message
+- Session sorting by last activity
 
 ## Document Management Components
 
@@ -201,7 +136,6 @@ function App({ sessions, currentSessionId }) {
 Component for uploading documents to the system.
 
 **Props**:
-
 ```typescript
 interface DocumentUploadProps {
     onUploadComplete: (document: Document) => void;
@@ -211,28 +145,12 @@ interface DocumentUploadProps {
 ```
 
 **Features**:
-
 - Drag-and-drop file upload
-- File type validation
+- File type validation (PDF, DOCX, HTML, TXT)
 - File size validation
-- Upload progress indicator
-- Error handling
-
-**Example Usage**:
-
-```tsx
-import { DocumentUpload } from '@/components/upload/DocumentUpload';
-
-function DocumentManager() {
-    return (
-        <DocumentUpload
-            onUploadComplete={handleUploadComplete}
-            acceptedFileTypes={['.pdf', '.txt']}
-            maxFileSize={16 * 1024 * 1024} // 16MB
-        />
-    );
-}
-```
+- Upload progress indicator with percentage
+- Multiple file selection
+- Error handling with retry options
 
 ### DocumentList
 
@@ -241,43 +159,21 @@ function DocumentManager() {
 Displays list of uploaded documents with management options.
 
 **Props**:
-
 ```typescript
 interface DocumentListProps {
     documents: Document[];
     onDelete: (documentId: string) => void;
     onDownload: (documentId: string) => void;
 }
-
-interface Document {
-    id: string;
-    filename: string;
-    fileSize: number;
-    mimeType: string;
-    createdAt: Date;
-    chunkCount?: number;
-}
 ```
 
 **Features**:
-
-- Document listing with metadata
-- Download document
+- Document listing with metadata (file size, type, status)
+- Download document functionality
 - Delete document with confirmation
-- File size formatting
-- Date formatting
-
-**Example Usage**:
-
-```tsx
-import { DocumentList } from '@/components/upload/DocumentList';
-
-function DocumentManager({ documents }) {
-    return (
-        <DocumentList documents={documents} onDelete={handleDelete} onDownload={handleDownload} />
-    );
-}
-```
+- File size formatting (KB, MB)
+- Date formatting with relative time
+- Status badges (processing, completed, failed)
 
 ## UI Components
 
@@ -285,10 +181,9 @@ function DocumentManager({ documents }) {
 
 **Location**: `src/components/ui/Button.tsx`
 
-Reusable button component with consistent styling.
+Reusable button component with consistent styling and variants.
 
 **Props**:
-
 ```typescript
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger';
@@ -297,24 +192,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 ```
 
-**Example Usage**:
-
-```tsx
-import { Button } from '@/components/ui/Button';
-
-function Form() {
-    return (
-        <>
-            <Button variant="primary" size="md">
-                Submit
-            </Button>
-            <Button variant="secondary" size="sm" isLoading>
-                Loading...
-            </Button>
-        </>
-    );
-}
-```
+**Features**:
+- Multiple visual variants (primary, secondary, danger)
+- Size variations (small, medium, large)
+- Loading state with spinner
+- Disabled state handling
+- Full TypeScript support with proper forwarding
 
 ### Input
 
@@ -323,7 +206,6 @@ function Form() {
 Form input component with validation support.
 
 **Props**:
-
 ```typescript
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -332,22 +214,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 ```
 
-**Example Usage**:
-
-```tsx
-import { Input } from '@/components/ui/Input';
-
-function Form() {
-    return (
-        <Input
-            label="Email"
-            type="email"
-            error={errors.email}
-            helperText="We'll never share your email"
-        />
-    );
-}
-```
+**Features**:
+- Floating label animation
+- Error state styling
+- Helper text display
+- Multiple input types (text, email, password)
+- Accessibility attributes (ARIA labels)
 
 ### Modal
 
@@ -356,7 +228,6 @@ function Form() {
 Modal dialog component for confirmations and forms.
 
 **Props**:
-
 ```typescript
 interface ModalProps {
     isOpen: boolean;
@@ -366,22 +237,12 @@ interface ModalProps {
 }
 ```
 
-**Example Usage**:
-
-```tsx
-import { Modal } from '@/components/ui/Modal';
-
-function App() {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Confirm Delete">
-            <p>Are you sure you want to delete this document?</p>
-            <Button onClick={handleDelete}>Delete</Button>
-        </Modal>
-    );
-}
-```
+**Features**:
+- Backdrop overlay with click-to-close
+- Escape key to close
+- Focus trap for accessibility
+- Animated open/close transitions
+- Custom header and footer support
 
 ## Component Guidelines
 
@@ -415,45 +276,20 @@ export const UserCard = ({ user, onEdit }) => {
 - Use PascalCase for component files and names
 - Prefix boolean props with `is`, `has`, or `should`
 - Use descriptive prop names
-
-```typescript
-// GOOD
-interface ButtonProps {
-    isLoading: boolean;
-    hasError: boolean;
-    shouldAutoFocus: boolean;
-}
-
-// BAD
-interface ButtonProps {
-    loading: boolean;
-    error: boolean;
-    focus: boolean;
-}
-```
+- Export components individually and as barrel exports
 
 ### State Management
 
 - Use local state (`useState`) for component-specific state
-- Use Redux for global application state
-- Use React Query for server state
-
-```typescript
-// Component-specific state
-const [isOpen, setIsOpen] = useState(false);
-
-// Global state
-const messages = useAppSelector((state) => state.chat.messages);
-const dispatch = useAppDispatch();
-
-// Server state
-const { data: documents } = useQuery(['documents'], fetchDocuments);
-```
+- Use Redux Toolkit for global application state
+- Use React Query for server state caching
+- Proper dependency arrays in hooks
 
 ### Event Handlers
 
 - Prefix event handler props with `on`
 - Name handler functions with `handle` prefix
+- Use proper event types
 
 ```typescript
 interface Props {
@@ -520,6 +356,7 @@ function App() {
 - Use `React.memo()` for expensive components
 - Use `useMemo()` and `useCallback()` for expensive computations
 - Lazy load components with `React.lazy()`
+- Virtual scrolling for long lists (planned)
 
 ```typescript
 // Memoized component
@@ -539,7 +376,50 @@ function App() {
 }
 ```
 
-### Testing
+## React 19 Features
+
+### Concurrent Features
+
+React 19 introduces new concurrent features that are utilized:
+
+```typescript
+// useTransition for smooth UI updates
+const [isPending, startTransition] = useTransition();
+
+const handleSubmit = () => {
+  startTransition(() => {
+    // Update state that might cause re-renders
+    setMessages(newMessages);
+  });
+};
+
+// useDeferredValue for non-critical updates
+const [query, setQuery] = useState('');
+const deferredQuery = useDeferredValue(query);
+```
+
+### Server Components
+
+Support for React Server Components (future enhancement):
+
+```typescript
+// Server Component pattern
+'use client';
+
+export const ServerComponent = async ({ id }) => {
+  const data = await fetchData(id);
+  return <div>{data}</div>;
+};
+```
+
+### Optimizations
+
+- **Automatic Batching**: React 19 automatically batches state updates
+- **Reduced Re-renders**: Improved diffing algorithm
+- **Better Memory Usage**: More efficient component rendering
+- **Concurrent Rendering**: Takes advantage of new concurrent features
+
+## Testing
 
 Write tests for all components:
 
@@ -556,9 +436,14 @@ describe('Button', () => {
   it('calls onClick when clicked', () => {
     const handleClick = jest.fn();
     render(<Button onClick={handleClick}>Click me</Button>);
-
+    
     fireEvent.click(screen.getByText('Click me'));
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports loading state', () => {
+    render(<Button isLoading>Click me</Button>);
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 });
 ```
@@ -568,6 +453,7 @@ describe('Button', () => {
 - Use TailwindCSS utility classes
 - Create custom classes in `index.css` for reusable styles
 - Follow mobile-first responsive design
+- Use CSS-in-JS sparingly, prefer Tailwind utilities
 
 ```tsx
 // GOOD: Tailwind utilities
@@ -586,21 +472,21 @@ describe('Button', () => {
 
 ```
 components/
-├── chat/
-│   ├── ChatBot.tsx          # Main component
-│   ├── ChatMessages.tsx
-│   ├── ChatInput.tsx
-│   ├── ChatSidebar.tsx
-│   └── index.ts             # Barrel export
-├── ui/
-│   ├── Button.tsx
-│   ├── Input.tsx
-│   ├── Modal.tsx
-│   └── index.ts
-└── upload/
-    ├── DocumentUpload.tsx
-    ├── DocumentList.tsx
-    └── index.ts
+- chat/
+|   - ChatBot.tsx          # Main component
+|   - ChatMessages.tsx
+|   - ChatInput.tsx
+|   - ChatSidebar.tsx
+|   - index.ts             # Barrel export
+- ui/
+|   - Button.tsx
+|   - Input.tsx
+|   - Modal.tsx
+|   - index.ts
+- upload/
+    - DocumentUpload.tsx
+    - DocumentList.tsx
+    - index.ts
 ```
 
 Use barrel exports for cleaner imports:
@@ -615,3 +501,54 @@ export { ChatSidebar } from './ChatSidebar';
 // Usage
 import { ChatBot, ChatMessages } from '@/components/chat';
 ```
+
+## Modern React Patterns
+
+### Custom Hooks
+
+Encapsulate component logic in custom hooks:
+
+```typescript
+// Custom hook for chat functionality
+export const useChat = (sessionId: string) => {
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  
+  // Socket.IO integration
+  useEffect(() => {
+    // Connect and listen for events
+  }, [sessionId]);
+
+  return { messages, isTyping, sendMessage, /* ... */};
+};
+```
+
+### Context Usage
+
+Use React Context for deep component trees:
+
+```typescript
+// Theme context example
+interface ThemeContextType {
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+```
+
+This component architecture ensures maintainability, testability, and performance while leveraging React 19's latest features.

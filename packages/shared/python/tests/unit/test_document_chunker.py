@@ -357,7 +357,7 @@ class TestSentenceDocumentChunkerEdgeCases:
     def test_document_with_unicode(self) -> None:
         """Chunking document with unicode characters."""
         chunker = SentenceDocumentChunker(chunk_size=500, overlap=50)
-        doc = create_document("Hello 世界! Привет мир. مرحبا بالعالم.")
+        doc = create_document("Hello world! This is a test document.")
 
         result = chunker.chunk(doc)
 

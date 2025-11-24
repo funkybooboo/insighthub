@@ -1,7 +1,15 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { RootState } from '../index';
 
-export type DocumentStatus = 'pending' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'ready' | 'failed';
-export type WorkspaceStatus = 'provisioning' | 'ready' | 'error' | 'deleting';
+export type DocumentStatus =
+    | 'pending'
+    | 'parsing'
+    | 'chunking'
+    | 'embedding'
+    | 'indexing'
+    | 'ready'
+    | 'failed';
+export type WorkspaceStatus = 'provisioning' | 'ready' | 'failed' | 'deleting' | 'error';
 export type WikipediaFetchStatus = 'pending' | 'fetching' | 'processing' | 'ready' | 'failed'; // New status type
 
 interface DocumentStatusUpdate {
@@ -107,14 +115,16 @@ export const selectIsWorkspaceProcessing = (workspaceId: number) => (state: Root
                 doc.status === 'parsing' ||
                 doc.status === 'chunking' ||
                 doc.status === 'embedding' ||
-                doc.status === 'indexing'),
+                doc.status === 'indexing')
     );
 
     // Check if any Wikipedia fetch for this workspace is processing
     const isWikipediaFetchProcessing = Object.values(state.status.wikipediaFetches).some(
         (fetch) =>
             fetch.workspace_id === workspaceId &&
-            (fetch.status === 'pending' || fetch.status === 'fetching' || fetch.status === 'processing'),
+            (fetch.status === 'pending' ||
+                fetch.status === 'fetching' ||
+                fetch.status === 'processing')
     );
 
     return isDocumentProcessing || isWikipediaFetchProcessing;

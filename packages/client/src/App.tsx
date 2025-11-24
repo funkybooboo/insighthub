@@ -9,7 +9,7 @@ import WorkspaceColumn from './components/workspace/WorkspaceColumn';
 import ChatSessionList from './components/chat/ChatSessionList';
 import DocumentManager from './components/upload/DocumentManager';
 import Layout from './components/shared/Layout';
-import { SettingsPage } from './pages/SettingsPage';
+import SettingsPage from './pages/SettingsPage';
 import WorkspacesPage from './pages/WorkspacesPage';
 import WorkspaceDetailPage from './pages/WorkspaceDetailPage';
 import { setTheme } from './store/slices/themeSlice';

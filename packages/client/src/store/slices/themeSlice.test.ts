@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
 import themeReducer, { toggleTheme, setTheme, toggleThemeAndSave } from './themeSlice';
 import apiService from '../../services/api';
+import '../../test/setup';
 
 vi.mock('../../services/api', () => ({
     default: {
@@ -113,7 +114,7 @@ describe('themeSlice', () => {
 
     describe('toggleThemeAndSave', () => {
         it('should toggle theme and call API successfully', async () => {
-            vi.mocked(apiService.updatePreferences).mockResolvedValue({
+            apiService.updatePreferences.mockResolvedValue({
                 id: 1,
                 username: 'testuser',
                 email: 'test@example.com',
@@ -132,7 +133,7 @@ describe('themeSlice', () => {
 
         it('should toggle theme even if API fails', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.updatePreferences).mockRejectedValue(new Error('API error'));
+            apiService.updatePreferences.mockRejectedValue(new Error('API error'));
 
             await store.dispatch(toggleThemeAndSave());
 
@@ -146,7 +147,7 @@ describe('themeSlice', () => {
 
         it('should toggle from light to dark and save', async () => {
             store.dispatch(setTheme('light'));
-            vi.mocked(apiService.updatePreferences).mockResolvedValue({
+            apiService.updatePreferences.mockResolvedValue({
                 id: 1,
                 username: 'testuser',
                 email: 'test@example.com',
@@ -165,7 +166,7 @@ describe('themeSlice', () => {
 
         it('should handle non-Error exceptions gracefully', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-            vi.mocked(apiService.updatePreferences).mockRejectedValue('String error');
+            apiService.updatePreferences.mockRejectedValue('String error');
 
             await store.dispatch(toggleThemeAndSave());
 

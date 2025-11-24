@@ -160,10 +160,24 @@ class ApiService {
     }
 
     /**
-     * Send a chat message and get a response from the RAG system
+     * Send a chat message to a specific workspace and session
      */
-    async sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
-        const { data } = await this.client.post<ChatResponse>('/api/chat', request);
+    async sendChatMessage(workspaceId: number, sessionId: number, content: string, messageType?: string): Promise<{ message_id: string }> {
+        const { data } = await this.client.post<{ message_id: string }>(
+            `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/messages`,
+            { content, message_type: messageType || 'user' }
+        );
+        return data;
+    }
+
+    /**
+     * Cancel a chat message streaming
+     */
+    async cancelChatMessage(workspaceId: number, sessionId: number, messageId?: string): Promise<{ message: string }> {
+        const { data } = await this.client.post<{ message: string }>(
+            `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/cancel`,
+            { message_id: messageId }
+        );
         return data;
     }
 
@@ -363,13 +377,10 @@ class ApiService {
     /**
      * Fetch a Wikipedia article and inject it into the RAG system.
      */
-    async fetchWikipediaArticle(
-        workspaceId: number,
-        query: string,
-    ): Promise<{ message: string }> {
+    async fetchWikipediaArticle(workspaceId: number, query: string): Promise<{ message: string }> {
         const { data } = await this.client.post<{ message: string }>(
-            `/api/workspaces/${workspaceId}/rag/wikipedia`,
-            { query },
+            `/api/workspaces/${workspaceId}/documents/fetch-wikipedia`,
+            { query }
         );
         return data;
     }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import apiService, { type DefaultRagConfig } from '../../services/api';
+import apiService from '../../services/api';
+import type { VectorRagConfig } from '../../types/workspace';
 
-const DEFAULT_CONFIG: DefaultRagConfig = {
+const DEFAULT_CONFIG: VectorRagConfig = {
     embedding_model: 'nomic-embed-text',
     retriever_type: 'vector',
     chunk_size: 1000,
@@ -18,7 +19,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export default function RagConfigSettings() {
-    const [config, setConfig] = useState<DefaultRagConfig>(DEFAULT_CONFIG);
+    const [config, setConfig] = useState<VectorRagConfig>(DEFAULT_CONFIG);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
@@ -34,7 +35,7 @@ export default function RagConfigSettings() {
             setLoading(true);
             const data = await apiService.getDefaultRagConfig();
             if (data) {
-                setConfig(data);
+                setConfig(data as VectorRagConfig);
             }
         } catch (error: unknown) {
             setMessage({ type: 'error', text: getErrorMessage(error) });
@@ -62,7 +63,7 @@ export default function RagConfigSettings() {
     };
 
     const handleChange = (
-        field: keyof DefaultRagConfig,
+        field: keyof VectorRagConfig,
         value: string | number | boolean | undefined
     ) => {
         setConfig((prev) => ({ ...prev, [field]: value }));
@@ -130,26 +131,7 @@ export default function RagConfigSettings() {
                             </p>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Embedding Dimension (Optional)
-                            </label>
-                            <input
-                                type="number"
-                                value={config.embedding_dim || ''}
-                                onChange={(e) =>
-                                    handleChange(
-                                        'embedding_dim',
-                                        e.target.value ? parseInt(e.target.value) : undefined
-                                    )
-                                }
-                                placeholder="Auto-detect"
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                            />
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Vector dimension (leave empty for auto-detection)
-                            </p>
-                        </div>
+                        <div></div>
                     </div>
                 </div>
 

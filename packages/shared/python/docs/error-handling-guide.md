@@ -6,14 +6,14 @@ This guide explains when to use **exceptions**, **Result types**, and **Option t
 
 ```
 Is this an expected, recoverable condition?
-├─ YES: Use Result or Option
-│   ├─ Can return None? → Use Option[T]
-│   └─ Has error details? → Use Result[T, E]
-│
-└─ NO: Use Exception
-    ├─ Programming error (bug)
-    ├─ System failure (out of memory, disk full)
-    └─ Unrecoverable error
+-- YES: Use Result or Option
+|   -- Can return None? -> Use Option[T]
+|   -- Has error details? -> Use Result[T, E]
+|
+-- NO: Use Exception
+    -- Programming error (bug)
+    -- System failure (out of memory, disk full)
+    -- Unrecoverable error
 ```
 
 ## Use Option[T] When

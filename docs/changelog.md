@@ -1,6 +1,6 @@
 # Changelog Guidelines
 
-This document explains how to maintain the `CHANGELOG.md` file for the Insighthub project.
+This document explains how to maintain the `CHANGELOG.md` file for the InsightHub project.
 
 ## Purpose
 
@@ -12,17 +12,15 @@ It is intended for developers, contributors, and users to see what has changed b
 The main changelog file is located at the root of the project:
 
 ```
-
 /CHANGELOG.md
-
-````
+```
 
 ## Structure
 
 The file follows the [Common Changelog](https://common-changelog.org/) style:
 
 - **Latest release at the top**
-- **Version headings:** `## [VERSION] – YYYY-MM-DD`
+- **Version headings:** `## [VERSION] - YYYY-MM-DD`
 - **Unreleased section:** `## [Unreleased]` for ongoing changes
 - **Grouped changes:** `Added`, `Changed`, `Fixed`, `Removed`
 
@@ -37,13 +35,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Add support for vector RAG module.
+- Implement Flask backend with clean architecture.
+
+### Changed
+- Updated from FastAPI to Flask 3.0+
+- Migrated from MinIO to filesystem storage
+- Switched from Pinecone to Qdrant vector database
 
 ### Fixed
 - Fix bug in filebeat Docker configuration.
+- Resolve WebSocket connection issues in React 19
 
-## [1.0.0] – 2025-11-18
-- Initial release.
-````
+## [1.0.0] - 2025-11-18
+- Initial release with Flask backend and React 19 frontend.
+```
 
 ## How to Add Entries
 
@@ -63,6 +68,7 @@ All notable changes to this project will be documented in this file.
 ```
 - Fix crash when uploading document (#42)
 - Add caching for RAG queries (#37)
+- Implement JWT authentication with Flask (#45)
 ```
 
 5. **When releasing a version**:
@@ -79,11 +85,30 @@ While not mandatory, following **conventional commits** helps keep the changelog
 feat: add vector RAG support
 fix: correct filebeat Docker config
 docs: update changelog instructions
+refactor: migrate from FastAPI to Flask
+test: add integration tests for Flask endpoints
 ```
+
+## Current Technology Stack
+
+This project uses:
+
+- **Backend**: Flask 3.0+ with SQLAlchemy
+- **Frontend**: React 19 with TypeScript and Redux
+- **Database**: PostgreSQL with Alembic migrations
+- **Vector DB**: Qdrant for vector storage
+- **Graph DB**: Neo4j for graph-based RAG
+- **Storage**: Local filesystem (changed from MinIO)
+- **Message Queue**: RabbitMQ for worker communication
+- **Cache**: Redis for session and performance
+- **LLM**: Ollama for local inference
+- **Containerization**: Docker Compose for orchestration
 
 ## Summary
 
 * Keep `CHANGELOG.md` human-readable.
 * Add only **notable changes**.
 * Update `Unreleased` regularly.
-* Tag releases in Git to match the changelog versions.
+* Tag releases in Git to match changelog versions.
+* Reference current technology stack when documenting changes.
+* Include both backend (Flask) and frontend (React 19) changes.

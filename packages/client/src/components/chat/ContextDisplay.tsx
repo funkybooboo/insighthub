@@ -19,9 +19,7 @@ const ContextDisplay: React.FC<ContextDisplayProps> = ({ context }) => {
                 onClick={() => setExpanded(!expanded)}
                 className="flex items-center justify-between w-full text-left focus:outline-none"
             >
-                <span className="font-medium">
-                    {context.length} relevant context snippets
-                </span>
+                <span className="font-medium">{context.length} relevant context snippets</span>
                 {expanded ? (
                     <ChevronUpIcon className="h-5 w-5" />
                 ) : (
@@ -37,7 +35,8 @@ const ContextDisplay: React.FC<ContextDisplayProps> = ({ context }) => {
                             className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md shadow-sm"
                         >
                             <p className="font-semibold text-gray-800 dark:text-gray-200">
-                                Source: {item.metadata.filename || 'Unknown'} (Score: {item.score.toFixed(2)})
+                                Source: {item.metadata.filename || 'Unknown'} (Score:{' '}
+                                {item.score.toFixed(2)})
                             </p>
                             <p className="mt-1 text-gray-700 dark:text-gray-300 line-clamp-3">
                                 {item.text}

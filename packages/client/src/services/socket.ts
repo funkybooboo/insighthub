@@ -57,6 +57,19 @@ export interface SubscribedData {
     room: string;
 }
 
+export interface ChatNoContextFoundData {
+    session_id: number;
+    query: string;
+}
+
+export interface WikipediaFetchStatusData {
+    workspace_id: number;
+    query: string;
+    status: 'fetching' | 'processing' | 'completed' | 'failed';
+    document_ids?: number[];
+    message?: string;
+}
+
 export type ChatChunkCallback = (data: ChatChunkData) => void;
 export type ChatCompleteCallback = (data: ChatCompleteData) => void;
 export type ChatCancelledCallback = (data: ChatCancelledData) => void;
@@ -66,6 +79,8 @@ export type DisconnectedCallback = () => void;
 export type DocumentStatusCallback = (data: DocumentStatusData) => void;
 export type WorkspaceStatusCallback = (data: WorkspaceStatusData) => void;
 export type SubscribedCallback = (data: SubscribedData) => void;
+export type ChatNoContextFoundCallback = (data: ChatNoContextFoundData) => void;
+export type WikipediaFetchStatusCallback = (data: WikipediaFetchStatusData) => void;
 
 class SocketService {
     private socket: Socket | null = null;
@@ -95,6 +110,7 @@ class SocketService {
             this.socket.disconnect();
             this.socket = null;
         }
+        this.currentClientId = null;
     }
 
     /**
@@ -230,6 +246,26 @@ class SocketService {
             throw new Error('Socket not connected. Call connect() first.');
         }
         this.socket.on('subscribed', callback);
+    }
+
+    /**
+     * Listen for chat no context found events
+     */
+    onChatNoContextFound(callback: ChatNoContextFoundCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('chat.no_context_found', callback);
+    }
+
+    /**
+     * Listen for Wikipedia fetch status updates
+     */
+    onWikipediaFetchStatus(callback: WikipediaFetchStatusCallback): void {
+        if (!this.socket) {
+            throw new Error('Socket not connected. Call connect() first.');
+        }
+        this.socket.on('wikipedia_fetch_status', callback);
     }
 
     /**

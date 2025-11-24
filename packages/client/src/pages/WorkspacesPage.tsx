@@ -3,21 +3,18 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { StatusBadge, LoadingSpinner } from '../components/shared';
-import type { RootState } from '../store';
+import type { RootState, AppDispatch } from '../store';
 import {
     fetchDefaultRagConfig,
     selectDefaultRagConfig,
     selectUserSettingsLoading,
 } from '../store/slices/userSettingsSlice';
 import type { WorkspaceStatus } from '../store/slices/statusSlice';
-import {
-    type Workspace as BaseWorkspace,
-    type CreateRagConfigRequest,
-} from '../types/workspace';
+import { type Workspace as BaseWorkspace, type CreateRagConfigRequest } from '../types/workspace';
 import apiService from '../services/api';
 import RagConfigForm from '../components/workspace/RagConfigForm'; // Import the new component
 
-interface WorkspaceWithStatus extends BaseWorkspace {
+interface WorkspaceWithStatus extends Omit<BaseWorkspace, 'status'> {
     status: WorkspaceStatus;
     status_message: string | null;
 }
@@ -33,7 +30,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export default function WorkspacesPage() {
-    const dispatch = useDispatch<RootState>();
+    const dispatch = useDispatch<AppDispatch>();
     const statusUpdates = useSelector((state: RootState) => state.status.workspaces);
     const defaultRagConfig = useSelector(selectDefaultRagConfig);
     const loadingDefaultRagConfig = useSelector(selectUserSettingsLoading);
@@ -53,10 +50,28 @@ export default function WorkspacesPage() {
     >({});
     const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
 
+    const loadWorkspaces = useCallback(async () => {
+        try {
+            setLoading(true);
+            const data = await apiService.listWorkspaces();
+            // Add default status for workspaces that don't have one
+            const workspacesWithStatus: WorkspaceWithStatus[] = data.map((ws) => ({
+                ...ws,
+                status: ws.status || 'ready', // Use existing status or default to 'ready'
+                status_message: null,
+            }));
+            setWorkspaces(workspacesWithStatus);
+        } catch (err: unknown) {
+            setError(getErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     // Load workspaces on mount
     useEffect(() => {
         loadWorkspaces();
-    }, []);
+    }, [loadWorkspaces]);
 
     // Load user's default RAG config when modal opens
     // and set it as the initial config for the workspace creation form
@@ -88,24 +103,6 @@ export default function WorkspacesPage() {
             })
         );
     }, [statusUpdates]);
-
-    const loadWorkspaces = useCallback(async () => {
-        try {
-            setLoading(true);
-            const data = await apiService.listWorkspaces();
-            // Add default status for workspaces that don't have one
-            const workspacesWithStatus: WorkspaceWithStatus[] = data.map((ws) => ({
-                ...ws,
-                status: ws.status || 'ready', // Use existing status or default to 'ready'
-                status_message: null,
-            }));
-            setWorkspaces(workspacesWithStatus);
-        } catch (err: unknown) {
-            setError(getErrorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
 
     const handleCreateWorkspace = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -6,7 +6,7 @@ This document provides a detailed breakdown of every significant user action wit
 
 ## Table of Contents
 
-1.  [User Authentication](#user-authentication)
+1.  [User Authentication](#1-user-authentication)
     *   [User Login](#user-login)
     *   [User Signup](#user-signup)
     *   [User Logout](#user-logout)
@@ -14,32 +14,32 @@ This document provides a detailed breakdown of every significant user action wit
     *   [Update User Profile](#update-user-profile)
     *   [Update User Preferences (e.g., Theme)](#update-user-preferences-eg-theme)
     *   [Change User Password](#change-user-password)
-2.  [Default RAG Configuration Management](#default-rag-configuration-management)
+2.  [Default RAG Configuration Management](#2-default-rag-configuration-management)
     *   [Fetch Default RAG Config](#fetch-default-rag-config)
     *   [Save Default RAG Config](#save-default-rag-config)
-3.  [Workspace Management](#workspace-management)
+3.  [Workspace Management](#3-workspace-management)
     *   [List Workspaces](#list-workspaces)
     *   [Select Active Workspace](#select-active-workspace)
     *   [Create New Workspace](#create-new-workspace)
     *   [View Workspace Details](#view-workspace-details)
     *   [Edit Workspace Details](#edit-workspace-details)
     *   [Delete Workspace](#delete-workspace)
-4.  [Chat Session Management](#chat-session-management)
+4.  [Chat Session Management](#4-chat-session-management)
     *   [Create New Chat Session](#create-new-chat-session)
     *   [Select Active Chat Session](#select-active-chat-session)
     *   [Delete Chat Session](#delete-chat-session)
-5.  [Document Management](#document-management)
+5.  [Document Management](#5-document-management)
     *   [Upload Document](#upload-document)
     *   [List Documents in Workspace](#list-documents-in-workspace)
     *   [Delete Document](#delete-document)
-6.  [Chat Interaction](#chat-interaction)
+6.  [Chat Interaction](#6-chat-interaction)
     *   [Send Chat Message](#send-chat-message)
     *   [Cancel Chat Message Streaming](#cancel-chat-message-streaming)
     *   [RAG Enhancement Prompt (No Context Found)](#rag-enhancement-prompt-no-context-found)
         *   [Action: Upload a Document (from Prompt)](#action-upload-a-document-from-prompt)
         *   [Action: Fetch from Wikipedia (from Prompt)](#action-fetch-from-wikipedia-from-prompt)
         *   [Action: Continue without additional context (from Prompt)](#action-continue-without-additional-context-from-prompt)
-7.  [Real-time Status Updates (WebSocket)](#real-time-status-updates-websocket)
+7.  [Real-time Status Updates (WebSocket)](#7-real-time-status-updates-websocket)
     *   [Document Status Updates](#document-status-updates)
     *   [Workspace Status Updates](#workspace-status-updates)
     *   [Wikipedia Fetch Status Updates](#wikipedia-fetch-status-updates)
@@ -680,6 +680,8 @@ This document provides a detailed breakdown of every significant user action wit
 *   The deleted document disappears from the document list.
 
 ---
+
+## 6. Chat Interaction
 
 ### Send Chat Message
 

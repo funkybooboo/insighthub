@@ -1,6 +1,6 @@
 # Test Expansion Plan - Client
 
-## Current Status (✅ Excellent)
+## Current Status ([x] Excellent)
 
 - **Unit Tests**: 319 tests passing (100%)
 - **Coverage**: 97% statements, 94.28% branches, 100% functions
@@ -8,7 +8,7 @@
 
 ## Test Gaps Identified
 
-### 1. 🎭 Missing Storybook Stories (High Priority)
+### 1. [storybook] Missing Storybook Stories (High Priority)
 
 **Components without stories:**
 
@@ -25,13 +25,13 @@
 - Visual regression testing base
 - Design system reference
 
-### 2. 🔄 Integration Tests (High Priority)
+### 2. [integration] Integration Tests (High Priority)
 
 **User Flows to Test:**
 
-- [ ] Complete signup → login → chat flow
-- [ ] Document upload → chat with context flow
-- [ ] Session creation → message exchange → session switch flow
+- [ ] Complete signup -> login -> chat flow
+- [ ] Document upload -> chat with context flow
+- [ ] Session creation -> message exchange -> session switch flow
 - [ ] Multi-tab authentication state sync
 - [ ] WebSocket reconnection scenarios
 
@@ -39,14 +39,14 @@
 
 ```
 tests/integration/
-├── auth-flow.integration.test.tsx
-├── chat-flow.integration.test.tsx
-├── document-flow.integration.test.tsx
-├── session-management.integration.test.tsx
-└── websocket.integration.test.tsx
+--- auth-flow.integration.test.tsx
+--- chat-flow.integration.test.tsx
+--- document-flow.integration.test.tsx
+--- session-management.integration.test.tsx
+--- websocket.integration.test.tsx
 ```
 
-### 3. 🎯 E2E Tests with Playwright (High Priority)
+### 3. [e2e] E2E Tests with Playwright (High Priority)
 
 **Critical User Journeys:**
 
@@ -60,24 +60,24 @@ tests/integration/
 
 ```
 e2e/
-├── auth/
-│   ├── signup.spec.ts
-│   ├── login.spec.ts
-│   └── logout.spec.ts
-├── chat/
-│   ├── new-conversation.spec.ts
-│   ├── session-management.spec.ts
-│   └── message-history.spec.ts
-├── documents/
-│   ├── upload.spec.ts
-│   ├── list-view.spec.ts
-│   └── delete.spec.ts
-└── responsive/
-    ├── mobile.spec.ts
-    └── tablet.spec.ts
+--- auth/
+|   --- signup.spec.ts
+|   --- login.spec.ts
+|   --- logout.spec.ts
+--- chat/
+|   --- new-conversation.spec.ts
+|   --- session-management.spec.ts
+|   --- message-history.spec.ts
+--- documents/
+|   --- upload.spec.ts
+|   --- list-view.spec.ts
+|   --- delete.spec.ts
+--- responsive/
+    --- mobile.spec.ts
+    --- tablet.spec.ts
 ```
 
-### 4. 📡 Additional Bruno API Tests (Medium Priority)
+### 4. [api] Additional Bruno API Tests (Medium Priority)
 
 **Missing API Test Scenarios:**
 
@@ -92,21 +92,21 @@ e2e/
 
 ```
 bruno/
-├── Documents/
-│   ├── Upload_Large_File.bru (>15MB)
-│   ├── Upload_Concurrent.bru
-│   ├── Upload_Invalid_Type.bru
-│   └── List_Pagination.bru
-├── Chat/
-│   ├── Streaming_Response.bru
-│   ├── Rate_Limit.bru
-│   └── Concurrent_Messages.bru
-└── System/
-    ├── Health_Check.bru
-    └── Version_Info.bru
+--- Documents/
+|   --- Upload_Large_File.bru (>15MB)
+|   --- Upload_Concurrent.bru
+|   --- Upload_Invalid_Type.bru
+|   --- List_Pagination.bru
+--- Chat/
+|   --- Streaming_Response.bru
+|   --- Rate_Limit.bru
+|   --- Concurrent_Messages.bru
+--- System/
+    --- Health_Check.bru
+    --- Version_Info.bru
 ```
 
-### 5. 🎨 Visual Regression Tests (Medium Priority)
+### 5. [visual] Visual Regression Tests (Medium Priority)
 
 **Using Playwright + Percy/Chromatic:**
 
@@ -115,7 +115,7 @@ bruno/
 - [ ] Theme variations (if applicable)
 - [ ] Accessibility contrast checks
 
-### 6. ⚡ Performance Tests (Medium Priority)
+### 6. [performance] Performance Tests (Medium Priority)
 
 **Areas to Test:**
 
@@ -129,12 +129,12 @@ bruno/
 
 ```
 tests/performance/
-├── component-render.perf.test.ts
-├── message-list.perf.test.ts
-└── bundle-size.test.ts
+--- component-render.perf.test.ts
+--- message-list.perf.test.ts
+--- bundle-size.test.ts
 ```
 
-### 7. ♿ Accessibility Tests (Medium Priority)
+### 7. [accessibility] Accessibility Tests (Medium Priority)
 
 **Using @axe-core/playwright:**
 
@@ -148,9 +148,9 @@ tests/performance/
 
 ```
 tests/accessibility/
-├── keyboard-navigation.a11y.test.ts
-├── screen-reader.a11y.test.ts
-└── aria-labels.a11y.test.ts
+--- keyboard-navigation.a11y.test.ts
+--- screen-reader.a11y.test.ts
+--- aria-labels.a11y.test.ts
 ```
 
 ## Implementation Priority
@@ -187,12 +187,12 @@ tests/accessibility/
 
 ## Success Metrics
 
-- ✅ 95%+ code coverage maintained
-- ✅ All critical user paths covered by E2E tests
-- ✅ 100% of components have Storybook stories
-- ✅ All API endpoints have happy + sad path tests
-- ✅ Zero accessibility violations
-- ✅ Performance budgets enforced
+- [x] 95%+ code coverage maintained
+- [x] All critical user paths covered by E2E tests
+- [x] 100% of components have Storybook stories
+- [x] All API endpoints have happy + sad path tests
+- [x] Zero accessibility violations
+- [x] Performance budgets enforced
 
 ## Next Steps
 

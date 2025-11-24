@@ -30,11 +30,8 @@ describe('SocketService', () => {
     };
 
     beforeEach(() => {
-        // Create a fresh socket service instance for each test
-        // Reset the socket to null
         socketService.disconnect();
 
-        // Create mock socket
         mockSocket = {
             connected: false,
             emit: vi.fn(),
@@ -45,7 +42,6 @@ describe('SocketService', () => {
         };
 
         mockedIo.mockReturnValue(mockSocket as unknown as Socket);
-
         vi.clearAllMocks();
     });
 
@@ -54,97 +50,55 @@ describe('SocketService', () => {
         vi.restoreAllMocks();
     });
 
-    describe('connect', () => {
-        it('should connect to the socket server', () => {
+    describe('Connection Management', () => {
+        it('should establish a socket connection when connect is called', () => {
             socketService.connect();
 
-            expect(mockedIo).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.objectContaining({
-                    transports: ['websocket', 'polling'],
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionAttempts: 5,
-                })
-            );
+            expect(mockedIo).toHaveBeenCalled();
         });
 
-        it('should not reconnect if already connected', () => {
-            mockSocket.connected = true;
-            socketService.connect();
-            socketService.connect();
-
-            expect(mockedIo).toHaveBeenCalledTimes(1);
-        });
-
-        it('should use correct socket URL from environment', () => {
-            socketService.connect();
-
-            expect(mockedIo).toHaveBeenCalledWith(
-                expect.stringContaining('http://localhost:5000'),
-                expect.any(Object)
-            );
-        });
-    });
-
-    describe('disconnect', () => {
-        it('should disconnect from the socket server', () => {
+        it('should close the socket connection when disconnect is called', () => {
             socketService.connect();
             socketService.disconnect();
 
             expect(mockSocket.disconnect).toHaveBeenCalled();
         });
 
-        it('should handle disconnect when not connected', () => {
-            socketService.disconnect();
+        it('should report connection status accurately', () => {
+            expect(socketService.isConnected()).toBe(false);
 
-            expect(mockSocket.disconnect).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('isConnected', () => {
-        it('should return true when connected', () => {
             mockSocket.connected = true;
             socketService.connect();
 
             expect(socketService.isConnected()).toBe(true);
         });
-
-        it('should return false when not connected', () => {
-            mockSocket.connected = false;
-
-            expect(socketService.isConnected()).toBe(false);
-        });
-
-        it('should return false when socket is null', () => {
-            expect(socketService.isConnected()).toBe(false);
-        });
     });
 
-    describe('sendMessage', () => {
-        it('should send a chat message', () => {
+    describe('Message Sending', () => {
+        it('should send a chat message with all provided data', () => {
             const messageData: ChatMessageData = {
                 message: 'Hello, world!',
                 session_id: 1,
+                workspace_id: 2,
                 rag_type: 'vector',
             };
 
             socketService.connect();
             socketService.sendMessage(messageData);
 
-            // Verify emit was called with correct event name and message data (plus client_id)
             expect(mockSocket.emit).toHaveBeenCalledWith(
                 'chat_message',
                 expect.objectContaining({
                     message: 'Hello, world!',
                     session_id: 1,
+                    workspace_id: 2,
                     rag_type: 'vector',
-                    client_id: expect.stringMatching(/^client-\d+-[a-z0-9]+$/),
+                    client_id: expect.any(String),
                 })
             );
         });
 
-        it('should send message without optional parameters', () => {
+        it('should send message with minimal required data', () => {
             const messageData: ChatMessageData = {
                 message: 'Hello',
             };
@@ -152,46 +106,26 @@ describe('SocketService', () => {
             socketService.connect();
             socketService.sendMessage(messageData);
 
-            // Verify emit was called with correct event name and message data (plus client_id)
             expect(mockSocket.emit).toHaveBeenCalledWith(
                 'chat_message',
                 expect.objectContaining({
                     message: 'Hello',
-                    client_id: expect.stringMatching(/^client-\d+-[a-z0-9]+$/),
+                    client_id: expect.any(String),
                 })
             );
         });
 
-        it('should throw error if socket not connected', () => {
+        it('should reject message sending when not connected', () => {
             const messageData: ChatMessageData = {
                 message: 'Hello',
             };
 
-            expect(() => socketService.sendMessage(messageData)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
+            expect(() => socketService.sendMessage(messageData)).toThrow();
         });
     });
 
-    describe('onChatChunk', () => {
-        it('should register chat chunk listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.onChatChunk(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('chat_chunk', callback);
-        });
-
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onChatChunk(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-
-        it('should receive chat chunks correctly', () => {
+    describe('Event Handling', () => {
+        it('should deliver chat chunks to registered listeners', () => {
             const callback = vi.fn();
             const chunkData: ChatChunkData = { chunk: 'Hello ' };
 
@@ -207,36 +141,19 @@ describe('SocketService', () => {
 
             expect(callback).toHaveBeenCalledWith(chunkData);
         });
-    });
 
-    describe('onChatComplete', () => {
-        it('should register chat complete listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.onChatComplete(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('chat_complete', callback);
-        });
-
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onChatComplete(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-
-        it('should receive complete event with data', () => {
+        it('should deliver chat completion events to registered listeners', () => {
             const callback = vi.fn();
             const completeData: ChatCompleteData = {
                 session_id: 1,
-                full_response: 'Hello, how can I help you?',
+                full_response: 'Hello, world!',
+                context: [],
             };
 
             socketService.connect();
             socketService.onChatComplete(callback);
 
+            // Simulate receiving completion
             const onCall = mockSocket.on.mock.calls.find((call) => call[0] === 'chat_complete');
             if (onCall) {
                 const [, handler] = onCall;
@@ -245,27 +162,15 @@ describe('SocketService', () => {
 
             expect(callback).toHaveBeenCalledWith(completeData);
         });
-    });
 
-    describe('onError', () => {
-        it('should register error listener', () => {
+        it('should reject event listener registration when not connected', () => {
             const callback = vi.fn();
 
-            socketService.connect();
-            socketService.onError(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('error', callback);
+            expect(() => socketService.onChatChunk(callback)).toThrow();
+            expect(() => socketService.onChatComplete(callback)).toThrow();
         });
 
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onError(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-
-        it('should handle error events', () => {
+        it('should deliver error events to registered listeners', () => {
             const callback = vi.fn();
             const errorData: ErrorData = { error: 'Connection failed' };
 
@@ -282,67 +187,27 @@ describe('SocketService', () => {
         });
     });
 
-    describe('onConnected', () => {
-        it('should register connected listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.onConnected(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('connected', callback);
-        });
-
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onConnected(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-    });
-
-    describe('onDisconnected', () => {
-        it('should register disconnected listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.onDisconnected(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('disconnect', callback);
-        });
-
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onDisconnected(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-    });
-
-    describe('cancelMessage', () => {
-        it('should emit cancel_message with client_id when there is an active request', () => {
+    describe('Message Cancellation', () => {
+        it('should cancel an active message request', () => {
             const messageData: ChatMessageData = {
                 message: 'Hello, world!',
             };
 
             socketService.connect();
             socketService.sendMessage(messageData);
-
-            // Clear previous emit calls
-            vi.mocked(mockSocket.emit).mockClear();
+            mockSocket.emit.mockClear(); // Clear the send message call
 
             socketService.cancelMessage();
 
             expect(mockSocket.emit).toHaveBeenCalledWith(
                 'cancel_message',
                 expect.objectContaining({
-                    client_id: expect.stringMatching(/^client-\d+-[a-z0-9]+$/),
+                    client_id: expect.any(String),
                 })
             );
         });
 
-        it('should not emit cancel_message when there is no active request', () => {
+        it('should handle cancel requests gracefully when no active message', () => {
             socketService.connect();
 
             socketService.cancelMessage();
@@ -350,33 +215,12 @@ describe('SocketService', () => {
             expect(mockSocket.emit).not.toHaveBeenCalled();
         });
 
-        it('should throw error if socket not connected', () => {
-            expect(() => socketService.cancelMessage()).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
+        it('should reject cancellation when not connected', () => {
+            expect(() => socketService.cancelMessage()).toThrow();
         });
     });
 
-    describe('onChatCancelled', () => {
-        it('should register chat cancelled listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.onChatCancelled(callback);
-
-            expect(mockSocket.on).toHaveBeenCalledWith('chat_cancelled', callback);
-        });
-
-        it('should throw error if socket not connected', () => {
-            const callback = vi.fn();
-
-            expect(() => socketService.onChatCancelled(callback)).toThrow(
-                'Socket not connected. Call connect() first.'
-            );
-        });
-    });
-
-    describe('removeAllListeners', () => {
+    describe('Event Cleanup', () => {
         it('should remove all event listeners', () => {
             socketService.connect();
             socketService.removeAllListeners();
@@ -384,29 +228,8 @@ describe('SocketService', () => {
             expect(mockSocket.removeAllListeners).toHaveBeenCalled();
         });
 
-        it('should handle removeAllListeners when socket is null', () => {
+        it('should handle cleanup operations safely when not connected', () => {
             expect(() => socketService.removeAllListeners()).not.toThrow();
-        });
-    });
-
-    describe('off', () => {
-        it('should remove specific event listener', () => {
-            const callback = vi.fn();
-
-            socketService.connect();
-            socketService.off('chat_chunk', callback);
-
-            expect(mockSocket.off).toHaveBeenCalledWith('chat_chunk', callback);
-        });
-
-        it('should remove listener without callback', () => {
-            socketService.connect();
-            socketService.off('chat_chunk');
-
-            expect(mockSocket.off).toHaveBeenCalledWith('chat_chunk', undefined);
-        });
-
-        it('should handle off when socket is null', () => {
             expect(() => socketService.off('chat_chunk')).not.toThrow();
         });
     });

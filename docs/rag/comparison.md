@@ -20,16 +20,16 @@
 ### Retrieval Quality
 
 **Vector RAG**:
-- ✅ Excellent for direct factual questions
-- ✅ Good semantic matching
-- ❌ Misses implicit relationships
-- ❌ Limited to chunk boundaries
+- [x] Excellent for direct factual questions
+- [x] Good semantic matching
+- [x] Misses implicit relationships
+- [x] Limited to chunk boundaries
 
 **Graph RAG**:
-- ✅ Captures entity relationships
-- ✅ Multi-hop reasoning
-- ✅ Community-based context
-- ❌ Depends on entity extraction quality
+- [x] Captures entity relationships
+- [x] Multi-hop reasoning
+- [x] Community-based context
+- [x] Depends on entity extraction quality
 
 ### Implementation Complexity
 
@@ -141,36 +141,36 @@ class HybridRAG:
 ## Recommendations
 
 ### Use Vector RAG When:
-- ✅ You need fast, simple semantic search
-- ✅ Queries are primarily factual
-- ✅ Budget/compute is limited
-- ✅ Documents are homogeneous (all same type)
+- [x] You need fast, simple semantic search
+- [x] Queries are primarily factual
+- [x] Budget/compute is limited
+- [x] Documents are homogeneous (all same type)
 
 ### Use Graph RAG When:
-- ✅ Queries involve relationships between entities
-- ✅ Multi-hop reasoning is required
-- ✅ You have structured data (citations, collaborations)
-- ✅ Knowledge graph exploration is valuable
+- [x] Queries involve relationships between entities
+- [x] Multi-hop reasoning is required
+- [x] You have structured data (citations, collaborations)
+- [x] Knowledge graph exploration is valuable
 
 ### Use Hybrid When:
-- ✅ Query types are diverse
-- ✅ You want best-of-both-worlds
-- ✅ You have the infrastructure for both
-- ✅ Quality matters more than cost
+- [x] Query types are diverse
+- [x] You want best-of-both-worlds
+- [x] You have the infrastructure for both
+- [x] Quality matters more than cost
 
 ## Implementation Status
 
-### Vector RAG: ✅ Complete
+### Vector RAG: [x] Complete
 - Interfaces: `shared/interfaces/vector/`
 - Orchestrator: `shared/orchestrators/vector_rag.py`
 - Workers: Ingestion, Embeddings
 
-### Graph RAG: 🚧 In Progress
+### Graph RAG: [WIP] In Progress
 - Interfaces: `shared/interfaces/graph/`
 - Orchestrator: `shared/orchestrators/graph_rag.py`
 - Workers: Graph builder (TODO)
 
-### Hybrid RAG: ⏳ Planned
+### Hybrid RAG: [planned] Planned
 - Route queries based on type
 - Merge results from both systems
 - Unified API

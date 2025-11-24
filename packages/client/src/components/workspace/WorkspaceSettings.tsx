@@ -4,11 +4,13 @@ import { FaCog, FaTrash } from 'react-icons/fa';
 import type { RootState } from '../../store';
 import { removeWorkspace, updateWorkspace, setError } from '../../store/slices/workspaceSlice';
 import { apiService } from '../../services/api';
+import { ConfirmDialog } from '../shared';
 import {
     type RagConfig,
     type VectorRagConfig,
     type GraphRagConfig,
     type UpdateRagConfigRequest,
+    type CreateRagConfigRequest,
 } from '../../types/workspace';
 import RagConfigForm from './RagConfigForm'; // Import RagConfigForm
 
@@ -98,8 +100,9 @@ const WorkspaceSettings = () => {
                         max_hops: (formData.ragConfig as Partial<GraphRagConfig>).max_hops,
                         entity_extraction_model: (formData.ragConfig as Partial<GraphRagConfig>)
                             .entity_extraction_model,
-                        relationship_extraction_model: (formData.ragConfig as Partial<GraphRagConfig>)
-                            .relationship_extraction_model,
+                        relationship_extraction_model: (
+                            formData.ragConfig as Partial<GraphRagConfig>
+                        ).relationship_extraction_model,
                     };
                 } else {
                     ragConfigToSave = {
@@ -119,14 +122,17 @@ const WorkspaceSettings = () => {
                 if (ragConfig) {
                     await apiService.updateRagConfig(activeWorkspaceId, ragConfigToSave);
                 } else {
-                    await apiService.createRagConfig(activeWorkspaceId, ragConfigToSave as CreateRagConfigRequest);
+                    await apiService.createRagConfig(
+                        activeWorkspaceId,
+                        ragConfigToSave as CreateRagConfigRequest
+                    );
                 }
             }
 
             setShowModal(false);
-        } catch (error) {
-            const message =
-                error instanceof AxiosError ? error.response?.data?.message : 'Failed to save settings';
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: { message?: string } }; message?: string };
+            const message = err.response?.data?.message || err.message || 'Failed to save settings';
             setSaveError(message);
         } finally {
             setIsLoading(false);
@@ -209,7 +215,8 @@ const WorkspaceSettings = () => {
                                 RAG Configuration
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                                RAG configuration can only be modified for new workspaces or those still being provisioned.
+                                RAG configuration can only be modified for new workspaces or those
+                                still being provisioned.
                             </p>
 
                             <RagConfigForm

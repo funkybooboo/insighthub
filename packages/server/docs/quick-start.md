@@ -1,12 +1,13 @@
 # Quick Start Guide
 
-Get up and running with InsightHub server in 5 minutes.
+Get up and running with InsightHub Flask server in 5 minutes.
 
 ## Prerequisites
 
 - Python 3.11+
 - Poetry (package manager)
 - Docker (for integration tests and production)
+- Node.js 18+ (for frontend development)
 
 ## Installation
 
@@ -37,15 +38,18 @@ task test-integration
 
 ### What Happens During Integration Tests
 
-When you run `make test-integration`:
+When you run `task test-integration`:
 
 1. **Docker containers start automatically**
-   - PostgreSQL 16 container
-   - MinIO (S3-compatible) container
+   - PostgreSQL container
+   - Redis container
+   - Qdrant container
+   - Neo4j container (if available)
 
 2. **Tests run against real services**
    - Database operations use actual PostgreSQL
-   - Blob storage uses actual MinIO
+   - Cache operations use actual Redis
+   - Vector operations use actual Qdrant
    - API tests use full application stack
 
 3. **Containers stop automatically**
@@ -59,11 +63,10 @@ When you run `make test-integration`:
 ### 1. Make Changes
 
 Edit code in `src/` directory:
-- `src/db/` - Database models and repositories
-- `src/services/` - Business logic
-- `src/routes/` - API endpoints
-- `src/storage/` - Blob storage
-- `src/rag/` - RAG library
+- `src/domains/` - Business logic by feature (auth, chat, documents, users, health)
+- `src/infrastructure/` - External integrations (database, rag, llm, storage)
+- `src/api.py` - Flask application entry point
+- `src/context.py` - Application context and configuration
 
 ### 2. Run Tests
 
@@ -91,8 +94,8 @@ task check
 ### 4. Run Server Locally
 
 ```bash
-# Start services with Docker Compose
-docker compose up postgres minio
+# Start infrastructure services with Docker Compose
+task up-infra
 
 # Run Flask server
 task server
@@ -105,15 +108,18 @@ curl http://localhost:5000/health
 
 ```
 tests/
-├── unit/                    # Fast tests (< 1 sec)
-│   ├── test_user_repository.py
-│   ├── test_document_repository.py
-│   └── test_document_service.py
-│
-└── integration/             # Slower tests (1-5 sec)
-    ├── test_database_integration.py      # PostgreSQL
-    ├── test_blob_storage.py              # MinIO
-    └── test_api_endpoints.py             # Full API
+- unit/                    # Fast tests (< 1 sec)
+|   - test_user_repository.py
+|   - test_document_repository.py
+|   - test_chat_service.py
+|   - test_rag_service.py
+|
+- integration/             # Slower tests (1-5 sec)
+    - test_database_integration.py      # PostgreSQL
+    - test_qdrant_integration.py        # Vector database
+    - test_neo4j_integration.py        # Graph database
+    - test_api_endpoints.py             # Full API
+    - test_worker_integration.py        # Worker communication
 ```
 
 ## Common Commands
@@ -166,7 +172,7 @@ docker ps
 
 **Error**: `Port 5432 is already allocated`
 
-**Solution**: Testcontainers automatically find free ports. If the issue persists:
+**Solution**: Testcontainers automatically find free ports. If issue persists:
 
 ```bash
 # Stop conflicting services
@@ -181,10 +187,10 @@ docker compose down
 
 ```bash
 # Unit tests run in < 1 second
-make test-unit
+task test-unit
 
 # Only run integration tests when needed
-make test-integration
+task test-integration
 ```
 
 ### Container Pull Failed
@@ -196,7 +202,42 @@ make test-integration
 ```bash
 # Pre-pull images
 docker pull postgres:16-alpine
-docker pull minio/minio:latest
+docker pull redis:7-alpine
+docker pull qdrant/qdrant:latest
+```
+
+## Flask Development Server
+
+The Flask server runs on `http://localhost:5000` by default with:
+
+- **REST API**: All endpoints under `/api/`
+- **WebSocket**: Socket.IO integration for real-time chat
+- **Health Checks**: `/health` endpoint for monitoring
+- **CORS**: Configured for frontend development
+
+## Environment Configuration
+
+Key environment variables for development:
+
+```bash
+# Flask
+FLASK_ENV=development
+SECRET_KEY=your-secret-key-here
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/insighthub
+
+# Redis
+REDIS_URL=redis://localhost:6379/0
+
+# Vector Database
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+
+# LLM (Ollama)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_LLM_MODEL=llama3.2
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 ```
 
 ## Next Steps
@@ -204,21 +245,24 @@ docker pull minio/minio:latest
 - Read [TESTING.md](./testing.md) for detailed testing guide
 - Read [DATABASE.md](./database.md) for database architecture
 - Read [API.md](./api.md) for API documentation
+- Read [MIDDLEWARE.md](./middleware.md) for middleware configuration
 
 ## Key Features
 
-- Auto-starting containers - No manual setup
-- Fast unit tests - Instant feedback
-- Real integration tests - Test against actual services
-- Auto cleanup - Containers removed automatically
-- Make commands - Simple, memorable commands
-- Coverage reports - Track test coverage
+- **Auto-starting containers** - No manual setup required
+- **Fast unit tests** - Instant feedback loop
+- **Real integration tests** - Test against actual services
+- **Auto cleanup** - Containers removed automatically
+- **Task commands** - Simple, memorable commands
+- **Coverage reports** - Track test coverage effectively
+- **Flask integration** - Full Flask application stack
+- **Clean architecture** - Domains and infrastructure separation
 
 ## Example: Adding a New Feature
 
 ```bash
 # 1. Write your code
-vim src/services/new_feature.py
+vim src/domains/new_feature.py
 
 # 2. Write tests
 vim tests/unit/test_new_feature.py
@@ -234,7 +278,7 @@ task check
 
 # 6. Commit
 git add .
-git commit -m "Add new feature"
+git commit -m "feat: add new feature"
 ```
 
 Done!

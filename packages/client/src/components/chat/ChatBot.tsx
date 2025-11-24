@@ -14,6 +14,8 @@ import { selectIsWorkspaceProcessing } from '@/store/slices/statusSlice'; // Imp
 import type { Message } from '@/types/chat';
 import ChatMessages from './ChatMessages';
 import ChatInput, { type ChatFormData } from './ChatInput';
+import RAGEnhancementPrompt from './RAGEnhancementPrompt';
+import { LoadingSpinner } from '@/components/shared';
 // DocumentManager is now handled in Layout.tsx
 import socketService from '@/services/socket';
 import apiService from '@/services/api';
@@ -34,6 +36,7 @@ const ChatBot = () => {
     const isWorkspaceProcessing = useSelector(selectIsWorkspaceProcessing(activeWorkspaceId || -1)); // Check processing status
     const [isBotTyping, setIsBotTyping] = useState(false);
     const [error, setError] = useState('');
+    const [showRAGPrompt, setShowRAGPrompt] = useState(false);
     const currentBotMessageId = useRef<string | null>(null);
     const currentBotMessage = useRef<string>('');
     const lastUserQuery = useRef<string>(''); // To store the last user query for retries
@@ -106,20 +109,46 @@ const ChatBot = () => {
                 // Play pop sound
                 popAudio.play();
 
-                // Send message via socket
-                socketService.sendMessage({
-                    message: prompt,
-                    session_id: activeSession?.sessionId,
-                    workspace_id: activeWorkspaceId,
-                });
-            } catch (error) {
+                // Send message via REST API (server will stream response via WebSocket)
+                await apiService.sendChatMessage(activeWorkspaceId, activeSession?.sessionId || 0, prompt);
+            } catch (error: unknown) {
                 console.error('Error sending message:', error);
-                setError('Something went wrong, try again!');
+
+                // Handle different error types
+                let errorMessage = 'Something went wrong, try again!';
+                if (error && typeof error === 'object' && 'response' in error) {
+                    const axiosError = error as { response?: { status?: number; data?: { detail?: string } } };
+                    if (axiosError.response?.status === 401) {
+                        errorMessage = 'Authentication failed. Please log in again.';
+                    } else if (axiosError.response?.status === 403) {
+                        errorMessage = 'You do not have permission to send messages in this workspace.';
+                    } else if (axiosError.response?.status === 404) {
+                        errorMessage = 'Workspace or session not found.';
+                    } else if (axiosError.response?.data?.detail) {
+                        errorMessage = axiosError.response.data.detail;
+                    }
+                }
+
+                setError(errorMessage);
+
+                // Add error message to chat
+                dispatch(
+                    addMessageToSession({
+                        sessionId: activeSessionId,
+                        message: {
+                            id: `msg-${Date.now()}`,
+                            content: `Error: ${errorMessage}`,
+                            role: 'bot',
+                            timestamp: Date.now(),
+                        },
+                    })
+                );
+
                 setIsBotTyping(false);
                 dispatch(setTyping(false));
             }
         },
-        [activeSessionId, activeWorkspaceId, activeSession?.sessionId, dispatch],
+        [activeSessionId, activeWorkspaceId, activeSession?.sessionId, dispatch]
     );
 
     useEffect(() => {
@@ -220,7 +249,25 @@ const ChatBot = () => {
 
         socketService.onError((data) => {
             console.error('Socket error:', data.error);
-            setError(data.error);
+            const errorMessage = data.error || 'Connection error occurred';
+
+            setError(errorMessage);
+
+            // Add error message to chat if we were in the middle of a response
+            if (currentBotMessageId.current) {
+                dispatch(
+                    addMessageToSession({
+                        sessionId: activeSessionId,
+                        message: {
+                            id: `msg-${Date.now()}`,
+                            content: `Connection error: ${errorMessage}. Please try again.`,
+                            role: 'bot',
+                            timestamp: Date.now(),
+                        },
+                    })
+                );
+            }
+
             setIsBotTyping(false);
             dispatch(setTyping(false));
             currentBotMessage.current = '';
@@ -231,6 +278,13 @@ const ChatBot = () => {
             console.log('Disconnected from chat server');
         });
 
+        // Listen for no context found event to show RAG enhancement prompt
+        socketService.on('chat.no_context_found', (data: { session_id: number; query: string }) => {
+            if (!activeSessionId) return;
+            console.log('No context found for query:', data.query);
+            setShowRAGPrompt(true);
+        });
+
         // Cleanup on unmount
         return () => {
             socketService.removeAllListeners();
@@ -238,9 +292,14 @@ const ChatBot = () => {
         };
     }, [activeSessionId, activeWorkspaceId, dispatch]);
 
-    const onCancel = () => {
+    const onCancel = async () => {
         try {
-            // Cancel the current message
+            if (activeWorkspaceId && activeSession?.sessionId) {
+                // Cancel via API
+                await apiService.cancelChatMessage(activeWorkspaceId, activeSession.sessionId, currentBotMessageId.current || undefined);
+            }
+
+            // Also cancel via WebSocket for immediate response
             socketService.cancelMessage();
 
             // Reset state
@@ -250,27 +309,47 @@ const ChatBot = () => {
             currentBotMessageId.current = null;
 
             console.log('Message cancelled');
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error cancelling message:', error);
+            const errorMessage = 'Failed to cancel message. It may still be processing.';
+            setError(errorMessage);
+
+            // Add error message to chat
+            if (activeSessionId) {
+                dispatch(
+                    addMessageToSession({
+                        sessionId: activeSessionId,
+                        message: {
+                            id: `msg-${Date.now()}`,
+                            content: errorMessage,
+                            role: 'bot',
+                            timestamp: Date.now(),
+                        },
+                    })
+                );
+            }
         }
     };
 
     const handleFetchWikipedia = async (query: string) => {
         if (!activeWorkspaceId || !activeSessionId) return;
 
+        setShowRAGPrompt(false); // Hide the prompt
         setError('');
         setIsBotTyping(true);
         dispatch(setTyping(true));
         // Add a message indicating Wikipedia fetch initiated
-        dispatch(addMessageToSession({
-            sessionId: activeSessionId,
-            message: {
-                id: `msg-${Date.now()}`,
-                content: `Searching Wikipedia for "${query}"...`,
-                role: 'bot',
-                timestamp: Date.now(),
-            },
-        }));
+        dispatch(
+            addMessageToSession({
+                sessionId: activeSessionId,
+                message: {
+                    id: `msg-${Date.now()}`,
+                    content: `Searching Wikipedia for "${query}"...`,
+                    role: 'bot',
+                    timestamp: Date.now(),
+                },
+            })
+        );
 
         try {
             await apiService.fetchWikipediaArticle(activeWorkspaceId, query);
@@ -278,28 +357,44 @@ const ChatBot = () => {
             // The document processing status will be updated via sockets.
             // When processing completes, isWorkspaceProcessing will become false,
             // and then we can automatically re-submit the query.
-            dispatch(addMessageToSession({
-                sessionId: activeSessionId,
-                message: {
-                    id: `msg-${Date.now() + 1}`,
-                    content: 'Wikipedia article fetched and processing. Retrying your query shortly...',
-                    role: 'bot',
-                    timestamp: Date.now(),
-                },
-            }));
+            dispatch(
+                addMessageToSession({
+                    sessionId: activeSessionId,
+                    message: {
+                        id: `msg-${Date.now() + 1}`,
+                        content:
+                            'Wikipedia article fetched and processing. Retrying your query shortly...',
+                        role: 'bot',
+                        timestamp: Date.now(),
+                    },
+                })
+            );
             // Actual re-submission will be handled by a useEffect watching isWorkspaceProcessing
-        } catch (err: any) {
-            const message = err.response?.data?.detail || 'Failed to fetch Wikipedia article.';
+        } catch (err: unknown) {
+            console.error('Error fetching Wikipedia:', err);
+            const error = err as { response?: { data?: { detail?: string }; status?: number } };
+            let message = 'Failed to fetch Wikipedia article.';
+
+            if (error.response?.status === 429) {
+                message = 'Too many requests. Please wait before trying again.';
+            } else if (error.response?.status === 404) {
+                message = 'Wikipedia article not found. Try a different search term.';
+            } else if (error.response?.data?.detail) {
+                message = error.response.data.detail;
+            }
+
             setError(message);
-            dispatch(addMessageToSession({
-                sessionId: activeSessionId,
-                message: {
-                    id: `msg-${Date.now() + 1}`,
-                    content: `Error fetching Wikipedia article: ${message}`,
-                    role: 'bot',
-                    timestamp: Date.now(),
-                },
-            }));
+            dispatch(
+                addMessageToSession({
+                    sessionId: activeSessionId,
+                    message: {
+                        id: `msg-${Date.now() + 1}`,
+                        content: `Error fetching Wikipedia article: ${message}`,
+                        role: 'bot',
+                        timestamp: Date.now(),
+                    },
+                })
+            );
             setIsBotTyping(false);
             dispatch(setTyping(false));
         }
@@ -307,20 +402,24 @@ const ChatBot = () => {
 
     const handleUploadDocument = () => {
         if (!activeWorkspaceId || !activeSessionId) return;
-        dispatch(addMessageToSession({
-            sessionId: activeSessionId,
-            message: {
-                id: `msg-${Date.now()}`,
-                content: `Please use the "Documents" panel on the right to upload your document. Once uploaded, your previous query will be retried automatically after processing completes.`,
-                role: 'bot',
-                timestamp: Date.now(),
-            },
-        }));
+        setShowRAGPrompt(false); // Hide the prompt
+        dispatch(
+            addMessageToSession({
+                sessionId: activeSessionId,
+                message: {
+                    id: `msg-${Date.now()}`,
+                    content: `Please use the "Documents" panel on the right to upload your document. Once uploaded, your previous query will be retried automatically after processing completes.`,
+                    role: 'bot',
+                    timestamp: Date.now(),
+                },
+            })
+        );
         // Logic to visually indicate the document panel might be needed here.
         // For now, simple instruction.
     };
 
     const handleContinueChat = () => {
+        setShowRAGPrompt(false); // Hide the prompt
         if (lastUserQuery.current) {
             onSubmit({ prompt: lastUserQuery.current });
             lastUserQuery.current = ''; // Clear after use
@@ -331,13 +430,12 @@ const ChatBot = () => {
     useEffect(() => {
         // Only retry if there's a last query, workspace is no longer processing, and bot isn't typing
         if (activeWorkspaceId && lastUserQuery.current && !isWorkspaceProcessing && !isBotTyping) {
-            console.log("RAG enhancement complete, retrying last query:", lastUserQuery.current);
+            console.log('RAG enhancement complete, retrying last query:', lastUserQuery.current);
             const queryToRetry = lastUserQuery.current;
             lastUserQuery.current = ''; // Clear immediately to prevent re-triggering
             onSubmit({ prompt: queryToRetry });
         }
     }, [isWorkspaceProcessing, activeWorkspaceId, isBotTyping, dispatch, onSubmit]); // Added onSubmit to dependency array
-
 
     // Convert Message[] to the format expected by ChatMessages component
     const messages =
@@ -368,6 +466,13 @@ const ChatBot = () => {
                 onUploadDocument={handleUploadDocument}
                 onFetchWikipedia={handleFetchWikipedia}
                 onContinueChat={handleContinueChat}
+            />
+            <RAGEnhancementPrompt
+                isVisible={showRAGPrompt}
+                onUploadDocument={handleUploadDocument}
+                onFetchWikipedia={handleFetchWikipedia}
+                onContinueWithoutContext={handleContinueChat}
+                lastQuery={lastUserQuery.current}
             />
             {isWorkspaceProcessing ? (
                 <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-center flex items-center justify-center">

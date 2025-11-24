@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { ChatSession, ChatState, Message } from '@/types/chat';
+import type { ChatSession, ChatState, Message, Context } from '@/types/chat';
 import { chatStorage } from '@/lib/chatStorage';
 
 const initialState: ChatState = {

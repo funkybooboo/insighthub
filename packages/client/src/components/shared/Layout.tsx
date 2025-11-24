@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
@@ -67,9 +67,7 @@ const Layout: React.FC<LayoutProps> = ({
                 </header>
                 <div className="flex-1 flex overflow-hidden">
                     {/* Chat Column (Middle) */}
-                    <section className="flex-1 flex flex-col overflow-hidden">
-                        {chatColumn}
-                    </section>
+                    <section className="flex-1 flex flex-col overflow-hidden">{chatColumn}</section>
 
                     {/* Document Column (Right) */}
                     <section className="w-96 bg-white dark:bg-gray-900 border-l border-gray-200/80 dark:border-gray-800 flex flex-col">

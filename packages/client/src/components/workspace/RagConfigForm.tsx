@@ -23,7 +23,7 @@ const EMBEDDING_MODEL_OPTIONS = [
     // Add other relevant embedding models
 ];
 
-const RRERANK_MODEL_OPTIONS = [
+const RERANK_MODEL_OPTIONS = [
     { value: 'rerank-model-1', label: 'Rerank Model 1' },
     { value: 'rerank-model-2', label: 'Rerank Model 2' },
     // Add other relevant rerank models
@@ -67,8 +67,7 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
                 chunk_size: (initialConfig as Partial<VectorRagConfig>).chunk_size || 1000,
                 chunk_overlap: (initialConfig as Partial<VectorRagConfig>).chunk_overlap || 200,
                 top_k: (initialConfig as Partial<VectorRagConfig>).top_k || 8,
-                rerank_enabled:
-                    (initialConfig as Partial<VectorRagConfig>).rerank_enabled || false,
+                rerank_enabled: (initialConfig as Partial<VectorRagConfig>).rerank_enabled || false,
                 rerank_model: (initialConfig as Partial<VectorRagConfig>).rerank_model || undefined,
             };
         }
@@ -122,7 +121,9 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
         setConfig((prev) => ({
             ...(prev as VectorRagConfig), // Cast to VectorRagConfig for rerank_enabled
             rerank_enabled: checked,
-            rerank_model: checked ? (prev as VectorRagConfig).rerank_model || RERANK_MODEL_OPTIONS[0]?.value : undefined,
+            rerank_model: checked
+                ? (prev as VectorRagConfig).rerank_model || RERANK_MODEL_OPTIONS[0]?.value
+                : undefined,
         }));
     };
 
@@ -175,7 +176,10 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
                     </div>
 
                     <div>
-                        <label htmlFor="chunk_size" className="block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="chunk_size"
+                            className="block text-sm font-medium text-gray-700"
+                        >
                             Chunk Size
                         </label>
                         <input
@@ -241,7 +245,10 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
                             disabled={readOnly}
                             className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
                         />
-                        <label htmlFor="rerank_enabled" className="ml-2 block text-sm text-gray-900">
+                        <label
+                            htmlFor="rerank_enabled"
+                            className="ml-2 block text-sm text-gray-900"
+                        >
                             Enable Reranking
                         </label>
                     </div>
@@ -277,7 +284,10 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
             {config.retriever_type === 'graph' && (
                 <>
                     <div>
-                        <label htmlFor="max_hops" className="block text-sm font-medium text-gray-700">
+                        <label
+                            htmlFor="max_hops"
+                            className="block text-sm font-medium text-gray-700"
+                        >
                             Max Hops (Graph Traversal)
                         </label>
                         <input
@@ -344,4 +354,3 @@ const RagConfigForm: React.FC<RagConfigFormProps> = ({
 };
 
 export default RagConfigForm;
-

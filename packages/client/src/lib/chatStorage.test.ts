@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { chatStorage } from './chatStorage';
 import type { ChatSession } from '@/types/chat';
+import '../test/setup';
 
 describe('chatStorage', () => {
     beforeEach(() => {
@@ -64,7 +65,7 @@ describe('chatStorage', () => {
         });
 
         it('should handle localStorage access errors gracefully', () => {
-            const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+            const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
                 throw new Error('Storage quota exceeded');
             });
 
@@ -138,7 +139,7 @@ describe('chatStorage', () => {
         });
 
         it('should handle save errors gracefully', () => {
-            const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
                 throw new Error('Storage quota exceeded');
             });
 
@@ -216,11 +217,9 @@ describe('chatStorage', () => {
         });
 
         it('should handle clear errors gracefully', () => {
-            const removeItemSpy = vi
-                .spyOn(Storage.prototype, 'removeItem')
-                .mockImplementation(() => {
-                    throw new Error('Storage access denied');
-                });
+            const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+                throw new Error('Storage access denied');
+            });
 
             // Should not throw error, just handle it gracefully
             expect(() => chatStorage.clearSessions()).not.toThrow();

@@ -51,11 +51,11 @@ export type AppDispatch = typeof store.dispatch;
 
 ```
 src/store/
-├── index.ts              # Store configuration
-├── hooks.ts              # Typed useAppSelector and useAppDispatch
-└── slices/               # Feature-based slices
-    ├── authSlice.ts      # Authentication state
-    └── chatSlice.ts      # Chat state
+--- index.ts              # Store configuration
+--- hooks.ts              # Typed useAppSelector and useAppDispatch
+--- slices/               # Feature-based slices
+    --- authSlice.ts      # Authentication state
+    --- chatSlice.ts      # Chat state
 ```
 
 ## Slices

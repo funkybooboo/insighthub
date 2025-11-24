@@ -53,26 +53,26 @@ bun run test:ui
 
 ```
 packages/client/
-├── src/
-│   ├── components/
-│   │   ├── auth/
-│   │   │   ├── LoginForm.tsx
-│   │   │   ├── LoginForm.test.tsx         # Component tests
-│   │   │   └── LoginForm.stories.tsx      # Storybook stories
-│   │   ├── workspace/
-│   │   │   ├── WorkspaceSelector.tsx
-│   │   │   ├── WorkspaceSelector.test.tsx
-│   │   │   └── WorkspaceSelector.stories.tsx
-│   ├── store/
-│   │   └── slices/
-│   │       ├── authSlice.ts
-│   │       └── authSlice.test.ts          # Redux tests
-│   ├── services/
-│   │   ├── api.ts
-│   │   └── api.test.ts                    # API service tests
-│   └── lib/
-│       ├── validation.ts
-│       └── validation.test.ts             # Utility tests
+--- src/
+|   --- components/
+|   |   --- auth/
+|   |   |   --- LoginForm.tsx
+|   |   |   --- LoginForm.test.tsx         # Component tests
+|   |   |   --- LoginForm.stories.tsx      # Storybook stories
+|   |   --- workspace/
+|   |   |   --- WorkspaceSelector.tsx
+|   |   |   --- WorkspaceSelector.test.tsx
+|   |   |   --- WorkspaceSelector.stories.tsx
+|   --- store/
+|   |   --- slices/
+|   |       --- authSlice.ts
+|   |       --- authSlice.test.ts          # Redux tests
+|   --- services/
+|   |   --- api.ts
+|   |   --- api.test.ts                    # API service tests
+|   --- lib/
+|       --- validation.ts
+|       --- validation.test.ts             # Utility tests
 ```
 
 ## Writing Tests

@@ -94,6 +94,7 @@ Collection: documents_{workspace_id}
       page: integer (optional)
       position: integer
       token_count: integer
+      workspace_id: integer
 ```
 
 ### 1.3 Graph Database Schema (Neo4j)
@@ -112,6 +113,7 @@ Collection: documents_{workspace_id}
 (:Chunk {
   id: string,
   document_id: integer,
+  workspace_id: integer,
   text: string,
   position: integer
 })
@@ -120,12 +122,15 @@ Collection: documents_{workspace_id}
 (:Entity)-[:RELATED_TO {
   type: string,
   confidence: float,
-  source_chunk_id: string
+  source_chunk_id: string,
+  workspace_id: integer
 }]->(:Entity)
 
 (:Chunk)-[:MENTIONS]->(:Entity)
 (:Chunk)-[:NEXT]->(:Chunk)
-(:Entity)-[:CO_OCCURS_WITH]->(:Entity)
+(:Entity)-[:CO_OCCURS_WITH {
+  workspace_id: integer
+}]->(:Entity)
 ```
 
 ## 2. API Specifications
@@ -379,7 +384,7 @@ v       v        v       v       v
 ### 4.1 Document Upload Sequence
 
 ```
-Client          Server          MinIO           PostgreSQL      RabbitMQ
+Client          Server          Filesystem      PostgreSQL      RabbitMQ
   |               |               |                 |               |
   |--POST /doc--->|               |                 |               |
   |               |--store file-->|                 |               |
@@ -428,45 +433,76 @@ Client          Socket.IO       ChatService     RAGEngine       LLM
 ### 5.1 Worker Base Pattern
 
 ```python
-class BaseWorker:
-    def __init__(self, queue_name: str, exchange: str):
+from abc import ABC, abstractmethod
+import pika
+import json
+import logging
+from typing import Dict, Any
+
+class BaseWorker(ABC):
+    def __init__(self, queue_name: str, exchange: str = 'documents'):
         self.queue_name = queue_name
         self.exchange = exchange
         self.connection = None
         self.channel = None
+        self.logger = logging.getLogger(__name__)
 
     def connect(self):
+        """Establish connection to RabbitMQ"""
         self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host=RABBITMQ_HOST)
+            pika.ConnectionParameters(
+                host=os.getenv('RABBITMQ_HOST', 'localhost'),
+                port=int(os.getenv('RABBITMQ_PORT', 5672)),
+                credentials=pika.PlainCredentials(
+                    os.getenv('RABBITMQ_USER', 'guest'),
+                    os.getenv('RABBITMQ_PASS', 'guest')
+                )
+            )
         )
         self.channel = self.connection.channel()
         self.channel.queue_declare(queue=self.queue_name, durable=True)
         self.channel.queue_bind(
             exchange=self.exchange,
             queue=self.queue_name,
-            routing_key=self.routing_key
+            routing_key=self.queue_name
         )
 
     def consume(self):
+        """Start consuming messages from queue"""
         self.channel.basic_consume(
             queue=self.queue_name,
             on_message_callback=self.process_message,
             auto_ack=False
         )
+        self.logger.info(f"Worker {self.__class__.__name__} started consuming")
         self.channel.start_consuming()
 
     def process_message(self, channel, method, properties, body):
+        """Process incoming message"""
         try:
             event = json.loads(body)
+            self.logger.info(f"Processing event: {event.get('event_type')}")
             result = self.handle(event)
             self.publish_result(result)
             channel.basic_ack(delivery_tag=method.delivery_tag)
         except Exception as e:
+            self.logger.error(f"Error processing message: {e}")
             self.handle_error(e, event)
-            channel.basic_nack(delivery_tag=method.delivery_tag)
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     @abstractmethod
-    def handle(self, event: dict) -> dict:
+    def handle(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle the specific event type"""
+        pass
+
+    def publish_result(self, result: Dict[str, Any]):
+        """Publish result to next queue"""
+        # Implementation depends on specific worker
+        pass
+
+    def handle_error(self, error: Exception, event: Dict[str, Any]):
+        """Handle processing errors"""
+        # Log error and potentially update document status
         pass
 ```
 
@@ -475,10 +511,7 @@ class BaseWorker:
 ```python
 class ParserWorker(BaseWorker):
     def __init__(self):
-        super().__init__(
-            queue_name='parser_queue',
-            exchange='documents'
-        )
+        super().__init__(queue_name='parser_queue')
         self.parsers = {
             'application/pdf': PDFParser(),
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': DocxParser(),
@@ -491,8 +524,9 @@ class ParserWorker(BaseWorker):
         file_path = event['file_path']
         content_type = event['content_type']
 
-        # Download file from MinIO
-        file_bytes = self.storage.download(file_path)
+        # Read file from filesystem
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
 
         # Parse based on content type
         parser = self.parsers.get(content_type, TextParser())
@@ -514,13 +548,10 @@ class ParserWorker(BaseWorker):
 ```python
 class EmbedderWorker(BaseWorker):
     def __init__(self):
-        super().__init__(
-            queue_name='embedder_queue',
-            exchange='documents'
-        )
+        super().__init__(queue_name='embedder_queue')
         self.encoder = OllamaEmbeddingEncoder(
-            base_url=OLLAMA_URL,
-            model=EMBEDDING_MODEL
+            base_url=os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434'),
+            model=os.getenv('OLLAMA_EMBEDDING_MODEL', 'nomic-embed-text')
         )
 
     def handle(self, event: dict) -> dict:
@@ -618,11 +649,8 @@ RABBITMQ_USER=guest
 RABBITMQ_PASS=guest
 
 # Storage
-BLOB_STORAGE_TYPE=s3|filesystem
-S3_ENDPOINT_URL=http://localhost:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=insighthub
+STORAGE_TYPE=filesystem
+STORAGE_PATH=/app/uploads
 
 # Vector Database
 QDRANT_HOST=localhost
@@ -670,6 +698,8 @@ rag_types:
 ```python
 # Test chunker
 def test_sentence_chunker():
+    from server.infrastructure.rag.chunking.sentence import SentenceChunker
+    
     chunker = SentenceChunker(max_chunk_size=100)
     doc = Document(id="1", content="First sentence. Second sentence.")
     chunks = chunker.chunk(doc)
@@ -678,7 +708,9 @@ def test_sentence_chunker():
 
 # Test embedding encoder (with dummy)
 def test_embedding_encoder():
-    encoder = DummyEmbeddingEncoder(dimension=768)
+    from server.infrastructure.rag.embeddings.dummy import DummyEmbeddingModel
+    
+    encoder = DummyEmbeddingModel(dimension=768)
     vectors = encoder.encode(["hello", "world"])
     assert len(vectors) == 2
     assert len(vectors[0]) == 768
@@ -688,21 +720,32 @@ def test_embedding_encoder():
 
 ```python
 # Test full RAG pipeline with testcontainers
+import pytest
+from testcontainers.qdrant import QdrantContainer
+
 @pytest.fixture
 def qdrant_container():
-    with QdrantContainer() as qdrant:
+    with QdrantContainer("qdrant/qdrant:latest") as qdrant:
         yield qdrant
 
 def test_rag_pipeline(qdrant_container):
+    from server.infrastructure.rag.vector_rag import VectorRag
+    from server.infrastructure.rag.embeddings.ollama import OllamaEmbeddingModel
+    from server.infrastructure.rag.vector_stores.qdrant_store import QdrantVectorStore
+    from server.infrastructure.rag.chunking.sentence import SentenceChunker
+    
     # Setup
-    rag = VectorRAG(
-        embedder=OllamaEmbedder(),
-        vector_store=QdrantStore(url=qdrant_container.get_connection_url()),
-        llm=DummyLLM()
+    rag = VectorRag(
+        embedder=OllamaEmbeddingModel(),
+        vector_store=QdrantVectorStore(
+            host=qdrant_container.get_container_host_ip(),
+            port=qdrant_container.get_exposed_port(6333)
+        ),
+        chunker=SentenceChunker()
     )
 
     # Index document
-    rag.index(Document(content="The sky is blue."))
+    rag.add_documents([{"content": "The sky is blue."}])
 
     # Query
     result = rag.query("What color is the sky?")
@@ -747,6 +790,8 @@ def embed_documents(documents: list[Document], batch_size: int = 32):
 
 ```python
 # SQLAlchemy connection pool
+from sqlalchemy import create_engine
+
 engine = create_engine(
     DATABASE_URL,
     pool_size=10,
@@ -756,9 +801,66 @@ engine = create_engine(
 )
 
 # Redis connection pool
+import redis
+
 redis_pool = redis.ConnectionPool(
     host=REDIS_HOST,
     port=REDIS_PORT,
     max_connections=50
 )
+redis_client = redis.Redis(connection_pool=redis_pool)
 ```
+
+## 10. Security Implementation
+
+### 10.1 JWT Authentication
+
+```python
+import jwt
+from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+
+class AuthService:
+    def __init__(self, secret_key: str):
+        self.secret_key = secret_key
+
+    def generate_token(self, user_id: int, email: str) -> str:
+        payload = {
+            'user_id': user_id,
+            'email': email,
+            'exp': datetime.utcnow() + timedelta(hours=24)
+        }
+        return jwt.encode(payload, self.secret_key, algorithm='HS256')
+
+    def verify_token(self, token: str) -> dict:
+        try:
+            return jwt.decode(token, self.secret_key, algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationError("Token has expired")
+        except jwt.InvalidTokenError:
+            raise AuthenticationError("Invalid token")
+```
+
+### 10.2 Input Validation
+
+```python
+from marshmallow import Schema, fields, validate, ValidationError
+
+class LoginSchema(Schema):
+    email = fields.Email(required=True)
+    password = fields.Str(required=True, validate=validate.Length(min=8))
+
+class DocumentUploadSchema(Schema):
+    title = fields.Str(required=True, validate=validate.Length(max=255))
+    content = fields.Str(required=True)
+    metadata = fields.Dict(missing={})
+
+def validate_input(schema_class, data):
+    try:
+        schema = schema_class()
+        return schema.load(data)
+    except ValidationError as e:
+        raise ValidationError(f"Validation error: {e.messages}")
+```
+
+This low-level design provides the detailed implementation specifications for building the InsightHub dual RAG system with Flask, React, and modern AI technologies.

@@ -6,20 +6,40 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
 import DocumentList, { type DocumentListRef } from './DocumentList';
 import apiService, { type Document } from '../../services/api';
+import statusReducer from '../../store/slices/statusSlice';
+
+// Mock useSelector
+vi.mock('react-redux', async () => {
+    const actual = await vi.importActual('react-redux');
+    return {
+        ...actual,
+        useSelector: vi.fn(() => ({})),
+        Provider: actual.Provider,
+    };
+});
 
 // Mock API service
 vi.mock('../../services/api', () => ({
     default: {
-        listDocuments: vi.fn(),
-        deleteDocument: vi.fn(),
+        listDocuments: vi.fn().mockResolvedValue({ documents: [], count: 0 }),
+        deleteDocument: vi.fn().mockResolvedValue(undefined),
     },
+}));
+
+// Mock Redux store
+vi.mock('react-redux', () => ({
+    useSelector: vi.fn(),
 }));
 
 // Mock window.confirm
 const mockConfirm = vi.fn();
 window.confirm = mockConfirm;
+
+
 
 describe('DocumentList', () => {
     const mockDocuments: Document[] = [
@@ -49,14 +69,14 @@ describe('DocumentList', () => {
     describe('Loading State', () => {
         it('should show loading state initially', () => {
             vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(screen.getByText('Loading documents...')).toBeInTheDocument();
         });
 
         it('should show loading spinner while loading', () => {
             vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
-            const { container } = render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
             const spinner = container.querySelector('.animate-spin');
             expect(spinner).toBeInTheDocument();
@@ -66,7 +86,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.queryByText('Loading documents...')).not.toBeInTheDocument();
@@ -76,20 +96,26 @@ describe('DocumentList', () => {
 
     describe('Empty State', () => {
         it('should show empty state when no documents exist', async () => {
-            vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
+            const mockListDocuments = vi.mocked(apiService.listDocuments);
+            mockListDocuments.mockResolvedValueOnce({
                 documents: [],
+                count: 0,
             });
-            render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
-            expect(await screen.findByText('No documents uploaded')).toBeInTheDocument();
-            expect(screen.getByText('Upload a PDF or TXT file to get started')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(mockListDocuments).toHaveBeenCalledWith(1);
+            });
+
+            expect(container.textContent).toContain('No documents uploaded');
+            expect(container.textContent).toContain('Upload a PDF or TXT file to get started');
         });
 
         it('should show empty state icon', async () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [],
             });
-            const { container } = render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const icon = container.querySelector('svg');
@@ -103,7 +129,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('document1.pdf')).toBeInTheDocument();
             expect(screen.getByText('document2.txt')).toBeInTheDocument();
@@ -113,10 +139,11 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('Document')).toBeInTheDocument();
+                expect(screen.getByText('Status')).toBeInTheDocument();
                 expect(screen.getByText('Size')).toBeInTheDocument();
                 expect(screen.getByText('Chunks')).toBeInTheDocument();
                 expect(screen.getByText('Uploaded')).toBeInTheDocument();
@@ -127,7 +154,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [mockDocuments[0]],
             });
-            const { container } = render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const pdfIcon = container.querySelector('.text-red-500');
@@ -139,7 +166,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [mockDocuments[1]],
             });
-            const { container } = render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const textIcon = container.querySelector('.text-gray-500');
@@ -151,7 +178,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('1000 KB')).toBeInTheDocument();
             expect(screen.getByText('2 KB')).toBeInTheDocument();
@@ -161,17 +188,17 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
-            expect(await screen.findByText('5 chunks')).toBeInTheDocument();
-            expect(screen.getByText('1 chunks')).toBeInTheDocument();
+            expect(await screen.findByText('5')).toBeInTheDocument();
+            expect(screen.getByText('1')).toBeInTheDocument();
         });
 
         it('should display formatted dates', async () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 // Dates should be formatted (exact format depends on locale)
@@ -184,7 +211,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const deleteButtons = screen.getAllByTitle('Delete document');
@@ -202,7 +229,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('0 Bytes')).toBeInTheDocument();
         });
@@ -215,12 +242,12 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('500 Bytes')).toBeInTheDocument();
         });
 
-        it('should format kilobytes correctly', async () => {
+        it('should format kilobbytes correctly', async () => {
             const doc: Document = {
                 ...mockDocuments[0],
                 file_size: 1536,
@@ -228,7 +255,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('1.5 KB')).toBeInTheDocument();
         });
@@ -241,7 +268,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('5 MB')).toBeInTheDocument();
         });
@@ -253,7 +280,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -274,7 +301,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockResolvedValueOnce(undefined);
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -298,7 +325,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -323,7 +350,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockReturnValueOnce(deletePromise);
-            const { container } = render(<DocumentList />);
+            const { container } = render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -352,7 +379,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockReturnValueOnce(deletePromise);
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -376,7 +403,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(new Error('Delete failed'));
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -402,7 +429,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockResolvedValueOnce(undefined);
-            render(<DocumentList onDocumentChange={mockOnDocumentChange} />);
+            render(<DocumentList workspaceId={1} onDocumentChange={mockOnDocumentChange} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -421,7 +448,7 @@ describe('DocumentList', () => {
         it('should show error state when loading fails', async () => {
             const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
             vi.mocked(apiService.listDocuments).mockRejectedValueOnce(new Error('Network error'));
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('Failed to load documents')).toBeInTheDocument();
             expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -435,7 +462,7 @@ describe('DocumentList', () => {
         it('should show retry button on error', async () => {
             vi.spyOn(console, 'error').mockImplementation(() => {});
             vi.mocked(apiService.listDocuments).mockRejectedValueOnce(new Error('Network error'));
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument();
         });
@@ -446,7 +473,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments)
                 .mockRejectedValueOnce(new Error('Network error'))
                 .mockResolvedValueOnce({ documents: mockDocuments });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('Failed to load documents')).toBeInTheDocument();
@@ -466,7 +493,7 @@ describe('DocumentList', () => {
                 documents: mockDocuments,
             });
             vi.mocked(apiService.deleteDocument).mockRejectedValueOnce(new Error('Delete failed'));
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -489,7 +516,7 @@ describe('DocumentList', () => {
                 documents: [],
             });
             const ref = createRef<DocumentListRef>();
-            render(<DocumentList ref={ref} />);
+            render(<DocumentList ref={ref} workspaceId={1} />);
 
             await waitFor(() => {
                 expect(ref.current).toBeTruthy();
@@ -502,7 +529,7 @@ describe('DocumentList', () => {
                 .mockResolvedValueOnce({ documents: [] })
                 .mockResolvedValueOnce({ documents: mockDocuments });
             const ref = createRef<DocumentListRef>();
-            render(<DocumentList ref={ref} />);
+            render(<DocumentList ref={ref} workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('No documents uploaded')).toBeInTheDocument();
@@ -518,7 +545,7 @@ describe('DocumentList', () => {
                 .mockResolvedValueOnce({ documents: [] })
                 .mockResolvedValueOnce({ documents: mockDocuments });
             const ref = createRef<DocumentListRef>();
-            render(<DocumentList ref={ref} />);
+            render(<DocumentList ref={ref} workspaceId={1} />);
 
             await waitFor(() => {
                 expect(apiService.listDocuments).toHaveBeenCalledTimes(1);
@@ -536,7 +563,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList onDocumentCountChange={mockOnDocumentCountChange} />);
+            render(<DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />);
 
             await waitFor(() => {
                 expect(mockOnDocumentCountChange).toHaveBeenCalledWith(2);
@@ -548,7 +575,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [],
             });
-            render(<DocumentList onDocumentCountChange={mockOnDocumentCountChange} />);
+            render(<DocumentList workspaceId={1} onDocumentCountChange={mockOnDocumentCountChange} />);
 
             await waitFor(() => {
                 expect(mockOnDocumentCountChange).toHaveBeenCalledWith(0);
@@ -565,7 +592,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('-')).toBeInTheDocument();
         });
@@ -579,7 +606,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText(longFilename)).toBeInTheDocument();
         });
@@ -592,7 +619,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: [doc],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             expect(await screen.findByText('file @#$%&.pdf')).toBeInTheDocument();
         });
@@ -610,7 +637,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: manyDocuments as Document[],
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 expect(screen.getByText('document1.pdf')).toBeInTheDocument();
@@ -624,7 +651,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const filename = screen.getByText('document1.pdf');
@@ -636,7 +663,7 @@ describe('DocumentList', () => {
             vi.mocked(apiService.listDocuments).mockResolvedValueOnce({
                 documents: mockDocuments,
             });
-            render(<DocumentList />);
+            render(<DocumentList workspaceId={1} />);
 
             await waitFor(() => {
                 const deleteButtons = screen.getAllByTitle('Delete document');
@@ -647,8 +674,8 @@ describe('DocumentList', () => {
         });
 
         it('should show loading spinner with accessible text', () => {
-            vi.mocked(apiService.listDocuments).mockImplementationOnce(() => new Promise(() => {}));
-            render(<DocumentList />);
+            apiService.listDocuments.mockImplementationOnce(() => new Promise(() => {}));
+            render(<DocumentList workspaceId={1} />);
 
             const loadingText = screen.getByText('Loading documents...');
             expect(loadingText).toBeVisible();

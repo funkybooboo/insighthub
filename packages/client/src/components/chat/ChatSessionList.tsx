@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaPlus, FaRegComments } from 'react-icons/fa';
+import { FaPlus, FaRegComments, FaFolderOpen } from 'react-icons/fa';
 import type { RootState } from '@/store';
 import { createSession, setActiveSession, deleteSession } from '@/store/slices/chatSlice';
 import { ConfirmDialog, LoadingSpinner } from '@/components/shared';
-import { AxiosError } from 'axios';
-import apiService from '@/services/api';
 
 const ChatSessionList: React.FC = () => {
     const dispatch = useDispatch();
@@ -21,7 +19,6 @@ const ChatSessionList: React.FC = () => {
         sessionTitle: '',
     });
     const [loadingSessions, setLoadingSessions] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     // Fetch sessions from backend if they are not already loaded (e.g. initial load)
     useEffect(() => {
@@ -44,7 +41,11 @@ const ChatSessionList: React.FC = () => {
         dispatch(setActiveSession(sessionId));
     };
 
-    const handleDeleteClick = (sessionId: string, sessionTitle: string, event: React.MouseEvent) => {
+    const handleDeleteClick = (
+        sessionId: string,
+        sessionTitle: string,
+        event: React.MouseEvent
+    ) => {
         event.stopPropagation();
         setDeleteConfirm({ isOpen: true, sessionId, sessionTitle });
     };
@@ -144,7 +145,9 @@ const ChatSessionList: React.FC = () => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={(e) => handleDeleteClick(session.id, session.title, e)}
+                                        onClick={(e) =>
+                                            handleDeleteClick(session.id, session.title, e)
+                                        }
                                         className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                         title="Delete chat"
                                     >
@@ -171,7 +174,9 @@ const ChatSessionList: React.FC = () => {
                     <div className="flex flex-col items-center justify-center h-full text-center px-4 text-gray-500 dark:text-gray-400">
                         <FaFolderOpen className="w-12 h-12 mb-3 text-gray-400 dark:text-gray-500" />
                         <p className="text-sm font-medium">No active workspace</p>
-                        <p className="text-xs mt-1">Select or create a workspace to manage chats.</p>
+                        <p className="text-xs mt-1">
+                            Select or create a workspace to manage chats.
+                        </p>
                     </div>
                 )}
             </div>
