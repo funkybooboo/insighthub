@@ -103,7 +103,7 @@ Query -> Embedding Model -> Query Vector -> Similarity Search -> Top-K Chunks
 
 **Backend**:
 - Flask 3.1+ with Flask-SocketIO
-- PostgreSQL 16 with SQLAlchemy ORM
+- PostgreSQL 16 with psycopg2
 - Qdrant (vector database)
 - Ollama (local LLM)
 
@@ -194,7 +194,7 @@ class DocumentService:
 ### Database (PostgreSQL)
 - Repository classes for each domain
 - User, document, and chat session management
-- SQLAlchemy ORM with Alembic migrations
+- Raw SQL with psycopg2 and manual migrations
 
 ## Security
 
@@ -206,7 +206,7 @@ class DocumentService:
 
 ## Performance
 
-- **Caching**: Vector embeddings in Qdrant, SQLAlchemy query cache
+- **Caching**: Vector embeddings in Qdrant
 - **Streaming**: Token-by-token LLM responses for reduced latency
 - **Batch Processing**: Batch embeddings and vector insertion
 - **Connection Pooling**: Database and HTTP connection reuse

@@ -1,6 +1,6 @@
 """Application context for dependency injection."""
 
-from shared.database.sql import PostgresSQLDatabase, SqlDatabase
+from shared.database.sql import PostgresSqlDatabase, SqlDatabase
 from shared.llm import LlmProvider, create_llm_provider
 from shared.messaging import RabbitMQPublisher
 from shared.repositories import (
@@ -21,12 +21,8 @@ from src.domains.workspaces.service import WorkspaceService
 
 def create_database() -> SqlDatabase:
     """Create database instance from config."""
-    return PostgresSQLDatabase(
-        host=config.POSTGRES_HOST,
-        port=config.POSTGRES_PORT,
-        database=config.POSTGRES_DB,
-        user=config.POSTGRES_USER,
-        password=config.POSTGRES_PASSWORD,
+    return PostgresSqlDatabase(
+        db_url=config.DATABASE_URL,
     )
 
 

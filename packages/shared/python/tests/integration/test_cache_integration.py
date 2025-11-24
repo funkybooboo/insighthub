@@ -18,10 +18,8 @@ class TestCacheFactoryIntegration:
 
     def test_in_memory_cache_full_workflow(self) -> None:
         """Test complete workflow with InMemoryCache from factory."""
-        result = create_cache("in_memory", default_ttl=300)
-        assert result.is_some()
-
-        cache = result.unwrap()
+        cache = create_cache("in_memory", default_ttl=300)
+        assert cache is not None
 
         # Set values
         cache.set("user:1", {"name": "Alice", "active": True})
@@ -30,12 +28,12 @@ class TestCacheFactoryIntegration:
 
         # Get values
         user1 = cache.get("user:1")
-        assert user1.is_some()
-        assert user1.unwrap() == {"name": "Alice", "active": True}
+        assert user1 is not None
+        assert user1 == {"name": "Alice", "active": True}
 
         counter = cache.get("counter")
-        assert counter.is_some()
-        assert counter.unwrap() == 42
+        assert counter is not None
+        assert counter == 42
 
         # Check existence
         assert cache.exists("user:1") is True
@@ -47,19 +45,17 @@ class TestCacheFactoryIntegration:
 
         # Clear
         cache.clear()
-        assert cache.get("user:1").is_nothing()
-        assert cache.get("counter").is_nothing()
+        assert cache.get("user:1") is None
+        assert cache.get("counter") is None
 
     def test_noop_cache_full_workflow(self) -> None:
         """Test complete workflow with NoOpCache from factory."""
-        result = create_cache("noop")
-        assert result.is_some()
-
-        cache = result.unwrap()
+        cache = create_cache("noop")
+        assert cache is not None
 
         # All operations should be no-ops
         cache.set("key", "value")
-        assert cache.get("key").is_nothing()
+        assert cache.get("key") is None
         assert cache.exists("key") is False
 
         cache.delete("key")  # Should not raise
@@ -70,14 +66,14 @@ class TestCacheFactoryIntegration:
         in_memory_result = create_cache("in_memory")
         noop_result = create_cache("noop")
 
-        assert isinstance(in_memory_result.unwrap(), InMemoryCache)
-        assert isinstance(noop_result.unwrap(), NoOpCache)
+        assert isinstance(in_memory_result, InMemoryCache)
+        assert isinstance(noop_result, NoOpCache)
 
     def test_factory_with_invalid_type(self) -> None:
         """Factory handles invalid cache type."""
         result = create_cache("invalid_type")
 
-        assert result.is_nothing()
+        assert result is None
 
 
 class TestCacheContextManagerIntegration:
@@ -85,24 +81,24 @@ class TestCacheContextManagerIntegration:
 
     def test_in_memory_cache_context_manager(self) -> None:
         """InMemoryCache works correctly as context manager."""
-        result = create_cache("in_memory")
-        cache = result.unwrap()
+        cache = create_cache("in_memory")
+        assert cache is not None
 
         with cache:
             cache.set("key", "value")
-            assert cache.get("key").unwrap() == "value"
+            assert cache.get("key") == "value"
 
         # Cache should still work after context
-        assert cache.get("key").unwrap() == "value"
+        assert cache.get("key") == "value"
 
     def test_noop_cache_context_manager(self) -> None:
         """NoOpCache works correctly as context manager."""
-        result = create_cache("noop")
-        cache = result.unwrap()
+        cache = create_cache("noop")
+        assert cache is not None
 
         with cache:
             cache.set("key", "value")
-            assert cache.get("key").is_nothing()
+            assert cache.get("key") is None
 
 
 class TestCachePolymorphism:
@@ -110,9 +106,13 @@ class TestCachePolymorphism:
 
     def test_caches_share_common_interface(self) -> None:
         """All cache implementations share common interface."""
+        in_memory_cache = create_cache("in_memory")
+        noop_cache = create_cache("noop")
+        assert in_memory_cache is not None
+        assert noop_cache is not None
         caches: list[Cache] = [
-            create_cache("in_memory").unwrap(),
-            create_cache("noop").unwrap(),
+            in_memory_cache,
+            noop_cache,
         ]
 
         for cache in caches:
@@ -130,8 +130,10 @@ class TestCachePolymorphism:
             cache.set(key, value)
             return cache.exists(key)
 
-        in_memory = create_cache("in_memory").unwrap()
-        noop = create_cache("noop").unwrap()
+        in_memory = create_cache("in_memory")
+        noop = create_cache("noop")
+        assert in_memory is not None
+        assert noop is not None
 
         # Same function works with both implementations
         assert use_cache(in_memory, "key", "value") is True
@@ -143,7 +145,8 @@ class TestCacheWithComplexData:
 
     def test_cache_nested_json_structure(self) -> None:
         """Cache correctly stores and retrieves nested JSON."""
-        cache = create_cache("in_memory").unwrap()
+        cache = create_cache("in_memory")
+        assert cache is not None
 
         complex_data = {
             "user": {
@@ -164,12 +167,13 @@ class TestCacheWithComplexData:
         cache.set("complex", complex_data)
         retrieved = cache.get("complex")
 
-        assert retrieved.is_some()
-        assert retrieved.unwrap() == complex_data
+        assert retrieved is not None
+        assert retrieved == complex_data
 
     def test_cache_list_of_objects(self) -> None:
         """Cache correctly stores and retrieves list of objects."""
-        cache = create_cache("in_memory").unwrap()
+        cache = create_cache("in_memory")
+        assert cache is not None
 
         items = [
             {"id": 1, "name": "Item 1", "active": True},
@@ -180,6 +184,6 @@ class TestCacheWithComplexData:
         cache.set("items", items)
         retrieved = cache.get("items")
 
-        assert retrieved.is_some()
-        assert retrieved.unwrap() == items
-        assert len(retrieved.unwrap()) == 3
+        assert retrieved is not None
+        assert retrieved == items
+        assert len(retrieved) == 3

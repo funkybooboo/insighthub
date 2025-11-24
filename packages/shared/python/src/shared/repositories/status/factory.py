@@ -1,36 +1,30 @@
-"""Factory for creating status repository instances.
+"""Factory for creating status repository instances."""
 
-Note: Concrete implementations (SQLAlchemy, etc.) should be registered here
-when available. The shared library defines interfaces; implementations
-typically live in the server package.
-"""
+from typing import Optional
 
-from shared.types.option import Nothing, Option
-
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
+from .sql_status_repository import SqlStatusRepository
 from .status_repository import StatusRepository
 
 
 def create_status_repository(
     repo_type: str,
     **kwargs: str,
-) -> Option[StatusRepository]:
+) -> Optional[StatusRepository]:
     """
     Create a status repository instance based on configuration.
 
     Args:
-        repo_type: Type of repository (e.g., "sqlalchemy")
+        repo_type: Type of repository (e.g., "postgres")
         **kwargs: Repository-specific configuration
 
     Returns:
-        Some(StatusRepository) if creation succeeds, Nothing() if type unknown
-
-    Note:
-        Register concrete implementations here when available.
-        Example:
-            if repo_type == "sqlalchemy":
-                session = kwargs.get("session")
-                return Some(SQLAlchemyStatusRepository(session))
+        StatusRepository if creation succeeds, None if type unknown
     """
-    # No implementations registered in shared library
-    # Concrete implementations should be added when available
-    return Nothing()
+    if repo_type == "postgres":
+        db_url = kwargs.get("db_url")
+        if not db_url:
+            raise ValueError("db_url is required for postgres repository")
+        db = PostgresSqlDatabase(db_url)
+        return SqlStatusRepository(db)
+    return None

@@ -1,21 +1,21 @@
-"""SQL implementation of document repository using SqlDatabase."""
+"""SQL implementation of document repository using PostgresSqlDatabase."""
 
-from shared.database.sql.sql_database import SqlDatabase
+from typing import Optional
+
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.document import Document
-from shared.types.option import Nothing, Option, Some
-
 from .document_repository import DocumentRepository
 
 
 class SqlDocumentRepository(DocumentRepository):
     """Repository for Document operations using direct SQL queries."""
 
-    def __init__(self, db: SqlDatabase) -> None:
+    def __init__(self, db: PostgresSqlDatabase) -> None:
         """
-        Initialize repository with SqlDatabase.
+        Initialize repository with PostgresSqlDatabase.
 
         Args:
-            db: SqlDatabase instance
+            db: PostgresSqlDatabase instance
         """
         self._db = db
 
@@ -55,13 +55,13 @@ class SqlDocumentRepository(DocumentRepository):
             raise ValueError("Failed to create document")
         return Document(**row)
 
-    def get_by_id(self, document_id: int) -> Option[Document]:
+    def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
         query = "SELECT * FROM documents WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": document_id})
         if row is None:
-            return Nothing()
-        return Some(Document(**row))
+            return None
+        return Document(**row)
 
     def get_by_user(self, user_id: int, skip: int, limit: int) -> list[Document]:
         """Get all documents for a user with pagination."""
@@ -74,15 +74,15 @@ class SqlDocumentRepository(DocumentRepository):
         rows = self._db.fetchall(query, {"user_id": user_id, "skip": skip, "limit": limit})
         return [Document(**row) for row in rows]
 
-    def get_by_content_hash(self, content_hash: str) -> Option[Document]:
+    def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """Get document by content hash."""
         query = "SELECT * FROM documents WHERE content_hash = %(content_hash)s;"
         row = self._db.fetchone(query, {"content_hash": content_hash})
         if row is None:
-            return Nothing()
-        return Some(Document(**row))
+            return None
+        return Document(**row)
 
-    def update(self, document_id: int, **kwargs: str | int | None) -> Option[Document]:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Optional[Document]:
         """Update document fields."""
         if not kwargs:
             return self.get_by_id(document_id)
@@ -97,8 +97,8 @@ class SqlDocumentRepository(DocumentRepository):
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
-            return Nothing()
-        return Some(Document(**row))
+            return None
+        return Document(**row)
 
     def delete(self, document_id: int) -> bool:
         """Delete document by ID."""

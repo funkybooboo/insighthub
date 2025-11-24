@@ -1,8 +1,7 @@
 """Factory for creating message consumer instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .message_consumer import MessageConsumer
 from .rabbitmq_message_consumer import RabbitMQConsumer
@@ -20,7 +19,7 @@ def create_message_consumer(
     exchange: str | None = None,
     exchange_type: str | None = None,
     prefetch_count: int | None = None,
-) -> Option[MessageConsumer]:
+) -> Optional[MessageConsumer]:
     """
     Create a message consumer instance.
 
@@ -32,12 +31,12 @@ def create_message_consumer(
         prefetch_count: Number of messages to prefetch (required for rabbitmq)
 
     Returns:
-        Some(MessageConsumer) if creation succeeds, Nothing() otherwise
+        MessageConsumer if creation succeeds, None otherwise
     """
     try:
         consumer_enum = ConsumerType(consumer_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if consumer_enum == ConsumerType.RABBITMQ:
         if (
@@ -46,14 +45,12 @@ def create_message_consumer(
             or exchange_type is None
             or prefetch_count is None
         ):
-            return Nothing()
-        return Some(
-            RabbitMQConsumer(
-                rabbitmq_url=rabbitmq_url,
-                exchange=exchange,
-                exchange_type=exchange_type,
-                prefetch_count=prefetch_count,
-            )
+            return None
+        return RabbitMQConsumer(
+            rabbitmq_url=rabbitmq_url,
+            exchange=exchange,
+            exchange_type=exchange_type,
+            prefetch_count=prefetch_count,
         )
 
-    return Nothing()
+    return None

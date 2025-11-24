@@ -1,21 +1,21 @@
-"""SQL implementation of user repository using SqlDatabase."""
+"""SQL implementation of user repository using PostgresSqlDatabase."""
 
-from shared.database.sql.sql_database import SqlDatabase
+from typing import Optional
+
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.user import User
-from shared.types.option import Nothing, Option, Some
-
 from .user_repository import UserRepository
 
 
 class SqlUserRepository(UserRepository):
     """Repository for User operations using direct SQL queries."""
 
-    def __init__(self, db: SqlDatabase) -> None:
+    def __init__(self, db: PostgresSqlDatabase) -> None:
         """
-        Initialize repository with SqlDatabase.
+        Initialize repository with PostgresSqlDatabase.
 
         Args:
-            db: SqlDatabase instance
+            db: PostgresSqlDatabase instance
         """
         self._db = db
 
@@ -40,29 +40,29 @@ class SqlUserRepository(UserRepository):
             raise ValueError("Failed to create user")
         return User(**row)
 
-    def get_by_id(self, user_id: int) -> Option[User]:
+    def get_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID."""
         query = "SELECT * FROM users WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": user_id})
         if row is None:
-            return Nothing()
-        return Some(User(**row))
+            return None
+        return User(**row)
 
-    def get_by_username(self, username: str) -> Option[User]:
+    def get_by_username(self, username: str) -> Optional[User]:
         """Get user by username."""
         query = "SELECT * FROM users WHERE username = %(username)s;"
         row = self._db.fetchone(query, {"username": username})
         if row is None:
-            return Nothing()
-        return Some(User(**row))
+            return None
+        return User(**row)
 
-    def get_by_email(self, email: str) -> Option[User]:
+    def get_by_email(self, email: str) -> Optional[User]:
         """Get user by email."""
         query = "SELECT * FROM users WHERE email = %(email)s;"
         row = self._db.fetchone(query, {"email": email})
         if row is None:
-            return Nothing()
-        return Some(User(**row))
+            return None
+        return User(**row)
 
     def get_all(self, skip: int, limit: int) -> list[User]:
         """Get all users with pagination."""
@@ -70,7 +70,7 @@ class SqlUserRepository(UserRepository):
         rows = self._db.fetchall(query, {"skip": skip, "limit": limit})
         return [User(**row) for row in rows]
 
-    def update(self, user_id: int, **kwargs: str) -> Option[User]:
+    def update(self, user_id: int, **kwargs: str) -> Optional[User]:
         """Update user fields."""
         if not kwargs:
             return self.get_by_id(user_id)
@@ -85,8 +85,8 @@ class SqlUserRepository(UserRepository):
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
-            return Nothing()
-        return Some(User(**row))
+            return None
+        return User(**row)
 
     def delete(self, user_id: int) -> bool:
         """Delete user by ID."""

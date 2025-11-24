@@ -2,11 +2,10 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, Optional
 
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
-from shared.types.option import Option
 
 
 class RagConfigInput(TypedDict, total=False):
@@ -88,9 +87,9 @@ class WorkspaceService:
             self._repo.create_rag_config(workspace_id=workspace.id)
 
         # Mark workspace as ready
-        result = self._repo.update(workspace.id, status="ready")
-        if result.is_some():
-            workspace = result.unwrap()
+        workspace = self._repo.update(workspace.id, status="ready")
+        if workspace is None:
+            raise ValueError("Failed to update workspace status")
 
         return workspace
 
@@ -115,7 +114,7 @@ class WorkspaceService:
         self,
         workspace_id: int | str,
         user_id: int,
-    ) -> Workspace | None:
+    ) -> Optional[Workspace]:
         """
         Get a workspace by ID if user has access.
 
@@ -127,10 +126,9 @@ class WorkspaceService:
             Workspace if found and accessible, None otherwise
         """
         ws_id = int(workspace_id) if isinstance(workspace_id, str) else workspace_id
-        result = self._repo.get_by_id(ws_id)
-        if result.is_nothing():
+        workspace = self._repo.get_by_id(ws_id)
+        if workspace is None:
             return None
-        workspace = result.unwrap()
         # Check user access
         if workspace.user_id != user_id:
             return None
@@ -141,7 +139,7 @@ class WorkspaceService:
         workspace_id: int | str,
         user_id: int,
         **update_data: UpdateValue,
-    ) -> Workspace | None:
+    ) -> Optional[Workspace]:
         """
         Update a workspace.
 
@@ -157,10 +155,7 @@ class WorkspaceService:
         if not workspace:
             return None
 
-        result = self._repo.update(workspace.id, **update_data)
-        if result.is_nothing():
-            return None
-        return result.unwrap()
+        return self._repo.update(workspace.id, **update_data)
 
     def delete_workspace(
         self,
@@ -187,7 +182,7 @@ class WorkspaceService:
         self,
         workspace_id: int | str,
         user_id: int,
-    ) -> WorkspaceStats | None:
+    ) -> Optional[WorkspaceStats]:
         """
         Get statistics for a workspace.
 
@@ -220,7 +215,7 @@ class WorkspaceService:
         self,
         workspace_id: int | str,
         user_id: int,
-    ) -> RagConfig | None:
+    ) -> Optional[RagConfig]:
         """
         Get RAG configuration for a workspace.
 
@@ -235,17 +230,14 @@ class WorkspaceService:
         if not workspace:
             return None
 
-        result = self._repo.get_rag_config(workspace.id)
-        if result.is_nothing():
-            return None
-        return result.unwrap()
+        return self._repo.get_rag_config(workspace.id)
 
     def update_rag_config(
         self,
         workspace_id: int | str,
         user_id: int,
         **update_data: UpdateValue,
-    ) -> RagConfig | None:
+    ) -> Optional[RagConfig]:
         """
         Update RAG configuration for a workspace.
 
@@ -261,10 +253,7 @@ class WorkspaceService:
         if not workspace:
             return None
 
-        result = self._repo.update_rag_config(workspace.id, **update_data)
-        if result.is_nothing():
-            return None
-        return result.unwrap()
+        return self._repo.update_rag_config(workspace.id, **update_data)
 
     def validate_workspace_access(
         self,

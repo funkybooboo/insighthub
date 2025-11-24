@@ -1,8 +1,7 @@
 """Factory for creating cache instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .cache import Cache
 from .in_memory_cache import InMemoryCache
@@ -25,7 +24,7 @@ def create_cache(
     db: int | None = None,
     password: str | None = None,
     default_ttl: int | None = None,
-) -> Option[Cache]:
+) -> Optional[Cache]:
     """
     Create a cache instance based on configuration.
 
@@ -38,28 +37,26 @@ def create_cache(
         default_ttl: Default TTL in seconds (optional)
 
     Returns:
-        Some(Cache) if creation succeeds, Nothing() if type unknown or params missing
+        Cache if creation succeeds, None if type unknown or params missing
     """
     try:
         cache_enum = CacheType(cache_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if cache_enum == CacheType.REDIS:
         if host is None or port is None or db is None:
-            return Nothing()
-        return Some(
-            RedisCache(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                default_ttl=default_ttl,
-            )
+            return None
+        return RedisCache(
+            host=host,
+            port=port,
+            db=db,
+            password=password,
+            default_ttl=default_ttl,
         )
     elif cache_enum == CacheType.IN_MEMORY:
-        return Some(InMemoryCache(default_ttl=default_ttl))
+        return InMemoryCache(default_ttl=default_ttl)
     elif cache_enum == CacheType.NOOP:
-        return Some(NoOpCache())
+        return NoOpCache()
 
-    return Nothing()
+    return None

@@ -1,6 +1,6 @@
 """Parser factory for automatically selecting appropriate document parser."""
 
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 from shared.documents.parsing.document_parser import DocumentParser, ParsingError
 from shared.documents.parsing.docx_document_parser import DocxDocumentParser
@@ -9,7 +9,6 @@ from shared.documents.parsing.pdf_document_parser import PDFDocumentParser
 from shared.documents.parsing.text_document_parser import TextDocumentParser
 from shared.types.common import MetadataDict
 from shared.types.document import Document
-from shared.types.option import Nothing, Option, Some
 from shared.types.result import Err, Result
 
 
@@ -34,7 +33,7 @@ class ParserFactory:
         """
         self._parsers.append(parser)
 
-    def get_parser(self, filename: str) -> Option[DocumentParser]:
+    def get_parser(self, filename: str) -> Optional[DocumentParser]:
         """
         Get appropriate parser for the given filename.
 
@@ -42,12 +41,12 @@ class ParserFactory:
             filename: Name of the file to parse
 
         Returns:
-            Some(DocumentParser) if a parser supports the format, Nothing() otherwise
+            DocumentParser if a parser supports the format, None otherwise
         """
         for parser in self._parsers:
             if parser.supports_format(filename):
-                return Some(parser)
-        return Nothing()
+                return parser
+        return None
 
     def parse_document(
         self,
@@ -66,8 +65,8 @@ class ParserFactory:
         Returns:
             Result containing Document on success, or ParsingError on failure
         """
-        parser_option = self.get_parser(filename)
-        if parser_option.is_nothing():
+        parser = self.get_parser(filename)
+        if parser is None:
             return Err(
                 ParsingError(
                     f"No parser available for file: {filename}",
@@ -75,7 +74,6 @@ class ParserFactory:
                 )
             )
 
-        parser = parser_option.unwrap()
         return parser.parse(raw, metadata)
 
     def get_supported_formats(self) -> list[str]:
@@ -89,8 +87,8 @@ class ParserFactory:
         test_files = ["test.pdf", "test.docx", "test.html", "test.txt"]
 
         for test_file in test_files:
-            parser_option = self.get_parser(test_file)
-            if parser_option.is_some():
+            parser = self.get_parser(test_file)
+            if parser is not None:
                 ext = test_file.lower().split(".")[-1]
                 if ext not in formats:
                     formats.append(ext)

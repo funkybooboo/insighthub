@@ -1,9 +1,9 @@
 """Chat session repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models.chat import ChatSession
-from shared.types.option import Option
 
 
 class ChatSessionRepository(ABC):
@@ -32,7 +32,7 @@ class ChatSessionRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, session_id: int) -> Option[ChatSession]:
+    def get_by_id(self, session_id: int) -> Optional[ChatSession]:
         """
         Get session by ID.
 
@@ -40,7 +40,7 @@ class ChatSessionRepository(ABC):
             session_id: Session ID
 
         Returns:
-            Some(ChatSession) if found, Nothing() if not found
+            ChatSession if found, None if not found
         """
         pass
 
@@ -60,7 +60,7 @@ class ChatSessionRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, session_id: int, **kwargs: str | int | None) -> Option[ChatSession]:
+    def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:
         """
         Update session fields.
 
@@ -69,7 +69,7 @@ class ChatSessionRepository(ABC):
             **kwargs: Fields to update
 
         Returns:
-            Some(ChatSession) if found and updated, Nothing() if not found
+            ChatSession if found and updated, None if not found
         """
         pass
 

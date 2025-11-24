@@ -1,21 +1,21 @@
-"""SQL implementation of chat session repository using SqlDatabase."""
+"""SQL implementation of chat session repository using PostgresSqlDatabase."""
 
-from shared.database.sql.sql_database import SqlDatabase
+from typing import Optional
+
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.chat import ChatSession
-from shared.types.option import Nothing, Option, Some
-
 from .chat_session_repository import ChatSessionRepository
 
 
 class SqlChatSessionRepository(ChatSessionRepository):
     """Repository for ChatSession operations using direct SQL queries."""
 
-    def __init__(self, db: SqlDatabase) -> None:
+    def __init__(self, db: PostgresSqlDatabase) -> None:
         """
-        Initialize repository with SqlDatabase.
+        Initialize repository with PostgresSqlDatabase.
 
         Args:
-            db: SqlDatabase instance
+            db: PostgresSqlDatabase instance
         """
         self._db = db
 
@@ -43,13 +43,13 @@ class SqlChatSessionRepository(ChatSessionRepository):
             raise ValueError("Failed to create chat session")
         return ChatSession(**row)
 
-    def get_by_id(self, session_id: int) -> Option[ChatSession]:
+    def get_by_id(self, session_id: int) -> Optional[ChatSession]:
         """Get chat session by ID."""
         query = "SELECT * FROM chat_sessions WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": session_id})
         if row is None:
-            return Nothing()
-        return Some(ChatSession(**row))
+            return None
+        return ChatSession(**row)
 
     def get_by_user(self, user_id: int, skip: int, limit: int) -> list[ChatSession]:
         """Get all chat sessions for a user with pagination."""
@@ -63,7 +63,7 @@ class SqlChatSessionRepository(ChatSessionRepository):
         rows = self._db.fetchall(query, {"user_id": user_id, "skip": skip, "limit": limit})
         return [ChatSession(**row) for row in rows]
 
-    def update(self, session_id: int, **kwargs: str | int | None) -> Option[ChatSession]:
+    def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:
         """Update chat session fields."""
         if not kwargs:
             return self.get_by_id(session_id)
@@ -78,8 +78,8 @@ class SqlChatSessionRepository(ChatSessionRepository):
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
-            return Nothing()
-        return Some(ChatSession(**row))
+            return None
+        return ChatSession(**row)
 
     def delete(self, session_id: int) -> bool:
         """Delete chat session by ID."""

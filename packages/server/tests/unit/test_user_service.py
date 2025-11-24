@@ -1,9 +1,10 @@
 """Unit tests for UserService."""
 
 import pytest
+from typing import Optional
+
 from shared.models import User
 from shared.repositories import UserRepository
-from shared.types.option import Nothing, Option, Some
 
 from src.domains.users.exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.domains.users.service import UserService
@@ -33,43 +34,40 @@ class FakeUserRepository(UserRepository):
         self.next_id += 1
         return user
 
-    def get_by_id(self, user_id: int) -> Option[User]:
+    def get_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID."""
-        user = self.users.get(user_id)
-        if user is None:
-            return Nothing()
-        return Some(user)
+        return self.users.get(user_id)
 
-    def get_by_username(self, username: str) -> Option[User]:
+    def get_by_username(self, username: str) -> Optional[User]:
         """Get user by username."""
         for user in self.users.values():
             if user.username == username:
-                return Some(user)
-        return Nothing()
+                return user
+        return None
 
-    def get_by_email(self, email: str) -> Option[User]:
+    def get_by_email(self, email: str) -> Optional[User]:
         """Get user by email."""
         for user in self.users.values():
             if user.email == email:
-                return Some(user)
-        return Nothing()
+                return user
+        return None
 
     def get_all(self, skip: int = 0, limit: int = 100) -> list[User]:
         """Get all users with pagination."""
         all_users = list(self.users.values())
         return all_users[skip : skip + limit]
 
-    def update(self, user_id: int, **kwargs: str) -> Option[User]:
+    def update(self, user_id: int, **kwargs: str) -> Optional[User]:
         """Update user fields."""
         user = self.users.get(user_id)
         if not user:
-            return Nothing()
+            return None
 
         for key, value in kwargs.items():
             if hasattr(user, key):
                 setattr(user, key, value)
 
-        return Some(user)
+        return user
 
     def delete(self, user_id: int) -> bool:
         """Delete user by ID."""

@@ -4,12 +4,12 @@ import json
 import threading
 from collections.abc import Generator
 from dataclasses import dataclass
+from typing import Optional
 
 from shared.llm import LlmProvider
 from shared.logger import create_logger
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
-from shared.types.option import Nothing, Some
 
 from .dtos import ChatResponse as ChatResponseDTO
 from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
@@ -139,14 +139,9 @@ class ChatService:
         logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}")
         return session
 
-    def get_session_by_id(self, session_id: int) -> ChatSession | None:
+    def get_session_by_id(self, session_id: int) -> Optional[ChatSession]:
         """Get chat session by ID."""
-        result = self.session_repository.get_by_id(session_id)
-        match result:
-            case Some(session):
-                return session
-            case Nothing():
-                return None
+        return self.session_repository.get_by_id(session_id)
 
     def list_user_sessions(
         self, user_id: int, skip: int = 0, limit: int = 100
@@ -154,14 +149,9 @@ class ChatService:
         """List all chat sessions for a user with pagination."""
         return self.session_repository.get_by_user(user_id, skip=skip, limit=limit)
 
-    def update_session(self, session_id: int, **kwargs: str) -> ChatSession | None:
+    def update_session(self, session_id: int, **kwargs: str) -> Optional[ChatSession]:
         """Update chat session fields."""
-        result = self.session_repository.update(session_id, **kwargs)
-        match result:
-            case Some(session):
-                return session
-            case Nothing():
-                return None
+        return self.session_repository.update(session_id, **kwargs)
 
     def delete_session(self, session_id: int) -> bool:
         """Delete chat session by ID."""
@@ -186,14 +176,9 @@ class ChatService:
             session_id=session_id, role=role, content=content, extra_metadata=metadata_json
         )
 
-    def get_message_by_id(self, message_id: int) -> ChatMessage | None:
+    def get_message_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """Get chat message by ID."""
-        result = self.message_repository.get_by_id(message_id)
-        match result:
-            case Some(message):
-                return message
-            case Nothing():
-                return None
+        return self.message_repository.get_by_id(message_id)
 
     def list_session_messages(
         self, session_id: int, skip: int = 0, limit: int = 100

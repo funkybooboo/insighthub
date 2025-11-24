@@ -6,6 +6,7 @@ not HOW it does it (implementation details).
 """
 
 from io import BytesIO
+from typing import Optional
 
 from shared.storage import BlobStorageType, InMemoryBlobStorage, create_blob_storage
 
@@ -92,36 +93,36 @@ class TestBlobStorageFactoryBehavior:
     """Test storage factory input/output behavior."""
 
     def test_create_in_memory_returns_in_memory_storage(self) -> None:
-        """Given 'in_memory' type, returns Some(InMemoryBlobStorage)."""
+        """Given 'in_memory' type, returns InMemoryBlobStorage."""
         result = create_blob_storage("in_memory")
 
-        assert result.is_some()
-        assert isinstance(result.unwrap(), InMemoryBlobStorage)
+        assert result is not None
+        assert isinstance(result, InMemoryBlobStorage)
 
     def test_create_with_enum_works(self) -> None:
         """Factory accepts BlobStorageType enum values."""
         result = create_blob_storage(BlobStorageType.IN_MEMORY.value)
 
-        assert result.is_some()
-        assert isinstance(result.unwrap(), InMemoryBlobStorage)
+        assert result is not None
+        assert isinstance(result, InMemoryBlobStorage)
 
     def test_create_file_system_requires_base_path(self) -> None:
         """File system storage requires base_path parameter."""
         result = create_blob_storage("file_system")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_create_s3_requires_credentials(self) -> None:
         """S3 storage requires all credentials."""
         result = create_blob_storage("s3")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_create_invalid_type_returns_nothing(self) -> None:
-        """Invalid storage type returns Nothing."""
+        """Invalid storage type returns None."""
         result = create_blob_storage("invalid_type")
 
-        assert result.is_nothing()
+        assert result is None
 
 
 class TestBlobStorageTypeEnum:

@@ -5,6 +5,8 @@ import re
 import sys
 from enum import Enum
 
+from pythonjsonlogger import jsonlogger
+
 # Type alias for context values - primitives only, no Any
 ContextValue = str | int | float | bool | None
 
@@ -117,16 +119,25 @@ class SecretsFilter(logging.Filter):
         Returns:
             Always True (we filter content, not records)
         """
-        if record.msg:
-            record.msg = self._redact_secrets(str(record.msg))
+        if isinstance(record.msg, dict):
+            record.msg = self._redact_secrets_from_dict(record.msg)
+        else:
+            record.msg = self._redact_secrets_from_str(str(record.msg))
+
         if record.args:
             record.args = tuple(
-                self._redact_secrets(str(arg)) if isinstance(arg, str) else arg
-                for arg in record.args
+                self._redact_secrets(arg) for arg in record.args
             )
         return True
 
-    def _redact_secrets(self, text: str) -> str:
+    def _redact_secrets(self, data: any) -> any:
+        if isinstance(data, dict):
+            return self._redact_secrets_from_dict(data)
+        elif isinstance(data, str):
+            return self._redact_secrets_from_str(data)
+        return data
+
+    def _redact_secrets_from_str(self, text: str) -> str:
         """
         Redact sensitive information from text.
 
@@ -140,10 +151,32 @@ class SecretsFilter(logging.Filter):
             text = pattern.sub(replacement, text)
         return text
 
+    def _redact_secrets_from_dict(self, data: dict) -> dict:
+        """
+        Recursively redact sensitive information from a dictionary.
+
+        Args:
+            data: Dictionary to redact
+
+        Returns:
+            Dictionary with secrets redacted
+        """
+        redacted_data = {}
+        for key, value in data.items():
+            redacted_key = self._redact_secrets_from_str(key)
+            if isinstance(value, dict):
+                redacted_value = self._redact_secrets_from_dict(value)
+            elif isinstance(value, str):
+                redacted_value = self._redact_secrets_from_str(value)
+            else:
+                redacted_value = value
+            redacted_data[redacted_key] = redacted_value
+        return redacted_data
+
 
 class Logger:
     """
-    Logger wrapper providing structured logging for services and server.
+    Logger wrapper providing structured JSON logging for services and server.
 
     Provides a consistent logging interface across all InsightHub components
     with support for contextual information, structured output, and automatic
@@ -151,8 +184,8 @@ class Logger:
 
     Example:
         logger = Logger("ingestion-worker")
-        logger.info("Processing document", document_id="doc_123")
-        logger.error("Failed to process", error=str(e), document_id="doc_123")
+        logger.info("Processing document", extra={"document_id": "doc_123"})
+        logger.error("Failed to process", extra={"error": str(e), "document_id": "doc_123"})
     """
 
     _instances: dict[str, "Logger"] = {}
@@ -177,26 +210,21 @@ class Logger:
         self._configure_logger()
 
     def _configure_logger(self) -> None:
-        """Configure the underlying Python logger with secrets filtering."""
+        """Configure the underlying Python logger with secrets filtering and JSON formatter."""
         if not Logger._configured:
-            format_string = (
-                "%(asctime)s | %(name)s | %(levelname)s | "
-                "[%(filename)s:%(lineno)d] | %(message)s"
+            log_handler = logging.StreamHandler(sys.stdout)
+            formatter = jsonlogger.JsonFormatter(
+                "%(asctime)s %(name)s %(levelname)s %(filename)s %(lineno)d %(message)s"
             )
+            log_handler.setFormatter(formatter)
 
-            # Create handler with secrets filter
-            handler = logging.StreamHandler(sys.stdout)
-            handler.addFilter(Logger._secrets_filter)
+            # Add secrets filter to handler
+            log_handler.addFilter(Logger._secrets_filter)
 
-            logging.basicConfig(
-                level=logging.DEBUG,
-                format=format_string,
-                handlers=[handler],
-                force=True,
-            )
-
-            # Add secrets filter to root logger as well
-            logging.getLogger().addFilter(Logger._secrets_filter)
+            # Get the root logger
+            root_logger = logging.getLogger()
+            root_logger.addHandler(log_handler)
+            root_logger.setLevel(logging.DEBUG)
 
             # Suppress noisy third-party loggers
             logging.getLogger("pika").setLevel(logging.WARNING)
@@ -224,36 +252,40 @@ class Logger:
             cls._instances[name] = cls(name, level)
         return cls._instances[name]
 
-    def _format_message(self, message: str, **context: ContextValue) -> str:
-        """Format message with context key-value pairs."""
-        if not context:
-            return message
-        context_str = " | ".join(f"{k}={v}" for k, v in context.items())
-        return f"{message} | {context_str}"
+    def _log(self, level: int, message: str, extra: dict | None = None) -> None:
+        """
+        Log a message with a given level and extra context.
 
-    def debug(self, message: str, **context: ContextValue) -> None:
+        Args:
+            level: The logging level
+            message: The message to log
+            extra: A dictionary of extra context to include in the log
+        """
+        self._logger.log(level, message, extra=extra)
+
+    def debug(self, message: str, extra: dict | None = None) -> None:
         """Log debug message with optional context."""
-        self._logger.debug(self._format_message(message, **context))
+        self._log(logging.DEBUG, message, extra)
 
-    def info(self, message: str, **context: ContextValue) -> None:
+    def info(self, message: str, extra: dict | None = None) -> None:
         """Log info message with optional context."""
-        self._logger.info(self._format_message(message, **context))
+        self._log(logging.INFO, message, extra)
 
-    def warning(self, message: str, **context: ContextValue) -> None:
+    def warning(self, message: str, extra: dict | None = None) -> None:
         """Log warning message with optional context."""
-        self._logger.warning(self._format_message(message, **context))
+        self._log(logging.WARNING, message, extra)
 
-    def error(self, message: str, **context: ContextValue) -> None:
+    def error(self, message: str, extra: dict | None = None) -> None:
         """Log error message with optional context."""
-        self._logger.error(self._format_message(message, **context))
+        self._log(logging.ERROR, message, extra)
 
-    def critical(self, message: str, **context: ContextValue) -> None:
+    def critical(self, message: str, extra: dict | None = None) -> None:
         """Log critical message with optional context."""
-        self._logger.critical(self._format_message(message, **context))
+        self._log(logging.CRITICAL, message, extra)
 
-    def exception(self, message: str, **context: ContextValue) -> None:
+    def exception(self, message: str, extra: dict | None = None) -> None:
         """Log exception with traceback and optional context."""
-        self._logger.exception(self._format_message(message, **context))
+        self._logger.exception(message, extra=extra)
 
     def set_level(self, level: LogLevel) -> None:
         """Change the log level."""
@@ -273,6 +305,7 @@ class Logger:
 
 def create_logger(name: str, level: LogLevel = LogLevel.INFO) -> Logger:
     """
+
     Create or get a logger instance.
 
     Factory function for creating loggers with a clean API.
@@ -286,6 +319,6 @@ def create_logger(name: str, level: LogLevel = LogLevel.INFO) -> Logger:
 
     Example:
         logger = create_logger("server", LogLevel.DEBUG)
-        logger.info("Server started", port=8000)
+        logger.info("Server started", extra={"port": 8000})
     """
     return Logger.get_logger(name, level)

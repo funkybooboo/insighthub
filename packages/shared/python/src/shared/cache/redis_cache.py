@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 from types import TracebackType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from shared.logger import create_logger
 from shared.types.common import JsonValue
-from shared.types.option import Nothing, Option, Some
 
 from .cache import Cache
 
@@ -36,8 +35,8 @@ class RedisCache(Cache):
         cache = RedisCache(host="localhost", port=6379, db=0)
         cache.set("user:123", {"name": "Alice"}, ttl=60)
         result = cache.get("user:123")
-        if result.is_some():
-            user = result.unwrap()
+        if result is not None:
+            user = result
     """
 
     def __init__(
@@ -82,7 +81,7 @@ class RedisCache(Cache):
             self._client.ping()
             return True
         except Exception as e:
-            logger.warning("Redis connection failed", error=str(e))
+            logger.warning("Redis connection failed", extra={"error": str(e)})
             return False
 
     def set(self, key: str, value: JsonValue, ttl: int | None = None) -> None:
@@ -103,7 +102,7 @@ class RedisCache(Cache):
         else:
             self._client.set(key, payload)
 
-    def get(self, key: str) -> Option[JsonValue]:
+    def get(self, key: str) -> Optional[JsonValue]:
         """
         Get a value from the cache.
 
@@ -111,19 +110,19 @@ class RedisCache(Cache):
             key: Cache key
 
         Returns:
-            Some(value) if found, Nothing() otherwise
+            Value if found, None otherwise
         """
         if not self._ensure() or self._client is None:
-            return Nothing()
+            return None
         raw = self._client.get(key)
         if raw is None:
-            return Nothing()
+            return None
         try:
             decoded = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
             result: JsonValue = json.loads(decoded)
-            return Some(result)
+            return result
         except (json.JSONDecodeError, UnicodeDecodeError):
-            return Nothing()
+            return None
 
     def delete(self, key: str) -> None:
         """Delete a value from the cache."""

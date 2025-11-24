@@ -17,7 +17,7 @@ import psycopg2.extras
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-from shared.database.sql import PostgresSQLDatabase
+from shared.database.sql import PostgresSqlDatabase
 from shared.models import User
 from shared.repositories import (
     ChatMessageRepository,
@@ -166,9 +166,9 @@ def db_url(postgres_container: PostgresContainer) -> Generator[str, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db(db_url: str) -> Generator[PostgresSQLDatabase, None, None]:
+def db(db_url: str) -> Generator[PostgresSqlDatabase, None, None]:
     """Create a test database connection."""
-    database = PostgresSQLDatabase(db_url)
+    database = PostgresSqlDatabase(db_url)
     try:
         yield database
     finally:
@@ -220,7 +220,7 @@ def blob_storage(minio_container: MinioContainer) -> BlobStorage:
 
 
 @pytest.fixture(scope="function")
-def test_context(db: PostgresSQLDatabase, blob_storage: BlobStorage) -> IntegrationTestContext:
+def test_context(db: PostgresSqlDatabase, blob_storage: BlobStorage) -> IntegrationTestContext:
     """Create a test context for integration tests with real implementations."""
     return create_integration_test_context(db=db, blob_storage=blob_storage)
 
@@ -262,7 +262,7 @@ def sample_text_file() -> BytesIO:
 
 
 @pytest.fixture
-def test_user(db: PostgresSQLDatabase) -> User:
+def test_user(db: PostgresSqlDatabase) -> User:
     """Create a test user for authentication."""
     password_hash = User.hash_password("test_password")
 

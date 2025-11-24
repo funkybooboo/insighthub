@@ -1,8 +1,7 @@
 """Factory for creating document chunker instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .document_chunker import Chunker
 from .sentence_document_chunker import SentenceDocumentChunker
@@ -18,7 +17,7 @@ def create_chunker(
     chunker_type: str,
     chunk_size: int | None = None,
     overlap: int | None = None,
-) -> Option[Chunker]:
+) -> Optional[Chunker]:
     """
     Create a document chunker instance based on configuration.
 
@@ -28,7 +27,7 @@ def create_chunker(
         overlap: Number of characters to overlap between chunks (required)
 
     Returns:
-        Some(Chunker) if creation succeeds, Nothing() if type unknown or params missing
+        Chunker if creation succeeds, None if type unknown or params missing
 
     Note:
         Additional chunker types (character, paragraph, semantic) can be
@@ -37,16 +36,14 @@ def create_chunker(
     try:
         chunker_enum = ChunkerType(chunker_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if chunker_enum == ChunkerType.SENTENCE:
         if chunk_size is None or overlap is None:
-            return Nothing()
-        return Some(
-            SentenceDocumentChunker(
-                chunk_size=chunk_size,
-                overlap=overlap,
-            )
+            return None
+        return SentenceDocumentChunker(
+            chunk_size=chunk_size,
+            overlap=overlap,
         )
 
-    return Nothing()
+    return None

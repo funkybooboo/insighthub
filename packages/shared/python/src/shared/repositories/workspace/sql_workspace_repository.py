@@ -1,21 +1,21 @@
-"""SQL implementation of workspace repository using SqlDatabase."""
+"""SQL implementation of workspace repository using PostgresSqlDatabase."""
 
-from shared.database.sql.sql_database import SqlDatabase
+from typing import Optional
+
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.workspace import RagConfig, Workspace
-from shared.types.option import Nothing, Option, Some
-
 from .workspace_repository import WorkspaceRepository
 
 
 class SqlWorkspaceRepository(WorkspaceRepository):
     """Repository for Workspace operations using direct SQL queries."""
 
-    def __init__(self, db: SqlDatabase) -> None:
+    def __init__(self, db: PostgresSqlDatabase) -> None:
         """
-        Initialize repository with SqlDatabase.
+        Initialize repository with PostgresSqlDatabase.
 
         Args:
-            db: SqlDatabase instance
+            db: PostgresSqlDatabase instance
         """
         self._db = db
 
@@ -43,13 +43,13 @@ class SqlWorkspaceRepository(WorkspaceRepository):
             raise ValueError("Failed to create workspace")
         return Workspace(**row)
 
-    def get_by_id(self, workspace_id: int) -> Option[Workspace]:
+    def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
         """Get workspace by ID."""
         query = "SELECT * FROM workspaces WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": workspace_id})
         if row is None:
-            return Nothing()
-        return Some(Workspace(**row))
+            return None
+        return Workspace(**row)
 
     def get_by_user(
         self,
@@ -76,7 +76,7 @@ class SqlWorkspaceRepository(WorkspaceRepository):
         self,
         workspace_id: int,
         **kwargs: str | int | bool | None,
-    ) -> Option[Workspace]:
+    ) -> Optional[Workspace]:
         """Update workspace fields."""
         if not kwargs:
             return self.get_by_id(workspace_id)
@@ -91,8 +91,8 @@ class SqlWorkspaceRepository(WorkspaceRepository):
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
-            return Nothing()
-        return Some(Workspace(**row))
+            return None
+        return Workspace(**row)
 
     def delete(self, workspace_id: int) -> bool:
         """Delete workspace by ID (cascades to rag_configs)."""
@@ -144,19 +144,19 @@ class SqlWorkspaceRepository(WorkspaceRepository):
             raise ValueError("Failed to create RAG config")
         return RagConfig(**row)
 
-    def get_rag_config(self, workspace_id: int) -> Option[RagConfig]:
+    def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
         """Get RAG configuration for a workspace."""
         query = "SELECT * FROM rag_configs WHERE workspace_id = %(workspace_id)s;"
         row = self._db.fetchone(query, {"workspace_id": workspace_id})
         if row is None:
-            return Nothing()
-        return Some(RagConfig(**row))
+            return None
+        return RagConfig(**row)
 
     def update_rag_config(
         self,
         workspace_id: int,
         **kwargs: str | int | bool | None,
-    ) -> Option[RagConfig]:
+    ) -> Optional[RagConfig]:
         """Update RAG configuration fields."""
         if not kwargs:
             return self.get_rag_config(workspace_id)
@@ -171,8 +171,8 @@ class SqlWorkspaceRepository(WorkspaceRepository):
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
-            return Nothing()
-        return Some(RagConfig(**row))
+            return None
+        return RagConfig(**row)
 
     def get_document_count(self, workspace_id: int) -> int:
         """Get count of documents in workspace."""

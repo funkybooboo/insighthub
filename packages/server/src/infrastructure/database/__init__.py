@@ -5,19 +5,19 @@ from pathlib import Path
 
 import psycopg2
 import psycopg2.extras
-from shared.database.sql import PostgresSQLDatabase, SqlDatabase
+from shared.database.sql import PostgresSqlDatabase, SqlDatabase
 
 from src import config
 
 # Global database instance (lazy initialized)
-_db: PostgresSQLDatabase | None = None
+_db: PostgresSqlDatabase | None = None
 
 
 def get_db() -> Generator[SqlDatabase, None, None]:
     """Get a database connection."""
     global _db
     if _db is None:
-        _db = PostgresSQLDatabase(config.DATABASE_URL)
+        _db = PostgresSqlDatabase(config.DATABASE_URL)
     yield _db
 
 

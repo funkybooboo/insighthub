@@ -1,9 +1,9 @@
 """Chat message repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models.chat import ChatMessage
-from shared.types.option import Option
 
 
 class ChatMessageRepository(ABC):
@@ -32,7 +32,7 @@ class ChatMessageRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, message_id: int) -> Option[ChatMessage]:
+    def get_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """
         Get message by ID.
 
@@ -40,7 +40,7 @@ class ChatMessageRepository(ABC):
             message_id: Message ID
 
         Returns:
-            Some(ChatMessage) if found, Nothing() if not found
+            ChatMessage if found, None if not found
         """
         pass
 

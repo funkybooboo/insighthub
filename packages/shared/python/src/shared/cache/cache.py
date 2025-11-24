@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.types.common import JsonValue
-from shared.types.option import Option
 
 
 class Cache(ABC):
@@ -13,7 +13,6 @@ class Cache(ABC):
     Abstract interface for cache implementations.
 
     Cache values must be JSON-serializable primitives or structures.
-    Uses Option[T] for nullable return values.
     """
 
     @abstractmethod
@@ -29,7 +28,7 @@ class Cache(ABC):
         ...
 
     @abstractmethod
-    def get(self, key: str) -> Option[JsonValue]:
+    def get(self, key: str) -> Optional[JsonValue]:
         """
         Get a value from the cache.
 
@@ -37,7 +36,7 @@ class Cache(ABC):
             key: Cache key
 
         Returns:
-            Some(value) if found and not expired, Nothing() otherwise
+            Value if found and not expired, None otherwise
         """
         ...
 

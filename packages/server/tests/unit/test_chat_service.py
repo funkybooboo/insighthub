@@ -4,12 +4,12 @@ import json
 import time
 from collections.abc import Generator
 from datetime import datetime
+from typing import Optional
 
 import pytest
 from shared.llm import LlmProvider
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
-from shared.types.option import Nothing, Option, Some
 
 from src.domains.chat.exceptions import EmptyMessageError
 from src.domains.chat.service import ChatService
@@ -80,29 +80,26 @@ class FakeChatSessionRepository(ChatSessionRepository):
         self.next_id += 1
         return session
 
-    def get_by_id(self, session_id: int) -> Option[ChatSession]:
+    def get_by_id(self, session_id: int) -> Optional[ChatSession]:
         """Get session by ID."""
-        session = self.sessions.get(session_id)
-        if session is None:
-            return Nothing()
-        return Some(session)
+        return self.sessions.get(session_id)
 
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[ChatSession]:
         """Get all sessions for a user."""
         user_sessions = [s for s in self.sessions.values() if s.user_id == user_id]
         return user_sessions[skip : skip + limit]
 
-    def update(self, session_id: int, **kwargs: str | int | None) -> Option[ChatSession]:
+    def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:
         """Update session fields."""
         session = self.sessions.get(session_id)
         if not session:
-            return Nothing()
+            return None
 
         for key, value in kwargs.items():
             if hasattr(session, key):
                 setattr(session, key, value)
 
-        return Some(session)
+        return session
 
     def delete(self, session_id: int) -> bool:
         """Delete session by ID."""
@@ -137,12 +134,9 @@ class FakeChatMessageRepository(ChatMessageRepository):
         self.next_id += 1
         return message
 
-    def get_by_id(self, message_id: int) -> Option[ChatMessage]:
+    def get_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """Get message by ID."""
-        msg = self.messages.get(message_id)
-        if msg is None:
-            return Nothing()
-        return Some(msg)
+        return self.messages.get(message_id)
 
     def get_by_session(self, session_id: int, skip: int = 0, limit: int = 100) -> list[ChatMessage]:
         """Get all messages for a session."""

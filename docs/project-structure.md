@@ -60,11 +60,11 @@ packages/shared/python/
 │   │   ├── vector_rag.py  # VectorRAGIndexer, VectorRAG
 │   │   └── graph_rag.py   # GraphRAGIndexer, GraphRAG
 │   ├── rabbitmq/          # RabbitMQ utilities
-│   ├── exceptions/        # Custom exceptions (TODO)
-│   ├── logging/           # Structured logging (TODO)
-│   ├── models/            # Shared database models (TODO)
-│   ├── rag/               # Concrete RAG implementations (TODO)
-│   └── storage/           # Storage utilities (TODO)
+│   ├── exceptions/        # Custom exceptions
+│   ├── logging/           # Structured logging
+│   ├── models/            # Shared data models (dataclasses)
+│   ├── rag/               # Concrete RAG implementations
+│   └── storage/           # Storage utilities
 ├── pyproject.toml
 ├── poetry.lock
 └── README.md
@@ -93,7 +93,7 @@ packages/server/
 │   │   └── users/         # User management
 │   ├── infrastructure/    # External integrations
 │   │   ├── auth/          # JWT, middleware
-│   │   ├── database/      # PostgreSQL, ORM
+│   │   ├── database/      # PostgreSQL
 │   │   ├── llm/           # LLM providers (Ollama, OpenAI, Claude, HuggingFace)
 │   │   ├── rag/           # RAG implementations
 │   │   │   ├── chunking/
@@ -112,7 +112,6 @@ packages/server/
 ├── tests/
 │   ├── unit/              # Unit tests (with dummies)
 │   └── integration/       # Integration tests (with testcontainers)
-├── alembic/               # Database migrations
 ├── Dockerfile
 ├── docker-entrypoint.sh
 ├── pyproject.toml
@@ -123,7 +122,7 @@ packages/server/
 **Domain Structure** (example: `domains/chat/`):
 ```
 domains/chat/
-├── models.py              # SQLAlchemy models
+├── models.py              # Data models
 ├── repositories.py        # Data access layer
 ├── service.py             # Business logic
 ├── routes.py              # REST API endpoints
@@ -413,23 +412,23 @@ task up-elk
 
 ## Port Reference
 
-| Service | Port(s) | Description |
-|---------|---------|-------------|
-| Client Dev | 3000 | Vite dev server |
-| Client Prod | 80 | Nginx static server |
-| Server Dev | 5000 | Flask with auto-reload |
-| Server Prod | 8000 | Flask production |
-| PostgreSQL | 5432 | Database |
-| MinIO API | 9000 | Object storage |
-| MinIO Console | 9001 | Web UI |
-| Ollama | 11434 | LLM service |
-| RabbitMQ | 5672 | AMQP protocol |
-| RabbitMQ Mgmt | 15672 | Management UI |
-| Redis | 6379 | Cache |
-| Qdrant API | 6333 | Vector database |
-| Qdrant UI | 6334 | Web UI |
-| Elasticsearch | 9200 | Search engine |
-| Kibana | 5601 | Monitoring UI |
+| Service       | Port(s) | Description            |
+|---------------|---------|------------------------|
+| Client Dev    | 3000    | Vite dev server        |
+| Client Prod   | 80      | Nginx static server    |
+| Server Dev    | 5000    | Flask with auto-reload |
+| Server Prod   | 8000    | Flask production       |
+| PostgreSQL    | 5432    | Database               |
+| MinIO API     | 9000    | Object storage         |
+| MinIO Console | 9001    | Web UI                 |
+| Ollama        | 11434   | LLM service            |
+| RabbitMQ      | 5672    | AMQP protocol          |
+| RabbitMQ Mgmt | 15672   | Management UI          |
+| Redis         | 6379    | Cache                  |
+| Qdrant API    | 6333    | Vector database        |
+| Qdrant UI     | 6334    | Web UI                 |
+| Elasticsearch | 9200    | Search engine          |
+| Kibana        | 5601    | Monitoring UI          |
 
 ## Next Steps
 

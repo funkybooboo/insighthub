@@ -1,22 +1,22 @@
-"""SQL implementation of status repository using SqlDatabase and Option types."""
+"""SQL implementation of status repository using PostgresSqlDatabase."""
 
-from shared.database.sql.sql_database import SqlDatabase
+from typing import Optional
+
+from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models import Document, Workspace
-from shared.types.option import Nothing, Option, Some
 from shared.types.status import DocumentProcessingStatus, WorkspaceStatus
-
 from .status_repository import StatusRepository
 
 
 class SqlStatusRepository(StatusRepository):
     """SQL implementation of status repository using direct SQL queries."""
 
-    def __init__(self, db: SqlDatabase) -> None:
+    def __init__(self, db: PostgresSqlDatabase) -> None:
         """
         Initialize repository.
 
         Args:
-            db: SqlDatabase instance
+            db: PostgresSqlDatabase instance
         """
         self._db = db
 
@@ -26,10 +26,10 @@ class SqlStatusRepository(StatusRepository):
         status: DocumentProcessingStatus,
         error: str | None = None,
         chunk_count: int | None = None,
-    ) -> Option[Document]:
+    ) -> Optional[Document]:
         """Update document processing status."""
         set_parts = ["processing_status = %(status)s"]
-        params = {"status": status.value, "id": document_id}
+        params: dict[str, object | None] = {"status": status.value, "id": document_id}
 
         if error is not None:
             set_parts.append("processing_error = %(error)s")
@@ -40,26 +40,26 @@ class SqlStatusRepository(StatusRepository):
 
         set_clause = ", ".join(set_parts)
         query = f"""
-        UPDATE document
+        UPDATE documents
         SET {set_clause}, updated_at = NOW()
         WHERE id = %(id)s
-        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, processing_status, processing_error, created_at, updated_at;
+        RETURNING *;
         """
 
         row = self._db.fetchone(query, params)
         if row is None:
-            return Nothing()
-        return Some(Document(**row))
+            return None
+        return Document(**row)
 
     def update_workspace_status(
         self,
         workspace_id: int,
         status: WorkspaceStatus,
         message: str | None = None,
-    ) -> Option[Workspace]:
+    ) -> Optional[Workspace]:
         """Update workspace provisioning status."""
         set_parts = ["status = %(status)s"]
-        params = {"status": status.value, "id": workspace_id}
+        params: dict[str, object | None] = {"status": status.value, "id": workspace_id}
 
         if message is not None:
             set_parts.append("status_message = %(message)s")
@@ -67,13 +67,13 @@ class SqlStatusRepository(StatusRepository):
 
         set_clause = ", ".join(set_parts)
         query = f"""
-        UPDATE workspace
+        UPDATE workspaces
         SET {set_clause}, updated_at = NOW()
         WHERE id = %(id)s
-        RETURNING id, name, status, status_message, created_at, updated_at;
+        RETURNING *;
         """
 
         row = self._db.fetchone(query, params)
         if row is None:
-            return Nothing()
-        return Some(Workspace(**row))
+            return None
+        return Workspace(**row)

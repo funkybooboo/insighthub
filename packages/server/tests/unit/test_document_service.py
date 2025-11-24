@@ -3,14 +3,13 @@
 import hashlib
 import io
 from datetime import datetime
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 import pytest
 from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
 from shared.storage.blob_storage import BlobStorageError
-from shared.types.option import Nothing, Option, Some
 from shared.types.result import Err, Ok, Result
 
 from src.domains.documents.exceptions import (
@@ -104,36 +103,33 @@ class FakeDocumentRepository(DocumentRepository):
         self.next_id += 1
         return doc
 
-    def get_by_id(self, document_id: int) -> Option[Document]:
+    def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
-        doc = self.documents.get(document_id)
-        if doc is None:
-            return Nothing()
-        return Some(doc)
+        return self.documents.get(document_id)
 
-    def get_by_content_hash(self, content_hash: str) -> Option[Document]:
+    def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """Get document by content hash."""
         for doc in self.documents.values():
             if doc.content_hash == content_hash:
-                return Some(doc)
-        return Nothing()
+                return doc
+        return None
 
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
         """Get all documents for a user."""
         user_docs = [doc for doc in self.documents.values() if doc.user_id == user_id]
         return user_docs[skip : skip + limit]
 
-    def update(self, document_id: int, **kwargs: str | int | None) -> Option[Document]:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Optional[Document]:
         """Update document fields."""
         doc = self.documents.get(document_id)
         if not doc:
-            return Nothing()
+            return None
 
         for key, value in kwargs.items():
             if hasattr(doc, key):
                 setattr(doc, key, value)
 
-        return Some(doc)
+        return doc
 
     def delete(self, document_id: int) -> bool:
         """Delete document by ID."""

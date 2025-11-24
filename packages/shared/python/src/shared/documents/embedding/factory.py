@@ -1,8 +1,7 @@
 """Factory for creating embedding encoder instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .ollama_vector_embedding_encoder import OllamaVectorEmbeddingEncoder
 from .vector_embedding_encoder import VectorEmbeddingEncoder
@@ -19,7 +18,7 @@ def create_embedding_encoder(
     model: str | None = None,
     base_url: str | None = None,
     timeout: int = 30,
-) -> Option[VectorEmbeddingEncoder]:
+) -> Optional[VectorEmbeddingEncoder]:
     """
     Create an embedding encoder instance based on configuration.
 
@@ -30,7 +29,7 @@ def create_embedding_encoder(
         timeout: Request timeout in seconds (default 30)
 
     Returns:
-        Some(VectorEmbeddingEncoder) if creation succeeds, Nothing() if type unknown or params missing
+        VectorEmbeddingEncoder if creation succeeds, None if type unknown or params missing
 
     Note:
         Additional encoder types (OpenAI, Sentence Transformers) can be
@@ -39,17 +38,15 @@ def create_embedding_encoder(
     try:
         encoder_enum = EmbeddingEncoderType(encoder_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if encoder_enum == EmbeddingEncoderType.OLLAMA:
         if model is None or base_url is None:
-            return Nothing()
-        return Some(
-            OllamaVectorEmbeddingEncoder(
-                model=model,
-                base_url=base_url,
-                timeout=timeout,
-            )
+            return None
+        return OllamaVectorEmbeddingEncoder(
+            model=model,
+            base_url=base_url,
+            timeout=timeout,
         )
 
-    return Nothing()
+    return None

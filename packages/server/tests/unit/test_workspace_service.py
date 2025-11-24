@@ -2,9 +2,10 @@
 
 import pytest
 from datetime import datetime
+from typing import Optional
+
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
-from shared.types.option import Nothing, Option, Some
 
 from src.domains.workspaces.service import WorkspaceService, WorkspaceStats
 
@@ -42,12 +43,9 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         self.next_ws_id += 1
         return workspace
 
-    def get_by_id(self, workspace_id: int) -> Option[Workspace]:
+    def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
         """Get workspace by ID."""
-        ws = self.workspaces.get(workspace_id)
-        if ws is None:
-            return Nothing()
-        return Some(ws)
+        return self.workspaces.get(workspace_id)
 
     def get_by_user(self, user_id: int, include_inactive: bool = False) -> list[Workspace]:
         """Get all workspaces for a user."""
@@ -58,18 +56,18 @@ class FakeWorkspaceRepository(WorkspaceRepository):
                     result.append(ws)
         return result
 
-    def update(self, workspace_id: int, **kwargs: str | int | bool | None) -> Option[Workspace]:
+    def update(self, workspace_id: int, **kwargs: str | int | bool | None) -> Optional[Workspace]:
         """Update workspace fields."""
         ws = self.workspaces.get(workspace_id)
         if ws is None:
-            return Nothing()
+            return None
 
         for key, value in kwargs.items():
             if hasattr(ws, key):
                 setattr(ws, key, value)
         ws.updated_at = datetime.utcnow()
 
-        return Some(ws)
+        return ws
 
     def delete(self, workspace_id: int) -> bool:
         """Delete workspace by ID."""
@@ -111,27 +109,24 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         self.next_config_id += 1
         return config
 
-    def get_rag_config(self, workspace_id: int) -> Option[RagConfig]:
+    def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
         """Get RAG config for workspace."""
-        config = self.rag_configs.get(workspace_id)
-        if config is None:
-            return Nothing()
-        return Some(config)
+        return self.rag_configs.get(workspace_id)
 
     def update_rag_config(
         self, workspace_id: int, **kwargs: str | int | bool | None
-    ) -> Option[RagConfig]:
+    ) -> Optional[RagConfig]:
         """Update RAG config fields."""
         config = self.rag_configs.get(workspace_id)
         if config is None:
-            return Nothing()
+            return None
 
         for key, value in kwargs.items():
             if hasattr(config, key):
                 setattr(config, key, value)
         config.updated_at = datetime.utcnow()
 
-        return Some(config)
+        return config
 
     def get_document_count(self, workspace_id: int) -> int:
         """Get document count for workspace."""

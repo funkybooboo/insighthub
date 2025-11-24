@@ -1,9 +1,9 @@
 """User repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models.user import User
-from shared.types.option import Option
 
 
 class UserRepository(ABC):
@@ -28,7 +28,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, user_id: int) -> Option[User]:
+    def get_by_id(self, user_id: int) -> Optional[User]:
         """
         Get user by ID.
 
@@ -36,12 +36,12 @@ class UserRepository(ABC):
             user_id: User ID
 
         Returns:
-            Some(User) if found, Nothing() if not found
+            User if found, None if not found
         """
         pass
 
     @abstractmethod
-    def get_by_username(self, username: str) -> Option[User]:
+    def get_by_username(self, username: str) -> Optional[User]:
         """
         Get user by username.
 
@@ -49,12 +49,12 @@ class UserRepository(ABC):
             username: Username to search for
 
         Returns:
-            Some(User) if found, Nothing() if not found
+            User if found, None if not found
         """
         pass
 
     @abstractmethod
-    def get_by_email(self, email: str) -> Option[User]:
+    def get_by_email(self, email: str) -> Optional[User]:
         """
         Get user by email.
 
@@ -62,7 +62,7 @@ class UserRepository(ABC):
             email: Email to search for
 
         Returns:
-            Some(User) if found, Nothing() if not found
+            User if found, None if not found
         """
         pass
 
@@ -81,7 +81,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, user_id: int, **kwargs: str) -> Option[User]:
+    def update(self, user_id: int, **kwargs: str) -> Optional[User]:
         """
         Update user fields.
 
@@ -90,7 +90,7 @@ class UserRepository(ABC):
             **kwargs: Fields to update
 
         Returns:
-            Some(User) if found and updated, Nothing() if not found
+            User if found and updated, None if not found
         """
         pass
 

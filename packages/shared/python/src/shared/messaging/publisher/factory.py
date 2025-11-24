@@ -1,8 +1,7 @@
 """Factory for creating message publisher instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .message_publisher import MessagePublisher
 from .rabbitmq_message_publisher import RabbitMQPublisher
@@ -22,7 +21,7 @@ def create_message_publisher(
     password: str | None = None,
     exchange: str | None = None,
     exchange_type: str | None = None,
-) -> Option[MessagePublisher]:
+) -> Optional[MessagePublisher]:
     """
     Create a message publisher instance.
 
@@ -36,12 +35,12 @@ def create_message_publisher(
         exchange_type: Exchange type (required for rabbitmq)
 
     Returns:
-        Some(MessagePublisher) if creation succeeds, Nothing() otherwise
+        MessagePublisher if creation succeeds, None otherwise
     """
     try:
         publisher_enum = PublisherType(publisher_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if publisher_enum == PublisherType.RABBITMQ:
         if (
@@ -52,16 +51,14 @@ def create_message_publisher(
             or exchange is None
             or exchange_type is None
         ):
-            return Nothing()
-        return Some(
-            RabbitMQPublisher(
-                host=host,
-                port=port,
-                username=username,
-                password=password,
-                exchange=exchange,
-                exchange_type=exchange_type,
-            )
+            return None
+        return RabbitMQPublisher(
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            exchange=exchange,
+            exchange_type=exchange_type,
         )
 
-    return Nothing()
+    return None

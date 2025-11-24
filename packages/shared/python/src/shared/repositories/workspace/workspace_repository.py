@@ -1,9 +1,9 @@
 """Workspace repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models.workspace import RagConfig, Workspace
-from shared.types.option import Option
 
 
 class WorkspaceRepository(ABC):
@@ -30,7 +30,7 @@ class WorkspaceRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, workspace_id: int) -> Option[Workspace]:
+    def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
         """
         Get workspace by ID.
 
@@ -38,7 +38,7 @@ class WorkspaceRepository(ABC):
             workspace_id: Workspace ID
 
         Returns:
-            Some(Workspace) if found, Nothing() if not found
+            Workspace if found, None if not found
         """
         pass
 
@@ -65,7 +65,7 @@ class WorkspaceRepository(ABC):
         self,
         workspace_id: int,
         **kwargs: str | int | bool | None,
-    ) -> Option[Workspace]:
+    ) -> Optional[Workspace]:
         """
         Update workspace fields.
 
@@ -74,7 +74,7 @@ class WorkspaceRepository(ABC):
             **kwargs: Fields to update
 
         Returns:
-            Some(Workspace) if found and updated, Nothing() if not found
+            Workspace if found and updated, None if not found
         """
         pass
 
@@ -124,7 +124,7 @@ class WorkspaceRepository(ABC):
         pass
 
     @abstractmethod
-    def get_rag_config(self, workspace_id: int) -> Option[RagConfig]:
+    def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
         """
         Get RAG configuration for a workspace.
 
@@ -132,7 +132,7 @@ class WorkspaceRepository(ABC):
             workspace_id: Workspace ID
 
         Returns:
-            Some(RagConfig) if found, Nothing() if not found
+            RagConfig if found, None if not found
         """
         pass
 
@@ -141,7 +141,7 @@ class WorkspaceRepository(ABC):
         self,
         workspace_id: int,
         **kwargs: str | int | bool | None,
-    ) -> Option[RagConfig]:
+    ) -> Optional[RagConfig]:
         """
         Update RAG configuration fields.
 
@@ -150,7 +150,7 @@ class WorkspaceRepository(ABC):
             **kwargs: Fields to update
 
         Returns:
-            Some(RagConfig) if found and updated, Nothing() if not found
+            RagConfig if found and updated, None if not found
         """
         pass
 

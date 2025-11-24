@@ -1,9 +1,9 @@
 """Document repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models.document import Document
-from shared.types.option import Option
 
 
 class DocumentRepository(ABC):
@@ -42,7 +42,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, document_id: int) -> Option[Document]:
+    def get_by_id(self, document_id: int) -> Optional[Document]:
         """
         Get document by ID.
 
@@ -50,7 +50,7 @@ class DocumentRepository(ABC):
             document_id: Document ID
 
         Returns:
-            Some(Document) if found, Nothing() if not found
+            Document if found, None if not found
         """
         pass
 
@@ -70,7 +70,7 @@ class DocumentRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_content_hash(self, content_hash: str) -> Option[Document]:
+    def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """
         Get document by content hash.
 
@@ -78,12 +78,12 @@ class DocumentRepository(ABC):
             content_hash: SHA-256 hash
 
         Returns:
-            Some(Document) if found, Nothing() if not found
+            Document if found, None if not found
         """
         pass
 
     @abstractmethod
-    def update(self, document_id: int, **kwargs: str | int | None) -> Option[Document]:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Optional[Document]:
         """
         Update document fields.
 
@@ -92,7 +92,7 @@ class DocumentRepository(ABC):
             **kwargs: Fields to update
 
         Returns:
-            Some(Document) if found and updated, Nothing() if not found
+            Document if found and updated, None if not found
         """
         pass
 

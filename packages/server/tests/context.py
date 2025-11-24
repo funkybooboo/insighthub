@@ -1,11 +1,15 @@
 """Test context for dependency injection in tests."""
 
-from shared.database.sql import SqlDatabase
+from shared.database.sql import SqlDatabase, PostgresSqlDatabase
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
     DocumentRepository,
     UserRepository,
+    create_chat_message_repository,
+    create_chat_session_repository,
+    create_document_repository,
+    create_user_repository,
 )
 from shared.storage import BlobStorage
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
@@ -13,12 +17,7 @@ from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
 from src.domains.users.service import UserService
-from src.infrastructure.factories import (
-    create_chat_message_repository,
-    create_chat_session_repository,
-    create_document_repository,
-    create_user_repository,
-)
+from src import config
 
 
 class UnitTestContext:
@@ -28,23 +27,23 @@ class UnitTestContext:
     for fast, isolated unit tests that don't require external dependencies.
     """
 
-    def __init__(self, db: SqlDatabase):
+    def __init__(self, db_url: str):
         """
         Initialize unit test context with dependencies.
 
         Args:
-            db: SqlDatabase instance
+            db_url: The database connection URL.
         """
-        self.db = db
+        self.db = PostgresSqlDatabase(db_url)
 
         # Always use in-memory blob storage for unit tests
         self.blob_storage: BlobStorage = InMemoryBlobStorage()
 
         # Initialize repositories
-        self.user_repository: UserRepository = create_user_repository(db)
-        self.document_repository: DocumentRepository = create_document_repository(db)
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(db)
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(db)
+        self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
+        self.document_repository: DocumentRepository = create_document_repository("postgres", db_url=db_url)
+        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository("postgres", db_url=db_url)
+        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository("postgres", db_url=db_url)
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)
@@ -66,22 +65,22 @@ class IntegrationTestContext:
     interactions with real databases.
     """
 
-    def __init__(self, db: SqlDatabase, blob_storage: BlobStorage):
+    def __init__(self, db_url: str, blob_storage: BlobStorage):
         """
         Initialize integration test context with dependencies.
 
         Args:
-            db: SqlDatabase instance (should be PostgreSQL from testcontainer)
+            db_url: The database connection URL.
             blob_storage: Blob storage instance (should be MinIO from testcontainer)
         """
-        self.db = db
+        self.db = PostgresSqlDatabase(db_url)
         self.blob_storage = blob_storage
 
         # Initialize repositories
-        self.user_repository: UserRepository = create_user_repository(db)
-        self.document_repository: DocumentRepository = create_document_repository(db)
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(db)
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(db)
+        self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
+        self.document_repository: DocumentRepository = create_document_repository("postgres", db_url=db_url)
+        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository("postgres", db_url=db_url)
+        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository("postgres", db_url=db_url)
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)
@@ -95,31 +94,31 @@ class IntegrationTestContext:
         )
 
 
-def create_unit_test_context(db: SqlDatabase) -> UnitTestContext:
+def create_unit_test_context(db_url: str) -> UnitTestContext:
     """
     Factory function to create unit test context.
 
     Args:
-        db: SqlDatabase instance
+        db_url: The database connection URL.
 
     Returns:
         UnitTestContext: Test context with in-memory implementations
     """
-    return UnitTestContext(db=db)
+    return UnitTestContext(db_url=db_url)
 
 
 def create_integration_test_context(
-    db: SqlDatabase,
+    db_url: str,
     blob_storage: BlobStorage,
 ) -> IntegrationTestContext:
     """
     Factory function to create integration test context.
 
     Args:
-        db: SqlDatabase instance (should be PostgreSQL from testcontainer)
+        db_url: The database connection URL.
         blob_storage: Blob storage instance (should be MinIO from testcontainer)
 
     Returns:
         IntegrationTestContext: Test context with real implementations
     """
-    return IntegrationTestContext(db=db, blob_storage=blob_storage)
+    return IntegrationTestContext(db_url=db_url, blob_storage=blob_storage)

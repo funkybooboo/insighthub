@@ -1,8 +1,7 @@
 """Factory for creating retriever instances."""
 
 from enum import Enum
-
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
 
 from .retriever import Retriever
 from .url_retriever import URLRetriever
@@ -21,7 +20,7 @@ def create_retriever(
     language: str = "en",
     timeout: int = 10,
     user_agent: str | None = None,
-) -> Option[Retriever]:
+) -> Optional[Retriever]:
     """
     Create a retriever instance based on configuration.
 
@@ -32,7 +31,7 @@ def create_retriever(
         user_agent: Custom user agent string (optional)
 
     Returns:
-        Some(Retriever) if creation succeeds, Nothing() if type unknown
+        Retriever if creation succeeds, None if type unknown
 
     Note:
         Additional retriever types can be added here when implemented.
@@ -40,21 +39,17 @@ def create_retriever(
     try:
         retriever_enum = RetrieverType(retriever_type)
     except ValueError:
-        return Nothing()
+        return None
 
     if retriever_enum == RetrieverType.WIKIPEDIA:
-        return Some(
-            WikipediaRetriever(
-                language=language,
-                timeout=timeout,
-            )
+        return WikipediaRetriever(
+            language=language,
+            timeout=timeout,
         )
     elif retriever_enum == RetrieverType.URL:
-        return Some(
-            URLRetriever(
-                timeout=timeout,
-                user_agent=user_agent,
-            )
+        return URLRetriever(
+            timeout=timeout,
+            user_agent=user_agent,
         )
 
-    return Nothing()
+    return None

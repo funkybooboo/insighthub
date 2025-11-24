@@ -6,6 +6,7 @@ provide consistent caching behavior for key-value storage operations.
 """
 
 import time
+from typing import Optional
 
 import pytest
 
@@ -13,6 +14,7 @@ from shared.cache.cache import Cache
 from shared.cache.factory import CacheType, create_cache
 from shared.cache.in_memory_cache import InMemoryCache
 from shared.cache.noop_cache import NoOpCache
+
 
 
 class TestInMemoryCacheBehavior:
@@ -25,16 +27,16 @@ class TestInMemoryCacheBehavior:
 
         result = cache.get("key")
 
-        assert result.is_some()
-        assert result.unwrap() == "value"
+        assert result is not None
+        assert result == "value"
 
     def test_get_nonexistent_key_returns_nothing(self) -> None:
-        """Getting a nonexistent key returns Nothing."""
+        """Getting a nonexistent key returns None."""
         cache = InMemoryCache()
 
         result = cache.get("nonexistent")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_set_overwrites_existing_value(self) -> None:
         """Setting a key that already exists overwrites the value."""
@@ -44,7 +46,7 @@ class TestInMemoryCacheBehavior:
 
         result = cache.get("key")
 
-        assert result.unwrap() == "second"
+        assert result == "second"
 
     def test_delete_removes_key(self) -> None:
         """Deleting a key removes it from the cache."""
@@ -54,7 +56,7 @@ class TestInMemoryCacheBehavior:
 
         result = cache.get("key")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_delete_nonexistent_key_is_noop(self) -> None:
         """Deleting a nonexistent key does not raise an error."""
@@ -72,9 +74,9 @@ class TestInMemoryCacheBehavior:
 
         cache.clear()
 
-        assert cache.get("key1").is_nothing()
-        assert cache.get("key2").is_nothing()
-        assert cache.get("key3").is_nothing()
+        assert cache.get("key1") is None
+        assert cache.get("key2") is None
+        assert cache.get("key3") is None
 
     def test_exists_returns_true_for_existing_key(self) -> None:
         """Checking existence of existing key returns True."""
@@ -115,13 +117,13 @@ class TestInMemoryCacheTTL:
         cache.set("key", "value", ttl=1)
 
         # Should exist immediately
-        assert cache.get("key").is_some()
+        assert cache.get("key") is not None
 
         # Wait for expiration
         time.sleep(1.1)
 
         # Should be expired
-        assert cache.get("key").is_nothing()
+        assert cache.get("key") is None
 
     def test_default_ttl_applies_to_all_keys(self) -> None:
         """Default TTL is applied when not specified per-key."""
@@ -129,13 +131,13 @@ class TestInMemoryCacheTTL:
         cache.set("key", "value")
 
         # Should exist immediately
-        assert cache.get("key").is_some()
+        assert cache.get("key") is not None
 
         # Wait for expiration
         time.sleep(1.1)
 
         # Should be expired
-        assert cache.get("key").is_nothing()
+        assert cache.get("key") is None
 
     def test_per_key_ttl_overrides_default(self) -> None:
         """Per-key TTL overrides the default TTL."""
@@ -144,7 +146,7 @@ class TestInMemoryCacheTTL:
 
         time.sleep(1.1)
 
-        assert cache.get("key").is_nothing()
+        assert cache.get("key") is None
 
     def test_no_ttl_means_no_expiration(self) -> None:
         """Values without TTL do not expire."""
@@ -152,7 +154,7 @@ class TestInMemoryCacheTTL:
         cache.set("key", "value")
 
         # Should persist
-        assert cache.get("key").is_some()
+        assert cache.get("key") is not None
 
     def test_ttl_method_returns_remaining_time(self) -> None:
         """TTL method returns remaining seconds until expiration."""
@@ -235,28 +237,28 @@ class TestInMemoryCacheDataTypes:
         cache = InMemoryCache()
         cache.set("key", "hello world")
 
-        assert cache.get("key").unwrap() == "hello world"
+        assert cache.get("key") == "hello world"
 
     def test_stores_integers(self) -> None:
         """Cache stores integer values."""
         cache = InMemoryCache()
         cache.set("key", 42)
 
-        assert cache.get("key").unwrap() == 42
+        assert cache.get("key") == 42
 
     def test_stores_floats(self) -> None:
         """Cache stores float values."""
         cache = InMemoryCache()
         cache.set("key", 3.14)
 
-        assert cache.get("key").unwrap() == 3.14
+        assert cache.get("key") == 3.14
 
     def test_stores_booleans(self) -> None:
         """Cache stores boolean values."""
         cache = InMemoryCache()
         cache.set("key", True)
 
-        assert cache.get("key").unwrap() is True
+        assert cache.get("key") is True
 
     def test_stores_none(self) -> None:
         """Cache stores None values."""
@@ -264,22 +266,21 @@ class TestInMemoryCacheDataTypes:
         cache.set("key", None)
 
         result = cache.get("key")
-        assert result.is_some()
-        assert result.unwrap() is None
+        assert result is None
 
     def test_stores_lists(self) -> None:
         """Cache stores list values."""
         cache = InMemoryCache()
         cache.set("key", [1, 2, 3])
 
-        assert cache.get("key").unwrap() == [1, 2, 3]
+        assert cache.get("key") == [1, 2, 3]
 
     def test_stores_dicts(self) -> None:
         """Cache stores dictionary values."""
         cache = InMemoryCache()
         cache.set("key", {"name": "Alice", "age": 30})
 
-        assert cache.get("key").unwrap() == {"name": "Alice", "age": 30}
+        assert cache.get("key") == {"name": "Alice", "age": 30}
 
     def test_stores_nested_structures(self) -> None:
         """Cache stores nested JSON structures."""
@@ -293,7 +294,7 @@ class TestInMemoryCacheDataTypes:
         }
         cache.set("key", value)
 
-        assert cache.get("key").unwrap() == value
+        assert cache.get("key") == value
 
 
 class TestInMemoryCacheContextManager:
@@ -303,7 +304,7 @@ class TestInMemoryCacheContextManager:
         """Cache can be used as context manager."""
         with InMemoryCache() as cache:
             cache.set("key", "value")
-            assert cache.get("key").unwrap() == "value"
+            assert cache.get("key") == "value"
 
     def test_context_manager_exit(self) -> None:
         """Cache context manager exits cleanly."""
@@ -313,7 +314,7 @@ class TestInMemoryCacheContextManager:
             cache.set("key", "value")
 
         # Cache should still work after context exit
-        assert cache.get("key").unwrap() == "value"
+        assert cache.get("key") == "value"
 
 
 class TestNoOpCacheBehavior:
@@ -328,13 +329,13 @@ class TestNoOpCacheBehavior:
         assert True
 
     def test_get_always_returns_nothing(self) -> None:
-        """Getting any key from NoOpCache returns Nothing."""
+        """Getting any key from NoOpCache returns None."""
         cache = NoOpCache()
         cache.set("key", "value")
 
         result = cache.get("key")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_delete_is_noop(self) -> None:
         """Deleting from NoOpCache does nothing."""
@@ -361,7 +362,7 @@ class TestNoOpCacheBehavior:
         """NoOpCache can be used as context manager."""
         with NoOpCache() as cache:
             cache.set("key", "value")
-            assert cache.get("key").is_nothing()
+            assert cache.get("key") is None
 
 
 class TestCacheFactory:
@@ -371,43 +372,40 @@ class TestCacheFactory:
         """Factory creates InMemoryCache for 'in_memory' type."""
         result = create_cache("in_memory")
 
-        assert result.is_some()
-        cache = result.unwrap()
-        assert isinstance(cache, InMemoryCache)
+        assert result is not None
+        assert isinstance(result, InMemoryCache)
 
     def test_create_in_memory_cache_with_ttl(self) -> None:
         """Factory creates InMemoryCache with default TTL."""
         result = create_cache("in_memory", default_ttl=60)
 
-        assert result.is_some()
-        cache = result.unwrap()
-        assert isinstance(cache, InMemoryCache)
+        assert result is not None
+        assert isinstance(result, InMemoryCache)
 
     def test_create_noop_cache(self) -> None:
         """Factory creates NoOpCache for 'noop' type."""
         result = create_cache("noop")
 
-        assert result.is_some()
-        cache = result.unwrap()
-        assert isinstance(cache, NoOpCache)
+        assert result is not None
+        assert isinstance(result, NoOpCache)
 
     def test_create_unknown_type_returns_nothing(self) -> None:
-        """Factory returns Nothing for unknown cache type."""
+        """Factory returns None for unknown cache type."""
         result = create_cache("unknown")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_create_redis_without_params_returns_nothing(self) -> None:
-        """Factory returns Nothing for redis without required params."""
+        """Factory returns None for redis without required params."""
         result = create_cache("redis")
 
-        assert result.is_nothing()
+        assert result is None
 
     def test_create_redis_partial_params_returns_nothing(self) -> None:
-        """Factory returns Nothing for redis with partial params."""
+        """Factory returns None for redis with partial params."""
         result = create_cache("redis", host="localhost")
 
-        assert result.is_nothing()
+        assert result is None
 
 
 class TestCacheTypeEnum:

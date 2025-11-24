@@ -1,56 +1,40 @@
-import os
-from typing import Any
+"""PostgreSQL implementation of the SqlDatabase interface."""
 
-import psycopg2
-import psycopg2.extras
+from typing import Any, Dict, List, Optional
 
+from .postgres import PostgresDatabase, PostgresConnection
 from .sql_database import SqlDatabase
 
 
-class PostgresSQLDatabase(SqlDatabase):
-    """Concrete PostgreSQL database using direct SQL queries."""
+class PostgresSqlDatabase(SqlDatabase):
+    """PostgreSQL implementation of the SqlDatabase interface."""
 
-    def __init__(self, database_url: str | None = None) -> None:
-        self.database_url = database_url or os.getenv("DATABASE_URL")
-        if not self.database_url:
-            raise ValueError("DATABASE_URL environment variable is not set")
-        self._conn: psycopg2.extensions.connection | None = None
+    def __init__(self, db_url: str):
+        """
+        Initialize the PostgreSQL database.
 
-    def _connect(self) -> None:
-        if self._conn is None or self._conn.closed:
-            self._conn = psycopg2.connect(
-                self.database_url, cursor_factory=psycopg2.extras.RealDictCursor
-            )
+        Args:
+            db_url: The database connection URL.
+        """
+        self.connection = PostgresConnection(db_url)
+        self.db = PostgresDatabase(self.connection)
 
-    def execute(self, query: str, params: dict[str, Any] | None = None) -> None:
-        self._connect()
-        assert self._conn is not None
-        with self._conn.cursor() as cur:
-            cur.execute(query, params)
-        self._conn.commit()
+    def execute(self, query: str, params: Optional[Dict[str, Any]] = None) -> None:
+        """Execute a query that does not return results (INSERT, UPDATE, DELETE)."""
+        self.db.execute(query, params, commit=True)
 
-    def fetchone(self, query: str, params: dict[str, Any] | None = None) -> dict[str, Any] | None:
-        self._connect()
-        assert self._conn is not None
-        with self._conn.cursor() as cur:
-            cur.execute(query, params)
-            return cur.fetchone()
+    def fetchone(self, query: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Execute a query and return a single row."""
+        return self.db.fetch_one(query, params)
 
-    def fetchall(self, query: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        self._connect()
-        assert self._conn is not None
-        with self._conn.cursor() as cur:
-            cur.execute(query, params)
-            return cur.fetchall()
+    def fetchall(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Execute a query and return all rows."""
+        return self.db.fetch_all(query, params)
 
-    def execute_many(self, query: str, params_list: list[dict[str, Any]]) -> None:
-        self._connect()
-        assert self._conn is not None
-        with self._conn.cursor() as cur:
-            cur.executemany(query, params_list)
-        self._conn.commit()
+    def execute_many(self, query: str, params_list: List[Dict[str, Any]]) -> None:
+        """Execute a query with multiple sets of parameters."""
+        self.db.execute_many(query, params_list)
 
     def close(self) -> None:
-        if self._conn:
-            self._conn.close()
-            self._conn = None
+        """Close the database connection."""
+        self.db.close()

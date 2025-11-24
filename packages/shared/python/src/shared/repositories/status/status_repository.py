@@ -1,17 +1,15 @@
 """Status repository interface."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from shared.models import Document, Workspace
-from shared.types.option import Option
 from shared.types.status import DocumentProcessingStatus, WorkspaceStatus
 
 
 class StatusRepository(ABC):
     """
     Abstract base class for status repository.
-
-    Uses Option[T] instead of T | None to make intent explicit.
     """
 
     @abstractmethod
@@ -21,7 +19,7 @@ class StatusRepository(ABC):
         status: DocumentProcessingStatus,
         error: str | None = None,
         chunk_count: int | None = None,
-    ) -> Option[Document]:
+    ) -> Optional[Document]:
         """
         Update document processing status.
 
@@ -32,7 +30,7 @@ class StatusRepository(ABC):
             chunk_count: Optional chunk count (for READY status)
 
         Returns:
-            Some(Document) if found and updated, Nothing() if not found
+            Document if found and updated, None if not found
         """
         pass
 
@@ -42,7 +40,7 @@ class StatusRepository(ABC):
         workspace_id: int,
         status: WorkspaceStatus,
         message: str | None = None,
-    ) -> Option[Workspace]:
+    ) -> Optional[Workspace]:
         """
         Update workspace provisioning status.
 
@@ -52,6 +50,6 @@ class StatusRepository(ABC):
             message: Optional status message
 
         Returns:
-            Some(Workspace) if found and updated, Nothing() if not found
+            Workspace if found and updated, None if not found
         """
         pass

@@ -24,15 +24,12 @@ class TestTypeImports:
         assert GraphNode is not None
         assert GraphEdge is not None
 
-    def test_result_and_option_types(self) -> None:
-        """Test importing Result and Option types."""
-        from shared.types.option import Nothing, Some
+    def test_result_type(self) -> None:
+        """Test importing Result type."""
         from shared.types.result import Err, Ok
 
         assert Ok is not None
         assert Err is not None
-        assert Some is not None
-        assert Nothing is not None
 
     def test_rag_config_types(self) -> None:
         """Test importing RAG configuration types."""

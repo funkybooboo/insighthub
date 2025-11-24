@@ -8,7 +8,9 @@ import time
 from types import TracebackType
 
 from shared.types.common import JsonValue
-from shared.types.option import Nothing, Option, Some
+from typing import Optional
+
+from shared.types.common import JsonValue
 
 from .cache import Cache
 
@@ -24,8 +26,8 @@ class InMemoryCache(Cache):
         cache = InMemoryCache(default_ttl=300)  # 5 minute default TTL
         cache.set("user:123", {"name": "Alice"}, ttl=60)
         result = cache.get("user:123")
-        if result.is_some():
-            user = result.unwrap()
+        if result is not None:
+            user = result
     """
 
     def __init__(self, default_ttl: int | None = None) -> None:
@@ -55,7 +57,7 @@ class InMemoryCache(Cache):
                 expiry = time.time() + used_ttl
             self._data[key] = (value, expiry)
 
-    def get(self, key: str) -> Option[JsonValue]:
+    def get(self, key: str) -> Optional[JsonValue]:
         """
         Get a value from the cache.
 
@@ -63,19 +65,19 @@ class InMemoryCache(Cache):
             key: Cache key
 
         Returns:
-            Some(value) if found and not expired, Nothing() otherwise
+            Value if found and not expired, None otherwise
         """
         with self._lock:
             if key not in self._data:
-                return Nothing()
+                return None
 
             value, expiry = self._data[key]
 
             if expiry is not None and time.time() > expiry:
                 del self._data[key]
-                return Nothing()
+                return None
 
-            return Some(value)
+            return value
 
     def delete(self, key: str) -> None:
         """
@@ -102,7 +104,7 @@ class InMemoryCache(Cache):
         Returns:
             True if key exists and is not expired
         """
-        return self.get(key).is_some()
+        return self.get(key) is not None
 
     def keys(self, pattern: str = "*") -> list[str]:
         """
