@@ -4,7 +4,19 @@ import { FaCog, FaTrash } from 'react-icons/fa';
 import type { RootState } from '../../store';
 import { removeWorkspace, updateWorkspace, setError } from '../../store/slices/workspaceSlice';
 import { apiService } from '../../services/api';
-import type { RagConfig } from '../../types/workspace';
+import {
+    type RagConfig,
+    type VectorRagConfig,
+    type GraphRagConfig,
+    type UpdateRagConfigRequest,
+} from '../../types/workspace';
+import RagConfigForm from './RagConfigForm'; // Import RagConfigForm
+
+type FormData = {
+    name: string;
+    description: string;
+    ragConfig: Partial<UpdateRagConfigRequest>;
+};
 
 const WorkspaceSettings = () => {
     const dispatch = useDispatch();
@@ -12,17 +24,18 @@ const WorkspaceSettings = () => {
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [ragConfig, setRagConfig] = useState<RagConfig | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormData>({
         name: '',
         description: '',
-        embedding_model: 'nomic-embed-text',
-        retriever_type: 'vector',
-        chunk_size: 1000,
-        chunk_overlap: 200,
-        top_k: 5,
+        ragConfig: {}, // Initialize with empty object
     });
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
     const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+    // RAG config is editable only if the workspace status is 'provisioning'
+    // or if the rag_config itself is not yet set (meaning it's a very new workspace)
+    const isRagConfigEditable = activeWorkspace?.status === 'provisioning';
 
     const loadRagConfig = useCallback(async () => {
         if (!activeWorkspaceId) return;
@@ -32,36 +45,43 @@ const WorkspaceSettings = () => {
             setRagConfig(config);
             setFormData((prev) => ({
                 ...prev,
-                embedding_model: config.embedding_model,
-                retriever_type: config.retriever_type,
-                chunk_size: config.chunk_size,
-                chunk_overlap: config.chunk_overlap || 200,
-                top_k: config.top_k || 5,
+                ragConfig: config,
             }));
-        } catch {
-            console.log('No RAG config found, will create on save');
+        } catch (error) {
+            console.error('Failed to load RAG config:', error);
+            // If no config found, initialize with default values for form
+            setRagConfig(null);
+            setFormData((prev) => ({
+                ...prev,
+                ragConfig: {
+                    retriever_type: 'vector',
+                    embedding_model: 'nomic-embed-text',
+                    chunk_size: 1000,
+                    chunk_overlap: 200,
+                    top_k: 8,
+                    rerank_enabled: false,
+                },
+            }));
         }
     }, [activeWorkspaceId]);
 
     useEffect(() => {
         if (showModal && activeWorkspace) {
-            setFormData({
+            setFormData((prev) => ({
+                ...prev,
                 name: activeWorkspace.name,
                 description: activeWorkspace.description || '',
-                embedding_model: ragConfig?.embedding_model || 'nomic-embed-text',
-                retriever_type: ragConfig?.retriever_type || 'vector',
-                chunk_size: ragConfig?.chunk_size || 1000,
-                chunk_overlap: ragConfig?.chunk_overlap || 200,
-                top_k: ragConfig?.top_k || 5,
-            });
+            }));
             loadRagConfig();
         }
-    }, [showModal, activeWorkspace, ragConfig, loadRagConfig]);
+    }, [showModal, activeWorkspace, loadRagConfig]);
 
     const handleSave = async () => {
-        if (!activeWorkspaceId) return;
+        if (!activeWorkspaceId || !activeWorkspace) return;
 
         setIsLoading(true);
+        setSaveError(null);
+
         try {
             const updatedWorkspace = await apiService.updateWorkspace(activeWorkspaceId, {
                 name: formData.name,
@@ -69,28 +89,45 @@ const WorkspaceSettings = () => {
             });
             dispatch(updateWorkspace(updatedWorkspace));
 
-            if (ragConfig) {
-                await apiService.updateRagConfig(activeWorkspaceId, {
-                    embedding_model: formData.embedding_model,
-                    retriever_type: formData.retriever_type,
-                    chunk_size: formData.chunk_size,
-                    chunk_overlap: formData.chunk_overlap,
-                    top_k: formData.top_k,
-                });
-            } else {
-                await apiService.createRagConfig(activeWorkspaceId, {
-                    embedding_model: formData.embedding_model,
-                    retriever_type: formData.retriever_type,
-                    chunk_size: formData.chunk_size,
-                    chunk_overlap: formData.chunk_overlap,
-                    top_k: formData.top_k,
-                });
+            // Only update RAG config if the workspace is in provisioning state
+            if (isRagConfigEditable) {
+                let ragConfigToSave: UpdateRagConfigRequest = {};
+                if (formData.ragConfig.retriever_type === 'graph') {
+                    ragConfigToSave = {
+                        retriever_type: 'graph',
+                        max_hops: (formData.ragConfig as Partial<GraphRagConfig>).max_hops,
+                        entity_extraction_model: (formData.ragConfig as Partial<GraphRagConfig>)
+                            .entity_extraction_model,
+                        relationship_extraction_model: (formData.ragConfig as Partial<GraphRagConfig>)
+                            .relationship_extraction_model,
+                    };
+                } else {
+                    ragConfigToSave = {
+                        retriever_type: 'vector',
+                        embedding_model: (formData.ragConfig as Partial<VectorRagConfig>)
+                            .embedding_model,
+                        chunk_size: (formData.ragConfig as Partial<VectorRagConfig>).chunk_size,
+                        chunk_overlap: (formData.ragConfig as Partial<VectorRagConfig>)
+                            .chunk_overlap,
+                        top_k: (formData.ragConfig as Partial<VectorRagConfig>).top_k,
+                        rerank_enabled: (formData.ragConfig as Partial<VectorRagConfig>)
+                            .rerank_enabled,
+                        rerank_model: (formData.ragConfig as Partial<VectorRagConfig>).rerank_model,
+                    };
+                }
+
+                if (ragConfig) {
+                    await apiService.updateRagConfig(activeWorkspaceId, ragConfigToSave);
+                } else {
+                    await apiService.createRagConfig(activeWorkspaceId, ragConfigToSave as CreateRagConfigRequest);
+                }
             }
 
             setShowModal(false);
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to save settings';
-            dispatch(setError(message));
+            const message =
+                error instanceof AxiosError ? error.response?.data?.message : 'Failed to save settings';
+            setSaveError(message);
         } finally {
             setIsLoading(false);
         }
@@ -99,12 +136,8 @@ const WorkspaceSettings = () => {
     const handleDelete = async () => {
         if (!activeWorkspaceId || !activeWorkspace) return;
 
-        const confirmed = window.confirm(
-            `Are you sure you want to delete workspace "${activeWorkspace.name}"? This will delete all documents and chat sessions.`
-        );
-        if (!confirmed) return;
-
         setIsLoading(true);
+        setDeleteConfirmOpen(false); // Close confirm dialog
         try {
             await apiService.deleteWorkspace(activeWorkspaceId);
             dispatch(removeWorkspace(activeWorkspaceId));
@@ -135,6 +168,11 @@ const WorkspaceSettings = () => {
                         <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
                             Workspace Settings
                         </h2>
+                        {saveError && (
+                            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg text-sm">
+                                {saveError}
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div>
@@ -167,111 +205,25 @@ const WorkspaceSettings = () => {
 
                             <hr className="border-gray-300 dark:border-gray-600" />
 
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                                 RAG Configuration
                             </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                RAG configuration can only be modified for new workspaces or those still being provisioned.
+                            </p>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Embedding Model
-                                </label>
-                                <select
-                                    value={formData.embedding_model}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            embedding_model: e.target.value,
-                                        })
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                >
-                                    <option value="nomic-embed-text">Nomic Embed Text</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="sentence-transformer">
-                                        Sentence Transformer
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Retriever Type
-                                </label>
-                                <select
-                                    value={formData.retriever_type}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, retriever_type: e.target.value })
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                >
-                                    <option value="vector">Vector RAG</option>
-                                    <option value="graph">Graph RAG</option>
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Chunk Size
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={formData.chunk_size}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                chunk_size: parseInt(e.target.value),
-                                            })
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                        min="100"
-                                        max="5000"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Chunk Overlap
-                                    </label>
-                                    <input
-                                        type="number"
-                                        value={formData.chunk_overlap}
-                                        onChange={(e) =>
-                                            setFormData({
-                                                ...formData,
-                                                chunk_overlap: parseInt(e.target.value),
-                                            })
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                        min="0"
-                                        max="1000"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Top K Results
-                                </label>
-                                <input
-                                    type="number"
-                                    value={formData.top_k}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            top_k: parseInt(e.target.value),
-                                        })
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                    min="1"
-                                    max="20"
-                                />
-                            </div>
+                            <RagConfigForm
+                                initialConfig={formData.ragConfig}
+                                onConfigChange={(newConfig) =>
+                                    setFormData((prev) => ({ ...prev, ragConfig: newConfig }))
+                                }
+                                readOnly={!isRagConfigEditable}
+                            />
                         </div>
 
                         <div className="flex justify-between mt-6 pt-6 border-t border-gray-300 dark:border-gray-600">
                             <button
-                                onClick={handleDelete}
+                                onClick={() => setDeleteConfirmOpen(true)}
                                 disabled={isLoading}
                                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
@@ -298,6 +250,15 @@ const WorkspaceSettings = () => {
                     </div>
                 </div>
             )}
+            <ConfirmDialog
+                isOpen={deleteConfirmOpen}
+                title="Delete Workspace"
+                message={`Are you sure you want to delete "${activeWorkspace.name}"? All documents and chat sessions in this workspace will be permanently deleted.`}
+                confirmLabel="Delete Workspace"
+                variant="danger"
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteConfirmOpen(false)}
+            />
         </>
     );
 };

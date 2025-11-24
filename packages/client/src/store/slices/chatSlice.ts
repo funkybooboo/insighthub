@@ -50,13 +50,23 @@ const chatSlice = createSlice({
         },
         updateMessageInSession: (
             state,
-            action: PayloadAction<{ sessionId: string; messageId: string; content: string }>
+            action: PayloadAction<{
+                sessionId: string;
+                messageId: string;
+                content?: string;
+                context?: Context[]; // Added optional context field
+            }>
         ) => {
             const session = state.sessions.find((s) => s.id === action.payload.sessionId);
             if (session) {
                 const message = session.messages.find((m) => m.id === action.payload.messageId);
                 if (message) {
-                    message.content = action.payload.content;
+                    if (action.payload.content !== undefined) {
+                        message.content = action.payload.content;
+                    }
+                    if (action.payload.context !== undefined) {
+                        message.context = action.payload.context;
+                    }
                     session.updatedAt = Date.now();
                     chatStorage.saveSessions(state.sessions);
                 }

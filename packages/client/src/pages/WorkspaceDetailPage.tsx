@@ -7,9 +7,9 @@ import DocumentList, { type DocumentListRef } from '../components/upload/Documen
 import FileUpload from '../components/upload/FileUpload';
 import apiService from '../services/api';
 import type { Workspace } from '../types/workspace';
-import { setActiveWorkspace } from '../store/slices/workspaceSlice';
+import { setActiveWorkspace, removeWorkspace } from '../store/slices/workspaceSlice'; // Import removeWorkspace
 import type { RootState } from '../store';
-import type { WorkspaceStatus } from '../store/slices/statusSlice';
+import { type WorkspaceStatus, selectIsWorkspaceDeleting, updateWorkspaceStatus } from '../store/slices/statusSlice'; // Import selectIsWorkspaceDeleting and updateWorkspaceStatus
 
 function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
@@ -29,7 +29,6 @@ export default function WorkspaceDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
 
     // Edit workspace modal state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -43,15 +42,29 @@ export default function WorkspaceDetailPage() {
 
     // Get real-time workspace status from Redux
     const workspaceStatusUpdates = useSelector((state: RootState) => state.status.workspaces);
+    const parsedWorkspaceId = parseInt(workspaceId!, 10);
     const workspaceStatus: WorkspaceStatus = workspaceId
-        ? workspaceStatusUpdates[parseInt(workspaceId, 10)]?.status || 'ready'
+        ? workspaceStatusUpdates[parsedWorkspaceId]?.status || 'ready'
         : 'ready';
+
+    const isWorkspaceBeingDeleted = useSelector(selectIsWorkspaceDeleting(parsedWorkspaceId));
 
     useEffect(() => {
         if (workspaceId) {
             loadWorkspace(parseInt(workspaceId, 10));
         }
     }, [workspaceId]);
+
+    // Effect to handle workspace removal from UI once backend confirms deletion
+    useEffect(() => {
+        if (workspace && isWorkspaceBeingDeleted && workspaceStatus === 'ready') {
+            // If the backend sends 'ready' status for a workspace previously marked 'deleting',
+            // it means the deletion has completed. Remove it from the UI.
+            dispatch(removeWorkspace(workspace.id));
+            navigate('/workspaces'); // Navigate away after successful deletion
+        }
+    }, [workspace, isWorkspaceBeingDeleted, workspaceStatus, dispatch, navigate]);
+
 
     const loadWorkspace = async (id: number) => {
         try {
@@ -79,15 +92,28 @@ export default function WorkspaceDetailPage() {
     const handleConfirmDelete = async () => {
         if (!workspace) return;
 
-        setIsDeleting(true);
+        setShowDeleteConfirm(false); // Close confirmation dialog
+        // Dispatch deleting status immediately for UI feedback
+        dispatch(updateWorkspaceStatus({
+            workspace_id: workspace.id,
+            user_id: -1, // User ID is not critical for status display on client
+            status: 'deleting',
+            message: 'Initiating workspace deletion...',
+        }));
+
         try {
             await apiService.deleteWorkspace(workspace.id);
-            navigate('/workspaces');
+            // Backend will send socket updates for deletion progress,
+            // eventually leading to removal from UI via statusSlice listener
         } catch (err: unknown) {
             setError(getErrorMessage(err));
-            setShowDeleteConfirm(false);
-        } finally {
-            setIsDeleting(false);
+            // Revert status if deletion fails immediately
+            dispatch(updateWorkspaceStatus({
+                workspace_id: workspace.id,
+                user_id: -1,
+                status: 'failed',
+                message: getErrorMessage(err),
+            }));
         }
     };
 
@@ -149,7 +175,6 @@ export default function WorkspaceDetailPage() {
         );
     }
 
-    const parsedWorkspaceId = parseInt(workspaceId!, 10);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -188,22 +213,23 @@ export default function WorkspaceDetailPage() {
                             <button
                                 onClick={() => setShowEditModal(true)}
                                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium transition-colors"
+                                disabled={isWorkspaceBeingDeleted}
                             >
                                 Edit
                             </button>
                             <button
                                 onClick={handleOpenInChat}
-                                disabled={workspaceStatus !== 'ready'}
+                                disabled={workspaceStatus !== 'ready' || isWorkspaceBeingDeleted}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Open in Chat
                             </button>
                             <button
                                 onClick={() => setShowDeleteConfirm(true)}
-                                disabled={isDeleting}
+                                disabled={isWorkspaceBeingDeleted}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium transition-colors disabled:opacity-50"
                             >
-                                {isDeleting ? 'Deleting...' : 'Delete'}
+                                {isWorkspaceBeingDeleted ? 'Deleting...' : 'Delete'}
                             </button>
                         </div>
                     </div>
@@ -219,6 +245,23 @@ export default function WorkspaceDetailPage() {
                                     </p>
                                     <p className="text-sm text-blue-600 dark:text-blue-400">
                                         Creating RAG infrastructure. This may take a minute.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Status message for deleting */}
+                    {isWorkspaceBeingDeleted && (
+                        <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                            <div className="flex items-center gap-3">
+                                <LoadingSpinner size="sm" />
+                                <div>
+                                    <p className="font-medium text-orange-700 dark:text-orange-300">
+                                        Deleting workspace...
+                                    </p>
+                                    <p className="text-sm text-orange-600 dark:text-orange-400">
+                                        This workspace and all its associated resources are being
+                                        removed.
                                     </p>
                                 </div>
                             </div>
@@ -281,15 +324,7 @@ export default function WorkspaceDetailPage() {
                     </div>
 
                     {workspace.rag_config ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Embedding Model
-                                </p>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                    {workspace.rag_config.embedding_model}
-                                </p>
-                            </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                             <div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                     Retriever Type
@@ -298,28 +333,82 @@ export default function WorkspaceDetailPage() {
                                     {workspace.rag_config.retriever_type}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Chunk Size
-                                </p>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                    {workspace.rag_config.chunk_size}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Chunk Overlap
-                                </p>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                    {workspace.rag_config.chunk_overlap ?? 'N/A'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Top K</p>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                    {workspace.rag_config.top_k ?? 'N/A'}
-                                </p>
-                            </div>
+                            {workspace.rag_config.retriever_type === 'vector' && (
+                                <>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Embedding Model
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {workspace.rag_config.embedding_model}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Chunk Size
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {workspace.rag_config.chunk_size}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Chunk Overlap
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {workspace.rag_config.chunk_overlap ?? 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Top K
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {workspace.rag_config.top_k ?? 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Rerank Enabled
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {workspace.rag_config.rerank_enabled ? 'Yes' : 'No'}
+                                        </p>
+                                    </div>
+                                    {workspace.rag_config.rerank_enabled && (
+                                        <div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                Rerank Model
+                                            </p>
+                                            <p className="font-medium text-gray-900 dark:text-white">
+                                                {workspace.rag_config.rerank_model || 'N/A'}
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            {workspace.rag_config.retriever_type === 'graph' && (
+                                <>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Max Hops
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {/* @ts-ignore */}
+                                            {workspace.rag_config.max_hops ?? 'N/A'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            Entity Extraction Model
+                                        </p>
+                                        <p className="font-medium text-gray-900 dark:text-white">
+                                            {/* @ts-ignore */}
+                                            {workspace.rag_config.entity_extraction_model || 'N/A'}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <p className="text-gray-500 dark:text-gray-400">
@@ -342,12 +431,14 @@ export default function WorkspaceDetailPage() {
                     <FileUpload
                         workspaceId={parsedWorkspaceId}
                         onUploadSuccess={handleDocumentChange}
+                        disabled={isWorkspaceBeingDeleted} // Disable uploads if workspace is being deleted
                     />
 
                     <DocumentList
                         ref={documentListRef}
                         workspaceId={parsedWorkspaceId}
                         onDocumentChange={handleDocumentChange}
+                        disableActions={isWorkspaceBeingDeleted} // Disable document actions if workspace is being deleted
                     />
                 </div>
             </div>

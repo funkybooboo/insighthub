@@ -3,12 +3,14 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import { type Context } from '../types/chat'; // Import Context type
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export interface ChatMessageData {
     message: string;
     session_id?: number;
+    workspace_id?: number; // Added workspace_id
     rag_type?: string;
     client_id?: string;
 }
@@ -20,6 +22,7 @@ export interface ChatChunkData {
 export interface ChatCompleteData {
     session_id: number;
     full_response: string;
+    context?: Context[]; // Added context field
 }
 
 export interface ErrorData {

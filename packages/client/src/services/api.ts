@@ -10,6 +10,8 @@ import type {
     UpdateWorkspaceRequest,
     CreateRagConfigRequest,
     UpdateRagConfigRequest,
+    VectorRagConfig, // Import new type
+    GraphRagConfig, // Import new type
 } from '../types/workspace';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -17,6 +19,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 export interface ChatRequest {
     message: string;
     session_id?: number;
+    workspace_id?: number; // Added workspace_id
     rag_type?: string;
 }
 
@@ -356,18 +359,23 @@ class ApiService {
         );
         return data;
     }
+
+    /**
+     * Fetch a Wikipedia article and inject it into the RAG system.
+     */
+    async fetchWikipediaArticle(
+        workspaceId: number,
+        query: string,
+    ): Promise<{ message: string }> {
+        const { data } = await this.client.post<{ message: string }>(
+            `/api/workspaces/${workspaceId}/rag/wikipedia`,
+            { query },
+        );
+        return data;
+    }
 }
 
-export interface DefaultRagConfig {
-    embedding_model: string;
-    embedding_dim?: number;
-    retriever_type: string;
-    chunk_size: number;
-    chunk_overlap: number;
-    top_k: number;
-    rerank_enabled: boolean;
-    rerank_model?: string;
-}
+export type DefaultRagConfig = VectorRagConfig | GraphRagConfig;
 
 export const apiService = new ApiService();
 export default apiService;

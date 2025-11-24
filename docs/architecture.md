@@ -4,15 +4,17 @@ Comprehensive overview of the InsightHub dual RAG system architecture.
 
 ## System Overview
 
-InsightHub compares Vector RAG and Graph RAG for academic paper analysis. The system uses clean architecture with clear separation of concerns.
+The InsightHub system provides an interactive platform for RAG-based analysis of academic papers, comparing Vector RAG and Graph RAG approaches. It is built with a clean architecture, ensuring clear separation of concerns and maintainability.
+
+The **React Frontend** serves as the primary user interface, offering a dynamic environment for managing workspaces, chat sessions, and documents. It provides real-time feedback on background processes (like RAG provisioning, document processing, and RAG enhancement jobs) through WebSockets, ensuring a responsive and informed user experience.
 
 **Core Components**:
-1. React Frontend - Document management and chat interface
-2. Flask Backend - REST API and WebSocket endpoints
-3. RAG Engine - Pluggable retrieval/generation components
-4. Vector Database - Qdrant for similarity search
-5. PostgreSQL - Application data and chat history
-6. LLM Providers - Ollama, OpenAI, Claude, HuggingFace
+1. **React Frontend** - The interactive user interface for workspace, chat, and document management, displaying real-time status updates.
+2. Flask Backend - REST API and WebSocket endpoints for client-server communication and orchestrating RAG operations.
+3. RAG Engine - Pluggable retrieval/generation components, responsible for integrating external knowledge sources.
+4. Vector Database - Qdrant for similarity search of document embeddings.
+5. PostgreSQL - Centralized storage for application data, user profiles, and chat history.
+6. LLM Providers - Integrations with various Large Language Models (Ollama, OpenAI, Claude, HuggingFace) for generating responses.
 
 ## Architecture Layers
 
@@ -66,29 +68,60 @@ Flask Application
 
 ## Data Flow
 
-### Document Upload
+### Document Upload (Detailed Workflow)
 ```
-1. User uploads file
-2. Flask receives multipart/form-data
-3. DocumentService extracts text
-4. Store file in BlobStorage
-5. Create Document record in PostgreSQL
-6. RAG Engine chunks text
-7. Generate embeddings
-8. Store vectors in Qdrant
-9. Return success response
+1. User uploads file via React Frontend.
+2. Flask Backend receives multipart/form-data.
+3. DocumentService extracts text and calculates content hash.
+4. Server stores file in BlobStorage (e.g., MinIO/S3).
+5. Server creates Document record in PostgreSQL with "pending" status.
+6. Server publishes a `document.uploaded` event to RabbitMQ (containing document_id, user_id, workspace_id, etc.).
+7. An Ingestion Worker (or a chain of workers: parser, chunker, embedder, indexer) consumes the `document.uploaded` event.
+8. The worker downloads the file, processes it (parses, chunks, generates embeddings), and stores vectors/graphs in Qdrant/Neo4j.
+9. During processing, the worker emits granular status update events (e.g., `document.processing.chunked`, `document.processing.embedded`, `document.processing.ready`) to RabbitMQ.
+10. The Server receives these status update events.
+11. The Server updates the Document's `processing_status` in PostgreSQL.
+12. The Server emits real-time status updates to the React Frontend via WebSockets (Socket.IO).
+13. If any step fails, the worker emits a `document.processing.failed` event, and the Server updates the Document status accordingly, notifying the client.
+14. Upon `document.processing.ready`, the document is fully integrated into the RAG system and available for querying.
 ```
 
-### Chat Query (Streaming)
+### Chat Query (Streaming) (Detailed Workflow)
 ```
-1. User sends message via WebSocket
-2. ChatService stores user message
-3. RAG retrieves relevant chunks from Qdrant
-4. Build context from chunks
-5. LLM streams response tokens
-6. Emit 'chat_chunk' events to frontend
-7. Store complete response in PostgreSQL
-8. Emit 'chat_complete' event
+1. User sends message via React Frontend's WebSocket.
+2. ChatService in Flask Backend receives the message.
+3. ChatService retrieves/creates ChatSession and stores User's ChatMessage in PostgreSQL.
+4. ChatService consults RAG configuration for the active workspace.
+5. ChatService (or a dedicated RAG worker) performs retrieval:
+    a. Queries Vector Store (Qdrant) with user's message embedding.
+    b. (Future) Queries Graph Store (Neo4j) for entities/relations.
+    c. Retrieves relevant document chunks/nodes (context).
+6. **RAG Enhancement Prompt**: If no relevant context is retrieved from the workspace's documents:
+    a. The system prompts the user with options: "Upload a Document", "Intelligently Fetch from Wikipedia", or "Continue without additional context".
+    b. If "Upload a Document" or "Intelligently Fetch from Wikipedia" is chosen, the chat is paused, and a RAG enhancement job (document ingestion or Wikipedia fetch) is initiated.
+    c. Status updates for these enhancement jobs are sent via WebSockets and displayed in the client's "Documents" column.
+    d. Once the enhancement job completes and the new context is integrated into the RAG system, the original user query is automatically retried.
+    e. If "Continue without additional context" is chosen, the query proceeds to the LLM without further RAG augmentation.
+7. ChatService constructs a prompt for the LLM, incorporating conversation history and retrieved context.
+8. ChatService interacts with the LLM Provider (Ollama, OpenAI) to get a streaming response.
+9. As LLM response tokens are received, the Server emits `chat.chunk` events to the React Frontend via WebSockets.
+10. The React Frontend displays tokens in real-time.
+11. Upon LLM response completion, ChatService stores the Assistant's full ChatMessage in PostgreSQL.
+12. ChatService emits a `chat.complete` event to the React Frontend via WebSockets.
+13. If a workspace has documents undergoing processing, chat functionality for that workspace is locked, and chat queries are disabled until all documents are processed.
+```
+
+### Workspace Deletion (Detailed Workflow)
+```
+1. User initiates workspace deletion from the React Frontend.
+2. The client immediately updates the workspace's status to 'deleting' in the UI.
+3. All interactive elements associated with this workspace (chat input, document uploads, edit buttons) are disabled.
+4. The client sends a request to the Flask Backend to delete the workspace.
+5. The Flask Backend initiates an asynchronous deletion process, removing the workspace's associated RAG system resources (e.g., Qdrant collection, Neo4j graph) and database records.
+6. During this process, the backend sends granular status updates (events) via WebSockets to the client, indicating progress or any errors.
+7. The client updates the workspace's status in real-time based on these events.
+8. Once the backend confirms the complete deletion (e.g., by sending a final 'ready' status for the workspace being deleted, which is then interpreted by the client to mean full deletion), the workspace is permanently removed from the client's UI, and the user is navigated away (e.g., to the main workspaces list).
+9. If deletion fails, the workspace status is updated to 'failed', and an error message is displayed.
 ```
 
 ### RAG Pipeline
@@ -253,3 +286,4 @@ See CLAUDE.md for detailed testing philosophy.
 - [Contributing](contributing.md) - Development guidelines
 - [Docker Guide](docker.md) - Container setup
 - [API Documentation](../packages/server/docs/api.md)
+- [Client User Flows and API Interactions](client-user-flows.md) - Detailed client-side user flows and API interactions.

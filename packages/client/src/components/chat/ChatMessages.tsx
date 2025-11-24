@@ -1,25 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import { FaArrowDown } from 'react-icons/fa';
+import { useSelector } from 'react-redux'; // Import useSelector
+import { selectIsWorkspaceProcessing } from '@/store/slices/statusSlice'; // Import selector
 
 import TypingIndicator from './TypingIndicator';
 import MarkdownRenderer from './MarkdownRenderer';
+import ContextDisplay from './ContextDisplay';
+import { type Message as MessageType, type Context } from '../../types/chat';
+import { selectActiveWorkspaceId } from '@/store/slices/workspaceSlice'; // Import active workspace selector
 
-export type Message = {
+type Message = {
     content: string;
     role: 'user' | 'bot';
+    context?: Context[];
 };
 
 type Props = {
-    messages: Message[];
+    messages: MessageType[];
     error: string;
     isBotTyping: boolean;
+    onFetchWikipedia: (query: string) => void; // New prop for fetching Wikipedia
 };
 
-const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
+const ChatMessages = ({ messages, error, isBotTyping, onFetchWikipedia }: Props) => {
     const lastMessageRef = useRef<HTMLDivElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const shouldAutoScrollRef = useRef(true);
+    const activeWorkspaceId = useSelector(selectActiveWorkspaceId); // Get active workspace
+    const isWorkspaceProcessing = useSelector(selectIsWorkspaceProcessing(activeWorkspaceId || -1)); // Check processing status
 
     const onCopyMessage = (event: React.ClipboardEvent) => {
         const selection = window.getSelection()?.toString().trim();
@@ -29,14 +38,12 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
         }
     };
 
-    // Check if user is at the bottom
     const isAtBottom = () => {
         if (!scrollContainerRef.current) return true;
         const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
         return scrollHeight - scrollTop - clientHeight < 100;
     };
 
-    // Scroll to bottom function
     const scrollToBottom = () => {
         if (lastMessageRef.current) {
             lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -44,16 +51,13 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
         }
     };
 
-    // Detect if user scrolls away from bottom
     const handleScroll = () => {
         if (!scrollContainerRef.current) return;
-
         const atBottom = isAtBottom();
         shouldAutoScrollRef.current = atBottom;
         setShowScrollButton(!atBottom && messages.length > 0);
     };
 
-    // Auto-scroll when messages change - only if user is at bottom
     useEffect(() => {
         if (shouldAutoScrollRef.current && lastMessageRef.current) {
             lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -99,7 +103,9 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                     key={index}
                                     onCopy={onCopyMessage}
                                     ref={index === messages.length - 1 ? lastMessageRef : null}
-                                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    className={`flex ${
+                                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                                    }`}
                                 >
                                     <div
                                         className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
@@ -112,6 +118,28 @@ const ChatMessages = ({ messages, error, isBotTyping }: Props) => {
                                             content={message.content}
                                             isUser={message.role === 'user'}
                                         />
+                                        {message.role === 'bot' &&
+                                            (message.context && message.context.length > 0 ? (
+                                                <ContextDisplay context={message.context} />
+                                            ) : (
+                                                !isWorkspaceProcessing && ( // Only show if workspace is not processing
+                                                    <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                            No relevant context found in documents.
+                                                        </p>
+                                                        <button
+                                                            onClick={() =>
+                                                                onFetchWikipedia(
+                                                                    messages[messages.length - 2]?.content || ''
+                                                                )
+                                                            }
+                                                            className="px-3 py-1 bg-blue-500 text-white text-xs rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                                                        >
+                                                            Fetch from Wikipedia?
+                                                        </button>
+                                                    </div>
+                                                )
+                                            ))}
                                     </div>
                                 </div>
                             ))}

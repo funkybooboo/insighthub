@@ -1,6 +1,17 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux'; // Import useDispatch
+import {
+    selectIsWorkspaceProcessing,
+    updateWikipediaFetchStatus,
+    clearWikipediaFetchStatus,
+} from '@/store/slices/statusSlice'; // Import necessary selectors and actions
 import DocumentList, { type DocumentListRef } from './DocumentList';
 import FileUpload from './FileUpload';
+import { LoadingSpinner } from '../shared';
+import type { RootState } from '@/store';
+import { selectActiveWorkspaceId } from '@/store/slices/workspaceSlice';
+import socketService from '@/services/socket';
+import { WikipediaFetchStatus } from '@/store/slices/statusSlice'; // Import the type
 
 interface DocumentManagerProps {
     workspaceId: number;
@@ -11,9 +22,48 @@ const DocumentManager = ({
     workspaceId,
     isExpanded: initialExpanded = false,
 }: DocumentManagerProps) => {
+    const dispatch = useDispatch();
     const [isExpanded, setIsExpanded] = useState(initialExpanded);
     const [documentCount, setDocumentCount] = useState(0);
     const documentListRef = useRef<DocumentListRef>(null);
+
+    const currentWorkspaceId = useSelector(selectActiveWorkspaceId);
+    const isWorkspaceProcessing = useSelector(selectIsWorkspaceProcessing(currentWorkspaceId || -1));
+
+    // Select Wikipedia fetches for the current workspace
+    const wikipediaFetches = useSelector((state: RootState) =>
+        Object.values(state.status.wikipediaFetches).filter(
+            (fetch) => fetch.workspace_id === currentWorkspaceId,
+        ),
+    );
+
+    useEffect(() => {
+        // Set up socket listeners for Wikipedia fetch status
+        socketService.onWikipediaFetchStatus((data) => {
+            console.log('Wikipedia fetch status update:', data);
+            dispatch(updateWikipediaFetchStatus({
+                id: data.id,
+                user_id: data.user_id,
+                workspace_id: data.workspace_id,
+                query: data.query,
+                status: data.status as WikipediaFetchStatus,
+                message: data.message,
+                error: data.error,
+                timestamp: Date.now(),
+            }));
+
+            // If a fetch is complete (ready/failed), clear it after a delay
+            if (data.status === 'ready' || data.status === 'failed') {
+                setTimeout(() => {
+                    dispatch(clearWikipediaFetchStatus(data.id));
+                }, 5000); // Clear after 5 seconds
+            }
+        });
+
+        return () => {
+            socketService.removeListener('wikipedia_fetch_status');
+        };
+    }, [dispatch]);
 
     const handleDocumentChange = () => {
         // Trigger refresh of document list when documents change
@@ -49,9 +99,9 @@ const DocumentManager = ({
                         />
                     </svg>
                     <span className="font-medium text-gray-900 dark:text-gray-100">Documents</span>
-                    {documentCount > 0 && (
+                    {(documentCount > 0 || wikipediaFetches.length > 0) && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full">
-                            {documentCount}
+                            {documentCount + wikipediaFetches.length}
                         </span>
                     )}
                 </div>
@@ -73,13 +123,49 @@ const DocumentManager = ({
             </button>
 
             {isExpanded && (
-                <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                    <FileUpload workspaceId={workspaceId} onUploadSuccess={handleDocumentChange} />
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                    {/* Wikipedia Fetch Statuses */}
+                    {wikipediaFetches.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                Wikipedia Fetches:
+                            </h4>
+                            {wikipediaFetches.map((fetch) => (
+                                <div
+                                    key={fetch.id}
+                                    className={`flex items-center gap-2 text-sm p-2 rounded-md ${
+                                        fetch.status === 'fetching' || fetch.status === 'processing'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                            : fetch.status === 'ready'
+                                              ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+                                              : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                                    }`}
+                                >
+                                    {(fetch.status === 'fetching' || fetch.status === 'processing') && (
+                                        <LoadingSpinner size="sm" />
+                                    )}
+                                    <span className="truncate">
+                                        {fetch.query}: {fetch.message || fetch.status}
+                                    </span>
+                                    {fetch.error && (
+                                        <span className="text-xs text-red-500 ml-auto">Error</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <FileUpload
+                        workspaceId={workspaceId}
+                        onUploadSuccess={handleDocumentChange}
+                        disabled={isWorkspaceProcessing} // Disable if any processing is active
+                    />
                     <DocumentList
                         ref={documentListRef}
                         workspaceId={workspaceId}
                         onDocumentChange={handleDocumentChange}
                         onDocumentCountChange={handleDocumentCountChange}
+                        disableActions={isWorkspaceProcessing} // Disable if any processing is active
                     />
                 </div>
             )}
@@ -88,3 +174,4 @@ const DocumentManager = ({
 };
 
 export default DocumentManager;
+

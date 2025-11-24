@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import apiService from '@/services/api';
 import { LoadingSpinner } from '@/components/shared';
+import { AxiosError } from 'axios';
 
 interface FileUploadProps {
     workspaceId: number;
@@ -8,11 +9,8 @@ interface FileUploadProps {
 }
 
 const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
-    const [uploading, setUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState<string | null>(null);
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const [isDragging, setIsDragging] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [currentFileError, setCurrentFileError] = useState(''); // Local error for file validation
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const processFile = async (file: File) => {
@@ -22,38 +20,34 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
         const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
 
         if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-            setError('Only PDF, TXT, and MD files are allowed');
+            setCurrentFileError('Only PDF, TXT, and MD files are allowed');
             return;
         }
 
         // Validate file size (16MB max)
         const maxSize = 16 * 1024 * 1024;
         if (file.size > maxSize) {
-            setError('File size must be less than 16MB');
+            setCurrentFileError('File size must be less than 16MB');
             return;
         }
 
         try {
-            setUploading(true);
-            setError('');
-            setMessage('');
-            setUploadProgress('Uploading file...');
+            setIsUploading(true);
+            setCurrentFileError('');
 
-            const response = await apiService.uploadDocument(workspaceId, file);
-            setUploadProgress(null);
-            setMessage(`"${response.document.filename}" uploaded. Processing...`);
-
-            // Notify parent component
+            await apiService.uploadDocument(workspaceId, file);
+            
+            // Notify parent component that an upload was initiated (status will come via websockets)
             onUploadSuccess?.();
-
-            // Clear success message after 5 seconds
-            setTimeout(() => setMessage(''), 5000);
-        } catch (err) {
-            console.error('Upload error:', err);
-            setError('Failed to upload file. Please try again.');
-            setUploadProgress(null);
+        } catch (err: unknown) {
+            console.error('Upload initiation error:', err);
+            const errorMessage =
+                err instanceof AxiosError && err.response?.data?.detail
+                    ? err.response.data.detail
+                    : 'Failed to upload file. Please try again.';
+            setCurrentFileError(errorMessage);
         } finally {
-            setUploading(false);
+            setIsUploading(false);
         }
     };
 
@@ -98,7 +92,7 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500'
                     }
-                    ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                    ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -110,14 +104,14 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
                     className="hidden"
                     accept=".pdf,.txt,.md"
                     onChange={handleFileChange}
-                    disabled={uploading}
+                    disabled={isUploading}
                 />
 
-                {uploading ? (
+                {isUploading ? (
                     <div className="flex flex-col items-center gap-2">
                         <LoadingSpinner size="md" />
                         <p className="text-sm text-blue-600 dark:text-blue-400">
-                            {uploadProgress || 'Processing...'}
+                            Upload initiated. Waiting for processing status...
                         </p>
                     </div>
                 ) : (
@@ -147,33 +141,17 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
                 )}
             </div>
 
-            {/* Status messages */}
-            {(message || error) && (
-                <div className="mt-3">
-                    {message && (
-                        <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            {message}
-                        </div>
-                    )}
-                    {error && (
-                        <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                    clipRule="evenodd"
-                                />
-                            </svg>
-                            {error}
-                        </div>
-                    )}
+            {/* Local error messages */}
+            {currentFileError && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                        />
+                    </svg>
+                    {currentFileError}
                 </div>
             )}
         </div>
@@ -181,3 +159,4 @@ const FileUpload = ({ workspaceId, onUploadSuccess }: FileUploadProps) => {
 };
 
 export default FileUpload;
+

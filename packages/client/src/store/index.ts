@@ -4,6 +4,7 @@ import chatReducer from './slices/chatSlice';
 import statusReducer from './slices/statusSlice';
 import themeReducer from './slices/themeSlice';
 import workspaceReducer from './slices/workspaceSlice';
+import userSettingsReducer from './slices/userSettingsSlice'; // Import the new reducer
 
 export const store = configureStore({
     reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
         theme: themeReducer,
         workspace: workspaceReducer,
         status: statusReducer,
+        userSettings: userSettingsReducer, // Add the new reducer here
     },
 });
 

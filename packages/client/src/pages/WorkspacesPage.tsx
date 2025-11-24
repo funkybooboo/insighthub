@@ -1,37 +1,30 @@
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { AxiosError } from 'axios';
 import { StatusBadge, LoadingSpinner } from '../components/shared';
 import type { RootState } from '../store';
+import {
+    fetchDefaultRagConfig,
+    selectDefaultRagConfig,
+    selectUserSettingsLoading,
+} from '../store/slices/userSettingsSlice';
 import type { WorkspaceStatus } from '../store/slices/statusSlice';
-import type { Workspace as BaseWorkspace, CreateRagConfigRequest } from '../types/workspace';
+import {
+    type Workspace as BaseWorkspace,
+    type CreateRagConfigRequest,
+} from '../types/workspace';
 import apiService from '../services/api';
+import RagConfigForm from '../components/workspace/RagConfigForm'; // Import the new component
 
 interface WorkspaceWithStatus extends BaseWorkspace {
     status: WorkspaceStatus;
     status_message: string | null;
 }
 
-interface RagConfigFormData {
-    embedding_model: string;
-    retriever_type: string;
-    chunk_size: number;
-    chunk_overlap: number;
-    top_k: number;
-}
-
-const DEFAULT_RAG_CONFIG: RagConfigFormData = {
-    embedding_model: 'nomic-embed-text',
-    retriever_type: 'vector',
-    chunk_size: 1000,
-    chunk_overlap: 200,
-    top_k: 8,
-};
-
 function getErrorMessage(error: unknown): string {
     if (error instanceof AxiosError) {
-        return error.response?.data?.detail || error.message;
+        return error.response?.data?.message || error.message;
     }
     if (error instanceof Error) {
         return error.message;
@@ -40,7 +33,11 @@ function getErrorMessage(error: unknown): string {
 }
 
 export default function WorkspacesPage() {
+    const dispatch = useDispatch<RootState>();
     const statusUpdates = useSelector((state: RootState) => state.status.workspaces);
+    const defaultRagConfig = useSelector(selectDefaultRagConfig);
+    const loadingDefaultRagConfig = useSelector(selectUserSettingsLoading);
+
     const [workspaces, setWorkspaces] = useState<WorkspaceWithStatus[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -50,21 +47,30 @@ export default function WorkspacesPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
 
-    // RAG config state for create modal
-    const [ragConfig, setRagConfig] = useState<RagConfigFormData>(DEFAULT_RAG_CONFIG);
+    // RAG config state for create modal (local state, pre-populated by defaultRagConfig)
+    const [ragConfigForWorkspace, setRagConfigForWorkspace] = useState<
+        Partial<CreateRagConfigRequest>
+    >({});
     const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
-    const [loadingDefaults, setLoadingDefaults] = useState(false);
 
+    // Load workspaces on mount
     useEffect(() => {
         loadWorkspaces();
     }, []);
 
     // Load user's default RAG config when modal opens
+    // and set it as the initial config for the workspace creation form
     useEffect(() => {
         if (showCreateModal) {
-            loadDefaultRagConfig();
+            dispatch(fetchDefaultRagConfig());
         }
-    }, [showCreateModal]);
+    }, [showCreateModal, dispatch]);
+
+    useEffect(() => {
+        if (defaultRagConfig) {
+            setRagConfigForWorkspace(defaultRagConfig);
+        }
+    }, [defaultRagConfig]);
 
     // Update workspace status when real-time update received
     useEffect(() => {
@@ -83,35 +89,14 @@ export default function WorkspacesPage() {
         );
     }, [statusUpdates]);
 
-    const loadDefaultRagConfig = async () => {
-        try {
-            setLoadingDefaults(true);
-            const defaults = await apiService.getDefaultRagConfig();
-            if (defaults) {
-                setRagConfig({
-                    embedding_model: defaults.embedding_model,
-                    retriever_type: defaults.retriever_type,
-                    chunk_size: defaults.chunk_size,
-                    chunk_overlap: defaults.chunk_overlap,
-                    top_k: defaults.top_k,
-                });
-            }
-        } catch (err) {
-            console.error('Failed to load default RAG config:', err);
-            // Keep default values if loading fails
-        } finally {
-            setLoadingDefaults(false);
-        }
-    };
-
-    const loadWorkspaces = async () => {
+    const loadWorkspaces = useCallback(async () => {
         try {
             setLoading(true);
             const data = await apiService.listWorkspaces();
             // Add default status for workspaces that don't have one
             const workspacesWithStatus: WorkspaceWithStatus[] = data.map((ws) => ({
                 ...ws,
-                status: 'ready' as WorkspaceStatus,
+                status: ws.status || 'ready', // Use existing status or default to 'ready'
                 status_message: null,
             }));
             setWorkspaces(workspacesWithStatus);
@@ -120,7 +105,7 @@ export default function WorkspacesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const handleCreateWorkspace = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,23 +115,26 @@ export default function WorkspacesPage() {
         setCreateError(null);
 
         try {
-            const ragConfigRequest: CreateRagConfigRequest = {
-                embedding_model: ragConfig.embedding_model,
-                retriever_type: ragConfig.retriever_type,
-                chunk_size: ragConfig.chunk_size,
-                chunk_overlap: ragConfig.chunk_overlap,
-                top_k: ragConfig.top_k,
+            // Ensure required fields are present with defaults if not explicitly set
+            const finalRagConfig: CreateRagConfigRequest = {
+                retriever_type: ragConfigForWorkspace.retriever_type || 'vector',
+                embedding_model: ragConfigForWorkspace.embedding_model || 'nomic-embed-text',
+                chunk_size: ragConfigForWorkspace.chunk_size || 1000,
+                chunk_overlap: ragConfigForWorkspace.chunk_overlap || 200,
+                top_k: ragConfigForWorkspace.top_k || 8,
+                rerank_enabled: ragConfigForWorkspace.rerank_enabled || false,
+                rerank_model: ragConfigForWorkspace.rerank_model,
             };
 
             const workspace = await apiService.createWorkspace({
                 name: newWorkspaceName.trim(),
                 description: newWorkspaceDescription.trim() || undefined,
-                rag_config: ragConfigRequest,
+                rag_config: finalRagConfig,
             });
 
             const workspaceWithStatus: WorkspaceWithStatus = {
                 ...workspace,
-                status: 'provisioning',
+                status: 'provisioning', // New workspaces start in provisioning
                 status_message: null,
             };
 
@@ -163,7 +151,7 @@ export default function WorkspacesPage() {
         setShowCreateModal(false);
         setNewWorkspaceName('');
         setNewWorkspaceDescription('');
-        setRagConfig(DEFAULT_RAG_CONFIG);
+        setRagConfigForWorkspace({}); // Reset local config state
         setShowAdvancedConfig(false);
         setCreateError(null);
     };
@@ -333,7 +321,9 @@ export default function WorkspacesPage() {
                                         RAG Configuration
                                     </span>
                                     <svg
-                                        className={`h-5 w-5 text-gray-500 transition-transform ${showAdvancedConfig ? 'rotate-180' : ''}`}
+                                        className={`h-5 w-5 text-gray-500 transition-transform ${
+                                            showAdvancedConfig ? 'rotate-180' : ''
+                                        }`}
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"
@@ -352,118 +342,19 @@ export default function WorkspacesPage() {
                                         : 'Using your default settings. Click to customize.'}
                                 </p>
 
-                                {loadingDefaults && (
+                                {loadingDefaultRagConfig && (
                                     <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
                                         <LoadingSpinner size="sm" />
                                         Loading default configuration...
                                     </div>
                                 )}
 
-                                {showAdvancedConfig && !loadingDefaults && (
-                                    <div className="mt-4 space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Embedding Model
-                                                </label>
-                                                <select
-                                                    value={ragConfig.embedding_model}
-                                                    onChange={(e) =>
-                                                        setRagConfig({
-                                                            ...ragConfig,
-                                                            embedding_model: e.target.value,
-                                                        })
-                                                    }
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
-                                                >
-                                                    <option value="nomic-embed-text">
-                                                        Nomic Embed Text
-                                                    </option>
-                                                    <option value="text-embedding-ada-002">
-                                                        OpenAI Ada-002
-                                                    </option>
-                                                    <option value="all-MiniLM-L6-v2">MiniLM</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Retriever Type
-                                                </label>
-                                                <select
-                                                    value={ragConfig.retriever_type}
-                                                    onChange={(e) =>
-                                                        setRagConfig({
-                                                            ...ragConfig,
-                                                            retriever_type: e.target.value,
-                                                        })
-                                                    }
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
-                                                >
-                                                    <option value="vector">Vector RAG</option>
-                                                    <option value="graph">Graph RAG</option>
-                                                    <option value="hybrid">Hybrid RAG</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Chunk Size
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={ragConfig.chunk_size}
-                                                    onChange={(e) =>
-                                                        setRagConfig({
-                                                            ...ragConfig,
-                                                            chunk_size:
-                                                                parseInt(e.target.value) || 1000,
-                                                        })
-                                                    }
-                                                    min="100"
-                                                    max="5000"
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Overlap
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={ragConfig.chunk_overlap}
-                                                    onChange={(e) =>
-                                                        setRagConfig({
-                                                            ...ragConfig,
-                                                            chunk_overlap:
-                                                                parseInt(e.target.value) || 0,
-                                                        })
-                                                    }
-                                                    min="0"
-                                                    max="1000"
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Top K
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={ragConfig.top_k}
-                                                    onChange={(e) =>
-                                                        setRagConfig({
-                                                            ...ragConfig,
-                                                            top_k: parseInt(e.target.value) || 8,
-                                                        })
-                                                    }
-                                                    min="1"
-                                                    max="50"
-                                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm"
-                                                />
-                                            </div>
-                                        </div>
+                                {showAdvancedConfig && !loadingDefaultRagConfig && (
+                                    <div className="mt-4">
+                                        <RagConfigForm
+                                            initialConfig={ragConfigForWorkspace}
+                                            onConfigChange={setRagConfigForWorkspace}
+                                        />
                                     </div>
                                 )}
                             </div>

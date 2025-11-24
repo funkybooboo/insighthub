@@ -5,39 +5,23 @@ import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ChatBot from './components/chat/ChatBot';
-import ChatSidebar from './components/chat/ChatSidebar';
-import UserMenu from './components/auth/UserMenu';
-import WorkspaceSettings from './components/workspace/WorkspaceSettings';
-import { SettingsPage } from './components/settings';
+import WorkspaceColumn from './components/workspace/WorkspaceColumn';
+import ChatSessionList from './components/chat/ChatSessionList';
+import DocumentManager from './components/upload/DocumentManager';
+import Layout from './components/shared/Layout';
+import { SettingsPage } from './pages/SettingsPage';
 import WorkspacesPage from './pages/WorkspacesPage';
 import WorkspaceDetailPage from './pages/WorkspaceDetailPage';
 import { setTheme } from './store/slices/themeSlice';
 import { useStatusUpdates } from './hooks/useStatusUpdates';
 import type { RootState } from './store';
-
-function MainApp() {
-    return (
-        <div className="h-screen flex bg-gray-100 dark:bg-gray-950">
-            <ChatSidebar />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-14 flex items-center justify-end px-6 bg-white dark:bg-gray-900 border-b border-gray-200/80 dark:border-gray-800">
-                    <div className="flex items-center gap-3">
-                        <WorkspaceSettings />
-                        <UserMenu />
-                    </div>
-                </header>
-                <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-900">
-                    <ChatBot />
-                </main>
-            </div>
-        </div>
-    );
-}
+import { selectActiveWorkspaceId } from './store/slices/workspaceSlice';
 
 function App() {
     const dispatch = useDispatch();
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
     const { theme } = useSelector((state: RootState) => state.theme);
+    const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
 
     // Subscribe to real-time status updates when authenticated
     useStatusUpdates();
@@ -71,7 +55,20 @@ function App() {
                     path="/settings"
                     element={
                         <ProtectedRoute>
-                            <SettingsPage />
+                            <Layout
+                                workspaceColumn={<WorkspaceColumn />}
+                                chatSessionColumn={<ChatSessionList />}
+                                chatColumn={<SettingsPage />}
+                                documentColumn={
+                                    activeWorkspaceId ? (
+                                        <DocumentManager workspaceId={activeWorkspaceId} />
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            Select a workspace to manage documents
+                                        </div>
+                                    )
+                                }
+                            />
                         </ProtectedRoute>
                     }
                 />
@@ -79,7 +76,20 @@ function App() {
                     path="/workspaces"
                     element={
                         <ProtectedRoute>
-                            <WorkspacesPage />
+                            <Layout
+                                workspaceColumn={<WorkspaceColumn />}
+                                chatSessionColumn={<ChatSessionList />}
+                                chatColumn={<WorkspacesPage />}
+                                documentColumn={
+                                    activeWorkspaceId ? (
+                                        <DocumentManager workspaceId={activeWorkspaceId} />
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            Select a workspace to manage documents
+                                        </div>
+                                    )
+                                }
+                            />
                         </ProtectedRoute>
                     }
                 />
@@ -87,7 +97,20 @@ function App() {
                     path="/workspaces/:workspaceId"
                     element={
                         <ProtectedRoute>
-                            <WorkspaceDetailPage />
+                            <Layout
+                                workspaceColumn={<WorkspaceColumn />}
+                                chatSessionColumn={<ChatSessionList />}
+                                chatColumn={<WorkspaceDetailPage />}
+                                documentColumn={
+                                    activeWorkspaceId ? (
+                                        <DocumentManager workspaceId={activeWorkspaceId} />
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            Select a workspace to manage documents
+                                        </div>
+                                    )
+                                }
+                            />
                         </ProtectedRoute>
                     }
                 />
@@ -95,7 +118,20 @@ function App() {
                     path="/"
                     element={
                         <ProtectedRoute>
-                            <MainApp />
+                            <Layout
+                                workspaceColumn={<WorkspaceColumn />}
+                                chatSessionColumn={<ChatSessionList />}
+                                chatColumn={<ChatBot />}
+                                documentColumn={
+                                    activeWorkspaceId ? (
+                                        <DocumentManager workspaceId={activeWorkspaceId} />
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            Select a workspace to manage documents
+                                        </div>
+                                    )
+                                }
+                            />
                         </ProtectedRoute>
                     }
                 />
