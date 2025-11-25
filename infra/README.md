@@ -6,18 +6,18 @@ Shared infrastructure and configuration for InsightHub backend services.
 
 ```
 infra/
-├── config/           # Environment configuration files
-│   ├── .env.local.example    # Development template
-│   ├── .env.prod.example     # Production template
-│   ├── .env.test             # Test configuration
-│   └── .gitignore            # Git ignore rules for env files
-├── migrations/       # Database schema migrations
-│   ├── *.sql                # Migration files
-│   └── migrate.py           # Migration runner script
-├── elk/              # ELK stack configuration
-│   ├── filebeat/            # Filebeat config
-│   └── logstash/            # Logstash config
-└── Taskfile.yml      # Infrastructure management tasks
++-- config/           # Environment configuration files
+|   +-- .env.local.example    # Development template
+|   +-- .env.prod.example     # Production template
+|   +-- .env.test             # Test configuration
+|   +-- .gitignore            # Git ignore rules for env files
++-- migrations/       # Database schema migrations
+|   +-- *.sql                # Migration files
+|   +-- migrate.py           # Migration runner script
++-- elk/              # ELK stack configuration
+|   +-- filebeat/            # Filebeat config
+|   +-- logstash/            # Logstash config
++-- Taskfile.yml      # Infrastructure management tasks
 ```
 
 ## Configuration

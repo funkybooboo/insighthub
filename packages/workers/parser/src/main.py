@@ -45,10 +45,19 @@ class DocumentParsedEvent:
 class DocumentParser:
     """Document parser for various file formats."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the document parser."""
         if not all([MINIO_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET_NAME]):
             raise ValueError("MinIO configuration is missing.")
+
+        if not MINIO_URL:
+            raise ValueError("MINIO_URL is not configured.")
+        if not MINIO_ACCESS_KEY:
+            raise ValueError("MINIO_ACCESS_KEY is not configured.")
+        if not MINIO_SECRET_KEY:
+            raise ValueError("MINIO_SECRET_KEY is not configured.")
+        if not MINIO_BUCKET_NAME:
+            raise ValueError("MINIO_BUCKET_NAME is not configured.")
 
         self.blob_storage = S3BlobStorage(
             endpoint=MINIO_URL,
@@ -71,9 +80,9 @@ class DocumentParser:
 
         download_result = self.blob_storage.download_file(file_path)
         if download_result.is_err():
-            err = download_result.unwrap_err()  # type: ignore
+            err = download_result.error  # type: ignore
             logger.error("Failed to download file", extra={"error": str(err)})
-            raise err
+            raise Exception(str(err))
 
         file_bytes = download_result.unwrap()
         file_obj = io.BytesIO(file_bytes)
@@ -87,9 +96,9 @@ class DocumentParser:
 
         parse_result = parser_factory.parse_document(file_obj, filename)
         if parse_result.is_err():
-            err = parse_result.unwrap_err()  # type: ignore
+            err = parse_result.error  # type: ignore
             logger.error("Failed to parse document", extra={"error": str(err)})
-            raise err
+            raise Exception(str(err))
 
         document = parse_result.unwrap()
         return document.content
@@ -113,9 +122,6 @@ class ParserWorker(BaseWorker):
         self.parser = DocumentParser()
         self.db_connection = PostgresConnection(db_url=DATABASE_URL)
         self.db_connection.connect()
-
-    def stop(self):
-        self._consumer.stop()
 
     def process_event(self, event_data: dict[str, Any]) -> None:
         """
@@ -187,15 +193,14 @@ class ParserWorker(BaseWorker):
                     "UPDATE documents SET parsed_text = %s, updated_at = NOW() WHERE id = %s",
                     (text_content, document_id),
                 )
-                if self.db_connection.connection:
-                    self.db_connection.connection.commit()
+            if self.db_connection.connection:
+                self.db_connection.connection.commit()
         except Exception as e:
             logger.error(
                 "Failed to store parsed text",
                 extra={"document_id": document_id, "error": str(e)},
             )
-            if self.db_connection.connection:
-                self.db_connection.connection.rollback()
+            self.db_connection.connection.rollback()
             raise
 
     def _update_document_status(
@@ -217,15 +222,14 @@ class ParserWorker(BaseWorker):
                     query,
                     (status, json.dumps(metadata) if metadata else None, document_id),
                 )
-                if self.db_connection.connection:
-                    self.db_connection.connection.commit()
+            if self.db_connection.connection:
+                self.db_connection.connection.commit()
         except Exception as e:
             logger.error(
                 "Failed to update document status",
                 extra={"document_id": document_id, "error": str(e)},
             )
-            if self.db_connection.connection:
-                self.db_connection.connection.rollback()
+            self.db_connection.connection.rollback()
             raise
 
 

@@ -6,9 +6,12 @@ This module provides access to:
 """
 
 from shared.database.graph import GraphDatabase, Neo4jGraphDatabase
+from shared.database.sql import PostgresSqlDatabase, SqlDatabase
 from shared.database.vector import QdrantVectorDatabase, VectorDatabase
 
 __all__ = [
+    "SqlDatabase",
+    "PostgresSqlDatabase",
     "VectorDatabase",
     "QdrantVectorDatabase",
     "GraphDatabase",

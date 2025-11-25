@@ -12,7 +12,7 @@ statusCommand.action(async () => {
     const config = getConfig();
     const client = new InsightHubApiClient(config);
 
-    console.log(chalk.bold('📊 InsightHub System Status\n'));
+    console.log(chalk.bold('InsightHub System Status\n'));
 
     // Configuration status
     console.log(chalk.bold('Configuration:'));

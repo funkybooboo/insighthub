@@ -90,19 +90,23 @@ class DummyDocumentRepository(DocumentRepository):
     ) -> list[Document]:
         """Get documents by workspace ID with pagination and optional status filter."""
         workspace_docs = [
-            doc for doc in self.documents.values()
-            if doc.workspace_id == workspace_id and
-            (status_filter is None or doc.processing_status == status_filter)
+            doc
+            for doc in self.documents.values()
+            if doc.workspace_id == workspace_id
+            and (status_filter is None or doc.processing_status == status_filter)
         ]
         return workspace_docs[skip : skip + limit]
 
     def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
         """Count documents in a workspace with optional status filter."""
-        return len([
-            doc for doc in self.documents.values()
-            if doc.workspace_id == workspace_id and
-            (status_filter is None or doc.processing_status == status_filter)
-        ])
+        return len(
+            [
+                doc
+                for doc in self.documents.values()
+                if doc.workspace_id == workspace_id
+                and (status_filter is None or doc.processing_status == status_filter)
+            ]
+        )
 
 
 @pytest.fixture
@@ -114,7 +118,9 @@ def repository() -> DummyDocumentRepository:
 class TestDocumentRepositoryCreate:
     """Tests for document creation."""
 
-    def test_create_document_returns_document_with_correct_fields(self, repository: DummyDocumentRepository) -> None:
+    def test_create_document_returns_document_with_correct_fields(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """create returns Document with correct fields."""
         doc = repository.create(
             user_id=1,
@@ -125,7 +131,7 @@ class TestDocumentRepositoryCreate:
             content_hash="abc123",
             workspace_id=5,
             chunk_count=10,
-            rag_collection="test_collection"
+            rag_collection="test_collection",
         )
 
         assert doc.id == 1
@@ -147,7 +153,7 @@ class TestDocumentRepositoryCreate:
             file_path="/storage/test.txt",
             file_size=100,
             mime_type="text/plain",
-            content_hash="hash123"
+            content_hash="hash123",
         )
 
         assert doc.workspace_id is None
@@ -185,7 +191,9 @@ class TestDocumentRepositoryGetById:
         assert result.id == created.id
         assert result.filename == "test.pdf"
 
-    def test_get_by_id_returns_none_when_not_exists(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_id_returns_none_when_not_exists(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_id returns None when document doesn't exist."""
         result = repository.get_by_id(999)
 
@@ -209,7 +217,9 @@ class TestDocumentRepositoryGetByUser:
         assert doc2 in result
         assert doc3 not in result
 
-    def test_get_by_user_returns_empty_list_when_no_documents(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_user_returns_empty_list_when_no_documents(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_user returns empty list when user has no documents."""
         result = repository.get_by_user(1)
 
@@ -231,7 +241,9 @@ class TestDocumentRepositoryGetByUser:
 class TestDocumentRepositoryGetByContentHash:
     """Tests for get_by_content_hash method."""
 
-    def test_get_by_content_hash_returns_correct_document(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_content_hash_returns_correct_document(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_content_hash returns correct document when exists."""
         created = repository.create(1, "test.pdf", "/path", 100, "application/pdf", "unique_hash")
 
@@ -241,13 +253,17 @@ class TestDocumentRepositoryGetByContentHash:
         assert result.id == created.id
         assert result.content_hash == "unique_hash"
 
-    def test_get_by_content_hash_returns_none_when_not_exists(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_content_hash_returns_none_when_not_exists(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_content_hash returns None when hash doesn't exist."""
         result = repository.get_by_content_hash("nonexistent_hash")
 
         assert result is None
 
-    def test_get_by_content_hash_handles_duplicates(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_content_hash_handles_duplicates(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_content_hash returns first document when multiple have same hash."""
         # This shouldn't happen in practice, but test the behavior
         doc1 = repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "same_hash")
@@ -312,12 +328,20 @@ class TestDocumentRepositoryDelete:
 class TestDocumentRepositoryGetByWorkspace:
     """Tests for get_by_workspace method."""
 
-    def test_get_by_workspace_returns_workspace_documents(self, repository: DummyDocumentRepository) -> None:
+    def test_get_by_workspace_returns_workspace_documents(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """get_by_workspace returns only documents in specified workspace."""
         # Create documents in different workspaces
-        doc1 = repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1)
-        doc2 = repository.create(1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1)
-        doc3 = repository.create(2, "file3.pdf", "/path3", 300, "application/pdf", "hash3", workspace_id=2)
+        doc1 = repository.create(
+            1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1
+        )
+        doc2 = repository.create(
+            1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1
+        )
+        doc3 = repository.create(
+            2, "file3.pdf", "/path3", 300, "application/pdf", "hash3", workspace_id=2
+        )
 
         result = repository.get_by_workspace(1)
 
@@ -328,8 +352,12 @@ class TestDocumentRepositoryGetByWorkspace:
 
     def test_get_by_workspace_with_status_filter(self, repository: DummyDocumentRepository) -> None:
         """get_by_workspace filters by processing status."""
-        doc1 = repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1)
-        doc2 = repository.create(1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1)
+        doc1 = repository.create(
+            1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1
+        )
+        doc2 = repository.create(
+            1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1
+        )
 
         # Update one document to ready status
         repository.update(doc1.id, processing_status="ready")
@@ -345,7 +373,9 @@ class TestDocumentRepositoryGetByWorkspace:
         # Create multiple documents in workspace
         docs = []
         for i in range(5):
-            doc = repository.create(1, f"file{i}.pdf", f"/path{i}", 100, "application/pdf", f"hash{i}", workspace_id=1)
+            doc = repository.create(
+                1, f"file{i}.pdf", f"/path{i}", 100, "application/pdf", f"hash{i}", workspace_id=1
+            )
             docs.append(doc)
 
         result = repository.get_by_workspace(1, skip=2, limit=2)
@@ -358,7 +388,9 @@ class TestDocumentRepositoryGetByWorkspace:
 class TestDocumentRepositoryCountByWorkspace:
     """Tests for count_by_workspace method."""
 
-    def test_count_by_workspace_returns_correct_count(self, repository: DummyDocumentRepository) -> None:
+    def test_count_by_workspace_returns_correct_count(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """count_by_workspace returns correct count of documents in workspace."""
         # Create documents in different workspaces
         repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1)
@@ -369,10 +401,16 @@ class TestDocumentRepositoryCountByWorkspace:
 
         assert count == 2
 
-    def test_count_by_workspace_with_status_filter(self, repository: DummyDocumentRepository) -> None:
+    def test_count_by_workspace_with_status_filter(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """count_by_workspace filters by processing status."""
-        doc1 = repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1)
-        doc2 = repository.create(1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1)
+        doc1 = repository.create(
+            1, "file1.pdf", "/path1", 100, "application/pdf", "hash1", workspace_id=1
+        )
+        doc2 = repository.create(
+            1, "file2.pdf", "/path2", 200, "application/pdf", "hash2", workspace_id=1
+        )
 
         repository.update(doc1.id, processing_status="ready")
         repository.update(doc2.id, processing_status="failed")
@@ -399,9 +437,13 @@ class TestDocumentRepositoryIntegration:
         assert retrieved is not None
         assert retrieved.id == created.id
 
-    def test_update_processing_status_then_filter_by_workspace(self, repository: DummyDocumentRepository) -> None:
+    def test_update_processing_status_then_filter_by_workspace(
+        self, repository: DummyDocumentRepository
+    ) -> None:
         """update processing status then filter by workspace works."""
-        doc = repository.create(1, "test.pdf", "/path", 100, "application/pdf", "hash", workspace_id=1)
+        doc = repository.create(
+            1, "test.pdf", "/path", 100, "application/pdf", "hash", workspace_id=1
+        )
         repository.update(doc.id, processing_status="ready")
 
         ready_docs = repository.get_by_workspace(1, status_filter="ready")
@@ -412,7 +454,9 @@ class TestDocumentRepositoryIntegration:
 
     def test_delete_affects_all_queries(self, repository: DummyDocumentRepository) -> None:
         """delete affects all query methods."""
-        doc = repository.create(1, "test.pdf", "/path", 100, "application/pdf", "hash", workspace_id=1)
+        doc = repository.create(
+            1, "test.pdf", "/path", 100, "application/pdf", "hash", workspace_id=1
+        )
 
         # Verify document exists in all queries
         assert repository.get_by_id(doc.id) is not None

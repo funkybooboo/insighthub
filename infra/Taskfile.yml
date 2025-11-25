@@ -28,14 +28,14 @@ tasks:
       - echo "Validating configuration..."
       - |
         if [ ! -f "infra/config/.env.development" ]; then
-          echo "❌ infra/config/.env.development not found"
+          echo "ERROR: infra/config/.env.development not found"
           echo "Run: cp infra/config/.env.local.example infra/config/.env.development"
           exit 1
         fi
-      - echo "✅ Configuration files found"
+      - echo "Configuration files found"
 
   infra:check:
     desc: Check infrastructure health
     cmds:
       - task: config:validate
-      - echo "✅ Infrastructure check passed"
+      - echo "Infrastructure check passed"

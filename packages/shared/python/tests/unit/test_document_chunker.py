@@ -5,7 +5,6 @@ These tests verify the SentenceDocumentChunker correctly splits documents
 into chunks based on sentence boundaries with configured size and overlap.
 """
 
-
 from shared.documents.chunking.document_chunker import Chunker
 from shared.documents.chunking.sentence_document_chunker import SentenceDocumentChunker
 from shared.types.document import Chunk, Document

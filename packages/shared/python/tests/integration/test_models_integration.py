@@ -7,7 +7,6 @@ and integrate with other components.
 
 from datetime import datetime
 
-
 from shared.models.chat import ChatMessage, ChatSession
 from shared.models.document import Document
 from shared.models.user import User

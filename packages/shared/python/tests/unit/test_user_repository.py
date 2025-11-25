@@ -84,13 +84,15 @@ def repository() -> DummyUserRepository:
 class TestUserRepositoryCreate:
     """Tests for user creation."""
 
-    def test_create_user_returns_user_with_correct_fields(self, repository: DummyUserRepository) -> None:
+    def test_create_user_returns_user_with_correct_fields(
+        self, repository: DummyUserRepository
+    ) -> None:
         """create returns User with correct fields."""
         user = repository.create(
             username="testuser",
             email="test@example.com",
             password="hashed_password",
-            full_name="Test User"
+            full_name="Test User",
         )
 
         assert user.id == 1
@@ -102,9 +104,7 @@ class TestUserRepositoryCreate:
     def test_create_user_without_full_name(self, repository: DummyUserRepository) -> None:
         """create handles None full_name."""
         user = repository.create(
-            username="testuser",
-            email="test@example.com",
-            password="hashed_password"
+            username="testuser", email="test@example.com", password="hashed_password"
         )
 
         assert user.full_name is None
@@ -166,7 +166,9 @@ class TestUserRepositoryGetByUsername:
         assert result.id == created.id
         assert result.username == "uniqueuser"
 
-    def test_get_by_username_returns_none_when_not_exists(self, repository: DummyUserRepository) -> None:
+    def test_get_by_username_returns_none_when_not_exists(
+        self, repository: DummyUserRepository
+    ) -> None:
         """get_by_username returns None when username doesn't exist."""
         result = repository.get_by_username("nonexistent")
 
@@ -206,7 +208,9 @@ class TestUserRepositoryGetByEmail:
         assert result.id == created.id
         assert result.email == "unique@example.com"
 
-    def test_get_by_email_returns_none_when_not_exists(self, repository: DummyUserRepository) -> None:
+    def test_get_by_email_returns_none_when_not_exists(
+        self, repository: DummyUserRepository
+    ) -> None:
         """get_by_email returns None when email doesn't exist."""
         result = repository.get_by_email("nonexistent@example.com")
 
@@ -227,7 +231,9 @@ class TestUserRepositoryGetByEmail:
 class TestUserRepositoryGetAll:
     """Tests for get_all method."""
 
-    def test_get_all_returns_empty_list_when_no_users(self, repository: DummyUserRepository) -> None:
+    def test_get_all_returns_empty_list_when_no_users(
+        self, repository: DummyUserRepository
+    ) -> None:
         """get_all returns empty list when no users exist."""
         result = repository.get_all()
 

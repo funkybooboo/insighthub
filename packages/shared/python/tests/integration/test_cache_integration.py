@@ -5,7 +5,6 @@ These tests verify that cache implementations work correctly together
 with the factory and other components.
 """
 
-
 from shared.cache.cache import Cache
 from shared.cache.factory import create_cache
 from shared.cache.in_memory_cache import InMemoryCache

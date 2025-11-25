@@ -145,3 +145,8 @@ class Worker(ABC):
         self._consumer.connect()
         self._consumer.declare_queue(self._consume_queue, self._consume_routing_key)
         self._consumer.consume(self._consume_queue, self.on_message)
+
+    def stop(self) -> None:
+        """Stop the worker."""
+        logger.info("Stopping worker", worker=self._worker_name)
+        self._consumer.stop()

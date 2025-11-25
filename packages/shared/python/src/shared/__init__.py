@@ -19,6 +19,9 @@ Modules:
 
 __version__ = "0.1.0"
 
+# Import config for backward compatibility
+from .config import config
+
 # Lazy imports to avoid circular dependencies
 # Users should import from submodules directly:
 #   from shared.types import Document, Chunk, Result, Option
@@ -27,4 +30,5 @@ __version__ = "0.1.0"
 
 __all__ = [
     "__version__",
+    "config",
 ]

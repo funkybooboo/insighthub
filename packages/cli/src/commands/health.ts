@@ -40,9 +40,9 @@ healthCommand
 
             if (error.message.includes('Cannot connect')) {
                 console.log(chalk.yellow('\nSuggestions:'));
-                console.log('• Make sure the InsightHub server is running');
-                console.log('• Check the API URL with: insighthub config get api.url');
-                console.log('• Start the server with: task server');
+                console.log('- Make sure the InsightHub server is running');
+                console.log('- Check the API URL with: insighthub config get api.url');
+                console.log('- Start the server with: task server');
             }
 
             process.exit(1);

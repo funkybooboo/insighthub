@@ -9,7 +9,7 @@ export const initCommand = new Command('init').description(
 );
 
 initCommand.action(async () => {
-    console.log(chalk.bold('🚀 InsightHub CLI Setup'));
+    console.log(chalk.bold('InsightHub CLI Setup'));
     console.log("Let's configure your CLI to connect to InsightHub.\n");
 
     const config = getConfig();
@@ -56,9 +56,9 @@ initCommand.action(async () => {
 
     try {
         await testClient.health();
-        console.log(chalk.green('✓ Connection successful!'));
+        console.log(chalk.green('Connection successful!'));
     } catch (error: any) {
-        console.log(chalk.yellow(`⚠️  Could not connect to ${apiUrl}`));
+        console.log(chalk.yellow(`Could not connect to ${apiUrl}`));
         console.log(`   Error: ${error.message}`);
 
         const { continue: shouldContinue } = await inquirer.prompt([
@@ -106,11 +106,11 @@ initCommand.action(async () => {
 
     saveConfig(newConfig);
 
-    console.log(chalk.green('\n✓ InsightHub CLI configured successfully!'));
+    console.log(chalk.green('\nInsightHub CLI configured successfully!'));
     console.log('\nYou can now use commands like:');
-    console.log('  • insighthub health check    - Test server connection');
-    console.log('  • insighthub workspaces list - List your workspaces');
-    console.log('  • insighthub docs upload     - Upload documents');
+    console.log('  - insighthub health check    - Test server connection');
+    console.log('  - insighthub workspaces list - List your workspaces');
+    console.log('  - insighthub docs upload     - Upload documents');
 
     if (defaultWorkspace) {
         console.log(`\nDefault workspace set to: ${chalk.cyan(defaultWorkspace)}`);

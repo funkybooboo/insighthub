@@ -40,7 +40,7 @@ configCommand
             current[keys[keys.length - 1]] = parsedValue;
 
             saveConfig(config);
-            console.log(chalk.green(`✓ Set ${key} = ${parsedValue}`));
+            console.log(chalk.green(`Set ${key} = ${parsedValue}`));
         } catch (error: any) {
             console.error(chalk.red(`Error setting config: ${error.message}`));
             process.exit(1);

@@ -16,10 +16,8 @@ def test_parser_worker_integration(
     # 1. Setup environment
     # RabbitMQ
     time.sleep(10)
-    host = rabbitmq_container.get_container_host_ip()
-    port = rabbitmq_container.get_exposed_port(5672)
     rabbit_conn = pika.BlockingConnection(
-        pika.ConnectionParameters(host=host, port=port)
+        pika.ConnectionParameters(host="localhost", port=5672)
     )
     rabbit_channel = rabbit_conn.channel()
     rabbit_channel.exchange_declare(
@@ -46,7 +44,7 @@ def test_parser_worker_integration(
 
     # Set environment variables for the worker
     os.environ["DATABASE_URL"] = postgres_container.get_connection_url()
-    os.environ["RABBITMQ_URL"] = rabbitmq_container.get_connection_url()
+    os.environ["RABBITMQ_URL"] = "amqp://guest:guest@localhost:5672/%2F"
     os.environ["S3_ENDPOINT_URL"] = minio_container.get_config()["endpoint"]
     os.environ["S3_ACCESS_KEY"] = "minioadmin"
     os.environ["S3_SECRET_KEY"] = "minioadmin"

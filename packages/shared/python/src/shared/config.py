@@ -124,7 +124,10 @@ class AppConfig(BaseSettings):
     max_content_length: int = Field(default=16777216, description="Max upload size in bytes")
 
     # Database
-    database_url: str = Field(description="Database connection URL")
+    database_url: str = Field(
+        default="postgresql://insighthub:insighthub_dev@localhost:5432/insighthub",
+        description="Database connection URL"
+    )
 
     # Redis
     redis_url: Optional[str] = Field(default=None, description="Redis connection URL")
@@ -315,44 +318,24 @@ class AppConfig(BaseSettings):
         if self.llm_provider == "huggingface" and not self.huggingface_api_key:
             raise ValueError("HUGGINGFACE_API_KEY is required when using HuggingFace provider")
 
-        print("✅ Configuration validation passed")
+        print("Configuration validation passed")
 
 
-def load_config() -> AppConfig:
-    """Load configuration based on environment."""
+def load_config(env_file_path: Optional[str] = None) -> AppConfig:
+    """Load configuration based on environment.
+
+    Args:
+        env_file_path: Optional path to .env file to load. If not provided,
+                      relies on environment variables being set externally.
+    """
     from dotenv import load_dotenv
 
-    env = os.getenv("ENVIRONMENT", "development").lower()
-
-    # Base config files to load in order
-    config_files = []
-
-    # Always load base config if it exists
-    if Path(".env.base").exists():
-        config_files.append(".env.base")
-
-    # Environment-specific configs
-    if env == "development":
-        # Look for .env files in infra/config/ (relative to packages/)
-        if Path("../infra/config/.env.development").exists():
-            config_files.append("../infra/config/.env.development")
-        elif Path(".env.development").exists():
-            config_files.append(".env.development")
-        if Path(".env.local").exists():
-            config_files.append(".env.local")
-    elif env == "testing":
-        if Path(".env.test").exists():
-            config_files.append(".env.test")
-    elif env == "staging":
-        if Path(".env.staging").exists():
-            config_files.append(".env.staging")
-    elif env == "production":
-        if Path(".env.production").exists():
-            config_files.append(".env.production")
-
-    # Load config files in order (later files override earlier ones)
-    for config_file in config_files:
-        load_dotenv(config_file, override=True)
+    if env_file_path:
+        # Load the specified .env file
+        load_dotenv(env_file_path, override=True)
+    else:
+        # Skip dotenv loading entirely - rely on externally set environment variables
+        pass
 
     # Create and validate config
     config = AppConfig()

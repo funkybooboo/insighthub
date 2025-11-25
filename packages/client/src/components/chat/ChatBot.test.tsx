@@ -1,4 +1,4 @@
-import { render, act, screen, fireEvent } from '@testing-library/react';
+import { render, act, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -122,26 +122,29 @@ vi.mock('../../services/socket', () => ({
         disconnect: vi.fn(),
         sendMessage: vi.fn(),
         cancelMessage: vi.fn(),
-        onConnected: vi.fn(),
-        onChatChunk: vi.fn(),
-        onChatResponseChunk: vi.fn(),
-        onChatComplete: vi.fn(),
-        onChatCancelled: vi.fn(),
-        onError: vi.fn(),
-        onDisconnected: vi.fn(),
-        onChatNoContextFound: vi.fn(),
+        onConnected: vi.fn(() => vi.fn()), // Return cleanup function
+        onChatChunk: vi.fn(() => vi.fn()),
+        onChatResponseChunk: vi.fn(() => vi.fn()),
+        onChatComplete: vi.fn(() => vi.fn()),
+        onChatCancelled: vi.fn(() => vi.fn()),
+        onError: vi.fn(() => vi.fn()),
+        onDisconnected: vi.fn(() => vi.fn()),
+        onChatNoContextFound: vi.fn(() => vi.fn()),
         removeAllListeners: vi.fn(),
-        on: vi.fn(),
+        on: vi.fn(() => vi.fn()), // Return cleanup function
     },
 }));
 
 vi.mock('../../services/api', () => ({
     default: {
-        sendChatMessage: vi.fn(),
-        cancelChatMessage: vi.fn(),
-        listDocuments: vi.fn(),
-        createChatSession: vi.fn(),
-        fetchWikipediaArticle: vi.fn(),
+        sendChatMessage: vi.fn().mockResolvedValue({}),
+        cancelChatMessage: vi.fn().mockResolvedValue({}),
+        listDocuments: vi.fn().mockResolvedValue([]),
+        createChatSession: vi.fn().mockResolvedValue({
+            session_id: 1,
+            title: 'New Chat'
+        }),
+        fetchWikipediaArticle: vi.fn().mockResolvedValue({}),
     },
 }));
 
@@ -213,12 +216,13 @@ describe('ChatBot', () => {
             expect(() => renderWithProviders(<ChatBot />)).not.toThrow();
         });
 
-        it('renders ChatMessages component', () => {
+        it('renders ChatMessages component', async () => {
             renderWithProviders(<ChatBot />);
+            screen.debug(); // Debug what is actually rendered
             expect(screen.getByTestId('chat-messages')).toBeInTheDocument();
         });
 
-        it('renders ChatInput component when workspace is ready', () => {
+        it('renders ChatInput component when workspace is ready', async () => {
             renderWithProviders(<ChatBot />);
             expect(screen.getByTestId('chat-input')).toBeInTheDocument();
         });
@@ -238,7 +242,7 @@ describe('ChatBot', () => {
             ).toBeInTheDocument();
         });
 
-        it('shows processing indicator when workspace is processing', () => {
+        it('shows processing indicator when workspace is processing', async () => {
             const store = createMockStore({
                 status: {
                     documents: {},
