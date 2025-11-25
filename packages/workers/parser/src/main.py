@@ -193,14 +193,13 @@ class ParserWorker(BaseWorker):
                     "UPDATE documents SET parsed_text = %s, updated_at = NOW() WHERE id = %s",
                     (text_content, document_id),
                 )
-            if self.db_connection.connection:
-                self.db_connection.connection.commit()
+            self.db_connection.commit()
         except Exception as e:
             logger.error(
                 "Failed to store parsed text",
                 extra={"document_id": document_id, "error": str(e)},
             )
-            self.db_connection.connection.rollback()
+            self.db_connection.rollback()
             raise
 
     def _update_document_status(
@@ -222,14 +221,13 @@ class ParserWorker(BaseWorker):
                     query,
                     (status, json.dumps(metadata) if metadata else None, document_id),
                 )
-            if self.db_connection.connection:
-                self.db_connection.connection.commit()
+            self.db_connection.commit()
         except Exception as e:
             logger.error(
                 "Failed to update document status",
                 extra={"document_id": document_id, "error": str(e)},
             )
-            self.db_connection.connection.rollback()
+            self.db_connection.rollback()
             raise
 
 

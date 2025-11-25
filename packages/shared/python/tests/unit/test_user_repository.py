@@ -216,16 +216,18 @@ class TestUserRepositoryGetByEmail:
 
         assert result is None
 
-    def test_get_by_email_case_insensitive(self, repository: DummyUserRepository) -> None:
-        """get_by_email should be case insensitive (implementation dependent)."""
+    def test_get_by_email_case_sensitive(self, repository: DummyUserRepository) -> None:
+        """get_by_email should be case sensitive."""
         repository.create("testuser", "Test@Example.Com", "password")
 
-        # Note: This test assumes case insensitive behavior
-        # Adjust based on actual implementation
+        # Should not find user with different case
         result = repository.get_by_email("test@example.com")
+        assert result is None
 
-        # This assertion may need to be adjusted based on actual implementation
-        assert result is not None  # Assuming case insensitive for now
+        # Should find user with exact case match
+        result = repository.get_by_email("Test@Example.Com")
+        assert result is not None
+        assert result.email == "Test@Example.Com"
 
 
 class TestUserRepositoryGetAll:

@@ -6,13 +6,17 @@ import time
 
 import pika
 from minio import Minio
+from testcontainers.core.container import DockerContainer
+from testcontainers.postgres import PostgresContainer
 
 from src.main import ParserWorker
 
 
 def test_parser_worker_integration(
-    postgres_container, rabbitmq_container, minio_container
-):
+    postgres_container: PostgresContainer,
+    rabbitmq_container: DockerContainer,
+    minio_container: DockerContainer,
+) -> None:
     # 1. Setup environment
     # RabbitMQ
     time.sleep(10)
@@ -25,27 +29,31 @@ def test_parser_worker_integration(
     )
 
     # MinIO
+    minio_host_port = f"{minio_container.get_container_host_ip()}:{minio_container.get_exposed_port(9000)}"
     minio_client = Minio(
-        endpoint=minio_container.get_config()["endpoint"],
+        endpoint=minio_host_port,
         access_key="minioadmin",
         secret_key="minioadmin",
         secure=False,
     )
     bucket_name = "test-bucket"
-    if not minio_client.bucket_exists(bucket_name):
-        minio_client.make_bucket(bucket_name)
+    if not minio_client.bucket_exists(bucket_name=bucket_name):
+        minio_client.make_bucket(bucket_name=bucket_name)
 
     # Upload a test file to MinIO
     file_content = b"This is a test file."
     file_path = "test-doc.txt"
     minio_client.put_object(
-        bucket_name, file_path, io.BytesIO(file_content), len(file_content)
+        bucket_name=bucket_name,
+        object_name=file_path,
+        data=io.BytesIO(file_content),
+        length=len(file_content),
     )
 
     # Set environment variables for the worker
     os.environ["DATABASE_URL"] = postgres_container.get_connection_url()
     os.environ["RABBITMQ_URL"] = "amqp://guest:guest@localhost:5672/%2F"
-    os.environ["S3_ENDPOINT_URL"] = minio_container.get_config()["endpoint"]
+    os.environ["S3_ENDPOINT_URL"] = minio_host_port
     os.environ["S3_ACCESS_KEY"] = "minioadmin"
     os.environ["S3_SECRET_KEY"] = "minioadmin"
     os.environ["S3_BUCKET_NAME"] = bucket_name

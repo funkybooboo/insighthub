@@ -29,6 +29,15 @@ class PostgresConnection:
         if self.connection and not self.connection.closed:
             self.connection.close()
 
+    def commit(self):
+        """Commit the current transaction."""
+        if self.connection:
+            self.connection.commit()
+
+    def rollback(self):
+        """Rollback the current transaction."""
+        if self.connection:
+            self.connection.rollback()
     def get_cursor(self, as_dict: bool = False):
         """
         Get a cursor for the current connection.
