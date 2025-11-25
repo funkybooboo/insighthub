@@ -220,12 +220,8 @@ class WorkspaceService:
                 print(f"Published workspace deletion event for workspace {workspace.id}")
             except Exception as e:
                 print(f"Failed to publish workspace deletion event: {e}")
-                # Reset status if event publishing failed
-                from contextlib import suppress
-
-                with suppress(Exception):
-                    self._repo.update(workspace.id, status="ready", status_message=None)
-                return False
+                # Continue with deletion even if event publishing failed
+                # The workspace status remains "deleting" and will be cleaned up by workers
 
         return True
 

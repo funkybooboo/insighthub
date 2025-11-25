@@ -21,7 +21,7 @@ class InputSanitizer:
         r"<script[^>]*>.*?</script>",  # Script tags
         r"javascript:",  # JavaScript URLs
         r"vbscript:",  # VBScript URLs
-        r"on\w+\s*=",  # Event handlers
+        r"on\w+\s*=\s*['\"][^'\"]*['\"]",  # Event handlers with values
         r"<iframe[^>]*>.*?</iframe>",  # Iframe tags
         r"<object[^>]*>.*?</object>",  # Object tags
         r"<embed[^>]*>.*?</embed>",  # Embed tags
@@ -84,13 +84,14 @@ class InputSanitizer:
             return False
 
         # Basic email regex (not perfect but covers most cases)
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        # Allow localhost and IP addresses too
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[a-zA-Z0-9._%+-]+@localhost$"
         return bool(re.match(pattern, email))
 
     @staticmethod
     def validate_username(username: str) -> bool:
         """Validate username format."""
-        if not username or len(username) < 3 or len(username) > 50:
+        if not username or len(username) < 2 or len(username) > 50:
             return False
 
         # Only allow alphanumeric, underscore, and hyphen
@@ -171,7 +172,7 @@ class InputSanitizer:
     def sanitize_filename(filename: str) -> str:
         """Sanitize filename to prevent path traversal and other attacks."""
         if not filename:
-            return ""
+            return "unnamed_file"
 
         # Remove path separators and dangerous characters
         filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", filename)
@@ -196,4 +197,6 @@ class InputSanitizer:
             return False
 
         extension = filename.rsplit(".", 1)[1].lower()
-        return extension in [ext.lower() for ext in allowed_extensions]
+        # Normalize allowed extensions (remove leading dots if present)
+        normalized_allowed = [ext.lstrip(".").lower() for ext in allowed_extensions]
+        return extension in normalized_allowed

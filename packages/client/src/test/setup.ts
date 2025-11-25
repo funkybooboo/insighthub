@@ -1,3 +1,26 @@
+// Mock Audio before any other imports
+global.Audio = vi.fn().mockImplementation(function (this: unknown) {
+    (
+        this as { play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; volume: number }
+    ).play = vi.fn();
+    (
+        this as { play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; volume: number }
+    ).pause = vi.fn();
+    (
+        this as { play: ReturnType<typeof vi.fn>; pause: ReturnType<typeof vi.fn>; volume: number }
+    ).volume = 0;
+    return this;
+});
+
+// Mock audio files
+vi.mock('@/assets/sounds/pop.mp3', () => ({
+    default: 'mock-pop-sound',
+}));
+
+vi.mock('@/assets/sounds/notification.mp3', () => ({
+    default: 'mock-notification-sound',
+}));
+
 // Set up JSDOM first, before any other imports
 import { JSDOM } from 'jsdom';
 

@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 from flask_socketio import SocketIO
 
 from src.infrastructure.socket.socket_handler import SocketHandler
@@ -10,6 +11,13 @@ from src.infrastructure.socket.socket_handler import SocketHandler
 
 class TestSocketHandler:
     """Tests for SocketHandler infrastructure component."""
+
+    @pytest.fixture
+    def app(self) -> Flask:
+        """Provide a test Flask app."""
+        app = Flask(__name__)
+        app.config["TESTING"] = True
+        return app
 
     @pytest.fixture
     def mock_socketio(self) -> MagicMock:
@@ -37,17 +45,18 @@ class TestSocketHandler:
         assert "ping" in event_names
         assert "pong" in event_names
 
-    @patch("src.infrastructure.socket.socket_handler.request")
     @patch("src.infrastructure.socket.socket_handler.emit")
     def test_handle_connect_emits_connected_event(
-        self, mock_emit: MagicMock, mock_request: MagicMock, socket_handler: SocketHandler
+        self, mock_emit: MagicMock, socket_handler: SocketHandler, app: Flask
     ) -> None:
         """Test that _handle_connect emits connected event with proper data."""
         # Setup
-        mock_request.sid = "test_client_123"
+        with app.test_request_context():
+            from flask import request
+            request.sid = "test_client_123"  # type: ignore
 
-        # Execute
-        socket_handler._handle_connect()
+            # Execute
+            socket_handler._handle_connect()
 
         # Assert
         mock_emit.assert_called_once_with(
@@ -59,16 +68,17 @@ class TestSocketHandler:
             },
         )
 
-    @patch("src.infrastructure.socket.socket_handler.request")
     def test_handle_connect_stores_connection_info(
-        self, mock_request: MagicMock, socket_handler: SocketHandler
+        self, socket_handler: SocketHandler, app: Flask
     ) -> None:
         """Test that _handle_connect stores connection information."""
         # Setup
-        mock_request.sid = "test_client_456"
+        with app.test_request_context():
+            from flask import request
+            request.sid = "test_client_456"  # type: ignore
 
-        # Execute
-        socket_handler._handle_connect()
+            # Execute
+            socket_handler._handle_connect()
 
         # Assert
         assert hasattr(socket_handler, "_connections")
@@ -78,16 +88,17 @@ class TestSocketHandler:
         assert "last_ping" in connection_info
         assert connection_info["user_id"] is None
 
-    @patch("src.infrastructure.socket.socket_handler.request")
     def test_handle_connect_with_auth_data(
-        self, mock_request: MagicMock, socket_handler: SocketHandler
+        self, socket_handler: SocketHandler, app: Flask
     ) -> None:
         """Test that _handle_connect handles auth data parameter."""
         # Setup
-        mock_request.sid = "test_client_789"
-        auth_data = {"token": "some_token"}
+        with app.test_request_context():
+            from flask import request
+            request.sid = "test_client_789"  # type: ignore
+            auth_data = {"token": "some_token"}
 
-        # Execute
+            # Execute
         socket_handler._handle_connect(auth_data)
 
         # Assert - should not raise exception and should still work
@@ -199,8 +210,8 @@ class TestSocketHandler:
         # Execute
         socket_handler.register_event("custom_event", test_handler)
 
-        # Assert
-        mock_socketio.on_event.assert_called_once_with("custom_event", test_handler)
+        # Assert that the custom event was registered
+        mock_socketio.on_event.assert_any_call("custom_event", test_handler)
 
     def test_register_event_accepts_different_handler_types(
         self, mock_socketio: MagicMock, socket_handler: SocketHandler

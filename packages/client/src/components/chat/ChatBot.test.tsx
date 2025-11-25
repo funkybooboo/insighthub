@@ -28,8 +28,8 @@ vi.mock('./ChatMessages', () => ({
         error,
         isBotTyping,
         onFetchWikipedia,
-        onUploadDocument,
-        onContinueChat,
+        onUploadDocument: _onUploadDocument,
+        onContinueChat: _onContinueChat,
     }: {
         messages?: { content: string; id: string }[];
         error?: string;
@@ -142,17 +142,10 @@ vi.mock('../../services/api', () => ({
         listDocuments: vi.fn().mockResolvedValue([]),
         createChatSession: vi.fn().mockResolvedValue({
             session_id: 1,
-            title: 'New Chat'
+            title: 'New Chat',
         }),
         fetchWikipediaArticle: vi.fn().mockResolvedValue({}),
     },
-}));
-
-// Mock audio
-global.Audio = vi.fn().mockImplementation(() => ({
-    play: vi.fn(),
-    pause: vi.fn(),
-    volume: 0,
 }));
 
 const createMockStore = (initialState = {}) => {
@@ -218,12 +211,13 @@ describe('ChatBot', () => {
 
         it('renders ChatMessages component', async () => {
             renderWithProviders(<ChatBot />);
-            screen.debug(); // Debug what is actually rendered
+            await screen.findByTestId('chat-messages');
             expect(screen.getByTestId('chat-messages')).toBeInTheDocument();
         });
 
         it('renders ChatInput component when workspace is ready', async () => {
             renderWithProviders(<ChatBot />);
+            await screen.findByTestId('chat-input');
             expect(screen.getByTestId('chat-input')).toBeInTheDocument();
         });
 
@@ -252,9 +246,7 @@ describe('ChatBot', () => {
             });
             renderWithProviders(<ChatBot />, store);
             expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-            expect(
-                screen.getByText(/Processing additional context/i)
-            ).toBeInTheDocument();
+            expect(screen.getByText(/Processing additional context/i)).toBeInTheDocument();
         });
     });
 
@@ -297,8 +289,10 @@ describe('ChatBot', () => {
             mockApi.sendChatMessage.mockResolvedValue({});
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
             expect(mockApi.sendChatMessage).toHaveBeenCalledWith(
@@ -318,8 +312,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
             expect(screen.getByText(/Authentication failed/i)).toBeInTheDocument();
@@ -333,8 +329,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
             expect(
@@ -350,13 +348,13 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
-            expect(
-                screen.getByText(/Workspace or session not found/i)
-            ).toBeInTheDocument();
+            expect(screen.getByText(/Workspace or session not found/i)).toBeInTheDocument();
         });
 
         it('handles custom error detail from API', async () => {
@@ -367,8 +365,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
             expect(screen.getByText(/Custom error message/i)).toBeInTheDocument();
@@ -380,8 +380,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const submitButton = await screen.findByTestId('submit-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('submit-message'));
+                fireEvent.click(submitButton);
             });
 
             expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
@@ -392,6 +394,10 @@ describe('ChatBot', () => {
         it('handles chat response chunks', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
+
+            await waitFor(() => {
+                expect(mockSocket.onChatResponseChunk).toHaveBeenCalled();
+            });
 
             await act(async () => {
                 const chunkCallback = mockSocket.onChatResponseChunk.mock.calls[0][0];
@@ -404,6 +410,11 @@ describe('ChatBot', () => {
         it('handles chat completion', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
+
+            await waitFor(() => {
+                expect(mockSocket.onChatResponseChunk).toHaveBeenCalled();
+                expect(mockSocket.onChatComplete).toHaveBeenCalled();
+            });
 
             await act(async () => {
                 const chunkCallback = mockSocket.onChatResponseChunk.mock.calls[0][0];
@@ -424,6 +435,10 @@ describe('ChatBot', () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
 
+            await waitFor(() => {
+                expect(mockSocket.onChatCancelled).toHaveBeenCalled();
+            });
+
             await act(async () => {
                 const cancelCallback = mockSocket.onChatCancelled.mock.calls[0][0];
                 cancelCallback();
@@ -436,6 +451,10 @@ describe('ChatBot', () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
 
+            await waitFor(() => {
+                expect(mockSocket.onError).toHaveBeenCalled();
+            });
+
             await act(async () => {
                 const errorCallback = mockSocket.onError.mock.calls[0][0];
                 errorCallback({ error: 'Connection lost' });
@@ -447,6 +466,10 @@ describe('ChatBot', () => {
         it('handles no context found event', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
+
+            await waitFor(() => {
+                expect(mockSocket.on).toHaveBeenCalledWith('chat.no_context_found', expect.any(Function));
+            });
 
             await act(async () => {
                 const onCallback = mockSocket.on.mock.calls.find(
@@ -468,8 +491,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const cancelButton = await screen.findByTestId('cancel-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('cancel-message'));
+                fireEvent.click(cancelButton);
             });
 
             expect(mockApi.cancelChatMessage).toHaveBeenCalled();
@@ -482,8 +507,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const cancelButton = await screen.findByTestId('cancel-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('cancel-message'));
+                fireEvent.click(cancelButton);
             });
 
             expect(mockSocket.cancelMessage).toHaveBeenCalled();
@@ -495,8 +522,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const cancelButton = await screen.findByTestId('cancel-message');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('cancel-message'));
+                fireEvent.click(cancelButton);
             });
 
             expect(screen.getByText(/Failed to cancel message/i)).toBeInTheDocument();
@@ -510,8 +539,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const wikipediaButton = await screen.findByTestId('test-fetch-wikipedia');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('test-fetch-wikipedia'));
+                fireEvent.click(wikipediaButton);
             });
 
             expect(mockApi.fetchWikipediaArticle).toHaveBeenCalledWith(1, 'test query');
@@ -525,8 +556,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const wikipediaButton = await screen.findByTestId('test-fetch-wikipedia');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('test-fetch-wikipedia'));
+                fireEvent.click(wikipediaButton);
             });
 
             expect(
@@ -542,13 +575,13 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            const wikipediaButton = await screen.findByTestId('test-fetch-wikipedia');
+
             await act(async () => {
-                fireEvent.click(screen.getByTestId('test-fetch-wikipedia'));
+                fireEvent.click(wikipediaButton);
             });
 
-            expect(
-                screen.getByText(/Wikipedia article not found/i)
-            ).toBeInTheDocument();
+            expect(screen.getByText(/Wikipedia article not found/i)).toBeInTheDocument();
         });
 
         it('hides RAG prompt after Wikipedia fetch', async () => {
@@ -558,6 +591,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            await waitFor(() => {
+                expect(mockSocket.on).toHaveBeenCalledWith('chat.no_context_found', expect.any(Function));
+            });
+
             // Show RAG prompt first
             await act(async () => {
                 const onCallback = mockSocket.on.mock.calls.find(
@@ -566,6 +603,10 @@ describe('ChatBot', () => {
                 if (onCallback) {
                     onCallback[1]({ session_id: 1, query: 'test query' });
                 }
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('rag-prompt')).toBeInTheDocument();
             });
 
             // Then fetch Wikipedia
@@ -581,6 +622,10 @@ describe('ChatBot', () => {
         it('shows RAG prompt when no context found', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
+
+            await waitFor(() => {
+                expect(mockSocket.on).toHaveBeenCalledWith('chat.no_context_found', expect.any(Function));
+            });
 
             await act(async () => {
                 const onCallback = mockSocket.on.mock.calls.find(
@@ -598,6 +643,10 @@ describe('ChatBot', () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
 
+            await waitFor(() => {
+                expect(mockSocket.on).toHaveBeenCalledWith('chat.no_context_found', expect.any(Function));
+            });
+
             await act(async () => {
                 const onCallback = mockSocket.on.mock.calls.find(
                     (call) => call[0] === 'chat.no_context_found'
@@ -605,6 +654,10 @@ describe('ChatBot', () => {
                 if (onCallback) {
                     onCallback[1]({ session_id: 1, query: 'test query' });
                 }
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('rag-prompt')).toBeInTheDocument();
             });
 
             await act(async () => {
@@ -621,6 +674,10 @@ describe('ChatBot', () => {
 
             renderWithProviders(<ChatBot />);
 
+            await waitFor(() => {
+                expect(mockSocket.on).toHaveBeenCalledWith('chat.no_context_found', expect.any(Function));
+            });
+
             await act(async () => {
                 const onCallback = mockSocket.on.mock.calls.find(
                     (call) => call[0] === 'chat.no_context_found'
@@ -628,6 +685,10 @@ describe('ChatBot', () => {
                 if (onCallback) {
                     onCallback[1]({ session_id: 1, query: 'test query' });
                 }
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('rag-prompt')).toBeInTheDocument();
             });
 
             await act(async () => {

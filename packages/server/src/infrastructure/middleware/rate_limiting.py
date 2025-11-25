@@ -3,7 +3,7 @@
 import time
 from collections import defaultdict
 
-from flask import Flask, Request, Response, jsonify, request
+from flask import Flask, Request, Response, abort, jsonify, request
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
@@ -88,29 +88,13 @@ class RateLimitMiddleware:
                     logger.warning(
                         f"Rate limit exceeded (per minute): {client_ip} - {minute_requests} requests"
                     )
-                    return (
-                        jsonify(
-                            {
-                                "error": "Rate limit exceeded. Please try again later.",
-                                "retry_after": 60,
-                            }
-                        ),
-                        429,
-                    )
+                    abort(429, description="Rate limit exceeded. Please try again later.", retry_after=60)
 
                 if hour_requests >= self.requests_per_hour:
                     logger.warning(
                         f"Rate limit exceeded (per hour): {client_ip} - {hour_requests} requests"
                     )
-                    return (
-                        jsonify(
-                            {
-                                "error": "Rate limit exceeded. Please try again later.",
-                                "retry_after": 3600,
-                            }
-                        ),
-                        429,
-                    )
+                    abort(429, description="Rate limit exceeded. Please try again later.", retry_after=3600)
             except Exception as e:
                 # Don't break the request if rate limiting fails
                 logger.warning(f"Rate limiting check failed: {e}")
@@ -159,8 +143,8 @@ class RateLimitMiddleware:
 
                 return int(count)
             else:
-                # This should not happen since we check above
-                return 0
+                # Fall back to in-memory storage
+                return self._count_requests_memory(ip, window)
         except Exception as e:
             logger.warning(f"Redis rate limit check failed: {e}, falling back to memory")
             return self._count_requests_memory(ip, window)
@@ -171,8 +155,10 @@ class RateLimitMiddleware:
             return 0
 
         current_time = time.time()
+        # Count existing requests in window
+        count = sum(count for ts, count in self.request_counts[ip] if current_time - ts < window)
+
         # Add current request
         self.request_counts[ip].append((current_time, 1))
 
-        # Count requests in window
-        return sum(count for ts, count in self.request_counts[ip] if current_time - ts < window)
+        return count

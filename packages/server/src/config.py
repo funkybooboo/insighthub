@@ -15,7 +15,7 @@ JWT_EXPIRE_MINUTES = 1440
 CORS_ORIGINS = ["http://localhost:3000"]
 LOG_FORMAT = "json"
 LOG_LEVEL = "INFO"
-BLOB_STORAGE_TYPE = "filesystem"
+BLOB_STORAGE_TYPE = "file_system"
 FILE_SYSTEM_STORAGE_PATH = "uploads"
 S3_ACCESS_KEY = "test-access-key"
 S3_BUCKET_NAME = "documents"
@@ -41,6 +41,51 @@ RATE_LIMIT_PER_MINUTE = 60
 RATE_LIMIT_PER_HOUR = 1000
 SLOW_REQUEST_THRESHOLD = 1.0
 ENABLE_PERFORMANCE_STATS = True
+
+
+def validate_config() -> None:
+    """Validate configuration values and raise ValueError for invalid settings."""
+    # Validate FLASK_PORT
+    if not (1024 <= FLASK_PORT <= 65535):
+        raise ValueError("FLASK_PORT must be between 1024 and 65535")
+
+    # Validate DATABASE_URL
+    if not DATABASE_URL or not DATABASE_URL.strip():
+        raise ValueError("DATABASE_URL is required")
+
+    # Validate JWT_SECRET_KEY
+    if not JWT_SECRET_KEY or len(JWT_SECRET_KEY) < 32:
+        raise ValueError("JWT_SECRET_KEY must be at least 32 characters")
+
+    # Validate JWT_EXPIRE_MINUTES
+    if not (60 <= JWT_EXPIRE_MINUTES <= 1440):
+        raise ValueError("JWT_EXPIRE_MINUTES must be between 60 and 1440")
+
+    # Validate RATE_LIMIT_PER_MINUTE
+    if not (1 <= RATE_LIMIT_PER_MINUTE <= 1000):
+        raise ValueError("RATE_LIMIT_PER_MINUTE must be between 1 and 1000")
+
+    # Validate RATE_LIMIT_PER_HOUR
+    if not (10 <= RATE_LIMIT_PER_HOUR <= 10000):
+        raise ValueError("RATE_LIMIT_PER_HOUR must be between 10 and 10000")
+
+    # Validate REDIS_URL
+    if REDIS_URL and not (
+        REDIS_URL.startswith("redis://") or
+        REDIS_URL.startswith("rediss://") or
+        REDIS_URL.startswith("unix://")
+    ):
+        raise ValueError("REDIS_URL must start with redis://, rediss://, or unix://")
+
+    # Validate LLM_PROVIDER
+    valid_llm_providers = ["ollama", "openai", "anthropic", "huggingface"]
+    if LLM_PROVIDER not in valid_llm_providers:
+        raise ValueError(f"LLM_PROVIDER must be one of: {', '.join(valid_llm_providers)}")
+
+    # Validate LOG_LEVEL
+    valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    if LOG_LEVEL.upper() not in valid_log_levels:
+        raise ValueError(f"LOG_LEVEL must be one of: {', '.join(valid_log_levels)}")
 
 
 class MockConfig:

@@ -67,15 +67,17 @@ describe('RagConfigForm', () => {
     });
 
     describe('Initial Rendering', () => {
-    it('renders without crashing', () => {
-        const { container } = render(<RagConfigForm {...defaultProps} />);
-        expect(container).toBeInTheDocument();
-        screen.debug(); // Debug what is actually rendered
-    });
+        it('renders without crashing', () => {
+            const { container } = render(<RagConfigForm {...defaultProps} />);
+            expect(container).toBeInTheDocument();
+            screen.debug(); // Debug what is actually rendered
+        });
 
         it('renders RAG type selector with default vector option', () => {
             render(<RagConfigForm {...defaultProps} />);
-            const select = document.querySelector('select[name="retriever_type"]') as HTMLSelectElement;
+            const select = document.querySelector(
+                'select[name="retriever_type"]'
+            ) as HTMLSelectElement;
             expect(select).toBeInTheDocument();
             expect(select.value).toBe('vector');
         });
@@ -93,7 +95,9 @@ describe('RagConfigForm', () => {
             render(<RagConfigForm {...defaultProps} />);
             expect(screen.queryByLabelText('Max Hops (Graph Traversal)')).not.toBeInTheDocument();
             expect(screen.queryByLabelText('Entity Extraction Model')).not.toBeInTheDocument();
-            expect(screen.queryByLabelText('Relationship Extraction Model')).not.toBeInTheDocument();
+            expect(
+                screen.queryByLabelText('Relationship Extraction Model')
+            ).not.toBeInTheDocument();
         });
     });
 

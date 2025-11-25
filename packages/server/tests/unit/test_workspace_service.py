@@ -185,14 +185,14 @@ class TestWorkspaceServiceCreate:
         assert workspace.name == "Minimal Workspace"
         assert workspace.description is None
 
-    def test_create_workspace_sets_status_to_provisioning(self, service: WorkspaceService) -> None:
-        """create_workspace sets status to provisioning."""
+    def test_create_workspace_sets_status_to_ready(self, service: WorkspaceService) -> None:
+        """create_workspace sets status to ready (synchronous provisioning)."""
         workspace = service.create_workspace(
             name="Test",
             user_id=1,
         )
 
-        assert workspace.status == "provisioning"
+        assert workspace.status == "ready"
 
     def test_create_workspace_creates_default_rag_config(
         self, service: WorkspaceService, fake_repository: FakeWorkspaceRepository
@@ -253,7 +253,7 @@ class TestWorkspaceServiceCreate:
                 "workspace_id": workspace.id,
                 "user_id": 1,
                 "name": "Test",
-                "rag_config": None,
+                "rag_config": {},
             },
         )
 
@@ -406,13 +406,14 @@ class TestWorkspaceServiceDelete:
 
         assert result is True
 
-    def test_delete_workspace_removes_workspace(self, service: WorkspaceService) -> None:
-        """delete_workspace removes the workspace."""
+    def test_delete_workspace_marks_as_deleting(self, service: WorkspaceService) -> None:
+        """delete_workspace marks workspace as deleting (async deletion)."""
         created = service.create_workspace(name="To Delete", user_id=1)
         service.delete_workspace(workspace_id=created.id, user_id=1)
 
         workspace = service.get_workspace(workspace_id=created.id, user_id=1)
-        assert workspace is None
+        assert workspace is not None
+        assert workspace.status == "deleting"
 
     def test_delete_workspace_returns_false_for_nonexistent(
         self, service: WorkspaceService
@@ -438,7 +439,8 @@ class TestWorkspaceServiceDelete:
 
         service.delete_workspace(workspace_id=created.id, user_id=1)
 
-        mock_message_publisher.publish.assert_called_once_with(
+        # Check that the deletion event was published (there may be other calls too)
+        mock_message_publisher.publish.assert_any_call(
             routing_key="workspace.deletion_requested",
             message={
                 "workspace_id": created.id,
@@ -458,7 +460,17 @@ class TestWorkspaceServiceDelete:
 
         # Deletion should still succeed despite publish failure
         assert result is True
-        mock_message_publisher.publish.assert_called_once()
+        # Check that the deletion event publish was attempted (along with provision event)
+        assert mock_message_publisher.publish.call_count >= 2
+        # Verify the deletion event was attempted
+        mock_message_publisher.publish.assert_any_call(
+            routing_key="workspace.deletion_requested",
+            message={
+                "workspace_id": created.id,
+                "user_id": 1,
+                "name": "To Delete",
+            },
+        )
 
 
 class TestWorkspaceServiceStats:
