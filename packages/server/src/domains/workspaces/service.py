@@ -4,9 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TypedDict, Optional
 
+from shared.logger import create_logger
 from shared.messaging import RabbitMQPublisher
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
+
+logger = create_logger(__name__)
 
 
 
@@ -179,20 +182,30 @@ class WorkspaceService:
         user_id: int,
     ) -> bool:
         """
-        Delete a workspace and all associated data.
+        Initiate async deletion of a workspace.
+
+        Sets workspace status to 'deleting' and publishes deletion event.
+        The actual deletion will be handled by workers asynchronously.
 
         Args:
             workspace_id: Workspace ID
             user_id: User ID for access check
 
         Returns:
-            True if deleted, False if not found
+            True if deletion initiated, False if not found or access denied
         """
         workspace = self.get_workspace(workspace_id, user_id)
         if not workspace:
             return False
 
-        # Publish workspace deletion requested event before deleting
+        # Set workspace status to deleting
+        try:
+            self._repo.update(workspace.id, status="deleting", status_message="Workspace deletion in progress")
+        except Exception as e:
+            print(f"Failed to update workspace status to deleting: {e}")
+            return False
+
+        # Publish workspace deletion requested event
         if self._message_publisher:
             try:
                 event_data = {
@@ -204,11 +217,44 @@ class WorkspaceService:
                     routing_key="workspace.deletion_requested",
                     message=event_data,
                 )
+                print(f"Published workspace deletion event for workspace {workspace.id}")
             except Exception as e:
-                # Log error but continue with deletion
                 print(f"Failed to publish workspace deletion event: {e}")
+                # Reset status if event publishing failed
+                try:
+                    self._repo.update(workspace.id, status="ready", status_message=None)
+                except Exception:
+                    pass
+                return False
 
-        return self._repo.delete(workspace.id)
+        return True
+
+    def update_workspace_status(
+        self,
+        workspace_id: int | str,
+        status: str,
+        status_message: str | None = None,
+    ) -> bool:
+        """
+        Update workspace status.
+
+        Args:
+            workspace_id: Workspace ID
+            status: New status (provisioning, ready, deleting, failed)
+            status_message: Optional status message
+
+        Returns:
+            True if update was successful, False otherwise
+        """
+        try:
+            update_data = {"status": status}
+            if status_message is not None:
+                update_data["status_message"] = status_message
+
+            return self._repo.update(int(workspace_id), **update_data)
+        except Exception as e:
+            print(f"Warning: Failed to update workspace {workspace_id} status: {e}")
+            return False
 
     def get_workspace_stats(
         self,

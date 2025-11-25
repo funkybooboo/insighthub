@@ -4,6 +4,7 @@ import json
 import threading
 from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 from shared.llm import LlmProvider
@@ -227,6 +228,7 @@ class ChatService:
         self,
         user_id: int,
         message: str,
+        llm_provider: LlmProvider,
         session_id: int | None = None,
         rag_type: str = "vector",
     ) -> ChatResponse:
@@ -265,19 +267,21 @@ class ChatService:
         )
         logger.debug(f"User message stored: message_id={user_message.id}, session_id={session.id}")
 
-        # TODO: Query RAG system via RabbitMQ workers
-        # This will be implemented using message queues and background workers
-        # For now, return mock response
+        # Use the LLM processing method for consistent behavior
+        # This method handles RAG querying, LLM generation, and response formatting
+        response_dto = self.process_chat_message_with_llm(
+            user_id=user_id,
+            message=message,
+            llm_provider=llm_provider,
+            session_id=session_id,
+            rag_type=rag_type,
+            ignore_rag=False,
+            top_k=8
+        )
 
-        # Mock response for now
-        answer = f"Mock response to: {message}"
-        context_chunks = [
-            ContextChunk(
-                text="Sample context chunk 1",
-                score=0.85,
-                metadata={"source": "document_1"},
-            ),
-        ]
+        # Convert DTO to response object
+        answer = response_dto.answer
+        context_chunks = response_dto.context
 
         # Store assistant response
         assistant_message = self.create_message(
@@ -312,6 +316,7 @@ class ChatService:
         message: str,
         llm_provider: LlmProvider,
         session_id: int | None = None,
+        workspace_id: int | None = None,
         rag_type: str = "vector",
         request_id: str | None = None,
     ) -> Generator[StreamEvent, None, None]:
@@ -349,7 +354,7 @@ class ChatService:
             # Get or create session
             session = self.get_or_create_session(
                 user_id=user_id,
-                workspace_id=None,  # For now, allow workspace-less sessions for backward compatibility
+                workspace_id=workspace_id,
                 session_id=session_id,
                 first_message=message,
             )
@@ -375,8 +380,9 @@ class ChatService:
             rag_context_found = False
             if rag_type == "vector" and self._rag_system:
                 try:
-                    # Query RAG system for relevant context
-                    rag_results = self._rag_system.query(message, top_k=8)
+                    # Query RAG system for relevant context, filtered by workspace
+                    workspace_id = session.workspace_id
+                    rag_results = self._rag_system.query(message, workspace_id=workspace_id, top_k=8)
                     if rag_results:
                         # Check if we have meaningful context
                         meaningful_context = [result for result in rag_results if result.score > 0.1]
@@ -397,11 +403,17 @@ class ChatService:
                 except Exception as e:
                     logger.warning(f"RAG retrieval failed for streaming: {e}")
 
-            # If no context found and RAG is enabled, emit no_context_found event
+            # If no context found and RAG is enabled, store query for auto-retry
             if not rag_context_found and rag_type == "vector" and self._rag_system:
-                # This would be emitted via WebSocket in the calling code
-                # For now, we'll just log it
-                logger.info(f"No context found for query: session_id={session.id}, query='{message[:50]}...'")
+                # Store the original query for potential auto-retry after document upload/Wikipedia fetch
+                self._store_pending_rag_query(
+                    workspace_id=workspace_id,
+                    session_id=session.id,
+                    user_id=user_id,
+                    query=message,
+                    request_id=request_id or ""
+                )
+                logger.info(f"No context found for query: session_id={session.id}, query='{message[:50]}...', stored for auto-retry")
 
             # Stream LLM response
             logger.debug(f"Starting LLM streaming: session_id={session.id}")
@@ -661,8 +673,9 @@ class ChatService:
         rag_context_found = False
         if not ignore_rag and rag_type == "vector" and self._rag_system:
             try:
-                # Query RAG system for relevant context
-                rag_results = self._rag_system.query(message, top_k=top_k)
+                # Query RAG system for relevant context, filtered by workspace
+                workspace_id = session.workspace_id
+                rag_results = self._rag_system.query(message, workspace_id=workspace_id, top_k=top_k)
                 context_chunks = [
                     ContextChunk(
                         text=result.chunk.text,
@@ -727,6 +740,175 @@ class ChatService:
             documents_count=documents_count,
             no_context_found=not rag_context_found and not ignore_rag,
         )
+
+    def _store_pending_rag_query(
+        self,
+        workspace_id: int | None,
+        session_id: int,
+        user_id: int,
+        query: str,
+        request_id: str | None,
+    ) -> None:
+        """
+        Store a query that had no RAG context for potential auto-retry.
+
+        This allows the system to automatically re-submit queries when new
+        documents are added or Wikipedia articles are fetched.
+        """
+        if not workspace_id:
+            return  # Only store for workspace-scoped queries
+
+        try:
+            # For now, store in a simple in-memory cache
+            # In production, this should be stored in database or Redis
+            cache_key = f"pending_rag_query:{workspace_id}:{user_id}"
+            pending_data = {
+                "session_id": session_id,
+                "query": query,
+                "request_id": request_id,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+            # Store in instance cache (in production, use Redis/database)
+            if not hasattr(self, '_pending_queries'):
+                self._pending_queries = {}
+            self._pending_queries[cache_key] = pending_data
+
+            print(f"Stored pending RAG query for workspace {workspace_id}, user {user_id}")
+
+        except Exception as e:
+            print(f"Failed to store pending RAG query: {e}")
+
+    def get_pending_rag_queries(self, workspace_id: int, user_id: int) -> list[dict]:
+        """
+        Get pending RAG queries for a workspace and user.
+        """
+        if not hasattr(self, '_pending_queries'):
+            return []
+
+        cache_key = f"pending_rag_query:{workspace_id}:{user_id}"
+        pending_data = self._pending_queries.get(cache_key)
+        return [pending_data] if pending_data else []
+
+    def clear_pending_rag_queries(self, workspace_id: int, user_id: int) -> None:
+        """
+        Clear pending RAG queries after successful auto-retry.
+        """
+        if hasattr(self, '_pending_queries'):
+            cache_key = f"pending_rag_query:{workspace_id}:{user_id}"
+            self._pending_queries.pop(cache_key, None)
+
+    def retry_pending_rag_queries(
+        self,
+        workspace_id: int,
+        user_id: int,
+        llm_provider: LlmProvider,
+    ) -> None:
+        """
+        Retry pending RAG queries that may now have context available.
+        """
+        pending_queries = self.get_pending_rag_queries(workspace_id, user_id)
+        if not pending_queries:
+            return
+
+        for pending in pending_queries:
+            try:
+                print(f"Retrying pending RAG query for workspace {workspace_id}")
+
+                # Re-run the query with current RAG context
+                response_dto = self.process_chat_message_with_llm(
+                    user_id=user_id,
+                    message=pending["query"],
+                    llm_provider=llm_provider,
+                    session_id=pending["session_id"],
+                    rag_type="vector",
+                    ignore_rag=False,
+                    top_k=8
+                )
+
+                # If we got a response with context, clear the pending query
+                if response_dto.context and len(response_dto.context) > 0:
+                    self.clear_pending_rag_queries(workspace_id, user_id)
+                    print(f"Successfully retried RAG query for workspace {workspace_id}")
+                    break  # Only retry one query at a time
+
+            except Exception as e:
+                print(f"Failed to retry pending RAG query: {e}")
+
+    def _generate_llm_response(
+        self,
+        message: str,
+        context_chunks: list[ContextChunk],
+        conversation_history: list[dict],
+        llm_provider: LlmProvider,
+        rag_context_found: bool
+    ) -> str:
+        """
+        Generate a response using the LLM with optional RAG context.
+
+        Args:
+            message: User message
+            context_chunks: Relevant context from RAG system
+            conversation_history: Previous conversation messages
+            llm_provider: LLM provider instance
+            rag_context_found: Whether RAG context was available
+
+        Returns:
+            Generated response string
+        """
+        try:
+            # Build context from RAG results
+            context_text = ""
+            if context_chunks:
+                context_parts = []
+                for i, chunk in enumerate(context_chunks, 1):
+                    context_parts.append(f"[Context {i}] {chunk.text}")
+                context_text = "\n\n".join(context_parts)
+
+            # Build conversation context
+            conversation_context = ""
+            if conversation_history:
+                # Include last few messages for context
+                recent_messages = conversation_history[-6:]  # Last 3 exchanges
+                conversation_lines = []
+                for msg in recent_messages:
+                    role = "User" if msg.get("role") == "user" else "Assistant"
+                    content = msg.get("content", "")[:200]  # Truncate long messages
+                    conversation_lines.append(f"{role}: {content}")
+                conversation_context = "\n".join(conversation_lines)
+
+            # Build prompt
+            system_prompt = """You are an intelligent assistant helping users analyze documents and research papers.
+You have access to relevant context from the user's documents when available.
+
+Guidelines:
+- Be helpful, accurate, and concise
+- Cite specific information from provided context when relevant
+- If you don't have relevant context, clearly state this and suggest alternatives
+- Maintain conversation context and coherence
+- Use markdown formatting for better readability"""
+
+            user_prompt = f"User Query: {message}"
+
+            if context_text:
+                user_prompt += f"\n\nRelevant Context:\n{context_text}"
+
+            if conversation_context:
+                user_prompt += f"\n\nRecent Conversation:\n{conversation_context}"
+
+            # Generate response using LLM
+            response = llm_provider.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                max_tokens=1000,
+                temperature=0.7
+            )
+
+            return response.strip()
+
+        except Exception as e:
+            logger.error(f"LLM response generation failed: {e}")
+            raise
 
     def list_user_sessions_as_dto(self, user_id: int) -> SessionListResponse:
         """

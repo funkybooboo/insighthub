@@ -31,48 +31,55 @@ class RequestLoggingMiddleware:
         @app.before_request
         def log_request_start() -> None:
             """Log the start of a request."""
-            g.start_time = time.time()
+            try:
+                g.start_time = time.time()
 
-            # Get client IP (handle proxies)
-            client_ip = self._get_client_ip(request)
+                # Get client IP (handle proxies)
+                client_ip = self._get_client_ip(request)
 
-            # Get user info if available
-            user_info = "anonymous"
-            if hasattr(g, "current_user") and g.current_user:
-                user_info = f"user_id={g.current_user.id}"
+                # Get user info if available
+                user_id = None
+                if hasattr(g, "current_user") and g.current_user:
+                    user_id = g.current_user.id
 
-            # Sanitize headers (remove sensitive data)
-            headers = self._sanitize_headers(dict(request.headers))
+                # Get correlation ID if available
+                correlation_id = getattr(g, 'correlation_id', None)
 
-            logger.info(
-                f"Request started: {request.method} {request.path}",
-                extra={
-                    "method": request.method,
-                    "path": request.path,
-                    "client_ip": client_ip,
-                    "user_agent": request.user_agent.string,
-                    "user": user_info,
-                    "query_params": dict(request.args),
-                    "headers": headers,
-                },
-            )
+                # Log request start using structured logging
+                from src.infrastructure.logging import log_request_start
+                log_request_start(
+                    method=request.method,
+                    path=request.path,
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    correlation_id=correlation_id
+                )
+
+            except Exception as e:
+                # Don't break the request if logging fails
+                print(f"Warning: Request logging failed: {e}")
 
         @app.after_request
         def log_request_end(response: Response) -> Response:
             """Log the end of a request."""
-            if hasattr(g, "start_time"):
-                elapsed_time = time.time() - g.start_time
-                logger.info(
-                    f"Request completed: {request.method} {request.path} - {response.status_code}",
-                    extra={
-                        "method": request.method,
-                        "path": request.path,
-                        "status_code": response.status_code,
-                        "response_time_ms": round(elapsed_time * 1000, 2),
-                        "content_length": response.content_length,
-                    },
-                )
+            try:
+                if hasattr(g, "start_time"):
+                    elapsed_time = time.time() - g.start_time
+                    # Get correlation ID if available
+                    correlation_id = getattr(g, 'correlation_id', None)
 
+                    # Log request end using structured logging
+                    from src.infrastructure.logging import log_request_end
+                    log_request_end(
+                        method=request.method,
+                        path=request.path,
+                        status_code=response.status_code,
+                        response_time_ms=round(elapsed_time * 1000, 2),
+                        correlation_id=correlation_id
+                    )
+            except Exception as e:
+                # Don't break the response if logging fails
+                print(f"Warning: Response logging failed: {e}")
             return response
 
     def _get_client_ip(self, req: Request) -> str:

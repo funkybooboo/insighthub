@@ -1,0 +1,60 @@
+meta {
+  name: Update Rag Config
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{base_url}}/api/workspaces/{{workspace_id}}/rag-config
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "chunk_size": 1200,
+    "top_k": 10,
+    "rerank_enabled": true,
+    "rerank_model": "rerank-model-v1"
+  }
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(response.status).to.equal(200);
+  });
+
+  test("Response has required fields", function() {
+    expect(response.body).to.have.property('id');
+    expect(response.body).to.have.property('workspace_id');
+    expect(response.body).to.have.property('embedding_model');
+    expect(response.body).to.have.property('retriever_type');
+    expect(response.body).to.have.property('chunk_size');
+    expect(response.body).to.have.property('chunk_overlap');
+    expect(response.body).to.have.property('top_k');
+    expect(response.body).to.have.property('rerank_enabled');
+    expect(response.body).to.have.property('created_at');
+    expect(response.body).to.have.property('updated_at');
+  });
+
+  test("Updated fields match request", function() {
+    expect(response.body.chunk_size).to.equal(1200);
+    expect(response.body.top_k).to.equal(10);
+    expect(response.body.rerank_enabled).to.equal(true);
+    expect(response.body.rerank_model).to.equal("rerank-model-v1");
+  });
+
+  test("Unchanged fields preserved", function() {
+    expect(response.body.embedding_model).to.equal("nomic-embed-text");
+    expect(response.body.retriever_type).to.equal("vector");
+    expect(response.body.chunk_overlap).to.equal(200);
+  });
+}

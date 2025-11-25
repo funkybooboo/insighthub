@@ -40,7 +40,7 @@ The client communicates with the server through two main channels:
 
 #### GET /health
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Check server health status
 - **Used by**: Health checks, connection validation
 - **Authentication**: None required
@@ -50,7 +50,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/auth/signup
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Register new user account
 - **Used by**: SignupForm component
 - **Authentication**: None required
@@ -68,7 +68,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/auth/login
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Authenticate user and get JWT token
 - **Used by**: LoginForm component
 - **Authentication**: None required
@@ -84,7 +84,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/auth/logout
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Invalidate JWT token
 - **Used by**: Logout functionality
 - **Authentication**: Bearer token required
@@ -93,7 +93,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/auth/me
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Get current user profile information
 - **Used by**: Protected routes, user profile display
 - **Authentication**: Bearer token required
@@ -101,7 +101,7 @@ The client communicates with the server through two main channels:
 
 #### PATCH /api/auth/preferences
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Update user preferences (theme, etc.)
 - **Used by**: ThemePreferences component
 - **Authentication**: Bearer token required
@@ -115,7 +115,7 @@ The client communicates with the server through two main channels:
 
 #### PATCH /api/auth/profile
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Update user profile information
 - **Used by**: ProfileSettings component
 - **Authentication**: Bearer token required
@@ -130,7 +130,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/auth/change-password
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Change user password
 - **Used by**: PasswordChangeForm component
 - **Authentication**: Bearer token required
@@ -147,7 +147,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/workspaces
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: List all workspaces for the authenticated user
 - **Used by**: WorkspacesPage, workspace selection
 - **Authentication**: Bearer token required
@@ -155,7 +155,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/workspaces/{workspaceId}
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Get details for a specific workspace
 - **Used by**: WorkspaceDetailPage, workspace settings
 - **Authentication**: Bearer token required
@@ -163,7 +163,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/workspaces
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Create a new workspace
 - **Used by**: Workspace creation forms
 - **Authentication**: Bearer token required
@@ -172,7 +172,7 @@ The client communicates with the server through two main channels:
 
 #### PATCH /api/workspaces/{workspaceId}
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Update workspace details
 - **Used by**: WorkspaceSettings component
 - **Authentication**: Bearer token required
@@ -181,7 +181,7 @@ The client communicates with the server through two main channels:
 
 #### DELETE /api/workspaces/{workspaceId}
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Delete a workspace
 - **Used by**: Workspace deletion functionality
 - **Authentication**: Bearer token required
@@ -192,7 +192,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/workspaces/{workspaceId}/documents
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: List all documents in a workspace
 - **Used by**: DocumentList component
 - **Authentication**: Bearer token required
@@ -206,7 +206,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/workspaces/{workspaceId}/documents/upload
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Upload a document to the workspace
 - **Used by**: DocumentUpload, FileUpload components
 - **Authentication**: Bearer token required
@@ -222,7 +222,7 @@ The client communicates with the server through two main channels:
 
 #### DELETE /api/workspaces/{workspaceId}/documents/{docId}
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Delete a document from workspace
 - **Used by**: DocumentManager component
 - **Authentication**: Bearer token required
@@ -233,7 +233,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/workspaces/{workspaceId}/rag-config
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Get RAG configuration for a workspace
 - **Used by**: RagConfigSettings, RagConfigForm components
 - **Authentication**: Bearer token required
@@ -241,7 +241,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/workspaces/{workspaceId}/rag-config
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Create RAG configuration for a workspace
 - **Used by**: RagConfigForm component
 - **Authentication**: Bearer token required
@@ -250,7 +250,7 @@ The client communicates with the server through two main channels:
 
 #### PATCH /api/workspaces/{workspaceId}/rag-config
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Update RAG configuration for a workspace
 - **Used by**: RagConfigSettings component
 - **Authentication**: Bearer token required
@@ -259,7 +259,7 @@ The client communicates with the server through two main channels:
 
 #### GET /api/auth/default-rag-config
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Get user's default RAG configuration
 - **Used by**: RagConfigForm for default values
 - **Authentication**: Bearer token required
@@ -267,7 +267,7 @@ The client communicates with the server through two main channels:
 
 #### PUT /api/auth/default-rag-config
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Save user's default RAG configuration
 - **Used by**: RagConfigForm component
 - **Authentication**: Bearer token required
@@ -278,7 +278,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/chat
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Send a chat message and get a response from the RAG system
 - **Used by**: ChatBot component
 - **Authentication**: Bearer token required
@@ -305,7 +305,7 @@ The client communicates with the server through two main channels:
 
 #### POST /api/workspaces/{workspaceId}/rag/wikipedia
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Fetch a Wikipedia article and inject it into the RAG system
 - **Used by**: RagConfigForm or dedicated Wikipedia import feature
 - **Authentication**: Bearer token required
@@ -323,14 +323,14 @@ The client communicates with the server through two main channels:
 
 #### connect()
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Establish WebSocket connection
 - **Used by**: SocketService initialization
 - **Events**: Connection status updates
 
 #### disconnect()
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Close WebSocket connection
 - **Used by**: Cleanup on logout/app close
 
@@ -338,7 +338,7 @@ The client communicates with the server through two main channels:
 
 #### emit 'chat_message'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Send chat message for streaming response
 - **Used by**: ChatBot component
 - **Data**:
@@ -354,14 +354,14 @@ The client communicates with the server through two main channels:
 
 #### on 'chat_chunk'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Receive streaming response chunks
 - **Used by**: ChatMessages component for real-time display
 - **Data**: `{ chunk: string }`
 
 #### on 'chat_complete'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Receive complete response with metadata
 - **Used by**: Chat completion handling
 - **Data**:
@@ -375,14 +375,14 @@ The client communicates with the server through two main channels:
 
 #### emit 'cancel_message'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Cancel ongoing chat message
 - **Used by**: Chat input cancel functionality
 - **Data**: `{ client_id: string }`
 
 #### on 'chat_cancelled'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Confirm message cancellation
 - **Used by**: UI state updates
 - **Data**: `{ status: string }`
@@ -391,21 +391,21 @@ The client communicates with the server through two main channels:
 
 #### emit 'subscribe_status'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Subscribe to status updates for user
 - **Used by**: Status updates initialization
 - **Data**: `{ user_id: number }`
 
 #### on 'subscribed'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Confirm subscription
 - **Used by**: Status update setup
 - **Data**: `{ user_id: number, room: string }`
 
 #### on 'document_status'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Receive document processing status updates
 - **Used by**: Document upload progress, status indicators
 - **Data**:
@@ -423,7 +423,7 @@ The client communicates with the server through two main channels:
 
 #### on 'workspace_status'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Receive workspace status updates
 - **Used by**: Workspace provisioning status
 - **Data**:
@@ -442,20 +442,20 @@ The client communicates with the server through two main channels:
 
 #### on 'error'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Handle WebSocket errors
 - **Used by**: Global error handling
 - **Data**: `{ error: string }`
 
 #### on 'connected'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Connection established confirmation
 - **Used by**: Connection status management
 
 #### on 'disconnect'
 
-- **Status**: ✅ Currently Used
+- **Status**: [x] Currently Used
 - **Purpose**: Connection lost notification
 - **Used by**: Reconnection logic
 

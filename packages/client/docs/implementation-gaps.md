@@ -2,11 +2,11 @@
 
 Based on the `client-user-flows.md` document, here are the missing features and implementation gaps in the current client:
 
-## 🚨 Critical Missing Features
+## [CRITICAL] Missing Features
 
 ### 1. RAG Enhancement Prompt UI Component
 
-**Status**: ❌ Missing
+**Status**: [ ] Missing
 **Impact**: High - Core chat enhancement feature
 
 **What's Expected**:
@@ -35,7 +35,7 @@ interface RAGEnhancementPromptProps {
 
 ### 2. Persistent Chat Sessions with Backend Storage
 
-**Status**: ⚠️ Partially Missing
+**Status**: [WARNING] Partially Missing
 **Impact**: High - Chat history and session management
 
 **What's Expected**:
@@ -63,20 +63,20 @@ async cancelChatMessage(workspaceId: number, sessionId: number): Promise<void>
 
 ### 3. API Endpoint Path Mismatches
 
-**Status**: ❌ Incorrect Paths
+**Status**: [ ] Incorrect Paths
 **Impact**: Medium - API integration issues
 
 **Mismatches Found**:
 
 | User Flows Expect                                                  | Client Currently Uses                         | Status            |
 | ------------------------------------------------------------------ | --------------------------------------------- | ----------------- |
-| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` | `/api/chat`                                   | ❌ Wrong          |
-| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/cancel`   | `socketService.cancelMessage()`               | ⚠️ WebSocket only |
-| `/api/workspaces/{workspaceId}/documents/fetch-wikipedia`          | `/api/workspaces/{workspaceId}/rag/wikipedia` | ❌ Wrong          |
+| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` | `/api/chat`                                   | [ ] Wrong          |
+| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/cancel`   | `socketService.cancelMessage()`               | [WARNING] WebSocket only |
+| `/api/workspaces/{workspaceId}/documents/fetch-wikipedia`          | `/api/workspaces/{workspaceId}/rag/wikipedia` | [ ] Wrong          |
 
 ### 4. Missing WebSocket Events
 
-**Status**: ❌ Missing Events
+**Status**: [ ] Missing Events
 **Impact**: Medium - Real-time status updates
 
 **Missing WebSocket Events**:
@@ -88,15 +88,15 @@ async cancelChatMessage(workspaceId: number, sessionId: number): Promise<void>
 **Current WebSocket Events** (from socket.ts):
 
 ```typescript
-✅ chat_chunk, chat_complete, chat_cancelled
-✅ document_status, workspace_status
-✅ subscribed, connected, disconnected, error
-❌ chat.no_context_found
-❌ wikipedia_fetch_status
-❌ chat.response_chunk (using chat_chunk instead)
+[x] chat_chunk, chat_complete, chat_cancelled
+[x] document_status, workspace_status
+[x] subscribed, connected, disconnected, error
+[ ] chat.no_context_found
+[ ] wikipedia_fetch_status
+[ ] chat.response_chunk (using chat_chunk instead)
 ```
 
-## 🔧 Implementation Priority & Plan
+## Implementation Priority & Plan
 
 ### Phase 1: Critical Chat Features (Week 1)
 
@@ -116,7 +116,7 @@ async cancelChatMessage(workspaceId: number, sessionId: number): Promise<void>
 2. **Implement chat message cancellation via API**
 3. **Add session title auto-generation**
 
-## 📋 Detailed Implementation Requirements
+## Detailed Implementation Requirements
 
 ### New Components Needed:
 
@@ -159,7 +159,7 @@ interface ChatSession {
 }
 ```
 
-## 🎯 Next Steps
+## Next Steps
 
 1. **Immediate**: Create RAGEnhancementPrompt component and integrate with ChatBot
 2. **Short-term**: Fix API endpoint paths and add missing WebSocket events

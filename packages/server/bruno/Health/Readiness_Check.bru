@@ -1,0 +1,30 @@
+meta {
+  name: Health Readiness Check
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/ready
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: jsonpath $.status equals "ready"
+}
+
+docs {
+  ## Health Readiness Check
+
+  Checks if the application is ready to serve traffic.
+  This endpoint is used by Kubernetes readiness probes.
+
+  **Expected Response:**
+  ```json
+  {
+    "status": "ready"
+  }
+  ```
+}

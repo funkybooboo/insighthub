@@ -7,10 +7,10 @@ Produces: graph.updated
 
 import os
 from dataclasses import asdict, dataclass
+from typing import Any
 
+from shared.workers import BaseWorker
 from shared.logger import create_logger
-from shared.types.common import PayloadDict
-from shared.worker import Worker
 
 logger = create_logger(__name__)
 
@@ -29,10 +29,10 @@ class GraphUpdatedEvent:
     workspace_id: str
     node_count: int
     edge_count: int
-    metadata: dict[str, str]
+    metadata: dict[str, Any]
 
 
-class ConnectorWorker(Worker):
+class ConnectorWorker(BaseWorker):
     """Graph connector worker for building knowledge graphs."""
 
     def __init__(self) -> None:
@@ -48,65 +48,97 @@ class ConnectorWorker(Worker):
         )
         self._neo4j_url = NEO4J_URL
 
-    def process_event(self, event_data: PayloadDict) -> None:
+    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
         """
         Process embedding.created event to build graph nodes and edges.
 
-        TODO: Implement graph building logic:
-        1. Fetch embeddings and chunks from database
-        2. Extract entities and relationships using LLM
-        3. Create nodes in Neo4j for entities
-        4. Create edges for relationships
-        5. Publish graph.updated event
-
         Args:
-            event_data: Parsed event data as dictionary
+            event_data: Event data containing document_id, workspace_id, chunk_ids, etc.
+            message_context: Message context information
         """
         document_id = str(event_data.get("document_id", ""))
         workspace_id = str(event_data.get("workspace_id", ""))
-        metadata = dict(event_data.get("metadata", {}))
+        chunk_ids = list(event_data.get("chunk_ids", []))
+        metadata = event_data.get("metadata", {})
 
         logger.info(
-            "Building graph nodes and edges",
-            document_id=document_id,
-            workspace_id=workspace_id,
+            "Building graph connections",
+            extra={
+                "document_id": document_id,
+                "workspace_id": workspace_id,
+                "chunk_count": len(chunk_ids)
+            }
         )
 
         try:
-            # TODO: Implement graph building
-            node_count = 0
-            edge_count = 0
+            # TODO: Implement graph construction
+            # 1. Extract entities and relationships from chunks
+            # 2. Connect to Neo4j database
+            # 3. Create/update nodes and edges
+            # 4. Apply graph algorithms (Leiden clustering, etc.)
+
+            node_count = len(chunk_ids)  # Placeholder
+            edge_count = len(chunk_ids) * 2  # Placeholder
+
+            # TODO: Update document status
+            self._update_document_status(document_id, "graph_connected", {
+                "node_count": node_count,
+                "edge_count": edge_count
+            })
 
             # Publish graph.updated event
-            updated_event = GraphUpdatedEvent(
+            graph_event = GraphUpdatedEvent(
                 document_id=document_id,
                 workspace_id=workspace_id,
                 node_count=node_count,
                 edge_count=edge_count,
                 metadata=metadata,
             )
-            self.publish_event("graph.updated", asdict(updated_event))
+            self.publish_event(
+                routing_key="graph.updated",
+                event_data=asdict(graph_event),
+                correlation_id=message_context.get("correlation_id"),
+                message_id=document_id,
+            )
 
             logger.info(
                 "Successfully updated graph",
-                document_id=document_id,
-                node_count=node_count,
-                edge_count=edge_count,
+                extra={
+                    "document_id": document_id,
+                    "node_count": node_count,
+                    "edge_count": edge_count
+                }
             )
 
         except Exception as e:
             logger.error(
-                "Failed to build graph",
-                document_id=document_id,
-                error=str(e),
+                "Failed to build graph connections",
+                extra={
+                    "document_id": document_id,
+                    "error": str(e)
+                }
             )
+            # TODO: Update document status to failed
+            self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
+
+    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+        """Update document processing status."""
+        # TODO: Implement status update
+        # 1. Connect to PostgreSQL
+        # 2. Update processing_status and processing_metadata
+        # 3. Handle connection errors
+        pass
 
 
 def main() -> None:
     """Main entry point."""
     worker = ConnectorWorker()
-    worker.start()
+    try:
+        worker.start()
+    except KeyboardInterrupt:
+        logger.info("Stopping connector worker")
+        worker.stop()
 
 
 if __name__ == "__main__":

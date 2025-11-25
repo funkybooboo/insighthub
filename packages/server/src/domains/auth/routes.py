@@ -40,16 +40,31 @@ def signup() -> tuple[Response, int]:
     if not data:
         return jsonify({"error": "Request body is required"}), 400
 
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
-    full_name = data.get("full_name")
+    from src.infrastructure.security.input_sanitizer import InputSanitizer
+
+    username = InputSanitizer.sanitize_text(data.get("username", ""))
+    email = InputSanitizer.sanitize_text(data.get("email", ""))
+    password = data.get("password", "")  # Don't sanitize password
+    full_name = InputSanitizer.sanitize_text(data.get("full_name", ""), max_length=100)
 
     if not username or not email or not password:
         return jsonify({"error": "username, email, and password are required"}), 400
 
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    # Validate input formats
+    if not InputSanitizer.validate_username(username):
+        return jsonify({"error": "Username must be 3-50 characters and contain only letters, numbers, underscores, and hyphens"}), 400
+
+    if not InputSanitizer.validate_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
+
+    # Enhanced password validation
+    password_validation = InputSanitizer.validate_password_strength(password)
+    if not password_validation["valid"]:
+        return jsonify({
+            "error": "Password does not meet requirements",
+            "details": password_validation["errors"],
+            "strength": password_validation["strength"]
+        }), 400
 
     try:
         user = g.app_context.user_service.register_user(
@@ -79,6 +94,7 @@ def signup() -> tuple[Response, int]:
 
 
 @auth_bp.route("/login", methods=["POST"])
+@require_rate_limit(max_requests=5, window_seconds=300)  # 5 attempts per 5 minutes
 def login() -> tuple[Response, int]:
     """
     Authenticate a user and return a JWT token.
@@ -117,6 +133,15 @@ def login() -> tuple[Response, int]:
         user = g.app_context.user_service.authenticate_user(username=username, password=password)
         token = create_access_token(user.id)
 
+        # Log successful login
+        from src.infrastructure.logging import log_security_event
+        from flask import request
+        log_security_event(
+            event="login_successful",
+            user_id=user.id,
+            client_ip=request.remote_addr
+        )
+
         return (
             jsonify(
                 {
@@ -135,6 +160,14 @@ def login() -> tuple[Response, int]:
             200,
         )
     except UserAuthenticationError as e:
+        # Log failed login attempt
+        from src.infrastructure.logging import log_security_event
+        from flask import request
+        log_security_event(
+            event="login_failed",
+            client_ip=request.remote_addr,
+            details={"username": username, "reason": str(e)}
+        )
         return jsonify({"error": str(e)}), 401
 
 
@@ -221,16 +254,49 @@ def change_password() -> tuple[Response, int]:
         if not current_password or not new_password:
             return jsonify({"error": "current_password and new_password are required"}), 400
 
-        if len(new_password) < 6:
-            return jsonify({"error": "New password must be at least 6 characters"}), 400
+        # Comprehensive password validation
+        if len(new_password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+
+        if not any(c.isupper() for c in new_password):
+            return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
+
+        if not any(c.islower() for c in new_password):
+            return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
+
+        if not any(c.isdigit() for c in new_password):
+            return jsonify({"error": "Password must contain at least one number"}), 400
+
+        # Check for common weak passwords
+        weak_passwords = ["password", "123456", "qwerty", "abc123", "password123"]
+        if new_password.lower() in weak_passwords:
+            return jsonify({"error": "Password is too common, please choose a stronger password"}), 400
 
         # Verify current password
         if not user.check_password(current_password):
+            # Log failed password verification
+            from src.infrastructure.logging import log_security_event
+            from flask import request
+            log_security_event(
+                event="password_change_failed",
+                user_id=user.id,
+                client_ip=request.remote_addr,
+                details={"reason": "incorrect_current_password"}
+            )
             return jsonify({"error": "Current password is incorrect"}), 401
 
         # Update password
         user.set_password(new_password)
         g.app_context.user_service.update_user(user.id)
+
+        # Log successful password change
+        from src.infrastructure.logging import log_security_event
+        from flask import request
+        log_security_event(
+            event="password_changed",
+            user_id=user.id,
+            client_ip=request.remote_addr
+        )
 
         return jsonify({"message": "Password changed successfully"}), 200
 

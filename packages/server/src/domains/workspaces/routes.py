@@ -15,10 +15,6 @@ def get_workspace_service() -> WorkspaceService:
     """Get workspace service from app context."""
     return g.app_context.workspace_service
 
-
-
-
-
 class WorkspaceDict(TypedDict, total=False):
     """TypedDict for workspace response."""
 
@@ -134,8 +130,16 @@ def create_workspace() -> tuple[Response, int]:
 
         return jsonify(workspace_to_dict(workspace, include_rag_config=True)), 201
 
+    except ValueError as e:
+        # Invalid input validation
+        return jsonify({"error": f"Invalid input: {str(e)}"}), 400
+    except PermissionError as e:
+        # Authorization issues
+        return jsonify({"error": f"Access denied: {str(e)}"}), 403
     except Exception as e:
-        return jsonify({"error": f"Failed to create workspace: {str(e)}"}), 500
+        # Catch-all for unexpected errors
+        print(f"Unexpected error creating workspace: {e}")
+        return jsonify({"error": "Failed to create workspace"}), 500
 
 
 @workspace_bp.route("", methods=["GET"])
@@ -305,10 +309,6 @@ def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
     except Exception as e:
         return jsonify({"error": f"Failed to get workspace stats: {str(e)}"}), 500
 
-
-
-
-
 @workspace_bp.route("/<workspace_id>/validate-access", methods=["GET"])
 @require_auth
 def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
@@ -326,7 +326,3 @@ def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
 
     except Exception as e:
         return jsonify({"error": f"Failed to validate access: {str(e)}"}), 500
-
-
-# ===== Workspace Documents Endpoints =====
-

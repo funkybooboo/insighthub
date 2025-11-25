@@ -11,6 +11,7 @@ from shared.repositories import (
     SqlChatSessionRepository,
     SqlDefaultRagConfigRepository,
     SqlDocumentRepository,
+    SqlRagConfigRepository,
     SqlUserRepository,
     SqlWorkspaceRepository,
 )
@@ -19,7 +20,9 @@ from shared.storage import BlobStorage, FileSystemBlobStorage, S3BlobStorage
 from src import config
 from src.domains.workspaces.chat.service import ChatService
 from src.domains.workspaces.documents.service import DocumentService
+from src.domains.workspaces.rag_config.service import RagConfigService
 from src.domains.auth.service import UserService
+from shared.repositories import UserRepository
 from src.domains.workspaces.service import WorkspaceService
 
 
@@ -169,8 +172,8 @@ class AppContext:
         # Initialize RAG system (optional)
         self.rag_system = create_rag_system()
 
-        # Create repositories using shared library SQL implementations
-        user_repo = SqlUserRepository(db)
+        # Create repositories using server implementations
+        user_repo = UserRepository(db)
         document_repo = SqlDocumentRepository(db)
         session_repo = SqlChatSessionRepository(db)
         message_repo = SqlChatMessageRepository(db)
@@ -194,6 +197,10 @@ class AppContext:
             workspace_repo=workspace_repo,
             message_publisher=self.message_publisher,
         )
+
+        # Initialize RAG config repository and service
+        rag_config_repo = SqlRagConfigRepository(db)
+        self.rag_config_service = RagConfigService(rag_config_repo, self.workspace_service)
 
         # Initialize repositories
         self.default_rag_config_repository = default_rag_config_repo

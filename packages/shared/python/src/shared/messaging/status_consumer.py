@@ -31,6 +31,11 @@ class StatusConsumer:
         exchange: str,
         on_document_status: StatusCallback,
         on_workspace_status: StatusCallback,
+        on_document_parsed: StatusCallback | None = None,
+        on_document_chunked: StatusCallback | None = None,
+        on_document_embedded: StatusCallback | None = None,
+        on_document_indexed: StatusCallback | None = None,
+        on_workspace_provision_status: StatusCallback | None = None,
     ) -> None:
         """
         Initialize the status consumer.
@@ -40,11 +45,21 @@ class StatusConsumer:
             exchange: Exchange name to consume from
             on_document_status: Callback for document status updates
             on_workspace_status: Callback for workspace status updates
+            on_document_parsed: Callback for document parsed events
+            on_document_chunked: Callback for document chunked events
+            on_document_embedded: Callback for document embedded events
+            on_document_indexed: Callback for document indexed events
+            on_workspace_provision_status: Callback for workspace provision status
         """
         self._rabbitmq_url = rabbitmq_url
         self._exchange = exchange
         self._on_document_status = on_document_status
         self._on_workspace_status = on_workspace_status
+        self._on_document_parsed = on_document_parsed
+        self._on_document_chunked = on_document_chunked
+        self._on_document_embedded = on_document_embedded
+        self._on_document_indexed = on_document_indexed
+        self._on_workspace_provision_status = on_workspace_provision_status
         self._connection: BlockingConnection | None = None
         self._channel: BlockingChannel | None = None
         self._consumer_thread: threading.Thread | None = None
@@ -116,6 +131,53 @@ class StatusConsumer:
             routing_key="workspace.status.updated",
         )
 
+        # Document processing queues
+        if self._on_document_parsed:
+            parsed_queue = "status_document_parsed"
+            self._channel.queue_declare(queue=parsed_queue, durable=True)
+            self._channel.queue_bind(
+                exchange=self._exchange,
+                queue=parsed_queue,
+                routing_key="document.parsed",
+            )
+
+        if self._on_document_chunked:
+            chunked_queue = "status_document_chunked"
+            self._channel.queue_declare(queue=chunked_queue, durable=True)
+            self._channel.queue_bind(
+                exchange=self._exchange,
+                queue=chunked_queue,
+                routing_key="document.chunked",
+            )
+
+        if self._on_document_embedded:
+            embedded_queue = "status_document_embedded"
+            self._channel.queue_declare(queue=embedded_queue, durable=True)
+            self._channel.queue_bind(
+                exchange=self._exchange,
+                queue=embedded_queue,
+                routing_key="document.embedded",
+            )
+
+        if self._on_document_indexed:
+            indexed_queue = "status_document_indexed"
+            self._channel.queue_declare(queue=indexed_queue, durable=True)
+            self._channel.queue_bind(
+                exchange=self._exchange,
+                queue=indexed_queue,
+                routing_key="document.indexed",
+            )
+
+        # Workspace provision status queue
+        if self._on_workspace_provision_status:
+            provision_queue = "status_workspace_provision"
+            self._channel.queue_declare(queue=provision_queue, durable=True)
+            self._channel.queue_bind(
+                exchange=self._exchange,
+                queue=provision_queue,
+                routing_key="workspace.provision_status",
+            )
+
         # Set up consumers
         self._channel.basic_qos(prefetch_count=1)
 
@@ -130,6 +192,43 @@ class StatusConsumer:
             on_message_callback=self._on_workspace_message,
             auto_ack=False,
         )
+
+        # Document processing consumers
+        if self._on_document_parsed:
+            self._channel.basic_consume(
+                queue="status_document_parsed",
+                on_message_callback=self._on_document_parsed_message,
+                auto_ack=False,
+            )
+
+        if self._on_document_chunked:
+            self._channel.basic_consume(
+                queue="status_document_chunked",
+                on_message_callback=self._on_document_chunked_message,
+                auto_ack=False,
+            )
+
+        if self._on_document_embedded:
+            self._channel.basic_consume(
+                queue="status_document_embedded",
+                on_message_callback=self._on_document_embedded_message,
+                auto_ack=False,
+            )
+
+        if self._on_document_indexed:
+            self._channel.basic_consume(
+                queue="status_document_indexed",
+                on_message_callback=self._on_document_indexed_message,
+                auto_ack=False,
+            )
+
+        # Workspace provision consumer
+        if self._on_workspace_provision_status:
+            self._channel.basic_consume(
+                queue="status_workspace_provision",
+                on_message_callback=self._on_workspace_provision_message,
+                auto_ack=False,
+            )
 
         logger.info("Status consumer connected and listening")
 
@@ -171,10 +270,105 @@ class StatusConsumer:
             logger.error(f"Error processing workspace status: {e}")
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
+    def _on_document_parsed_message(
+        self,
+        channel: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
+    ) -> None:
+        """Handle incoming document parsed message."""
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+            logger.debug(f"Received document parsed: {event_data}")
+            if self._on_document_parsed:
+                self._on_document_parsed(event_data)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error processing document parsed: {e}")
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def _on_document_chunked_message(
+        self,
+        channel: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
+    ) -> None:
+        """Handle incoming document chunked message."""
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+            logger.debug(f"Received document chunked: {event_data}")
+            if self._on_document_chunked:
+                self._on_document_chunked(event_data)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error processing document chunked: {e}")
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def _on_document_embedded_message(
+        self,
+        channel: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
+    ) -> None:
+        """Handle incoming document embedded message."""
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+            logger.debug(f"Received document embedded: {event_data}")
+            if self._on_document_embedded:
+                self._on_document_embedded(event_data)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error processing document embedded: {e}")
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def _on_document_indexed_message(
+        self,
+        channel: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
+    ) -> None:
+        """Handle incoming document indexed message."""
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+            logger.debug(f"Received document indexed: {event_data}")
+            if self._on_document_indexed:
+                self._on_document_indexed(event_data)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error processing document indexed: {e}")
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def _on_workspace_provision_message(
+        self,
+        channel: BlockingChannel,
+        method: Basic.Deliver,
+        properties: BasicProperties,
+        body: bytes,
+    ) -> None:
+        """Handle incoming workspace provision status message."""
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+            logger.debug(f"Received workspace provision status: {event_data}")
+            if self._on_workspace_provision_status:
+                self._on_workspace_provision_status(event_data)
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception as e:
+            logger.error(f"Error processing workspace provision status: {e}")
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
 
 def create_status_consumer(
     on_document_status: StatusCallback,
     on_workspace_status: StatusCallback,
+    on_document_parsed: StatusCallback | None = None,
+    on_document_chunked: StatusCallback | None = None,
+    on_document_embedded: StatusCallback | None = None,
+    on_document_indexed: StatusCallback | None = None,
+    on_workspace_provision_status: StatusCallback | None = None,
 ) -> StatusConsumer | None:
     """
     Create and start a status consumer if RabbitMQ is configured.
@@ -206,6 +400,11 @@ def create_status_consumer(
             exchange=exchange,
             on_document_status=on_document_status,
             on_workspace_status=on_workspace_status,
+            on_document_parsed=on_document_parsed,
+            on_document_chunked=on_document_chunked,
+            on_document_embedded=on_document_embedded,
+            on_document_indexed=on_document_indexed,
+            on_workspace_provision_status=on_workspace_provision_status,
         )
         consumer.start()
         return consumer

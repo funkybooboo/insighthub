@@ -10,6 +10,7 @@ from flask_socketio import SocketIO, emit, join_room
 from src.infrastructure.database import get_db
 from src.infrastructure.socket.socket_handler import SocketHandler
 from shared.logger import create_logger
+from .dtos import StreamEvent
 
 logger = create_logger(__name__)
 
@@ -18,8 +19,10 @@ class ChatMessageData(TypedDict, total=False):
 
     message: str
     session_id: str | int | None
+    workspace_id: str | int | None
     rag_type: str
     client_id: str
+    token: str
 
 
 class CancelMessageData(TypedDict, total=False):
@@ -78,6 +81,16 @@ class ChatSocketHandler:
                         session_id = None
                 else:
                     session_id = None
+
+                workspace_id_raw = data.get("workspace_id")
+                if workspace_id_raw is not None:
+                    try:
+                        workspace_id = int(str(workspace_id_raw))
+                    except (ValueError, TypeError):
+                        workspace_id = None
+                else:
+                    workspace_id = None
+
                 rag_type = str(data.get("rag_type", "vector"))
                 client_id = str(data.get("client_id", request_id))  # Use client_id for tracking
 
@@ -87,37 +100,61 @@ class ChatSocketHandler:
                 # Validate message (will raise EmptyMessageError if invalid)
                 app_context.chat_service.validate_message(user_message)
 
-                # Get user from authentication context
-                # For now, use a default user - in production this should come from JWT
-                user = app_context.user_service.get_or_create_default_user()
+                # Authenticate user from JWT token in message data
+                token_raw = data.get("token")
+                if not token_raw:
+                    emit("error", {"error": "Authentication token required"})
+                    return
+
+                try:
+                    from src.infrastructure.auth.jwt_utils import decode_access_token
+                    token = str(token_raw)
+                    payload = decode_access_token(token)
+                    user_id = payload.get("user_id")
+
+                    if not user_id:
+                        raise ValueError("Invalid token payload")
+
+                    user = app_context.user_service.get_user_by_id(int(user_id))
+                    if not user:
+                        raise ValueError("User not found")
+
+                except Exception as e:
+                    emit("error", {"error": f"Authentication failed: {str(e)}"})
+                    return
+
+                # Validate workspace access if workspace_id is provided
+                if workspace_id is not None:
+                    workspace_service = app_context.workspace_service
+                    if not workspace_service.validate_workspace_access(workspace_id, user.id):
+                        emit("error", {"error": "No access to workspace"})
+                        return
 
                 # Check if RAG context is available before streaming
                 has_rag_context = False
                 if rag_type == "vector" and app_context.rag_system:
                     try:
-                        rag_results = app_context.rag_system.query(user_message, top_k=8)
+                        rag_results = app_context.rag_system.query(user_message, workspace_id=workspace_id, top_k=8)
                         meaningful_context = [result for result in rag_results if result.score > 0.1]
                         has_rag_context = len(meaningful_context) > 0
                     except Exception:
                         has_rag_context = False
 
-                # For async processing, we send the message via the chat service
-                # which publishes to RabbitMQ, and the chat worker will handle streaming
-                # The worker will emit events back via WebSocket
+                # Use async chat processing architecture
+                # Publish message to RabbitMQ and expect worker responses via WebSocket
+                logger.info(f"Starting async chat processing for user {user.id}")
 
-                # Send message via chat service (this publishes to RabbitMQ)
-                # Note: For WebSocket connections, we may not have workspace context
-                # In production, this should be enhanced to track workspace context per client
+                # Send message via chat service (this publishes to RabbitMQ for worker processing)
                 message_id = app_context.chat_service.send_message(
-                    workspace_id=0,  # Placeholder - WebSocket context doesn't provide workspace
-                    session_id=session_id or 0,
+                    workspace_id=workspace_id,
+                    session_id=session_id,
                     user_id=user.id,
                     content=user_message,
                     message_type="user",
                     ignore_rag=rag_type != "vector"
                 )
 
-                # Emit initial acknowledgment
+                # Emit initial acknowledgment with message_id for tracking
                 emit("chat.response_started", {
                     "message_id": message_id,
                     "session_id": session_id,
@@ -126,9 +163,24 @@ class ChatSocketHandler:
 
                 # Note: The actual streaming responses will come from the chat worker
                 # via the event handlers below (handle_chat_response_chunk, etc.)
+                # If no worker responds within a timeout, we could implement a fallback
 
+            except ValueError as e:
+                # Invalid input data
+                emit("error", {"error": f"Invalid input: {str(e)}"})
+            except PermissionError as e:
+                # Authentication/authorization issues
+                emit("error", {"error": f"Access denied: {str(e)}"})
+            except ConnectionError as e:
+                # Database or external service connection issues
+                emit("error", {"error": f"Service unavailable: {str(e)}"})
+            except TimeoutError as e:
+                # Operation timed out
+                emit("error", {"error": f"Request timed out: {str(e)}"})
             except Exception as e:
-                emit("error", {"error": f"Error processing chat: {str(e)}"})
+                # Catch-all for unexpected errors
+                print(f"Unexpected error in chat processing: {e}")
+                emit("error", {"error": "An unexpected error occurred"})
 
             finally:
                 # Clean up active request tracking

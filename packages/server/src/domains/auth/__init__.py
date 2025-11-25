@@ -1,7 +1,7 @@
 """Auth domain - handles authentication and user management."""
 
 from shared.models import User
-from shared.repositories import SqlUserRepository, UserRepository
+from shared.repositories import UserRepository
 
 from .exceptions import (
     InvalidEmailError,
@@ -17,7 +17,6 @@ from .service import UserService
 __all__ = [
     "User",
     "UserRepository",
-    "SqlUserRepository",
     "UserService",
     "UserMapper",
     "UserNotFoundError",

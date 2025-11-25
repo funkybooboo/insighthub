@@ -4,9 +4,17 @@ version = "0.1.0"
 description = "Embeddings worker - generates vector embeddings from text chunks"
 authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
+sqlalchemy = "^2.0.0"
+psycopg2-binary = "^2.9.0"
+pika = "^1.3.2"
+python-dotenv = "^1.0.0"
+sentence-transformers = "^2.2.0"
+torch = "^2.0.0"
+numpy = "^1.24.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

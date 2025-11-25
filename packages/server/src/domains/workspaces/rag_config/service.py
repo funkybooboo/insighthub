@@ -3,15 +3,16 @@
 from typing import Optional
 
 from shared.models.workspace import RagConfig
+from shared.repositories import RagConfigRepository
 
 
 class RagConfigService:
     """Service for RAG configuration operations."""
 
-    def __init__(self):
+    def __init__(self, repository: RagConfigRepository, workspace_service):
         """Initialize the service."""
-        # TODO: Initialize repositories when available
-        pass
+        self.repository = repository
+        self.workspace_service = workspace_service
 
     def get_rag_config(self, workspace_id: int, user_id: int) -> Optional[RagConfig]:
         """
@@ -24,9 +25,11 @@ class RagConfigService:
         Returns:
             RagConfig if found, None otherwise
         """
-        # TODO: Implement actual database lookup
-        # For now, return None to indicate not implemented
-        return None
+        # Validate workspace access
+        if not self.workspace_service.validate_workspace_access(workspace_id, user_id):
+            return None
+
+        return self.repository.get_by_workspace_id(workspace_id)
 
     def create_rag_config(self, workspace_id: int, user_id: int, **config_data) -> RagConfig:
         """
@@ -40,25 +43,16 @@ class RagConfigService:
         Returns:
             Created RagConfig
         """
-        # TODO: Implement actual database creation
-        # For now, return a mock RagConfig
-        from shared.models.workspace import RagConfig
-        import datetime
+        # Validate workspace access
+        if not self.workspace_service.validate_workspace_access(workspace_id, user_id):
+            raise ValueError("No access to workspace")
 
-        return RagConfig(
-            id=1,
-            workspace_id=workspace_id,
-            embedding_model=config_data.get("embedding_model", "nomic-embed-text"),
-            embedding_dim=config_data.get("embedding_dim"),
-            retriever_type=config_data.get("retriever_type", "vector"),
-            chunk_size=config_data.get("chunk_size", 1000),
-            chunk_overlap=config_data.get("chunk_overlap", 200),
-            top_k=config_data.get("top_k", 8),
-            rerank_enabled=config_data.get("rerank_enabled", False),
-            rerank_model=config_data.get("rerank_model"),
-            created_at=datetime.datetime.utcnow(),
-            updated_at=datetime.datetime.utcnow(),
-        )
+        # Check if config already exists
+        existing = self.repository.get_by_workspace_id(workspace_id)
+        if existing:
+            raise ValueError("RAG configuration already exists for this workspace")
+
+        return self.repository.create(workspace_id, **config_data)
 
     def update_rag_config(self, workspace_id: int, user_id: int, **update_data) -> Optional[RagConfig]:
         """
@@ -72,22 +66,69 @@ class RagConfigService:
         Returns:
             Updated RagConfig if successful, None otherwise
         """
-        # TODO: Implement actual database update
-        # For now, return a mock updated RagConfig
-        from shared.models.workspace import RagConfig
-        import datetime
+        # Validate workspace access
+        if not self.workspace_service.validate_workspace_access(workspace_id, user_id):
+            return None
 
-        return RagConfig(
-            id=1,
-            workspace_id=workspace_id,
-            embedding_model=update_data.get("embedding_model", "nomic-embed-text"),
-            embedding_dim=update_data.get("embedding_dim"),
-            retriever_type=update_data.get("retriever_type", "vector"),
-            chunk_size=update_data.get("chunk_size", 1000),
-            chunk_overlap=update_data.get("chunk_overlap", 200),
-            top_k=update_data.get("top_k", 8),
-            rerank_enabled=update_data.get("rerank_enabled", False),
-            rerank_model=update_data.get("rerank_model"),
-            created_at=datetime.datetime.utcnow(),
-            updated_at=datetime.datetime.utcnow(),
-        )
+        # Validate update data
+        if update_data:
+            self._validate_config_data(update_data)
+
+        return self.repository.update(workspace_id, **update_data)
+
+    def delete_rag_config(self, workspace_id: int, user_id: int) -> bool:
+        """
+        Delete RAG configuration for a workspace.
+
+        Args:
+            workspace_id: The workspace ID
+            user_id: The user ID (for authorization)
+
+        Returns:
+            True if deleted, False otherwise
+        """
+        # Validate workspace access
+        if not self.workspace_service.validate_workspace_access(workspace_id, user_id):
+            return False
+
+        return self.repository.delete(workspace_id)
+
+    def _validate_config_data(self, config_data: dict) -> None:
+        """
+        Validate RAG configuration data.
+
+        Args:
+            config_data: Configuration data to validate
+
+        Raises:
+            ValueError: If validation fails
+        """
+        # Validate retriever_type
+        if "retriever_type" in config_data:
+            valid_types = ["vector", "graph", "hybrid"]
+            if config_data["retriever_type"] not in valid_types:
+                raise ValueError(f"retriever_type must be one of: {', '.join(valid_types)}")
+
+        # Validate chunk_size
+        if "chunk_size" in config_data:
+            chunk_size = config_data["chunk_size"]
+            if not (100 <= chunk_size <= 5000):
+                raise ValueError("chunk_size must be between 100 and 5000")
+
+        # Validate chunk_overlap
+        if "chunk_overlap" in config_data:
+            chunk_overlap = config_data["chunk_overlap"]
+            if not (0 <= chunk_overlap <= 1000):
+                raise ValueError("chunk_overlap must be between 0 and 1000")
+
+        # Validate top_k
+        if "top_k" in config_data:
+            top_k = config_data["top_k"]
+            if not (1 <= top_k <= 50):
+                raise ValueError("top_k must be between 1 and 50")
+
+        # Validate embedding_model (basic check)
+        if "embedding_model" in config_data:
+            model = config_data["embedding_model"]
+            if not model or len(model.strip()) == 0:
+                raise ValueError("embedding_model cannot be empty")

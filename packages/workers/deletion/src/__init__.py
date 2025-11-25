@@ -1,0 +1,1 @@
+"""Deletion worker package."""

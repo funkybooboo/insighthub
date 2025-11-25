@@ -1,0 +1,41 @@
+meta {
+  name: API Documentation
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/docs
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: jsonpath $.openapi equals "3.0.3"
+  res.body: jsonpath $.info.title exists
+  res.body: jsonpath $.paths exists
+  res.body: jsonpath $.components exists
+}
+
+docs {
+  ## API Documentation
+
+  Returns OpenAPI 3.0.3 specification for the entire API.
+  This provides comprehensive documentation for all endpoints.
+
+  **Expected Response:**
+  ```json
+  {
+    "openapi": "3.0.3",
+    "info": {
+      "title": "InsightHub API",
+      "description": "RAG-powered document analysis and chat platform",
+      "version": "1.0.0"
+    },
+    "servers": [...],
+    "paths": {...},
+    "components": {...}
+  }
+  ```
+}

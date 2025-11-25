@@ -1,0 +1,67 @@
+meta {
+  name: Create Rag Config
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/workspaces/{{workspace_id}}/rag-config
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "embedding_model": "nomic-embed-text",
+    "retriever_type": "vector",
+    "chunk_size": 1000,
+    "chunk_overlap": 200,
+    "top_k": 8,
+    "rerank_enabled": false
+  }
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+tests {
+  test("Status is 201", function() {
+    expect(response.status).to.equal(201);
+  });
+
+  test("Response has required fields", function() {
+    expect(response.body).to.have.property('id');
+    expect(response.body).to.have.property('workspace_id');
+    expect(response.body).to.have.property('embedding_model');
+    expect(response.body).to.have.property('retriever_type');
+    expect(response.body).to.have.property('chunk_size');
+    expect(response.body).to.have.property('chunk_overlap');
+    expect(response.body).to.have.property('top_k');
+    expect(response.body).to.have.property('rerank_enabled');
+    expect(response.body).to.have.property('created_at');
+    expect(response.body).to.have.property('updated_at');
+  });
+
+  test("Workspace ID matches", function() {
+    expect(response.body.workspace_id).to.equal(parseInt(req.variables.get("workspace_id")));
+  });
+
+  test("Created config matches request", function() {
+    expect(response.body.embedding_model).to.equal("nomic-embed-text");
+    expect(response.body.retriever_type).to.equal("vector");
+    expect(response.body.chunk_size).to.equal(1000);
+    expect(response.body.chunk_overlap).to.equal(200);
+    expect(response.body.top_k).to.equal(8);
+    expect(response.body.rerank_enabled).to.equal(false);
+  });
+
+  test("ID is returned", function() {
+    expect(response.body.id).to.be.a('number');
+    expect(response.body.id).to.be.greaterThan(0);
+  });
+}

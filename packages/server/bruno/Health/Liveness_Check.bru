@@ -1,0 +1,30 @@
+meta {
+  name: Health Liveness Check
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/live
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: jsonpath $.status equals "alive"
+}
+
+docs {
+  ## Health Liveness Check
+
+  Checks if the application is running and not in a broken state.
+  This endpoint is used by Kubernetes liveness probes.
+
+  **Expected Response:**
+  ```json
+  {
+    "status": "alive"
+  }
+  ```
+}

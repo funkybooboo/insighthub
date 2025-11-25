@@ -99,17 +99,75 @@ JWT_EXPIRE_MINUTES: Final[int] = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
 # CORS Configuration
 CORS_ORIGINS: Final[str] = os.getenv("CORS_ORIGINS", "*")
 
-# Logging Configuration
-LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
+# Redis Configuration
+REDIS_URL: Final[str] = os.getenv("REDIS_URL", "")
 
 # Rate Limiting Configuration
 RATE_LIMIT_ENABLED: Final[bool] = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
 RATE_LIMIT_PER_MINUTE: Final[int] = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 RATE_LIMIT_PER_HOUR: Final[int] = int(os.getenv("RATE_LIMIT_PER_HOUR", "1000"))
 
+# Logging Configuration
+LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
+LOG_FORMAT: Final[str] = os.getenv("LOG_FORMAT", "auto")  # "json", "console", or "auto"
+
 # Performance Monitoring Configuration
 SLOW_REQUEST_THRESHOLD: Final[float] = float(os.getenv("SLOW_REQUEST_THRESHOLD", "1.0"))
 ENABLE_PERFORMANCE_STATS: Final[bool] = os.getenv("ENABLE_PERFORMANCE_STATS", "true").lower() == "true"
+
+
+def validate_config() -> None:
+    """
+    Validate configuration values and raise errors for invalid configurations.
+
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    # Validate Flask configuration
+    if not (1024 <= FLASK_PORT <= 65535):
+        raise ValueError(f"FLASK_PORT must be between 1024 and 65535, got {FLASK_PORT}")
+
+    # Validate database URL
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL is required")
+
+    # Validate JWT configuration
+    if not JWT_SECRET_KEY or len(JWT_SECRET_KEY) < 32:
+        raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
+
+    if not (60 <= JWT_EXPIRE_MINUTES <= 1440):  # 1 hour to 24 hours
+        raise ValueError(f"JWT_EXPIRE_MINUTES must be between 60 and 1440, got {JWT_EXPIRE_MINUTES}")
+
+    # Validate rate limiting
+    if RATE_LIMIT_PER_MINUTE < 1 or RATE_LIMIT_PER_MINUTE > 1000:
+        raise ValueError(f"RATE_LIMIT_PER_MINUTE must be between 1 and 1000, got {RATE_LIMIT_PER_MINUTE}")
+
+    if RATE_LIMIT_PER_HOUR < 10 or RATE_LIMIT_PER_HOUR > 10000:
+        raise ValueError(f"RATE_LIMIT_PER_HOUR must be between 10 and 10000, got {RATE_LIMIT_PER_HOUR}")
+
+    # Validate Redis URL if provided
+    if REDIS_URL and not REDIS_URL.startswith(("redis://", "rediss://", "unix://")):
+        raise ValueError(f"REDIS_URL must start with redis://, rediss://, or unix://, got {REDIS_URL}")
+
+    # Validate LLM provider
+    valid_providers = ["ollama", "openai", "anthropic", "huggingface"]
+    if LLM_PROVIDER not in valid_providers:
+        raise ValueError(f"LLM_PROVIDER must be one of {valid_providers}, got {LLM_PROVIDER}")
+
+    # Validate log level
+    valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    if LOG_LEVEL.upper() not in valid_log_levels:
+        raise ValueError(f"LOG_LEVEL must be one of {valid_log_levels}, got {LOG_LEVEL}")
+
+    print("Configuration validation passed")
+
+
+# Validate configuration on import
+try:
+    validate_config()
+except ValueError as e:
+    print(f"Configuration validation failed: {e}")
+    raise
 
 # RabbitMQ Configuration
 RABBITMQ_HOST: Final[str] = os.getenv("RABBITMQ_HOST", "")

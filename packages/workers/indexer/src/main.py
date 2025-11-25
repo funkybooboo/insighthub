@@ -2,15 +2,15 @@
 Indexer Worker - Vector database indexing.
 
 Consumes: embedding.created
-Produces: vector.indexed
+Produces: document.indexed
 """
 
 import os
 from dataclasses import asdict, dataclass
+from typing import Any
 
+from shared.workers import BaseWorker
 from shared.logger import create_logger
-from shared.types.common import PayloadDict
-from shared.worker import Worker
 
 logger = create_logger(__name__)
 
@@ -24,17 +24,17 @@ WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
 
 
 @dataclass
-class VectorIndexedEvent:
-    """Event emitted when vectors are indexed."""
+class DocumentIndexedEvent:
+    """Event emitted when document is indexed."""
 
     document_id: str
     workspace_id: str
     vector_count: int
     collection_name: str
-    metadata: dict[str, str]
+    metadata: dict[str, Any]
 
 
-class IndexerWorker(Worker):
+class IndexerWorker(BaseWorker):
     """Vector indexer worker."""
 
     def __init__(self) -> None:
@@ -48,66 +48,101 @@ class IndexerWorker(Worker):
             consume_queue="indexer.embedding.created",
             prefetch_count=WORKER_CONCURRENCY,
         )
-        self._database_url = DATABASE_URL
-        self._qdrant_url = QDRANT_URL
+
         self._collection_name = QDRANT_COLLECTION_NAME
 
-    def process_event(self, event_data: PayloadDict) -> None:
+    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
         """
         Process embedding.created event to index vectors.
 
-        TODO: Implement indexing logic:
-        1. Fetch embeddings from database
-        2. Upsert vectors to Qdrant with metadata
-        3. Publish vector.indexed event
-
         Args:
-            event_data: Parsed event data as dictionary
+            event_data: Event data containing document_id, workspace_id, chunk_ids, etc.
+            message_context: Message context information
         """
         document_id = str(event_data.get("document_id", ""))
         workspace_id = str(event_data.get("workspace_id", ""))
-        metadata = dict(event_data.get("metadata", {}))
+        chunk_ids = list(event_data.get("chunk_ids", []))
+        embedding_count = int(event_data.get("embedding_count", 0))
+        metadata = event_data.get("metadata", {})
 
         logger.info(
             "Indexing vectors",
-            document_id=document_id,
-            workspace_id=workspace_id,
-            collection=self._collection_name,
+            extra={
+                "document_id": document_id,
+                "workspace_id": workspace_id,
+                "vector_count": embedding_count,
+                "collection_name": self._collection_name
+            }
         )
 
         try:
             # TODO: Implement vector indexing
-            vector_count = 0
+            # 1. Get embeddings from database
+            # 2. Connect to Qdrant
+            # 3. Upsert vectors with metadata
+            # 4. Handle batching and errors
 
-            # Publish vector.indexed event
-            indexed_event = VectorIndexedEvent(
+            vector_count = len(chunk_ids)  # Assume 1 vector per chunk
+
+            # TODO: Update document status
+            self._update_document_status(document_id, "indexed", {
+                "vector_count": vector_count,
+                "collection_name": self._collection_name
+            })
+
+            # Publish document.indexed event
+            indexed_event = DocumentIndexedEvent(
                 document_id=document_id,
                 workspace_id=workspace_id,
                 vector_count=vector_count,
                 collection_name=self._collection_name,
                 metadata=metadata,
             )
-            self.publish_event("vector.indexed", asdict(indexed_event))
+            self.publish_event(
+                routing_key="document.indexed",
+                event_data=asdict(indexed_event),
+                correlation_id=message_context.get("correlation_id"),
+                message_id=document_id,
+            )
 
             logger.info(
-                "Successfully indexed vectors",
-                document_id=document_id,
-                vector_count=vector_count,
+                "Successfully indexed document",
+                extra={
+                    "document_id": document_id,
+                    "vector_count": vector_count,
+                    "collection_name": self._collection_name
+                }
             )
 
         except Exception as e:
             logger.error(
-                "Failed to index vectors",
-                document_id=document_id,
-                error=str(e),
+                "Failed to index document",
+                extra={
+                    "document_id": document_id,
+                    "error": str(e)
+                }
             )
+            # TODO: Update document status to failed
+            self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
+
+    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+        """Update document processing status."""
+        # TODO: Implement status update
+        # 1. Connect to PostgreSQL
+        # 2. Update processing_status and processing_metadata
+        # 3. Handle connection errors
+        pass
 
 
 def main() -> None:
     """Main entry point."""
     worker = IndexerWorker()
-    worker.start()
+    try:
+        worker.start()
+    except KeyboardInterrupt:
+        logger.info("Stopping indexer worker")
+        worker.stop()
 
 
 if __name__ == "__main__":

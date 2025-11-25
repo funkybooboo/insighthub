@@ -1,164 +1,220 @@
 """
-Embeddings Worker - Vector generation and Qdrant indexing.
+Embedder Worker - Generate embeddings from text chunks.
 
-Consumes: embeddings.generate
-Produces: vector.index.updated
+Consumes: document.chunked
+Produces: document.embedded
 """
 
 import os
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
+from typing import Any
 
+from shared.workers import BaseWorker
 from shared.logger import create_logger
-from shared.messaging import publish_document_status
-from shared.messaging.events import EmbeddingGenerateEvent, VectorIndexUpdatedEvent
-from shared.types.common import PayloadDict
-from shared.worker import Worker
 
 logger = create_logger(__name__)
 
 # Environment variables
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
 RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "100"))
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
+WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "32"))
 
 
-class EmbeddingsWorker(Worker):
-    """Embeddings generation worker."""
+@dataclass
+class DocumentEmbeddedEvent:
+    """Event emitted when document chunks are embedded."""
+
+    document_id: str
+    workspace_id: str
+    chunk_ids: list[str]
+    embedding_count: int
+    metadata: dict[str, Any]
+
+
+class EmbeddingGenerator:
+    """Embedding generation utility."""
+
+    def __init__(self, model_name: str, batch_size: int):
+        """Initialize the embedding generator."""
+        self.model_name = model_name
+        self.batch_size = batch_size
+
+        # TODO: Initialize SentenceTransformer model
+        # self.model = SentenceTransformer(model_name)
+        # self.model.to('cpu')  # or 'cuda' if available
+
+    def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
+        """
+        Generate embeddings for a list of texts.
+
+        Args:
+            texts: List of text strings to embed
+
+        Returns:
+            List of embedding vectors
+        """
+        # TODO: Implement embedding generation
+        # 1. Process texts in batches
+        # 2. Generate embeddings using SentenceTransformer
+        # 3. Handle GPU/CPU selection
+        # 4. Return list of float vectors
+
+        # Placeholder: return mock embeddings
+        import random
+        random.seed(42)  # For deterministic results
+
+        embeddings = []
+        for text in texts:
+            # Generate deterministic embedding based on text hash
+            seed = hash(text) % 10000
+            random.seed(seed)
+            embedding = [random.uniform(-1, 1) for _ in range(384)]  # 384-dim like nomic-embed-text
+            embeddings.append(embedding)
+
+        return embeddings
+
+    def get_dimension(self) -> int:
+        """Get the embedding dimension."""
+        # TODO: Return actual model dimension
+        return 384  # nomic-embed-text dimension
+
+
+class EmbedderWorker(BaseWorker):
+    """Document embedder worker."""
 
     def __init__(self) -> None:
-        """Initialize the embeddings worker."""
+        """Initialize the embedder worker."""
         super().__init__(
-            worker_name="embeddings",
+            worker_name="embedder",
             rabbitmq_url=RABBITMQ_URL,
             exchange=RABBITMQ_EXCHANGE,
             exchange_type="topic",
-            consume_routing_key="embeddings.generate",
-            consume_queue="embeddings.generate",
+            consume_routing_key="document.chunked",
+            consume_queue="embedder.document.chunked",
             prefetch_count=WORKER_CONCURRENCY,
         )
-        self._qdrant_url = QDRANT_URL
-        self._ollama_base_url = OLLAMA_BASE_URL
-        self._batch_size = BATCH_SIZE
 
-    def process_event(self, event_data: PayloadDict) -> None:
+        # Initialize embedding generator
+        self.embedding_generator = EmbeddingGenerator(EMBEDDING_MODEL, BATCH_SIZE)
+
+    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
         """
-        Process embeddings.generate event.
-
-        TODO: Implement embedding generation logic:
-        1. Fetch chunks from PostgreSQL using event.chunk_ids
-        2. Generate embeddings using Ollama/OpenAI
-        3. Upsert vectors to Qdrant with metadata
-        4. Publish vector.index.updated event
+        Process document.chunked event to generate embeddings.
 
         Args:
-            event_data: Parsed event data as dictionary
+            event_data: Event data containing document_id, workspace_id, chunk_ids, etc.
+            message_context: Message context information
         """
-        event = EmbeddingGenerateEvent(
-            document_id=str(event_data.get("document_id", "")),
-            workspace_id=str(event_data.get("workspace_id", "")),
-            chunk_ids=list(event_data.get("chunk_ids", [])),
-            embedding_model=str(event_data.get("embedding_model", "")),
-            metadata=dict(event_data.get("metadata", {})),
-        )
-
-        document_id = int(event.document_id) if event.document_id else 0
-        workspace_id = int(event.workspace_id) if event.workspace_id else 0
-
-        # Publish processing status
-        publish_document_status(
-            document_id=document_id,
-            workspace_id=workspace_id,
-            status="processing",
-            message="Generating embeddings...",
-            progress=50,
-        )
+        document_id = str(event_data.get("document_id", ""))
+        workspace_id = str(event_data.get("workspace_id", ""))
+        chunk_ids = list(event_data.get("chunk_ids", []))
+        metadata = event_data.get("metadata", {})
 
         logger.info(
-            "Generating embeddings",
-            document_id=event.document_id,
-            chunk_count=len(event.chunk_ids),
+            "Embedding document chunks",
+            extra={
+                "document_id": document_id,
+                "workspace_id": workspace_id,
+                "chunk_count": len(chunk_ids)
+            }
         )
 
         try:
-            # TODO: Fetch chunks from database
-            # chunks = db.query(Chunk).filter(Chunk.id.in_(event.chunk_ids)).all()
+            # TODO: Get chunk texts from database
+            chunk_texts = self._get_chunk_texts(chunk_ids)
+            if not chunk_texts:
+                raise ValueError(f"No chunk texts found for document {document_id}")
 
-            # TODO: Generate embeddings
-            # from shared.documents.embedding import OllamaVectorEmbeddingEncoder
-            # embedder = OllamaVectorEmbeddingEncoder(
-            #     base_url=self._ollama_base_url,
-            #     model=event.embedding_model
-            # )
-            # texts = [chunk.text for chunk in chunks]
-            # vectors_result = embedder.encode(texts)
-            # if vectors_result.is_err():
-            #     raise RuntimeError(f"Embedding failed: {vectors_result.error}")
-            # vectors = vectors_result.unwrap()
+            # Generate embeddings
+            embeddings = self.embedding_generator.generate_embeddings(chunk_texts)
 
-            # TODO: Upsert to Qdrant
-            # from shared.database.vector import QdrantVectorDatabase
-            # vector_store = QdrantVectorDatabase(url=self._qdrant_url)
-            # for chunk, vector in zip(chunks, vectors):
-            #     vector_store.upsert(
-            #         id=chunk.id,
-            #         vector=vector,
-            #         metadata={
-            #             "document_id": event.document_id,
-            #             "workspace_id": event.workspace_id,
-            #             "text": chunk.text,
-            #             **chunk.metadata
-            #         }
-            #     )
+            # TODO: Store embeddings in database
+            self._store_embeddings(chunk_ids, embeddings)
 
-            # Publish vector.index.updated event
-            updated_event = VectorIndexUpdatedEvent(
-                document_id=event.document_id,
-                workspace_id=event.workspace_id,
-                chunk_count=len(event.chunk_ids),
-                collection_name="documents",
-                metadata=event.metadata,
-            )
-            self.publish_event("vector.index.updated", asdict(updated_event))
+            # TODO: Update document status
+            self._update_document_status(document_id, "embedded", {
+                "embedding_count": len(embeddings),
+                "embedding_dimension": self.embedding_generator.get_dimension()
+            })
 
-            # Publish ready status
-            publish_document_status(
+            # Publish document.embedded event
+            embedded_event = DocumentEmbeddedEvent(
                 document_id=document_id,
                 workspace_id=workspace_id,
-                status="ready",
-                message="Document processing complete",
-                progress=100,
+                chunk_ids=chunk_ids,
+                embedding_count=len(embeddings),
+                metadata=metadata,
+            )
+            self.publish_event(
+                routing_key="document.embedded",
+                event_data=asdict(embedded_event),
+                correlation_id=message_context.get("correlation_id"),
+                message_id=document_id,
             )
 
             logger.info(
-                "Successfully indexed vectors",
-                document_id=event.document_id,
-                chunk_count=len(event.chunk_ids),
+                "Successfully embedded document",
+                extra={
+                    "document_id": document_id,
+                    "embedding_count": len(embeddings)
+                }
             )
 
         except Exception as e:
-            # Publish failed status
-            publish_document_status(
-                document_id=document_id,
-                workspace_id=workspace_id,
-                status="failed",
-                message="Document processing failed",
-                error=str(e),
-            )
             logger.error(
-                "Failed to process embeddings",
-                document_id=event.document_id,
-                error=str(e),
+                "Failed to embed document",
+                extra={
+                    "document_id": document_id,
+                    "error": str(e)
+                }
             )
+            # TODO: Update document status to failed
+            self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
+
+    def _get_chunk_texts(self, chunk_ids: list[str]) -> list[str]:
+        """Get chunk texts from database."""
+        # TODO: Implement database query
+        # 1. Connect to PostgreSQL
+        # 2. Query document_chunks table for chunk_text
+        # 3. Return list of texts in same order as chunk_ids
+        # 4. Handle missing chunks
+
+        # Placeholder: return mock texts
+        return [f"Chunk text for {chunk_id}" for chunk_id in chunk_ids]
+
+    def _store_embeddings(self, chunk_ids: list[str], embeddings: list[list[float]]) -> None:
+        """Store embeddings in database."""
+        # TODO: Implement embedding storage
+        # 1. Connect to PostgreSQL
+        # 2. Update document_chunks table with embeddings
+        # 3. Store as JSONB or binary format
+        # 4. Handle transaction and errors
+
+        for chunk_id, embedding in zip(chunk_ids, embeddings):
+            # TODO: Store embedding for chunk_id
+            pass
+
+    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+        """Update document processing status."""
+        # TODO: Implement status update
+        # 1. Connect to PostgreSQL
+        # 2. Update processing_status and processing_metadata
+        # 3. Handle connection errors
+        pass
 
 
 def main() -> None:
     """Main entry point."""
-    worker = EmbeddingsWorker()
-    worker.start()
+    worker = EmbedderWorker()
+    try:
+        worker.start()
+    except KeyboardInterrupt:
+        logger.info("Stopping embedder worker")
+        worker.stop()
 
 
 if __name__ == "__main__":

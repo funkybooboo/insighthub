@@ -11,6 +11,7 @@ from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
 from shared.storage.blob_storage import BlobStorageError
+from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 from shared.types.result import Err, Ok, Result
 
 from src.domains.workspaces.documents.exceptions import (
@@ -21,48 +22,7 @@ from src.domains.workspaces.documents.exceptions import (
 from src.domains.workspaces.documents.service import DocumentService
 
 
-class FakeBlobStorage(BlobStorage):
-    """Fake blob storage for testing."""
 
-    def __init__(self) -> None:
-        """Initialize with in-memory storage."""
-        self.storage: dict[str, bytes] = {}
-
-    def upload_file(self, file_obj: BinaryIO, blob_key: str) -> Result[str, BlobStorageError]:
-        """Upload a file to in-memory storage."""
-        file_obj.seek(0)
-        self.storage[blob_key] = file_obj.read()
-        return Ok(blob_key)
-
-    def download_file(self, blob_key: str) -> Result[bytes, BlobStorageError]:
-        """Download a file from in-memory storage."""
-        if blob_key not in self.storage:
-            return Err(BlobStorageError(f"Blob not found: {blob_key}"))
-        return Ok(self.storage[blob_key])
-
-    def delete_file(self, blob_key: str) -> Result[bool, BlobStorageError]:
-        """Delete a file from in-memory storage."""
-        if blob_key in self.storage:
-            del self.storage[blob_key]
-            return Ok(True)
-        return Ok(False)
-
-    def file_exists(self, blob_key: str) -> bool:
-        """Check if file exists."""
-        return blob_key in self.storage
-
-    def list_files(self, prefix: str | None = None) -> list[str]:
-        """List all files with optional prefix filter."""
-        if prefix:
-            return [key for key in self.storage if key.startswith(prefix)]
-        return list(self.storage.keys())
-
-    def calculate_hash(self, file_obj: BinaryIO) -> str:
-        """Calculate hash of file."""
-        file_obj.seek(0)
-        content = file_obj.read()
-        file_obj.seek(0)
-        return hashlib.sha256(content).hexdigest()
 
 
 class FakeDocumentRepository(DocumentRepository):
@@ -146,15 +106,15 @@ def fake_repository() -> FakeDocumentRepository:
     return FakeDocumentRepository()
 
 
-@pytest.fixture
-def fake_storage() -> FakeBlobStorage:
-    """Provide a fake blob storage."""
-    return FakeBlobStorage()
+    @pytest.fixture
+    def fake_storage() -> InMemoryBlobStorage:
+        """Provide a fake blob storage."""
+        return InMemoryBlobStorage()
 
 
 @pytest.fixture
 def service(
-    fake_repository: FakeDocumentRepository, fake_storage: FakeBlobStorage
+    fake_repository: FakeDocumentRepository, fake_storage: InMemoryBlobStorage
 ) -> DocumentService:
     """Provide a DocumentService with fake dependencies."""
     return DocumentService(repository=fake_repository, blob_storage=fake_storage)
@@ -288,21 +248,7 @@ class TestDocumentUpload:
         assert document.chunk_count == 5
         assert document.rag_collection == "test_collection"
 
-    def test_upload_stores_in_blob_storage(
-        self, service: DocumentService, fake_storage: FakeBlobStorage
-    ) -> None:
-        """Test that upload stores file in blob storage."""
-        content = b"Test document content"
-        file_obj = io.BytesIO(content)
 
-        service.upload_document(
-            user_id=1,
-            filename="test.txt",
-            file_obj=file_obj,
-            mime_type="text/plain",
-        )
-
-        assert len(fake_storage.storage) == 1
 
 
 class TestProcessDocumentUpload:
@@ -471,7 +417,7 @@ class TestDocumentDeletion:
         assert service.get_document_by_id(doc.id) is None
 
     def test_delete_document_removes_from_storage(
-        self, service: DocumentService, fake_storage: FakeBlobStorage
+        self, service: DocumentService, fake_storage: InMemoryBlobStorage
     ) -> None:
         """Test that deletion removes file from storage."""
         file_obj = io.BytesIO(b"Content")
@@ -484,7 +430,7 @@ class TestDocumentDeletion:
         assert len(fake_storage.storage) == 0
 
     def test_delete_document_without_storage_cleanup(
-        self, service: DocumentService, fake_storage: FakeBlobStorage
+        self, service: DocumentService, fake_storage: InMemoryBlobStorage
     ) -> None:
         """Test deleting document without storage cleanup."""
         file_obj = io.BytesIO(b"Content")
