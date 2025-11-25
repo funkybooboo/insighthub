@@ -153,7 +153,7 @@ class TestInMemoryBlobStorageDownload:
         result = storage.download_file("nonexistent.txt")
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert error.code == "NOT_FOUND"
         assert "nonexistent.txt" in error.message
 

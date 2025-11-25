@@ -241,10 +241,10 @@ class TestDocumentMetadataFlow:
             assert "sentence_count" in chunk.metadata
 
             # Verify metadata values are valid
-            assert int(chunk.metadata["chunk_index"]) >= 0
-            assert int(chunk.metadata["start_offset"]) >= 0
-            assert int(chunk.metadata["end_offset"]) > 0
-            assert int(chunk.metadata["sentence_count"]) >= 1
+            assert int(chunk.metadata["chunk_index"]) >= 0  # type: ignore
+            assert int(chunk.metadata["start_offset"]) >= 0  # type: ignore
+            assert int(chunk.metadata["end_offset"]) > 0  # type: ignore
+            assert int(chunk.metadata["sentence_count"]) >= 1  # type: ignore
 
 
 class TestEdgeCasesIntegration:

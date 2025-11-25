@@ -4,6 +4,7 @@ import logging
 import re
 import sys
 from enum import Enum
+from typing import Any
 
 from pythonjsonlogger import jsonlogger
 
@@ -128,7 +129,7 @@ class SecretsFilter(logging.Filter):
             record.args = tuple(self._redact_secrets(arg) for arg in record.args)
         return True
 
-    def _redact_secrets(self, data: any) -> any:
+    def _redact_secrets(self, data: Any) -> Any:
         if isinstance(data, dict):
             return self._redact_secrets_from_dict(data)
         elif isinstance(data, str):
@@ -149,7 +150,7 @@ class SecretsFilter(logging.Filter):
             text = pattern.sub(replacement, text)
         return text
 
-    def _redact_secrets_from_dict(self, data: dict) -> dict:
+    def _redact_secrets_from_dict(self, data: dict[Any, Any]) -> dict[Any, Any]:
         """
         Recursively redact sensitive information from a dictionary.
 
@@ -159,13 +160,13 @@ class SecretsFilter(logging.Filter):
         Returns:
             Dictionary with secrets redacted
         """
-        redacted_data = {}
+        redacted_data: dict[Any, Any] = {}
         for key, value in data.items():
             redacted_key = self._redact_secrets_from_str(key)
             if isinstance(value, dict):
                 redacted_value = self._redact_secrets_from_dict(value)
             elif isinstance(value, str):
-                redacted_value = self._redact_secrets_from_str(value)
+                redacted_value = self._redact_secrets_from_str(value)  # type: ignore
             else:
                 redacted_value = value
             redacted_data[redacted_key] = redacted_value

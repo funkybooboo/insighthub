@@ -124,11 +124,12 @@ class RedisCache(Cache):
         except (json.JSONDecodeError, UnicodeDecodeError):
             return None
 
-    def delete(self, key: str) -> None:
+    def delete(self, key: str) -> bool:
         """Delete a value from the cache."""
         if not self._ensure() or self._client is None:
-            return
-        self._client.delete(key)
+            return False
+        result = self._client.delete(key)
+        return int(result) > 0
 
     def clear(self) -> None:
         """Clear all values from the cache."""

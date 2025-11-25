@@ -38,6 +38,14 @@ class Ok(Generic[T]):
         """Return self since this is not an error."""
         return self
 
+    def ok(self) -> T:
+        """Get the success value (alias for unwrap)."""
+        return self.value
+
+    def err(self) -> NoReturn:
+        """This is not an error, so this should not be called."""
+        raise ValueError("Called err() on Ok")
+
 
 @dataclass(frozen=True)
 class Err(Generic[E]):
@@ -68,6 +76,14 @@ class Err(Generic[E]):
     def map_err(self, func: Callable[[E], U]) -> "Err[U]":
         """Map the error to a new error."""
         return Err(func(self.error))
+
+    def ok(self) -> NoReturn:
+        """This is an error, so this should not be called."""
+        raise ValueError("Called ok() on Err")
+
+    def err(self) -> E:
+        """Get the error value."""
+        return self.error
 
 
 # Type alias for Result (note: this is a union type for documentation purposes)

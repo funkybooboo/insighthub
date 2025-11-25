@@ -289,7 +289,7 @@ class TestInMemoryCacheDataTypes:
             ],
             "metadata": {"version": 1, "active": True},
         }
-        cache.set("key", value)
+        cache.set("key", value)  # type: ignore
 
         assert cache.get("key") == value
 

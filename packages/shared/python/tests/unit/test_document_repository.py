@@ -1,7 +1,6 @@
 """Unit tests for DocumentRepository interface and implementations."""
 
-from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -62,7 +61,7 @@ class DummyDocumentRepository(DocumentRepository):
                 return doc
         return None
 
-    def update(self, document_id: int, **kwargs) -> Optional[Document]:
+    def update(self, document_id: int, **kwargs: Any) -> Optional[Document]:
         """Update document fields."""
         doc = self.documents.get(document_id)
         if not doc:
@@ -266,8 +265,8 @@ class TestDocumentRepositoryGetByContentHash:
     ) -> None:
         """get_by_content_hash returns first document when multiple have same hash."""
         # This shouldn't happen in practice, but test the behavior
-        doc1 = repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "same_hash")
-        doc2 = repository.create(2, "file2.pdf", "/path2", 200, "application/pdf", "same_hash")
+        repository.create(1, "file1.pdf", "/path1", 100, "application/pdf", "same_hash")
+        repository.create(2, "file2.pdf", "/path2", 200, "application/pdf", "same_hash")
 
         result = repository.get_by_content_hash("same_hash")
 

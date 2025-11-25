@@ -1,7 +1,6 @@
 """Unit tests for UserRepository interface and implementations."""
 
-from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -55,7 +54,7 @@ class DummyUserRepository(UserRepository):
         all_users = list(self.users.values())
         return all_users[skip : skip + limit]
 
-    def update(self, user_id: int, **kwargs) -> Optional[User]:
+    def update(self, user_id: int, **kwargs: Any) -> Optional[User]:
         """Update user fields."""
         user = self.users.get(user_id)
         if not user:

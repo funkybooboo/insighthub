@@ -86,11 +86,10 @@ class RabbitMQPublisher(MessagePublisher):
 
             logger.info(
                 "Connected to RabbitMQ",
-                host=self._host,
-                port=self._port,
+                extra={"host": self._host, "port": self._port},
             )
         except Exception as e:
-            logger.error("Failed to connect to RabbitMQ", error=str(e))
+            logger.error("Failed to connect to RabbitMQ", extra={"error": str(e)})
             raise RuntimeError(f"Failed to connect to RabbitMQ: {e}") from e
 
     def disconnect(self) -> None:
@@ -102,7 +101,7 @@ class RabbitMQPublisher(MessagePublisher):
                 self._connection.close()
             logger.info("Disconnected from RabbitMQ")
         except Exception as e:
-            logger.error("Error disconnecting from RabbitMQ", error=str(e))
+            logger.error("Error disconnecting from RabbitMQ", extra={"error": str(e)})
         finally:
             self._channel = None
             self._connection = None
@@ -125,12 +124,11 @@ class RabbitMQPublisher(MessagePublisher):
                 ),
             )
 
-            logger.info("Published event", routing_key=routing_key)
+            logger.info("Published event", extra={"routing_key": routing_key})
         except Exception as e:
             logger.error(
                 "Failed to publish message",
-                routing_key=routing_key,
-                error=str(e),
+                extra={"routing_key": routing_key, "error": str(e)},
             )
             raise RuntimeError(f"Failed to publish message: {e}") from e
 

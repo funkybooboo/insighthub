@@ -95,11 +95,11 @@ class S3BlobStorage(BlobStorage):
         try:
             if not self._client.bucket_exists(self._bucket_name):
                 self._client.make_bucket(self._bucket_name)
-                logger.info("Created bucket", bucket=self._bucket_name)
+                logger.info("Created bucket", extra={"bucket": self._bucket_name})
             else:
-                logger.info("Bucket exists", bucket=self._bucket_name)
+                logger.info("Bucket exists", extra={"bucket": self._bucket_name})
         except S3Error as e:
-            logger.error("Error checking/creating bucket", error=str(e))
+            logger.error("Error checking/creating bucket", extra={"error": str(e)})
             raise RuntimeError(f"Failed to ensure bucket exists: {e}") from e
 
     def upload_file(self, file_obj: BinaryIO, object_name: str) -> Result[str, BlobStorageError]:
@@ -116,11 +116,15 @@ class S3BlobStorage(BlobStorage):
                 length=file_size,
             )
 
-            logger.info("Uploaded file", object_name=object_name, size_bytes=file_size)
+            logger.info(
+                "Uploaded file", extra={"object_name": object_name, "size_bytes": file_size}
+            )
             return Ok(object_name)
 
         except S3Error as e:
-            logger.error("Error uploading file", object_name=object_name, error=str(e))
+            logger.error(
+                "Error uploading file", extra={"object_name": object_name, "error": str(e)}
+            )
             return Err(BlobStorageError(f"Upload failed: {e}", code="UPLOAD_ERROR"))
 
     def download_file(self, object_name: str) -> Result[bytes, BlobStorageError]:
@@ -133,11 +137,15 @@ class S3BlobStorage(BlobStorage):
             response.close()
             response.release_conn()
 
-            logger.info("Downloaded file", object_name=object_name, size_bytes=len(data))
+            logger.info(
+                "Downloaded file", extra={"object_name": object_name, "size_bytes": len(data)}
+            )
             return Ok(data)
 
         except S3Error as e:
-            logger.error("Error downloading file", object_name=object_name, error=str(e))
+            logger.error(
+                "Error downloading file", extra={"object_name": object_name, "error": str(e)}
+            )
             return Err(BlobStorageError(f"Download failed: {e}", code="DOWNLOAD_ERROR"))
 
     def delete_file(self, object_name: str) -> Result[bool, BlobStorageError]:
@@ -149,10 +157,10 @@ class S3BlobStorage(BlobStorage):
                 return Ok(False)
 
             self._client.remove_object(bucket_name=self._bucket_name, object_name=object_name)
-            logger.info("Deleted file", object_name=object_name)
+            logger.info("Deleted file", extra={"object_name": object_name})
             return Ok(True)
         except S3Error as e:
-            logger.error("Error deleting file", object_name=object_name, error=str(e))
+            logger.error("Error deleting file", extra={"object_name": object_name, "error": str(e)})
             return Err(BlobStorageError(f"Delete failed: {e}", code="DELETE_ERROR"))
 
     def file_exists(self, object_name: str) -> bool:

@@ -59,7 +59,7 @@ class RabbitMQConsumer(MessageConsumer):
 
     def connect(self) -> None:
         """Establish connection to RabbitMQ."""
-        logger.info("Connecting to RabbitMQ", url=self._rabbitmq_url)
+        logger.info("Connecting to RabbitMQ", extra={"url": self._rabbitmq_url})
 
         self._connection = pika.BlockingConnection(pika.URLParameters(self._rabbitmq_url))
         self._channel = self._connection.channel()
@@ -89,8 +89,7 @@ class RabbitMQConsumer(MessageConsumer):
 
         logger.info(
             "Queue declared and bound",
-            queue=queue_name,
-            routing_key=routing_key,
+            extra={"queue": queue_name, "routing_key": routing_key},
         )
 
     def consume(self, queue_name: str, callback: MessageCallback) -> None:
@@ -104,7 +103,7 @@ class RabbitMQConsumer(MessageConsumer):
             auto_ack=False,
         )
 
-        logger.info("Starting to consume messages", queue=queue_name)
+        logger.info("Starting to consume messages", extra={"queue": queue_name})
 
         try:
             self._channel.start_consuming()
@@ -128,7 +127,7 @@ class RabbitMQConsumer(MessageConsumer):
             ),
         )
 
-        logger.info("Published event", routing_key=routing_key)
+        logger.info("Published event", extra={"routing_key": routing_key})
 
     def stop(self) -> None:
         """Stop the consumer gracefully."""
@@ -145,6 +144,6 @@ class RabbitMQConsumer(MessageConsumer):
 
     def signal_handler(self, signum: int, frame: object) -> None:
         """Handle shutdown signals."""
-        logger.info("Received shutdown signal", signal=signum)
+        logger.info("Received shutdown signal", extra={"signal": signum})
         self.stop()
         sys.exit(0)

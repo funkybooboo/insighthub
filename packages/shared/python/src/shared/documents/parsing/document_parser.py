@@ -8,7 +8,7 @@ from shared.types.document import Document
 from shared.types.result import Result
 
 
-class ParsingError:
+class ParsingError(Exception):
     """Error type for document parsing failures."""
 
     def __init__(self, message: str, code: str = "PARSING_ERROR") -> None:

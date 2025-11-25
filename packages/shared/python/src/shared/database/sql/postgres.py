@@ -19,26 +19,27 @@ class PostgresConnection:
         self.db_url = db_url
         self.connection = None
 
-    def connect(self):
+    def connect(self) -> None:
         """Connect to the database."""
         if self.connection is None or self.connection.closed:
             self.connection = psycopg2.connect(self.db_url)
 
-    def close(self):
+    def close(self) -> None:
         """Close the database connection."""
         if self.connection and not self.connection.closed:
             self.connection.close()
 
-    def commit(self):
+    def commit(self) -> None:
         """Commit the current transaction."""
         if self.connection:
             self.connection.commit()
 
-    def rollback(self):
+    def rollback(self) -> None:
         """Rollback the current transaction."""
         if self.connection:
             self.connection.rollback()
-    def get_cursor(self, as_dict: bool = False):
+
+    def get_cursor(self, as_dict: bool = False) -> Any:
         """
         Get a cursor for the current connection.
 
@@ -49,6 +50,7 @@ class PostgresConnection:
             A cursor object.
         """
         self.connect()
+        assert self.connection is not None  # connect() ensures this
         if as_dict:
             return self.connection.cursor(cursor_factory=RealDictCursor)
         return self.connection.cursor()
@@ -80,6 +82,7 @@ class PostgresDatabase:
         cursor = self.connection.get_cursor()
         cursor.execute(query, params)
         if commit:
+            assert self.connection.connection is not None
             self.connection.connection.commit()
         cursor.close()
 
@@ -98,7 +101,7 @@ class PostgresDatabase:
         cursor.execute(query, params)
         results = cursor.fetchall()
         cursor.close()
-        return results
+        return results  # type: ignore
 
     def fetchone(
         self, query: str, params: Optional[Dict[str, Any]] = None
@@ -117,12 +120,13 @@ class PostgresDatabase:
         cursor.execute(query, params)
         result = cursor.fetchone()
         cursor.close()
-        return result
+        return result  # type: ignore
 
     def execute_many(self, query: str, params_list: List[Dict[str, Any]]) -> None:
         """Execute a query with multiple sets of parameters."""
         cursor = self.connection.get_cursor()
         cursor.executemany(query, params_list)
+        assert self.connection.connection is not None
         self.connection.connection.commit()
         cursor.close()
 

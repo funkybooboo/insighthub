@@ -106,7 +106,7 @@ class RedisCache(Cache):
 class InMemoryCache(Cache):
     """In-memory implementation of Cache."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize in-memory cache."""
         self._cache: dict[str, Any] = {}
 
@@ -134,7 +134,7 @@ class InMemoryCache(Cache):
         self._cache.clear()
 
 
-def create_cache(cache_type: str = "memory", **kwargs) -> Cache:
+def create_cache(cache_type: str = "memory", **kwargs: Any) -> Cache:
     """
     Factory function to create cache instances.
 

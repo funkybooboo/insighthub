@@ -3,6 +3,7 @@
 import io
 import tempfile
 from pathlib import Path
+from typing import Generator
 from unittest.mock import patch
 
 import pytest
@@ -15,7 +16,7 @@ class TestFileSystemBlobStorage:
     """Test FileSystemBlobStorage implementation."""
 
     @pytest.fixture
-    def temp_dir(self) -> Path:
+    def temp_dir(self) -> Generator[Path, None, None]:
         """Create a temporary directory for testing."""
         with tempfile.TemporaryDirectory() as temp_dir:
             yield Path(temp_dir)
@@ -30,7 +31,7 @@ class TestFileSystemBlobStorage:
         sub_dir = temp_dir / "nested" / "storage"
         assert not sub_dir.exists()
 
-        storage = FileSystemBlobStorage(str(sub_dir))
+        FileSystemBlobStorage(str(sub_dir))
         assert sub_dir.exists()
         assert sub_dir.is_dir()
 
@@ -50,7 +51,9 @@ class TestFileSystemBlobStorage:
         assert file_path.exists()
         assert file_path.read_bytes() == content
 
-    def test_upload_file_with_subdirectory(self, storage: FileSystemBlobStorage, temp_dir: Path) -> None:
+    def test_upload_file_with_subdirectory(
+        self, storage: FileSystemBlobStorage, temp_dir: Path
+    ) -> None:
         """Test file upload creates subdirectories as needed."""
         content = b"Content"
         file_obj = io.BytesIO(content)
@@ -80,7 +83,7 @@ class TestFileSystemBlobStorage:
             result = storage.upload_file(file_obj, object_name)
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert isinstance(error, BlobStorageError)
         assert error.code == "UPLOAD_ERROR"
         assert "Upload failed" in error.message
@@ -104,7 +107,7 @@ class TestFileSystemBlobStorage:
         result = storage.download_file("nonexistent.txt")
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert isinstance(error, BlobStorageError)
         assert error.code == "NOT_FOUND"
         assert "File not found" in error.message
@@ -121,7 +124,7 @@ class TestFileSystemBlobStorage:
             result = storage.download_file(object_name)
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert isinstance(error, BlobStorageError)
         assert error.code == "DOWNLOAD_ERROR"
         assert "Download failed" in error.message
@@ -147,7 +150,9 @@ class TestFileSystemBlobStorage:
         assert result.is_ok()
         assert result.unwrap() is False
 
-    def test_delete_file_with_empty_directory_cleanup(self, storage: FileSystemBlobStorage, temp_dir: Path) -> None:
+    def test_delete_file_with_empty_directory_cleanup(
+        self, storage: FileSystemBlobStorage, temp_dir: Path
+    ) -> None:
         """Test that empty directories are cleaned up after file deletion."""
         object_name = "nested/deep/file.txt"
 
@@ -171,7 +176,9 @@ class TestFileSystemBlobStorage:
         assert not (temp_dir / "nested" / "deep").exists()
         assert not (temp_dir / "nested").exists()
 
-    def test_delete_file_preserves_non_empty_directories(self, storage: FileSystemBlobStorage, temp_dir: Path) -> None:
+    def test_delete_file_preserves_non_empty_directories(
+        self, storage: FileSystemBlobStorage, temp_dir: Path
+    ) -> None:
         """Test that non-empty directories are preserved after file deletion."""
         # Create two files in the same directory
         file1_path = temp_dir / "shared" / "file1.txt"
@@ -203,7 +210,7 @@ class TestFileSystemBlobStorage:
             result = storage.delete_file(object_name)
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert isinstance(error, BlobStorageError)
         assert error.code == "DELETE_ERROR"
         assert "Delete failed" in error.message
@@ -222,7 +229,9 @@ class TestFileSystemBlobStorage:
         """Test file_exists returns False for non-existing files."""
         assert storage.file_exists("nonexistent.txt") is False
 
-    def test_file_exists_with_subdirectory(self, storage: FileSystemBlobStorage, temp_dir: Path) -> None:
+    def test_file_exists_with_subdirectory(
+        self, storage: FileSystemBlobStorage, temp_dir: Path
+    ) -> None:
         """Test file_exists works with subdirectories."""
         object_name = "folder/file.txt"
 
@@ -273,11 +282,13 @@ class TestFileSystemBlobStorage:
         # Verify file pointer was reset
         assert file_obj.tell() == 0
 
-    def test_get_full_path_creates_parent_directories(self, storage: FileSystemBlobStorage, temp_dir: Path) -> None:
+    def test_get_full_path_creates_parent_directories(
+        self, storage: FileSystemBlobStorage, temp_dir: Path
+    ) -> None:
         """Test that _get_full_path creates parent directories."""
         object_name = "deep/nested/path/file.txt"
 
-        full_path = storage._get_full_path(object_name)  # type: ignore
+        full_path = storage._get_full_path(object_name)
 
         assert full_path == temp_dir / object_name
         assert full_path.parent.exists()

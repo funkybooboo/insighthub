@@ -23,7 +23,18 @@ class DefaultRagConfigRepository(ABC):
         pass
 
     @abstractmethod
-    def upsert(self, user_id: int, **kwargs: str | int | bool | None) -> DefaultRagConfig:
+    def upsert(
+        self,
+        user_id: int,
+        embedding_model: str = "nomic-embed-text",
+        embedding_dim: int | None = None,
+        retriever_type: str = "vector",
+        chunk_size: int = 1000,
+        chunk_overlap: int = 200,
+        top_k: int = 8,
+        rerank_enabled: bool = False,
+        rerank_model: str | None = None,
+    ) -> DefaultRagConfig:
         """
         Create or update default RAG config for a user.
 

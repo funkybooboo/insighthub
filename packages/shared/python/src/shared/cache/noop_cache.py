@@ -31,9 +31,9 @@ class NoOpCache(Cache):
         """Always returns None."""
         return None
 
-    def delete(self, key: str) -> None:
+    def delete(self, key: str) -> bool:
         """No-op delete operation."""
-        pass
+        return False
 
     def clear(self) -> None:
         """No-op clear operation."""

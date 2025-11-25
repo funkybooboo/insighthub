@@ -65,14 +65,12 @@ class StatusPublisher:
             self._publisher.publish(DOCUMENT_STATUS_KEY, asdict(event))
             logger.info(
                 "Published document status",
-                document_id=document_id,
-                status=status,
+                extra={"document_id": document_id, "status": status},
             )
         except Exception as e:
             logger.error(
                 "Failed to publish document status",
-                document_id=document_id,
-                error=str(e),
+                extra={"document_id": document_id, "error": str(e)},
             )
 
     def publish_workspace_status(
@@ -105,14 +103,12 @@ class StatusPublisher:
             self._publisher.publish(WORKSPACE_STATUS_KEY, asdict(event))
             logger.info(
                 "Published workspace status",
-                workspace_id=workspace_id,
-                status=status,
+                extra={"workspace_id": workspace_id, "status": status},
             )
         except Exception as e:
             logger.error(
                 "Failed to publish workspace status",
-                workspace_id=workspace_id,
-                error=str(e),
+                extra={"workspace_id": workspace_id, "error": str(e)},
             )
 
 

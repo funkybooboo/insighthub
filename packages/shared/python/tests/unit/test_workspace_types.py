@@ -1,16 +1,16 @@
 """Unit tests for workspace types."""
 
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
+from shared.types.common import DocumentStatus
 from shared.types.workspace import (
-    Workspace,
-    RagConfig,
-    WorkspaceDocument,
-    ChatSession,
     ChatMessage,
+    ChatSession,
+    RagConfig,
+    Workspace,
+    WorkspaceDocument,
     WorkspaceStats,
 )
-from shared.types.common import DocumentStatus
 
 
 class TestWorkspace:

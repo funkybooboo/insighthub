@@ -1,7 +1,5 @@
 """Unified configuration system for server and workers."""
 
-import os
-from pathlib import Path
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
@@ -126,7 +124,7 @@ class AppConfig(BaseSettings):
     # Database
     database_url: str = Field(
         default="postgresql://insighthub:insighthub_dev@localhost:5432/insighthub",
-        description="Database connection URL"
+        description="Database connection URL",
     )
 
     # Redis

@@ -64,9 +64,10 @@ class TestStorageFullWorkflow:
 
         # Download and verify content
         for path, expected_content in files.items():
-            result = storage.download_file(path)
+            result = storage.download_file(path)  # type: ignore
             assert result.is_ok()
-            assert result.unwrap() == expected_content
+            downloaded_content = result.unwrap()
+            assert downloaded_content == expected_content  # type: ignore
 
         # Delete some files
         storage.delete_file("documents/doc1.pdf")
@@ -171,7 +172,7 @@ class TestStorageErrorHandling:
         result = storage.download_file("does/not/exist.txt")
 
         assert result.is_err()
-        error = result.error
+        error = result.err()
         assert error.code == "NOT_FOUND"
         assert "does/not/exist.txt" in error.message
 

@@ -92,8 +92,7 @@ class Worker(ABC):
 
             logger.info(
                 "Processing message",
-                worker=self._worker_name,
-                routing_key=method.routing_key,
+                extra={"worker": self._worker_name, "routing_key": method.routing_key},
             )
 
             self.process_event(event_data)
@@ -102,21 +101,19 @@ class Worker(ABC):
 
             logger.info(
                 "Successfully processed message",
-                worker=self._worker_name,
+                extra={"worker": self._worker_name},
             )
 
         except json.JSONDecodeError as e:
             logger.error(
                 "Failed to decode message JSON",
-                worker=self._worker_name,
-                error=str(e),
+                extra={"worker": self._worker_name, "error": str(e)},
             )
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         except Exception as e:
             logger.error(
                 "Error processing message",
-                worker=self._worker_name,
-                error=str(e),
+                extra={"worker": self._worker_name, "error": str(e)},
             )
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
@@ -131,13 +128,12 @@ class Worker(ABC):
         self._consumer.publish_event(routing_key, event)
         logger.info(
             "Published event",
-            worker=self._worker_name,
-            routing_key=routing_key,
+            extra={"worker": self._worker_name, "routing_key": routing_key},
         )
 
     def start(self) -> None:
         """Start the worker."""
-        logger.info("Starting worker", worker=self._worker_name)
+        logger.info("Starting worker", extra={"worker": self._worker_name})
 
         signal.signal(signal.SIGINT, self._consumer.signal_handler)
         signal.signal(signal.SIGTERM, self._consumer.signal_handler)
@@ -148,5 +144,5 @@ class Worker(ABC):
 
     def stop(self) -> None:
         """Stop the worker."""
-        logger.info("Stopping worker", worker=self._worker_name)
+        logger.info("Stopping worker", extra={"worker": self._worker_name})
         self._consumer.stop()

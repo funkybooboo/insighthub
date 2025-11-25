@@ -7,7 +7,7 @@ from shared.types.common import HealthStatus
 from shared.types.result import Result
 
 
-class EmbeddingError:
+class EmbeddingError(Exception):
     """Error type for embedding failures."""
 
     def __init__(self, message: str, code: str = "EMBEDDING_ERROR") -> None:

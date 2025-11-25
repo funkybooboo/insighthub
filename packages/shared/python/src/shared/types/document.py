@@ -23,6 +23,7 @@ class Document:
     title: str | None
     content: str
     metadata: MetadataDict
+    chunk_count: int | None = None
 
 
 @dataclass

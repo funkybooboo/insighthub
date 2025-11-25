@@ -82,7 +82,7 @@ class TestCacheContextManagerIntegration:
         cache = create_cache("in_memory")
         assert cache is not None
 
-        with cache:
+        with cache:  # type: ignore
             cache.set("key", "value")
             assert cache.get("key") == "value"
 
@@ -94,7 +94,7 @@ class TestCacheContextManagerIntegration:
         cache = create_cache("noop")
         assert cache is not None
 
-        with cache:
+        with cache:  # type: ignore
             cache.set("key", "value")
             assert cache.get("key") is None
 

@@ -27,11 +27,11 @@ class PostgresSqlDatabase(SqlDatabase):
         self, query: str, params: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Execute a query and return a single row."""
-        return self.db.fetch_one(query, params)
+        return self.db.fetchone(query, params)
 
     def fetchall(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Execute a query and return all rows."""
-        return self.db.fetch_all(query, params)
+        return self.db.fetchall(query, params)
 
     def execute_many(self, query: str, params_list: List[Dict[str, Any]]) -> None:
         """Execute a query with multiple sets of parameters."""

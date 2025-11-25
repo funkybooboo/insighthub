@@ -6,44 +6,44 @@ WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install poetry && poetry config virtualenvs.create false
+# Install poetry
+RUN pip install poetry==1.7.1
 
-# ============================================================================
-# Dependencies Stage
-# ============================================================================
-FROM base AS dependencies
+# Configure poetry
+RUN poetry config virtualenvs.create false
+
+# Copy shared package wheel (latest version)
+COPY packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
+
+# Install shared package
+RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
 
 # Copy dependency files
-COPY pyproject.toml poetry.lock ./
+COPY packages/workers/provisioner/pyproject.toml packages/workers/provisioner/poetry.lock* ./
 
-# Install dependencies
-RUN poetry install --no-dev --no-root
+# Development stage
+FROM base AS development
 
-# ============================================================================
-# Development Stage
-# ============================================================================
-FROM dependencies AS development
+# Install all dependencies including dev
+RUN poetry install --no-root
 
 # Copy source code
-COPY src/ ./src/
+COPY packages/workers/provisioner/src ./src
 
-# Install in development mode
-RUN poetry install --no-dev
+# Run worker
+CMD ["poetry", "run", "python", "-m", "src.main"]
 
-# Default command for development
-CMD ["python", "-m", "src.main"]
+# Production stage
+FROM base AS production
 
-# ============================================================================
-# Production Stage
-# ============================================================================
-FROM dependencies AS production
+# Install only production dependencies
+RUN poetry install --only main --no-root
 
 # Copy source code
-COPY src/ ./src/
+COPY packages/workers/provisioner/src ./src
 
-# Default command for production
-CMD ["python", "-m", "src.main"]
+# Run worker with optimizations
+CMD ["poetry", "run", "python", "-O", "-m", "src.main"]

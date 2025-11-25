@@ -62,7 +62,7 @@ class VectorRAGIndexer:
 
         embeddings = embeddings_result.ok()
         for i, chunk in enumerate(chunks):
-            chunk.embedding = embeddings[i]
+            chunk.vector = embeddings[i]
 
         self.vector_store.add(chunks)
         document.chunk_count = len(chunks)
@@ -126,4 +126,12 @@ class VectorRAG:
 
         search_results = self.vector_store.search(query_embedding, top_k)
 
-        return [RetrievalResult(chunk=chunk, score=score) for chunk, score in search_results]
+        return [
+            RetrievalResult(
+                id=chunk.id,
+                score=score,
+                source="vector",
+                payload={"text": chunk.text, "metadata": str(chunk.metadata)},
+            )
+            for chunk, score in search_results
+        ]

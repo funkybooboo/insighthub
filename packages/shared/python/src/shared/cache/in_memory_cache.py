@@ -77,15 +77,18 @@ class InMemoryCache(Cache):
 
             return value
 
-    def delete(self, key: str) -> None:
+    def delete(self, key: str) -> bool:
         """
         Delete a value from the cache.
 
         Args:
             key: Cache key to delete
+
+        Returns:
+            True if deleted, False if not found
         """
         with self._lock:
-            self._data.pop(key, None)
+            return self._data.pop(key, None) is not None
 
     def clear(self) -> None:
         """Clear all values from the cache."""

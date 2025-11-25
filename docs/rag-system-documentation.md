@@ -292,17 +292,6 @@ class OllamaVectorEmbeddingEncoder:
         return Ok(all_embeddings)
 ```
 
-### Async Processing Pipeline
-Document processing happens asynchronously via workers:
-
-```
-Upload -> Parser Worker -> Chucker Worker -> Embedder Worker -> Indexer Worker
-   |          |               |               |               | 
- RabbitMQ  Status Update  Status Update  Status Update  Status Update
-   |          |               |               |               | 
-WebSocket WebSocket      WebSocket      WebSocket      WebSocket
-```
-
 ### Workspace Isolation
 Each workspace has its own Qdrant collection for data isolation:
 

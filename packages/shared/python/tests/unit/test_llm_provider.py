@@ -1,7 +1,6 @@
 """Unit tests for LlmProvider interface and implementations."""
 
 from collections.abc import Generator
-from typing import Any
 
 import pytest
 

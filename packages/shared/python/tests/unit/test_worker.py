@@ -1,7 +1,8 @@
 """Unit tests for worker base class."""
 
 import json
-from unittest.mock import MagicMock, Mock, patch
+from typing import Any
+from unittest.mock import Mock, patch
 
 import pytest
 from pika.adapters.blocking_connection import BlockingChannel
@@ -14,7 +15,7 @@ from shared.worker.worker import Worker
 class TestWorker(Worker):
     """Concrete implementation of Worker for testing."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.processed_events: list[PayloadDict] = []
         self.should_fail = False
@@ -66,7 +67,7 @@ class TestWorkerBase:
             )
 
     @patch("shared.worker.worker.logger")
-    def test_on_message_success(self, mock_logger, worker: TestWorker) -> None:
+    def test_on_message_success(self, mock_logger: Mock, worker: TestWorker) -> None:
         """Test successful message processing."""
         # Mock channel and method
         mock_ch = Mock(spec=BlockingChannel)
@@ -90,7 +91,7 @@ class TestWorkerBase:
         mock_ch.basic_nack.assert_not_called()
 
     @patch("shared.worker.worker.logger")
-    def test_on_message_json_decode_error(self, mock_logger, worker: TestWorker) -> None:
+    def test_on_message_json_decode_error(self, mock_logger: Mock, worker: TestWorker) -> None:
         """Test message processing with invalid JSON."""
         mock_ch = Mock(spec=BlockingChannel)
         mock_method = Mock(spec=Basic.Deliver)
@@ -106,13 +107,11 @@ class TestWorkerBase:
         assert len(worker.processed_events) == 0
 
         # Verify message was nacked (not requeued)
-        mock_ch.basic_nack.assert_called_once_with(
-            delivery_tag="tag123", requeue=False
-        )
+        mock_ch.basic_nack.assert_called_once_with(delivery_tag="tag123", requeue=False)
         mock_ch.basic_ack.assert_not_called()
 
     @patch("shared.worker.worker.logger")
-    def test_on_message_processing_error(self, mock_logger, worker: TestWorker) -> None:
+    def test_on_message_processing_error(self, mock_logger: Mock, worker: TestWorker) -> None:
         """Test message processing with processing error."""
         mock_ch = Mock(spec=BlockingChannel)
         mock_method = Mock(spec=Basic.Deliver)
@@ -131,25 +130,23 @@ class TestWorkerBase:
         assert len(worker.processed_events) == 0
 
         # Verify message was nacked (requeued)
-        mock_ch.basic_nack.assert_called_once_with(
-            delivery_tag="tag123", requeue=True
-        )
+        mock_ch.basic_nack.assert_called_once_with(delivery_tag="tag123", requeue=True)
         mock_ch.basic_ack.assert_not_called()
 
     @patch("shared.worker.worker.logger")
-    def test_publish_event(self, mock_logger, worker: TestWorker) -> None:
+    def test_publish_event(self, mock_logger: Mock, worker: TestWorker) -> None:
         """Test event publishing."""
         routing_key = "response.key"
         event = {"status": "completed", "result": "data"}
 
-        worker.publish_event(routing_key, event)
+        worker.publish_event(routing_key, event)  # type: ignore
 
         # Verify consumer.publish_event was called
-        worker._consumer.publish_event.assert_called_once_with(routing_key, event)
+        worker._consumer.publish_event.assert_called_once_with(routing_key, event)  # type: ignore
 
     @patch("shared.worker.worker.logger")
     @patch("signal.signal")
-    def test_start(self, mock_signal, mock_logger, worker: TestWorker) -> None:
+    def test_start(self, mock_signal: Mock, mock_logger: Mock, worker: TestWorker) -> None:
         """Test worker start."""
         worker.start()
 
@@ -157,24 +154,22 @@ class TestWorkerBase:
         assert mock_signal.call_count == 2
 
         # Verify consumer methods were called
-        worker._consumer.connect.assert_called_once()
-        worker._consumer.declare_queue.assert_called_once_with(
-            "test_queue", "test.routing.key"
-        )
-        worker._consumer.consume.assert_called_once_with("test_queue", worker.on_message)
+        worker._consumer.connect.assert_called_once()  # type: ignore
+        worker._consumer.declare_queue.assert_called_once_with("test_queue", "test.routing.key")  # type: ignore
+        worker._consumer.consume.assert_called_once_with("test_queue", worker.on_message)  # type: ignore
 
     @patch("shared.worker.worker.logger")
-    def test_stop(self, mock_logger, worker: TestWorker) -> None:
+    def test_stop(self, mock_logger: Mock, worker: TestWorker) -> None:
         """Test worker stop."""
         worker.stop()
 
         # Verify consumer.stop was called
-        worker._consumer.stop.assert_called_once()
+        worker._consumer.stop.assert_called_once()  # type: ignore
 
     def test_abstract_method(self) -> None:
         """Test that Worker cannot be instantiated directly."""
         with pytest.raises(TypeError):
-            Worker(
+            Worker(  # type: ignore
                 worker_name="test",
                 rabbitmq_url="amqp://localhost",
                 exchange="test",
