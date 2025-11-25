@@ -1,0 +1,55 @@
+name: Shared TypeScript CI
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'packages/shared/typescript/**'
+            - 'Taskfile.yml'
+            - '.github/workflows/shared-typescript-ci.yml'
+    pull_request:
+        branches:
+            - main
+        paths:
+            - 'packages/shared/typescript/**'
+            - 'Taskfile.yml'
+            - '.github/workflows/shared-typescript-ci.yml'
+
+jobs:
+    shared-typescript-ci:
+        runs-on: ubuntu-latest
+
+        defaults:
+            run:
+                working-directory: packages/shared/typescript
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install Task
+              run: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+
+            - name: Add Task to PATH
+              run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: task install
+
+            - name: Check formatting
+              run: task format-check
+
+            - name: Run linter
+              run: task lint
+
+            - name: Type check and build
+              run: task build
+
+            - name: Run tests
+              run: task test

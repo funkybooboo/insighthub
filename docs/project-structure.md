@@ -6,21 +6,29 @@ Clean, intuitive file organization for InsightHub monorepo with dual RAG system 
 
 ```
 insighthub/
-- packages/               # Monorepo packages
-|   - shared/            # Shared libraries and types
-|   - server/            # Python Flask backend
-|   - client/            # React frontend
-|   - cli/               # Command-line interface
-|   - workers/           # Background processing workers
-- docs/                  # Documentation
-|   - planning/          # Project planning documents
-|   - project-management/# Project management docs
-|   - rag/              # RAG system documentation
-- elk/                   # ELK monitoring configuration
-- .github/workflows/      # CI/CD workflows
-- docker-compose*.yml     # Service orchestration files
-- Taskfile.yml           # Root task runner
-- README.md
+|-- packages/               # Monorepo packages
+|    |-- shared/            # Shared libraries and types
+|    |    |-- python/        # Python shared utilities
+|    |    --- typescript/    # TypeScript shared types
+|    |-- server/            # Python Flask backend
+|    |-- client/            # React frontend
+|    |-- cli/               # Command-line interface
+|    --- workers/           # Background processing workers
+|        |-- parser/        # Document parsing worker
+|        |-- chucker/       # Text chunking worker
+|        |-- embedder/      # Embedding generation worker
+|        |-- indexer/       # Vector indexing worker
+|        |-- chat/          # Chat processing worker
+|        --- [other workers]
+|-- docs/                  # Documentation
+|    |-- planning/          # Project planning documents
+|    |-- project-management/# Project management docs
+|    --- rag/              # RAG system documentation
+|-- elk/                   # ELK monitoring configuration
+|-- .github/workflows/     # CI/CD workflows
+|-- docker-compose*.yml    # Service orchestration files
+|-- Taskfile.yml           # Root task runner
+--- README.md
 ```
 
 ## Package Structure
@@ -32,48 +40,30 @@ Common types, interfaces, and utilities used across server and workers.
 #### Python Shared (`packages/shared/python/`)
 ```
 packages/shared/python/
-- src/
-|   - shared/
-|   |   - types/             # Core data types
-|   |   |   - common.py      # PrimitiveValue, MetadataValue
-|   |   |   - document.py    # Document, Chunk
-|   |   |   - graph.py       # GraphNode, GraphEdge
-|   |   |   - rag.py         # RagConfig, ChunkerConfig
-|   |   |   - retrieval.py   # RetrievalResult, SearchResult
-|   |   - interfaces/        # Abstract interfaces
-|   |   |   - vector/        # Vector RAG interfaces
-|   |   |   |   - parser.py
-|   |   |   |   - chunker.py
-|   |   |   |   - embedder.py
-|   |   |   |   - store.py
-|   |   |   |   - retriever.py
-|   |   |   |   - ranker.py
-|   |   |   |   - context.py
-|   |   |   |   - llm.py
-|   |   |   |   - formatter.py
-|   |   |   - graph/         # Graph RAG interfaces
-|   |   |       - entity.py
-|   |   |       - relation.py
-|   |   |       - builder.py
-|   |   |       - store.py
-|   |   |       - retriever.py
-|   |   - events/            # RabbitMQ event schemas
-|   |   |   - document.py
-|   |   |   - embedding.py
-|   |   |   - graph.py
-|   |   |   - query.py
-|   |   - orchestrators/     # High-level RAG pipelines
-|   |   |   - vector_rag.py  # VectorRAGIndexer, VectorRAG
-|   |   |   - graph_rag.py   # GraphRAGIndexer, GraphRAG
-|   |   - rabbitmq/          # RabbitMQ utilities
-|   |   - exceptions/        # Custom exceptions
-|   |   - logging/           # Structured logging
-|   |   - models/            # Shared data models
-|   |   - storage/           # Storage utilities
-- tests/                    # Tests for shared components
-- pyproject.toml
-- poetry.lock
-- README.md
+|-- src/
+|    --- shared/
+|        |-- database/           # Database abstractions
+|        |    |-- vector/         # Vector database (Qdrant)
+|        |    --- graph/          # Graph database (Neo4j interfaces)
+|        |-- documents/          # Document processing
+|        |    |-- parsing/        # Document parsers (PDF, DOCX, etc.)
+|        |    |-- chunking/       # Text chunking strategies
+|        |    --- embedding/      # Embedding encoders
+|        |-- llm/                # LLM provider abstractions
+|        |-- messaging/          # Message queue abstractions
+|        |-- models/             # Domain models (User, Workspace, etc.)
+|        |-- orchestrators/      # High-level RAG pipelines
+|        |    |-- vector_rag.py   # VectorRAGIndexer, VectorRAG
+|        |    --- graph_rag.py    # GraphRAG interfaces (planned)
+|        |-- repositories/       # Data access abstractions
+|        |-- storage/            # Blob storage abstractions
+|        |-- types/              # Type definitions
+|        |-- exceptions/         # Custom exceptions
+|        --- worker/             # Worker utilities
+|-- tests/                      # Tests for shared components
+|-- pyproject.toml
+|-- poetry.lock
+--- README.md
 ```
 
 #### TypeScript Shared (`packages/shared/typescript/`)
@@ -107,6 +97,75 @@ import { ApiDocument, ChatMessage } from '@insighthub/shared/types';
 
 Flask backend with clean architecture (domains + infrastructure).
 
+```
+packages/server/
+|-- src/
+|    |-- domains/           # Business logic by domain
+|    |    |-- auth/         # Authentication domain
+|    |    |    |-- routes.py       # Auth API routes
+|    |    |    |-- service.py      # Auth business logic
+|    |    |    |-- dtos.py         # Data transfer objects
+|    |    |    --- exceptions.py   # Domain exceptions
+|    |    |-- workspaces/    # Workspace management domain
+|    |    |    |-- routes.py       # Workspace API routes
+|    |    |    |-- service.py      # Workspace business logic
+|    |    |    |-- dtos.py         # Data transfer objects
+|    |    |    |-- mappers.py      # Data mapping
+|    |    |    --- exceptions.py   # Domain exceptions
+|    |    |    |-- chat/         # Chat subdomain
+|    |    |    |    |-- routes.py       # Chat API routes
+|    |    |    |    |-- service.py      # Chat business logic
+|    |    |    |    |-- events.py       # WebSocket event handlers
+|    |    |    |    |-- dtos.py         # Data transfer objects
+|    |    |    |    |-- mappers.py      # Data mapping
+|    |    |    |    --- exceptions.py   # Domain exceptions
+|    |    |    |-- documents/    # Document management subdomain
+|    |    |    |    |-- routes.py       # Document API routes
+|    |    |    |    |-- service.py      # Document business logic
+|    |    |    |    |-- dtos.py         # Data transfer objects
+|    |    |    |    |-- mappers.py      # Data mapping
+|    |    |    |    |-- events.py       # Processing events
+|    |    |    |    --- exceptions.py   # Domain exceptions
+|    |    |    --- rag_config/    # RAG configuration subdomain
+|    |    |        |-- routes.py       # RAG config API routes
+|    |    |        --- service.py      # RAG config business logic
+|    |    |-- users/         # User management domain
+|    |    |    |-- service.py      # User business logic
+|    |    |    |-- mappers.py      # Data mapping
+|    |    |    --- exceptions.py   # Domain exceptions
+|    |    --- health/        # Health checks domain
+|    |        --- routes.py       # Health check endpoints
+|    |-- infrastructure/    # External integrations
+|    |    |-- auth/          # Authentication infrastructure
+|    |    |    |-- jwt_utils.py    # JWT utilities
+|    |    |    --- middleware.py   # Auth middleware
+|    |    |-- database/      # Database infrastructure
+|    |    |-- middleware/    # HTTP middleware
+|    |    |    |-- security.py     # Security headers
+|    |    |    |-- logging.py      # Request logging
+|    |    |    |-- rate_limiting.py # Rate limiting
+|    |    |    |-- validation.py   # Request validation
+|    |    |    |-- monitoring.py   # Metrics and monitoring
+|    |    |    --- request_correlation.py # Request correlation
+|    |    |-- socket/        # WebSocket infrastructure
+|    |    |    --- socket_handler.py # Base socket handler
+|    |    --- logging.py     # Logging infrastructure
+|    |-- api.py             # Main Flask application
+|    |-- config.py          # Application configuration
+|    --- context.py         # Application context
+|-- tests/                # Test suite
+|    |-- unit/             # Unit tests with dummy implementations
+|    |-- integration/      # Integration tests with testcontainers
+|    --- conftest.py       # Test configuration
+|-- migrations/           # Database migrations
+|-- docs/                 # API documentation
+|-- bruno/                # API testing (Bruno)
+|-- pyproject.toml        # Poetry configuration
+|-- poetry.lock           # Dependency lock file
+|-- Taskfile.yml          # Task automation
+|-- Dockerfile           # Docker configuration
+|-- openapi.yaml         # OpenAPI specification
+--- README.md            # This file
 ```
 packages/server/
 - src/
@@ -192,6 +251,80 @@ Each domain follows clean architecture principles:
 
 React frontend with feature-based organization.
 
+```
+packages/client/
+|-- src/
+|    |-- components/              # React components
+|    |    |-- auth/              # Authentication components
+|    |    |    |-- LoginForm.tsx
+|    |    |    |-- SignupForm.tsx
+|    |    |    --- ProtectedRoute.tsx
+|    |    |-- chat/              # Chat interface components
+|    |    |    |-- ChatBot.tsx           # Main chat component
+|    |    |    |-- ChatInput.tsx         # Message input component
+|    |    |    |-- ChatMessages.tsx      # Message display component
+|    |    |    |-- ChatSessionList.tsx   # Chat session sidebar
+|    |    |    |-- MarkdownRenderer.tsx  # Markdown rendering
+|    |    |    |-- TypingIndicator.tsx   # Loading animation
+|    |    |    |-- RAGEnhancementPrompt.tsx # Context enhancement UI
+|    |    |    --- ContextDisplay.tsx    # Retrieved context display
+|    |    |-- documents/          # Document management components
+|    |    |    |-- DocumentUpload.tsx
+|    |    |    --- DocumentList.tsx
+|    |    |-- settings/          # Settings components
+|    |    |    |-- ProfileSettings.tsx
+|    |    |    |-- RagConfigSettings.tsx
+|    |    |    |-- ThemePreferences.tsx
+|    |    |    --- PasswordChangeForm.tsx
+|    |    |-- shared/            # Shared UI components
+|    |    |    |-- Layout.tsx
+|    |    |    |-- LoadingSpinner.tsx
+|    |    |    |-- StatusBadge.tsx
+|    |    |    --- ConfirmDialog.tsx
+|    |    |-- ui/                # Reusable UI components
+|    |    |    --- ThemeToggle.tsx
+|    |    --- workspace/         # Workspace management
+|    |        |-- WorkspaceColumn.tsx
+|    |        |-- WorkspaceSettings.tsx
+|    |        --- RagConfigForm.tsx
+|    |-- pages/                 # Page-level components
+|    |    |-- SettingsPage.tsx
+|    |    |-- WorkspaceDetailPage.tsx
+|    |    --- WorkspacesPage.tsx
+|    |-- services/              # API and external services
+|    |    |-- api.ts             # REST API client
+|    |    --- socket.ts          # WebSocket/Socket.IO client
+|    |-- store/                 # Redux state management
+|    |    |-- slices/            # Redux slices
+|    |    |    |-- authSlice.ts
+|    |    |    |-- chatSlice.ts
+|    |    |    |-- workspaceSlice.ts
+|    |    |    |-- themeSlice.ts
+|    |    |    |-- statusSlice.ts
+|    |    |    --- userSettingsSlice.ts
+|    |    --- index.ts           # Store configuration
+|    |-- types/                 # TypeScript type definitions
+|    |    |-- chat.ts            # Chat-related types
+|    |    --- workspace.ts       # Workspace-related types
+|    |-- lib/                   # Utilities and helpers
+|    |    |-- utils.ts           # General utilities
+|    |    |-- chatStorage.ts     # Local storage helpers
+|    |    --- validation.ts      # Input validation
+|    |-- hooks/                 # Custom React hooks
+|    |    --- useStatusUpdates.ts # WebSocket status hook
+|    |-- test/                  # Test setup and utilities
+|    |-- App.tsx                # Main application component
+|    |-- main.tsx               # Application entry point
+|    --- vite-env.d.ts          # Vite type definitions
+|-- public/                    # Static assets
+|-- .storybook/                # Storybook configuration
+|-- docs/                      # Component documentation
+|-- package.json               # Dependencies and scripts
+|-- bun.lock                  # Dependency lock file
+|-- Taskfile.yml              # Task automation
+|-- vite.config.ts            # Vite configuration
+|-- vitest.config.ts          # Vitest configuration
+--- tsconfig.json             # TypeScript configuration
 ```
 packages/client/
 - src/
@@ -290,66 +423,66 @@ packages/cli/
 
 ### 5. Workers (`packages/workers/`)
 
-Background processing workers for document processing and RAG operations.
+Background processing workers for document processing and chat operations.
 
 ```
 packages/workers/
-- parser/                 # Document parsing worker
-|   - src/
-|   |   - main.py        # Worker entry point
-|   |   - handlers.py    # Event handlers
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- chunker/                # Text chunking worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- embedder/               # Embedding generation worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- indexer/                # Vector indexing worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- retriever/              # Document retrieval worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- chucker/                # Document chunking worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- connector/              # External connector worker
-|   - src/
-|   |   - main.py
-|   |   - handlers.py
-|   - Dockerfile
-|   - pyproject.toml
-|   - README.md
-- enricher/              # Content enrichment worker
-    - src/
-    |   - main.py
-    |   - handlers.py
-    - Dockerfile
-    - pyproject.toml
-    - README.md
+|-- parser/                 # Document parsing worker
+|    |-- src/
+|    |    --- main.py        # Worker entry point
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+|-- chucker/                # Text chunking worker
+|    |-- src/
+|    |    --- main.py
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+|-- embedder/               # Embedding generation worker
+|    |-- src/
+|    |    --- main.py
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+|-- indexer/                # Vector indexing worker
+|    |-- src/
+|    |    --- main.py
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+|-- chat/                   # Chat processing worker
+|    |-- src/
+|    |    --- main.py
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+|-- provisioner/            # Workspace provisioning worker
+|    |-- src/
+|    |    --- main.py
+|    |-- pyproject.toml
+|    --- README.md
+|-- deletion/               # Workspace deletion worker
+|    |-- src/
+|    |    --- main.py
+|    --- README.md
+|-- wikipedia/              # Wikipedia content fetcher
+|    |-- src/
+|    |    --- main.py
+|    |-- pyproject.toml
+|    --- README.md
+|-- connector/              # External connector worker (planned)
+|    |-- src/
+|    |    --- main.py
+|    |-- Dockerfile
+|    |-- pyproject.toml
+|    --- README.md
+--- enricher/              # Content enrichment worker (planned)
+    |-- src/
+    |    --- main.py
+    |-- Dockerfile
+    |-- pyproject.toml
+    --- README.md
 ```
 
 **Worker Structure Pattern:**

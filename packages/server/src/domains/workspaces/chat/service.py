@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from shared.cache import Cache
 from shared.llm import LlmProvider
 from shared.logger import create_logger
 from shared.models import ChatMessage, ChatSession
@@ -42,7 +43,8 @@ class ChatService:
         session_repository: ChatSessionRepository,
         message_repository: ChatMessageRepository,
         rag_system=None,
-        message_publisher=None
+        message_publisher=None,
+        cache: Cache = None
     ):
         """
         Initialize service with repositories.
@@ -52,11 +54,13 @@ class ChatService:
             message_repository: Chat message repository implementation
             rag_system: Optional RAG system for context retrieval
             message_publisher: Optional message publisher for async processing
+            cache: Optional cache instance for performance optimization
         """
         self.session_repository = session_repository
         self.message_repository = message_repository
         self._rag_system = rag_system
         self._message_publisher = message_publisher
+        self._cache = cache
         self._cancel_flags: dict[str, threading.Event] = {}
         self._cancel_flags_lock = threading.Lock()
 
@@ -183,9 +187,19 @@ class ChatService:
     ) -> ChatMessage:
         """Create a new chat message."""
         metadata_json = json.dumps(metadata) if metadata else None
-        return self.message_repository.create(
+        message = self.message_repository.create(
             session_id=session_id, role=role, content=content, extra_metadata=metadata_json
         )
+
+        # Invalidate cache for this session's messages
+        if self._cache:
+            # Clear common cache patterns for this session
+            for limit in [10, 20, 50]:
+                cache_key = f"chat_session_messages:{session_id}:{limit}"
+                self._cache.delete(cache_key)
+            logger.debug(f"Invalidated message cache for session: session_id={session_id}")
+
+        return message
 
     def get_message_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """Get chat message by ID."""
@@ -195,7 +209,24 @@ class ChatService:
         self, session_id: int, skip: int = 0, limit: int = 100
     ) -> list[ChatMessage]:
         """List all messages for a chat session with pagination."""
-        return self.message_repository.get_by_session(session_id, skip=skip, limit=limit)
+        # Try cache first for recent messages (skip=0, reasonable limit)
+        if self._cache and skip == 0 and limit <= 50:
+            cache_key = f"chat_session_messages:{session_id}:{limit}"
+            cached_messages = self._cache.get(cache_key)
+            if cached_messages is not None:
+                logger.debug(f"Cache hit for session messages: session_id={session_id}")
+                return cached_messages
+
+        # Fetch from database
+        messages = self.message_repository.get_by_session(session_id, skip=skip, limit=limit)
+
+        # Cache the result if it's a common query pattern
+        if self._cache and skip == 0 and limit <= 50 and messages:
+            cache_key = f"chat_session_messages:{session_id}:{limit}"
+            self._cache.set(cache_key, messages, ttl=300)  # Cache for 5 minutes
+            logger.debug(f"Cached session messages: session_id={session_id}")
+
+        return messages
 
     def delete_message(self, message_id: int) -> bool:
         """Delete chat message by ID."""

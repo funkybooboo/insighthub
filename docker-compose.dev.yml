@@ -18,46 +18,14 @@ services:
     volumes:
       - ./packages/server/src:/app/src:ro
       - ./packages/server/tests:/app/tests:ro
-      - ./packages/server/alembic:/app/alembic:ro
-      - ./packages/server/alembic.ini:/app/alembic.ini:ro
       - ./packages/server/pyproject.toml:/app/pyproject.toml:ro
       - ./packages/server/poetry.lock:/app/poetry.lock:ro
       - ./packages/shared/python/src/shared:/app/.venv/lib/python3.11/site-packages/shared:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
-      # Python
       PYTHONUNBUFFERED: 1
-      # Flask
-      FLASK_HOST: 0.0.0.0
-      FLASK_PORT: 8000
-      FLASK_ENV: development
-      FLASK_DEBUG: 1
-      # Database
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      # Storage
-      BLOB_STORAGE_TYPE: s3
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: insighthub
-      S3_SECRET_KEY: insighthub_dev_secret
-      S3_BUCKET_NAME: documents
-      # LLM
-      LLM_PROVIDER: ollama
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_LLM_MODEL: llama3.2:1b
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-      # Vector Store
-      QDRANT_URL: http://qdrant:6333
-      QDRANT_COLLECTION_NAME: documents
-      # Redis (optional)
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_DB: 0
-      # RabbitMQ (optional)
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: guest
-      RABBITMQ_PASSWORD: guest
-      # Message Queue
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,36 +80,6 @@ services:
   # Development Workers - Background processing with hot-reload
   # ============================================================================
 
-  worker-retriever-dev:
-    labels:
-      project: insighthub
-      worker: retriever
-    image: insighthub-worker-retriever:dev
-    container_name: insighthub-worker-retriever-dev
-    profiles:
-      - dev
-      - workers
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: packages/workers/retriever/Dockerfile
-      target: development
-    volumes:
-      - ./packages/workers/retriever/src:/app/src:ro
-    environment:
-      PYTHONUNBUFFERED: 1
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
-      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
-      ARXIV_API_URL: http://export.arxiv.org/api/query
-      WORKER_NAME: retriever
-      WORKER_CONCURRENCY: 5
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
   worker-parser-dev:
     labels:
       project: insighthub
@@ -158,15 +96,11 @@ services:
       target: development
     volumes:
       - ./packages/workers/parser/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      MINIO_ENDPOINT_URL: http://minio:9000
-      MINIO_ACCESS_KEY: insighthub
-      MINIO_SECRET_KEY: insighthub_dev_secret
-      MINIO_BUCKET_NAME: documents
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
       WORKER_NAME: parser
       WORKER_CONCURRENCY: 4
     depends_on:
@@ -195,15 +129,13 @@ services:
       target: development
     volumes:
       - ./packages/workers/chucker/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
       WORKER_NAME: chucker
       WORKER_CONCURRENCY: 4
-      CHUNK_SIZE: 1000
-      CHUNK_OVERLAP: 200
     depends_on:
       postgres:
         condition: service_healthy
@@ -228,18 +160,13 @@ services:
       target: development
     volumes:
       - ./packages/workers/embedder/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      QDRANT_URL: http://qdrant:6333
-      QDRANT_COLLECTION_NAME: documents
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_EMBEDDING_MODEL: nomic-embed-text
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
       WORKER_NAME: embedder
       WORKER_CONCURRENCY: 2
-      BATCH_SIZE: 100
     depends_on:
       postgres:
         condition: service_healthy
@@ -268,13 +195,11 @@ services:
       target: development
     volumes:
       - ./packages/workers/indexer/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      QDRANT_URL: http://qdrant:6333
-      QDRANT_COLLECTION_NAME: documents
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
       WORKER_NAME: indexer
       WORKER_CONCURRENCY: 2
     depends_on:
@@ -303,14 +228,11 @@ services:
       target: development
     volumes:
       - ./packages/workers/connector/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      NEO4J_URL: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: insighthub_dev
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
       WORKER_NAME: connector
       WORKER_CONCURRENCY: 2
     depends_on:
@@ -339,13 +261,11 @@ services:
       target: development
     volumes:
       - ./packages/workers/enricher/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
     environment:
       PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      RABBITMQ_EXCHANGE: insighthub
-      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
-      SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
       WORKER_NAME: enricher
       WORKER_CONCURRENCY: 3
     depends_on:

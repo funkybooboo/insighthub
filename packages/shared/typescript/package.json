@@ -1,0 +1,22 @@
+{
+  "name": "@insighthub/shared-typescript",
+  "version": "0.1.0",
+  "description": "Shared TypeScript utilities and types for InsightHub",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "format": "prettier --write 'src/**/*.{ts,tsx}'"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^24.10.1",
+    "typescript": "^5"
+  }
+}

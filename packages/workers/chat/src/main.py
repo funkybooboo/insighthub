@@ -5,10 +5,10 @@ Consumes: chat.message_received
 Produces: chat.response_chunk, chat.response_complete, chat.error, chat.no_context_found
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 from shared.logger import create_logger
 from shared.messaging import RabbitMQPublisher
 from shared.types.common import PayloadDict
@@ -16,16 +16,16 @@ from shared.worker import Worker
 
 logger = create_logger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "llama3.2")
-OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "documents")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+OLLAMA_BASE_URL = config.ollama_base_url
+OLLAMA_LLM_MODEL = "llama3.2"  # Hardcoded for now
+OLLAMA_EMBEDDING_MODEL = config.ollama_embedding_model
+QDRANT_URL = f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}"
+QDRANT_COLLECTION = config.vector_store.qdrant_collection_name
+WORKER_CONCURRENCY = config.worker_concurrency
 
 
 @dataclass
@@ -75,21 +75,21 @@ class ChatOrchestratorWorker(Worker):
         """Initialize the chat orchestrator worker."""
         super().__init__(
             worker_name="chat_orchestrator",
-            rabbitmq_url=RABBITMQ_URL,
-            exchange=RABBITMQ_EXCHANGE,
+            rabbitmq_url=config.rabbitmq_url,
+            exchange=config.rabbitmq_exchange,
             exchange_type="topic",
             consume_routing_key="chat.message_received",
             consume_queue="chat.message_received",
-            prefetch_count=WORKER_CONCURRENCY,
+            prefetch_count=config.worker_concurrency,
         )
 
         # Initialize components
-        self._database_url = DATABASE_URL
-        self._ollama_base_url = OLLAMA_BASE_URL
-        self._ollama_llm_model = OLLAMA_LLM_MODEL
-        self._ollama_embedding_model = OLLAMA_EMBEDDING_MODEL
-        self._qdrant_url = QDRANT_URL
-        self._qdrant_collection = QDRANT_COLLECTION
+        self._database_url = config.database_url
+        self._ollama_base_url = config.ollama_base_url
+        self._ollama_llm_model = "llama3.2"  # Hardcoded for now, could be added to config
+        self._ollama_embedding_model = config.ollama_embedding_model
+        self._qdrant_url = config.qdrant_url
+        self._qdrant_collection = config.qdrant_collection_name
 
         # Initialize RAG system and LLM (lazy loaded in process_event)
         self._rag_system = None

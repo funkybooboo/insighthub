@@ -34,20 +34,33 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- Add support for vector RAG module.
-- Implement Flask backend with clean architecture.
+- Vector RAG implementation with Qdrant integration
+- Document processing pipeline (Parser -> Chucker -> Embedder -> Indexer workers)
+- Real-time chat with WebSocket streaming and async LLM processing
+- Workspace management with isolated RAG configurations
+- JWT-based authentication with user profiles and preferences
+- Comprehensive testing with dummy implementations and testcontainers
+- Docker containerization with multi-stage builds
+- ELK stack monitoring and structured logging
+- GitHub Actions CI/CD with separate client/server workflows
+- Shared libraries with factory patterns for pluggable components
 
 ### Changed
-- Updated from FastAPI to Flask 3.0+
-- Migrated from MinIO to filesystem storage
-- Switched from Pinecone to Qdrant vector database
+- Migrated from generic RAG concepts to full Vector RAG implementation
+- Updated documentation to reflect actual codebase implementation
+- Improved error handling and status updates throughout the system
 
 ### Fixed
-- Fix bug in filebeat Docker configuration.
-- Resolve WebSocket connection issues in React 19
+- Updated all documentation to match actual implementation
+- Corrected API endpoints and WebSocket event structures
+- Fixed worker communication and status update flows
 
 ## [1.0.0] - 2025-11-18
-- Initial release with Flask backend and React 19 frontend.
+- Initial release with complete RAG system implementation
+- Flask backend with clean architecture and domain-driven design
+- React 19 frontend with TypeScript and real-time features
+- Docker-based deployment with infrastructure orchestration
+- Comprehensive testing and CI/CD setup
 ```
 
 ## How to Add Entries

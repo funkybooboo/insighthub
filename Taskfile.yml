@@ -35,6 +35,16 @@ tasks:
         silent: true
       - cmd: 'echo "  - PostgreSQL: localhost:5432"'
         silent: true
+      - cmd: 'echo "  - MinIO: http://localhost:9001 (console)"'
+        silent: true
+      - cmd: 'echo "  - Ollama: http://localhost:11434"'
+        silent: true
+      - cmd: 'echo "  - Qdrant: http://localhost:6334 (UI)"'
+        silent: true
+      - cmd: 'echo "  - Redis: localhost:6379"'
+        silent: true
+      - cmd: 'echo "  - RabbitMQ: http://localhost:15672 (management)"'
+        silent: true
 
   up-elk:
     desc: Start ELK stack services
@@ -46,6 +56,16 @@ tasks:
         silent: true
       - cmd: 'echo "  - Kibana: http://localhost:5601"'
         silent: true
+
+  migrate:
+    desc: Run database migrations
+    cmds:
+      - python infra/migrations/migrate.py
+
+  migrate:status:
+    desc: Show migration status
+    cmds:
+      - python infra/migrations/migrate.py --status
 
   up-infra:
     desc: Start infrastructure services only (Postgres, MinIO, Ollama, Qdrant, Redis, RabbitMQ)
@@ -293,6 +313,18 @@ tasks:
     cmds:
       - task {{index .MATCH 0}}
 
+  cli:*:
+    desc: Run CLI tasks (use task cli:<task-name>)
+    dir: packages/cli
+    cmds:
+      - task {{index .MATCH 0}}
+
+  shared:typescript:*:
+    desc: Run shared TypeScript tasks (use task shared:typescript:<task-name>)
+    dir: packages/shared/typescript
+    cmds:
+      - npm run {{index .MATCH 1}}
+
   check:
     desc: Run all checks for shared, server, and client
     cmds:
@@ -314,6 +346,45 @@ tasks:
       - cmd: echo "All checks passed!"
         silent: true
 
+  test:
+    desc: Run all tests across the project
+    cmds:
+      - cmd: echo "Running server tests..."
+        silent: true
+      - task: server:test
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Running client tests..."
+        silent: true
+      - task: client:test
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Running shared tests..."
+        silent: true
+      - task: shared:test
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "All tests completed!"
+        silent: true
+
+  format:
+    desc: Format code across all packages
+    cmds:
+      - cmd: echo "Formatting server code..."
+        silent: true
+      - task: server:format
+      - cmd: echo "Formatting client code..."
+        silent: true
+      - task: client:format
+      - cmd: echo "Formatting CLI code..."
+        silent: true
+      - task: cli:format
+      - cmd: echo "Formatting shared TypeScript code..."
+        silent: true
+      - task: shared:typescript:format
+      - cmd: echo "Code formatting complete!"
+        silent: true
+
   shared:rebuild:
     desc: Rebuild shared package and reinstall in server
     cmds:
@@ -324,6 +395,24 @@ tasks:
         silent: true
       - cd packages/server && poetry remove insighthub-shared || true
       - cd packages/server && poetry add ../shared/python/dist/insighthub_shared-*.whl
+
+  shared:typescript:build:
+    desc: Build shared TypeScript package
+    cmds:
+      - cd packages/shared/typescript && npm run build
+
+  shared:typescript:rebuild:
+    desc: Rebuild shared TypeScript package and reinstall in CLI and client
+    cmds:
+      - cmd: echo "Building shared TypeScript package..."
+        silent: true
+      - task: shared:typescript:build
+      - cmd: echo "Reinstalling in CLI..."
+        silent: true
+      - cd packages/cli && bun install
+      - cmd: echo "Reinstalling in client..."
+        silent: true
+      - cd packages/client && npm install
 
   # --------------------------------------------------------------------------
   # Security tasks (root level)

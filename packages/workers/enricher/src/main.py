@@ -5,20 +5,20 @@ Consumes: document.indexed, graph.updated
 Produces: document.enriched
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 from shared.workers import BaseWorker
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+WORKER_CONCURRENCY = config.worker_concurrency
 
 
 @dataclass

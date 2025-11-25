@@ -1,30 +1,15 @@
 /**
  * Chat types for multi-session management
+ * Re-exports shared types with client-specific extensions
  */
 
-export interface Context {
-    text: string;
-    score: number;
-    metadata: Record<string, unknown>;
-}
+export {
+    Context,
+    ChatMessage as Message,
+    ChatSession,
+} from '@insighthub/shared-typescript';
 
-export interface Message {
-    id: string;
-    content: string;
-    role: 'user' | 'bot';
-    timestamp: number;
-    context?: Context[]; // Added context field
-}
-
-export interface ChatSession {
-    id: string;
-    title: string;
-    messages: Message[];
-    createdAt: number;
-    updatedAt: number;
-    sessionId?: number; // Backend session ID
-}
-
+// Client-specific extensions
 export interface ChatState {
     sessions: ChatSession[];
     activeSessionId: string | null;

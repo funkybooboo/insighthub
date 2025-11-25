@@ -8,14 +8,15 @@ InsightHub is a comprehensive dual RAG (Retrieval-Augmented Generation) system t
 
 ### Core Components
 
-1. **React Frontend** - Modern, responsive user interface with real-time updates
-2. **Flask Backend** - REST API and WebSocket endpoints with clean architecture
-3. **RAG Engine** - Pluggable retrieval/generation components with dual implementations
+1. **React Frontend** (`packages/client/`) - Modern, responsive user interface with real-time WebSocket updates
+2. **Flask Backend** (`packages/server/`) - REST API and WebSocket endpoints with clean architecture
+3. **RAG Engine** (`packages/shared/python/src/shared/orchestrators/`) - Vector RAG implementation with pluggable components
 4. **Vector Database** - Qdrant for high-performance similarity search
-5. **Graph Database** - Neo4j for entity-relationship analysis (planned)
+5. **Graph Database** - Neo4j integration planned (interfaces exist but not implemented)
 6. **PostgreSQL** - Centralized storage for application data and user management
-7. **Message Queue** - RabbitMQ for asynchronous document processing
-8. **LLM Providers** - Multiple integrations (Ollama, OpenAI, Claude, HuggingFace)
+7. **Message Queue** - RabbitMQ for asynchronous document processing and chat
+8. **LLM Providers** - Ollama (primary), OpenAI, Claude integrations via shared library
+9. **Background Workers** (`packages/workers/`) - Document processing pipeline (parser, chucker, embedder, indexer, chat)
 
 ## Architecture Layers
 
@@ -34,43 +35,44 @@ InsightHub is a comprehensive dual RAG (Retrieval-Augmented Generation) system t
 
 ### Presentation Layer
 
-**Location**: `src/domains/*/routes.py`, `src/domains/*/socket_handlers.py`, `packages/cli/src/`
+**Location**: `packages/server/src/domains/*/routes.py`, `packages/server/src/domains/*/socket_handlers.py`, `packages/cli/src/`
 
 **Purpose**: Handle HTTP/WebSocket requests and CLI commands
 
 **Components**:
-- Flask routes for REST API endpoints
-- Socket.IO handlers for real-time communication
-- CLI commands for terminal access
+- Flask routes for REST API endpoints (`packages/server/src/api.py`)
+- Socket.IO handlers for real-time communication (`packages/server/src/domains/workspaces/chat/events.py`)
+- CLI commands for terminal access (`packages/cli/src/commands/`)
 - Request validation and response formatting
-- Authentication middleware
+- Authentication middleware (`packages/server/src/infrastructure/auth/middleware.py`)
 
 ### Domain Layer
 
-**Location**: `src/domains/*/service.py`, `src/domains/*/models.py`
+**Location**: `packages/server/src/domains/*/service.py`, `packages/shared/python/src/shared/models/`
 
 **Purpose**: Business logic and domain models
 
 **Components**:
-- Service classes for business logic
-- Domain models and entities
+- Service classes for business logic (`packages/server/src/domains/*/service.py`)
+- Domain models and entities (`packages/shared/python/src/shared/models/`)
 - Business rules and validation
 - Use case implementations
-- Domain-specific exceptions
+- Domain-specific exceptions (`packages/server/src/domains/*/exceptions.py`)
 
 ### Infrastructure Layer
 
-**Location**: `src/infrastructure/`, `packages/workers/`
+**Location**: `packages/server/src/infrastructure/`, `packages/workers/`, `packages/shared/python/src/shared/`
 
 **Purpose**: External service integrations
 
 **Components**:
-- RAG implementations and components
-- Database repositories and connections
-- Blob storage integrations
-- LLM provider clients
-- Message queue handlers
-- External API clients
+- RAG implementations (`packages/shared/python/src/shared/orchestrators/vector_rag.py`)
+- Database repositories (`packages/shared/python/src/shared/repositories/`)
+- Blob storage (`packages/shared/python/src/shared/storage/`)
+- LLM provider clients (`packages/shared/python/src/shared/llm/`)
+- Message queue handlers (`packages/shared/python/src/shared/messaging/`)
+- Background workers (`packages/workers/`)
+- Vector database (`packages/shared/python/src/shared/database/vector/`)
 
 ## Component Diagram
 
@@ -194,39 +196,35 @@ InsightHub is a comprehensive dual RAG (Retrieval-Augmented Generation) system t
 
 ### Vector RAG Implementation
 
-**Location**: `src/infrastructure/rag/vector_rag.py`
+**Location**: `packages/shared/python/src/shared/orchestrators/vector_rag.py`
 
 **Components**:
-- **Chunker**: Text splitting strategies (character, sentence, word)
-- **Embedding Model**: Vector generation (Ollama, OpenAI, Sentence Transformers)
-- **Vector Store**: Similarity search and storage (Qdrant)
-- **Retriever**: Top-K relevant document retrieval
-- **LLM Generator**: Context-enhanced response generation
+- **VectorRAGIndexer**: Orchestrates document indexing (parse -> chunk -> embed -> store)
+- **VectorRAG**: Handles query processing (embed query -> search -> return results)
+- **Document Parser**: Text extraction from PDFs/DOCX (`packages/shared/python/src/shared/documents/parsing/`)
+- **Document Chunker**: Text splitting strategies (`packages/shared/python/src/shared/documents/chunking/`)
+- **Embedding Encoder**: Vector generation (`packages/shared/python/src/shared/documents/embedding/`)
+- **Vector Store**: Qdrant integration (`packages/shared/python/src/shared/database/vector/`)
 
 **Pipeline**:
 ```
-Documents -> Chunker -> Chunks -> Embedding Model -> Vectors -> Vector Store
-Query -> Embedding Model -> Query Vector -> Similarity Search -> Top-K Chunks
-Context -> LLM Generator -> Streaming Response
+Documents -> Parser -> Chunker -> Embedder -> Vector Store
+Query -> Embedder -> Query Vector -> Similarity Search -> Retrieval Results
+Results -> LLM -> Streaming Response
 ```
 
 ### Graph RAG Implementation (Planned)
 
-**Location**: `src/infrastructure/rag/graph_rag.py` (future implementation)
+**Location**: `packages/shared/python/src/shared/orchestrators/graph_rag.py` (interfaces exist, not implemented)
 
 **Components**:
-- **Entity Extractor**: LLM-based entity extraction
-- **Relation Extractor**: Relationship identification
-- **Graph Builder**: Neo4j graph construction
-- **Community Detector**: Leiden clustering algorithm
-- **Graph Retriever**: Graph traversal for context
+- **GraphRAGIndexer**: Orchestrates graph indexing (parse -> entity extraction -> graph building)
+- **GraphRAG**: Handles graph-based query processing
+- **Entity Extractor**: LLM-based entity extraction (planned)
+- **Graph Store**: Neo4j integration (interfaces exist)
+- **Community Detector**: Graph clustering algorithms (planned)
 
-**Pipeline**:
-```
-Documents -> Entity Extraction -> Relation Extraction -> Graph Builder
-Graph -> Community Detection -> Graph Retriever -> Context
-Context -> LLM Generator -> Streaming Response
-```
+**Status**: Graph RAG interfaces are defined but the implementation is not yet complete.
 
 ## Technology Stack
 
@@ -245,11 +243,11 @@ Context -> LLM Generator -> Streaming Response
 - **RabbitMQ** for message queuing
 
 **AI & ML**:
-- **Ollama** for local LLM inference
+- **Ollama** for local LLM inference (primary)
 - **OpenAI** API integration
 - **Anthropic Claude** API integration
 - **Sentence Transformers** for embeddings
-- **PyPDF** for document parsing
+- **Document parsing** via shared library parsers
 
 ### Frontend Technologies
 
@@ -283,6 +281,20 @@ Context -> LLM Generator -> Streaming Response
 - **Poetry** for Python dependency management
 - **Bun** for JavaScript runtime
 - **Task** for task automation
+
+### Shared Libraries
+
+**Python Shared** (`packages/shared/python/`):
+- **Type-safe dataclasses** for domain models
+- **Factory pattern** for service instantiation
+- **Abstract interfaces** for RAG components
+- **Repository pattern** for data access
+- **Result types** for error handling
+
+**TypeScript Shared** (`packages/shared/typescript/`):
+- **Shared type definitions** across client and CLI
+- **API response types**
+- **Common utilities**
 
 ## Design Patterns
 

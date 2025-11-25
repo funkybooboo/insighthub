@@ -21,22 +21,19 @@ Comprehensive CI/CD workflows and local testing setup for InsightHub dual RAG sy
 
 ## Overview
 
-InsightHub uses GitHub Actions for automated CI/CD pipelines, ensuring code quality, testing, and deployment across all packages. The workflows are designed to be fast, reliable, and provide immediate feedback to developers.
+InsightHub uses GitHub Actions for automated CI/CD with separate workflows for client and server packages. The CI ensures code quality, testing, and proper formatting across the monorepo.
 
 ### CI/CD Strategy
 
 **Branch Protection**:
-- Main branch is protected
-- All PRs require passing CI checks
-- Required status checks: format, lint, type-check, test, build
+- Main branch requires passing CI checks
+- PRs must pass all required status checks
+- Required checks: format, lint, test, build
 
-**Pipeline Stages**:
-1. **Setup**: Install dependencies and tools
-2. **Quality**: Code formatting and linting
-3. **Testing**: Unit and integration tests
-4. **Build**: Application compilation and packaging
-5. **Security**: Vulnerability scanning and dependency checks
-6. **Deploy**: (Optional) Automated deployment
+**Workflow Structure**:
+- **Client CI**: Frontend testing, linting, and building
+- **Server CI**: Backend testing, type checking, and security scanning
+- **TODO to Issue**: Auto-creates GitHub issues from code TODO comments
 
 **Matrix Builds**:
 - Multiple Node.js versions for client
@@ -49,24 +46,42 @@ InsightHub uses GitHub Actions for automated CI/CD pipelines, ensuring code qual
 
 ### Client CI
 
-**File**: `.github/workflows/client-ci.yml`
+**Trigger**: Push/PR affecting `packages/client/` or client-related files
 
-**Triggers**:
+**Jobs**:
+1. **Setup**:
+   - Checkout code
+   - Setup Node.js 18+
+   - Install Bun
+   - Cache dependencies
+
+2. **Quality**:
+   - Run ESLint
+   - Check Prettier formatting
+   - TypeScript type checking
+
+3. **Testing**:
+   - Run Vitest unit tests
+   - Generate coverage reports
+   - Run component tests
+
+4. **Build**:
+   - Build production bundle
+   - Check bundle size
+   - Upload build artifacts
+
+**Configuration**:
 ```yaml
+# .github/workflows/client-ci.yml
 name: Client CI
-
 on:
   push:
-    branches: [main, develop]
     paths:
       - 'packages/client/**'
-      - 'packages/shared/typescript/**'
-      - 'Taskfile.yml'
+      - '.github/workflows/client-ci.yml'
   pull_request:
-    branches: [main]
     paths:
       - 'packages/client/**'
-      - 'packages/shared/typescript/**'
 ```
 
 **Jobs Overview**:
@@ -221,21 +236,44 @@ jobs:
 
 ### Server CI
 
-**File**: `.github/workflows/server-ci.yml`
+**Trigger**: Push/PR affecting `packages/server/` or server-related files
 
-**Triggers**:
+**Jobs**:
+1. **Setup**:
+   - Checkout code
+   - Setup Python 3.11+
+   - Install Poetry
+   - Cache dependencies
+
+2. **Quality**:
+   - Run Ruff linting
+   - Check Black formatting
+   - Run MyPy type checking
+
+3. **Testing**:
+   - Run Pytest unit tests (with dummy implementations)
+   - Run integration tests (with testcontainers)
+   - Generate coverage reports
+
+4. **Security**:
+   - Run security scanning
+   - Check dependencies for vulnerabilities
+
+5. **Build**:
+   - Build Docker image
+   - Run basic container tests
+
+**Configuration**:
 ```yaml
+# .github/workflows/server-ci.yml
 name: Server CI
-
 on:
   push:
-    branches: [main, develop]
     paths:
       - 'packages/server/**'
       - 'packages/shared/python/**'
-      - 'Taskfile.yml'
+      - '.github/workflows/server-ci.yml'
   pull_request:
-    branches: [main]
     paths:
       - 'packages/server/**'
       - 'packages/shared/python/**'

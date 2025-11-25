@@ -1,0 +1,41 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  migrate:
+    desc: Run database migrations
+    cmds:
+      - python infra/migrations/migrate.py
+
+  migrate:status:
+    desc: Show migration status
+    cmds:
+      - python infra/migrations/migrate.py --status
+
+  migrate:create:
+    desc: 'Create new migration (usage: task migrate:create -- NAME)'
+    cmds:
+      - python infra/migrations/migrate.py --create "{{.MIGRATION_NAME}}"
+
+  config:validate:
+    desc: Validate configuration files
+    cmds:
+      - echo "Validating configuration..."
+      - |
+        if [ ! -f "infra/config/.env.development" ]; then
+          echo "❌ infra/config/.env.development not found"
+          echo "Run: cp infra/config/.env.local.example infra/config/.env.development"
+          exit 1
+        fi
+      - echo "✅ Configuration files found"
+
+  infra:check:
+    desc: Check infrastructure health
+    cmds:
+      - task: config:validate
+      - echo "✅ Infrastructure check passed"

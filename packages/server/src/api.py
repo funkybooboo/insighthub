@@ -185,6 +185,14 @@ def create_app() -> InsightHubApp:
     from src.infrastructure.logging import configure_logging
     configure_logging()
 
+    # Initialize database (run migrations in development)
+    from src.infrastructure.database import init_db
+    if config.FLASK_DEBUG:  # Only run migrations automatically in development
+        logger.info("Running database migrations (development mode)")
+        init_db()
+    else:
+        logger.info("Skipping automatic migrations (production mode)")
+
     app = InsightHubApp(__name__)
 
     # CORS configuration

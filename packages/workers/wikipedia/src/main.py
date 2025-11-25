@@ -5,10 +5,10 @@ Consumes: wikipedia.fetch_requested
 Produces: document.uploaded (for each created document)
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 import pika
 import psycopg2
 import wikipediaapi
@@ -20,15 +20,15 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
-MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL", "http://minio:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "insighthub")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "insighthub_dev_secret")
-MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "documents")
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+WORKER_CONCURRENCY = config.worker_concurrency
+MINIO_ENDPOINT_URL = config.storage.s3_endpoint_url
+MINIO_ACCESS_KEY = config.storage.s3_access_key
+MINIO_SECRET_KEY = config.storage.s3_secret_key
+MINIO_BUCKET_NAME = config.storage.s3_bucket_name
 
 
 @dataclass

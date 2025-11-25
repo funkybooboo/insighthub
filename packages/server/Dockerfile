@@ -119,7 +119,6 @@ FROM dependencies AS production
 
 # Copy application code
 COPY --chown=app:app packages/server/src ./src
-COPY --chown=app:app packages/server/migrations ./migrations
 COPY --chown=app:app packages/server/README.md ./
 
 # Install the project (root only)

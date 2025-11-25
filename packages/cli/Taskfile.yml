@@ -1,0 +1,67 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - bun install
+
+  build:
+    desc: Build the CLI for production
+    cmds:
+      - bun run build:ts
+      - bun run build:pkg
+
+  dev:
+    desc: Run CLI in development mode
+    cmds:
+      - bun run dev
+
+  lint:
+    desc: Run ESLint
+    cmds:
+      - bun run lint
+
+  format:
+    desc: Format code with Prettier
+    cmds:
+      - bun run format
+
+  format-check:
+    desc: Check if code is formatted
+    cmds:
+      - bun run format:check
+
+  test:
+    desc: Run tests
+    cmds:
+      - echo "No tests configured yet"
+
+  check:
+    desc: Run all checks (format-check, lint, build)
+    cmds:
+      - task: format-check
+      - task: lint
+      - task: build
+
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf node_modules dist bin .bun
+      - find . -type f -name "*.log" -delete
+
+  audit:
+    desc: Audit project dependencies for vulnerabilities
+    cmds:
+      - bun audit
+
+  scan:
+    desc: Run security scan on dependencies
+    cmds:
+      - trivy fs --scanners vuln --ignore-unfixed .

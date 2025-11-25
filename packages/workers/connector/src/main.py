@@ -5,20 +5,20 @@ Consumes: embedding.created
 Produces: graph.updated
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 from shared.workers import BaseWorker
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-NEO4J_URL = os.getenv("NEO4J_URL", "bolt://neo4j:7687")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "2"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+NEO4J_URL = config.graph_store.neo4j_url or "bolt://neo4j:7687"
+WORKER_CONCURRENCY = config.worker_concurrency
 
 
 @dataclass

@@ -5,24 +5,24 @@ Consumes: document.uploaded
 Produces: document.parsed
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 from shared.workers import BaseWorker
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-MINIO_ENDPOINT_URL = os.getenv("MINIO_ENDPOINT_URL", "http://minio:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "insighthub")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "insighthub_dev_secret")
-MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "documents")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+MINIO_ENDPOINT_URL = config.storage.s3_endpoint_url
+MINIO_ACCESS_KEY = config.storage.s3_access_key
+MINIO_SECRET_KEY = config.storage.s3_secret_key
+MINIO_BUCKET_NAME = config.storage.s3_bucket_name
+WORKER_CONCURRENCY = config.worker_concurrency
 
 
 @dataclass
@@ -73,12 +73,12 @@ class ParserWorker(BaseWorker):
         """Initialize the parser worker."""
         super().__init__(
             worker_name="parser",
-            rabbitmq_url=RABBITMQ_URL,
-            exchange=RABBITMQ_EXCHANGE,
+            rabbitmq_url=config.rabbitmq_url,
+            exchange=config.rabbitmq_exchange,
             exchange_type="topic",
             consume_routing_key="document.uploaded",
             consume_queue="parser.document.uploaded",
-            prefetch_count=WORKER_CONCURRENCY,
+            prefetch_count=config.worker_concurrency,
         )
 
         # Initialize document parser

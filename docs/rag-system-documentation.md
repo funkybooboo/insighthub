@@ -1,10 +1,10 @@
-# Retrieval-Augmented Generation (RAG) System Documentation
+# InsightHub RAG System Documentation
 
-Source: https://github.com/ALucek/RAG-Overview/blob/main/rag_breakdown.ipynb
+This document describes the Retrieval-Augmented Generation (RAG) implementation in InsightHub, focusing on the actual codebase and architecture rather than general RAG concepts.
 
 ## Overview
 
-Retrieval-Augmented Generation (RAG) is a powerful technique that enhances Large Language Models (LLMs) by providing them with relevant, up-to-date context from external knowledge sources. This documentation explains how RAG systems work and provides implementation guidance.
+InsightHub implements a Vector RAG system that enhances LLM responses by retrieving relevant context from user-uploaded documents. The system uses a modular architecture with pluggable components for parsing, chunking, embedding, and vector storage.
 
 ## Why RAG Matters
 
@@ -22,34 +22,37 @@ RAG addresses these issues by:
 
 ## Core Components
 
-### 1. Knowledge Base Preparation
+### 1. Document Processing Pipeline
 
-#### Text Processing
-LLMs process text-based input. Raw documents (PDFs, Word docs, etc.) must be converted to text format:
+#### Document Parsing
+InsightHub supports multiple document formats through a factory pattern:
 
 ```python
-# Example: PDF to Markdown conversion
-def convert_pdf_to_markdown(pdf_path: str) -> str:
-    # Extract text from PDF
-    # Convert tables/images to text representation
-    # Structure content with markdown formatting
-    return markdown_content
+# packages/shared/python/src/shared/documents/parsing/
+from shared.documents.parsing import create_document_parser
+
+# Create parser based on file type
+parser = create_document_parser("pdf")  # or "docx", "text", "html"
+result = parser.parse(file_stream, metadata)
+document = result.ok()  # Document object with text content
 ```
 
-#### Chunking Strategy
-LLMs have context window limits (typically 4K-128K tokens). Large documents must be split into manageable chunks:
+**Supported Formats**:
+- PDF documents (PyPDF)
+- Microsoft Word documents (python-docx)
+- Plain text files
+- HTML content
+
+#### Text Chunking
+Documents are split into manageable chunks using configurable strategies:
 
 ```python
-from langchain_text_splitters import MarkdownTextSplitter
+# packages/shared/python/src/shared/documents/chunking/
+from shared.documents.chunking import create_document_chunker
 
-splitter = MarkdownTextSplitter.from_tiktoken_encoder(
-    encoding_name="cl100k_base",  # OpenAI's encoding
-    chunk_size=1200,              # Target chunk size
-    chunk_overlap=400,            # Overlap between chunks
-    strip_whitespace=True
-)
-
-chunks = splitter.split_text(document_text)
+chunker = create_document_chunker("sentence", chunk_size=1000, overlap=200)
+chunks = chunker.chunk(document)
+# Returns list of Chunk objects with text, metadata, and embeddings
 ```
 
 **Chunking Best Practices:**
@@ -60,33 +63,33 @@ chunks = splitter.split_text(document_text)
 
 ![img.png](chunking_strategies_for_rag.png)
 
-### 2. Embeddings
+### 2. Vector Embeddings
 
-#### What are Embeddings?
-Embeddings transform text into numerical vectors that capture semantic meaning:
+#### Embedding Generation
+InsightHub uses configurable embedding models through a factory pattern:
 
 ```python
-from sentence_transformers import SentenceTransformer
+# packages/shared/python/src/shared/documents/embedding/
+from shared.documents.embedding import create_embedding_encoder
 
-# Load pre-trained embedding model
-embedding_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+# Create encoder (Ollama, OpenAI, or Sentence Transformers)
+encoder = create_embedding_encoder("ollama", model_name="nomic-embed-text")
 
-# Convert text to vector
-vector = embedding_model.encode("Your text here")
-# Result: 384-dimensional vector for MiniLM
+# Encode single text or batch
+result = encoder.encode_one("What is machine learning?")
+# Returns Result[list[float]] with 768-dimensional vector
+
+batch_result = encoder.encode(["text1", "text2", "text3"])
+# Returns Result[list[list[float]]] for batch processing
 ```
+
+#### Supported Embedding Models
+- **Ollama**: `nomic-embed-text` (local, 768 dimensions)
+- **OpenAI**: `text-embedding-ada-002` (1536 dimensions)
+- **Sentence Transformers**: Various models available
 
 #### Semantic Similarity
-Embeddings enable mathematical comparison of text similarity:
-
-```python
-# Calculate similarity between texts
-similarity_score = embedding_model.similarity(
-    embedding_model.encode("cat"),
-    embedding_model.encode("dog")
-)
-# Result: ~0.66 (cats and dogs are similar animals)
-```
+Embeddings enable efficient similarity search in vector databases.
 
 #### Visualization
 Embeddings can be visualized in reduced dimensions:
@@ -110,39 +113,44 @@ fig = go.Figure(data=[go.Scatter3d(
 )])
 ```
 
-### 3. Vector Databases
+### 3. Vector Storage (Qdrant)
 
-#### Purpose
-Vector databases store and efficiently retrieve embeddings:
+#### Qdrant Integration
+InsightHub uses Qdrant for high-performance vector similarity search:
 
 ```python
-import chromadb
+# packages/shared/python/src/shared/database/vector/
+from shared.database.vector import create_vector_database
 
-# Initialize vector database
-client = chromadb.PersistentClient(path="./vector_db")
-collection = client.get_or_create_collection(name="knowledge_base")
+# Create Qdrant client
+vector_db = create_vector_database("qdrant", host="localhost", port=6333)
 
-# Store document chunks
-collection.add(
-    documents=chunks,
-    ids=[f"chunk_{i}" for i in range(len(chunks))]
-)
+# Create workspace-specific collection
+collection_name = f"workspace_{workspace_id}"
+vector_store = vector_db.create_store(collection_name, dimension=768)
+
+# Store document chunks with embeddings
+chunks_with_embeddings = [...]  # List of Chunk objects
+vector_store.add(chunks_with_embeddings)
 ```
 
 #### Retrieval
-Find most relevant documents for a query:
+Find most relevant document chunks for a query:
 
 ```python
-# Query the vector database
-results = collection.query(
-    query_texts=["What is the maximum power consumption?"],
-    n_results=5  # Return top 5 most similar chunks
-)
+# packages/shared/python/src/shared/orchestrators/vector_rag.py
+from shared.orchestrators import VectorRAG
 
-# Results contain:
-# - documents: The actual text chunks
-# - distances: Similarity scores (lower = more similar)
-# - ids: Unique identifiers for each chunk
+# Create RAG instance
+rag = VectorRAG(embedder=encoder, vector_store=vector_store)
+
+# Query with semantic search
+results = rag.query("What is machine learning?", top_k=5)
+# Returns List[RetrievalResult] with chunks and similarity scores
+
+for result in results:
+    print(f"Score: {result.score:.3f}")
+    print(f"Text: {result.chunk.text[:100]}...")
 ```
 
 ## Complete RAG Pipeline
@@ -150,171 +158,159 @@ results = collection.query(
 ### Architecture Overview
 
 ```
-User Query --> Embedding --> Retrieval --> Augmentation --> Generation --> Response
-     |           |           |           |           |           |
-   "Question" --> Vector --> Top K Chunks --> Context --> LLM --> Grounded Answer
+User Query --> Chat Service --> Worker --> RAG Pipeline --> LLM --> Response
+      |           |           |           |           |           |
+   WebSocket --> Store Msg --> RabbitMQ --> Retrieve --> Augment --> Stream Back
 ```
 
-### Implementation
+### Vector RAG Implementation
 
 ```python
-class RAGSystem:
-    def __init__(self):
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.vector_db = chromadb.PersistentClient(path="./db")
-        self.collection = self.vector_db.get_or_create_collection("docs")
-        self.llm_client = OpenAI()  # or other LLM provider
+# packages/shared/python/src/shared/orchestrators/vector_rag.py
 
-    def add_documents(self, documents: list[str]):
-        """Add documents to the knowledge base."""
-        # Split documents into chunks
-        chunks = self._chunk_documents(documents)
+class VectorRAGIndexer:
+    """Orchestrates document indexing pipeline."""
 
-        # Generate embeddings
-        embeddings = self.embedding_model.encode(chunks)
+    def __init__(self, parser, chunker, embedder, vector_store):
+        self.parser = parser
+        self.chunker = chunker
+        self.embedder = embedder
+        self.vector_store = vector_store
 
-        # Store in vector database
-        self.collection.add(
-            documents=chunks,
-            embeddings=embeddings.tolist(),
-            ids=[f"doc_{i}" for i in range(len(chunks))]
-        )
+    def index(self, file_stream, metadata=None):
+        """Index a document through the full pipeline."""
+        # 1. Parse document
+        doc_result = self.parser.parse(file_stream, metadata)
+        document = doc_result.ok()
 
-    def query(self, question: str, top_k: int = 5) -> str:
-        """Answer a question using RAG."""
-        # 1. Embed the question
-        question_embedding = self.embedding_model.encode(question)
+        # 2. Chunk document
+        chunks = self.chunker.chunk(document)
 
-        # 2. Retrieve relevant context
-        results = self.collection.query(
-            query_embeddings=[question_embedding.tolist()],
-            n_results=top_k
-        )
+        # 3. Generate embeddings
+        texts = [chunk.text for chunk in chunks]
+        embeddings_result = self.embedder.encode(texts)
+        embeddings = embeddings_result.ok()
 
-        # 3. Prepare context
-        context_chunks = results['documents'][0]
-        context = "\n\n".join(context_chunks)
+        # 4. Store in vector database
+        for i, chunk in enumerate(chunks):
+            chunk.embedding = embeddings[i]
+        self.vector_store.add(chunks)
 
-        # 4. Generate augmented prompt
-        prompt = f"""Use the provided context to answer the question accurately.
+        return document
 
-Context:
-{context}
+class VectorRAG:
+    """Orchestrates query pipeline."""
 
-Question: {question}
+    def __init__(self, embedder, vector_store):
+        self.embedder = embedder
+        self.vector_store = vector_store
 
-Answer:"""
+    def query(self, query: str, top_k: int = 5):
+        """Query the RAG system."""
+        # 1. Embed query
+        embedding_result = self.embedder.encode_one(query)
+        query_embedding = embedding_result.ok()
 
-        # 5. Generate response
-        response = self.llm_client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1000,
-            temperature=0.1
-        )
+        # 2. Search vector store
+        search_results = self.vector_store.search(query_embedding, top_k)
 
-        return response.choices[0].message.content
-
-    def _chunk_documents(self, documents: list[str]) -> list[str]:
-        """Split documents into chunks."""
-        splitter = MarkdownTextSplitter.from_tiktoken_encoder(
-            encoding_name="cl100k_base",
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-
-        all_chunks = []
-        for doc in documents:
-            chunks = splitter.split_text(doc)
-            all_chunks.extend(chunks)
-
-        return all_chunks
+        # 3. Return retrieval results
+        return [
+            RetrievalResult(chunk=chunk, score=score)
+            for chunk, score in search_results
+        ]
 ```
 
-## Advanced RAG Techniques
+## Advanced RAG Features
 
-### 1. Query Expansion
-Enhance queries for better retrieval:
+### 1. Configurable RAG Parameters
+Workspace-specific RAG configuration through the UI:
 
 ```python
-def expand_query(query: str) -> list[str]:
-    """Generate multiple query variations."""
-    expansions = [
-        query,
-        f"What is {query}?",
-        f"Explain {query}",
-        f"Details about {query}"
-    ]
-    return expansions
+# packages/shared/python/src/shared/models/workspace.py
+@dataclass
+class RagConfig:
+    workspace_id: int
+    embedding_model: str = "nomic-embed-text"
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
+    top_k: int = 8
+    retriever_type: str = "vector"  # 'vector' or 'graph'
+    # Future: rerank_enabled, rerank_model, etc.
 ```
 
-### 2. Re-ranking
-Improve retrieval quality:
+### 2. Auto-retry for No Context
+When RAG finds no relevant context, the system stores queries for auto-retry:
 
 ```python
-def rerank_results(query: str, chunks: list[str]) -> list[str]:
-    """Re-rank chunks using cross-encoder model."""
-    from sentence_transformers import CrossEncoder
+# packages/server/src/domains/workspaces/chat/service.py
+def _store_pending_rag_query(self, workspace_id, session_id, user_id, query, request_id):
+    """Store query for potential auto-retry after document upload."""
+    # Implementation stores in instance cache for auto-retry
 
-    cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-    pairs = [[query, chunk] for chunk in chunks]
-    scores = cross_encoder.predict(pairs)
-
-    # Sort by scores
-    ranked_chunks = [chunk for _, chunk in sorted(zip(scores, chunks), reverse=True)]
-    return ranked_chunks
+def retry_pending_rag_queries(self, workspace_id, user_id, llm_provider):
+    """Retry stored queries with newly available context."""
+    # Automatically re-runs queries when documents are processed
 ```
 
-### 3. Multi-stage Retrieval
-Combine different retrieval strategies:
+### 3. Multi-format Document Support
+Factory pattern for different document parsers:
 
 ```python
-def multi_stage_retrieval(query: str) -> list[str]:
-    """Use multiple retrieval strategies."""
-    # Stage 1: Semantic search
-    semantic_results = vector_search(query, top_k=20)
-
-    # Stage 2: Keyword search
-    keyword_results = keyword_search(query, top_k=20)
-
-    # Stage 3: Combine and re-rank
-    combined = list(set(semantic_results + keyword_results))
-    reranked = rerank_results(query, combined)
-
-    return reranked[:5]
+# packages/shared/python/src/shared/documents/parsing/
+def create_document_parser(format: str):
+    """Create appropriate parser based on file format."""
+    parsers = {
+        "pdf": PdfDocumentParser(),
+        "docx": DocxDocumentParser(),
+        "txt": TextDocumentParser(),
+        "html": HtmlDocumentParser(),
+    }
+    return parsers.get(format, TextDocumentParser())
 ```
 
 ## Performance Optimization
 
-### Indexing Strategies
-- **HNSW (Hierarchical Navigable Small World)**: Fast approximate nearest neighbor search
-- **IVF (Inverted File Index)**: Partition-based indexing for large datasets
-- **PQ (Product Quantization)**: Compress vectors for memory efficiency
+### Batch Processing
+Embeddings are generated in batches for efficiency:
 
-### Caching
 ```python
-from functools import lru_cache
+# packages/shared/python/src/shared/documents/embedding/
+class OllamaVectorEmbeddingEncoder:
+    def encode(self, texts: list[str]) -> Result[list[list[float]]]:
+        """Batch encode multiple texts efficiently."""
+        # Implementation uses batch processing to optimize API calls
+        batch_size = 32
+        all_embeddings = []
 
-@lru_cache(maxsize=1000)
-def cached_embedding(text: str) -> list[float]:
-    """Cache embeddings to avoid recomputation."""
-    return embedding_model.encode(text)
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            # Process batch and collect embeddings
+            batch_embeddings = self._encode_batch(batch)
+            all_embeddings.extend(batch_embeddings)
+
+        return Ok(all_embeddings)
 ```
 
-### Batch Processing
-```python
-def batch_embed_and_store(documents: list[str], batch_size: int = 32):
-    """Process documents in batches for efficiency."""
-    for i in range(0, len(documents), batch_size):
-        batch = documents[i:i + batch_size]
-        embeddings = embedding_model.encode(batch)
+### Async Processing Pipeline
+Document processing happens asynchronously via workers:
 
-        # Store batch in vector database
-        collection.add(
-            documents=batch,
-            embeddings=embeddings.tolist(),
-            ids=[f"doc_{i+j}" for j in range(len(batch))]
-        )
+```
+Upload -> Parser Worker -> Chucker Worker -> Embedder Worker -> Indexer Worker
+   |          |               |               |               | 
+ RabbitMQ  Status Update  Status Update  Status Update  Status Update
+   |          |               |               |               | 
+WebSocket WebSocket      WebSocket      WebSocket      WebSocket
+```
+
+### Workspace Isolation
+Each workspace has its own Qdrant collection for data isolation:
+
+```python
+# Collections are named by workspace: f"workspace_{workspace_id}"
+# This allows parallel processing and data isolation
+collection_name = f"workspace_{workspace_id}"
+vector_store = qdrant_client.create_store(collection_name, dimension=768)
 ```
 
 ## Evaluation Metrics
@@ -334,29 +330,33 @@ def batch_embed_and_store(documents: list[str], batch_size: int = 32):
 ## Production Considerations
 
 ### Scalability
-- **Vector Database Choice**: Pinecone, Weaviate, Qdrant, ChromaDB
-- **Embedding Model**: Balance speed vs. quality (MiniLM, MPNet, etc.)
-- **Caching Strategy**: Redis for frequently accessed embeddings
-- **Load Balancing**: Distribute requests across multiple instances
+- **Qdrant**: Chosen for high-performance vector search with horizontal scaling
+- **Worker Pool**: Configurable concurrency for document processing workers
+- **Workspace Isolation**: Separate vector collections prevent cross-contamination
+- **Async Processing**: RabbitMQ enables decoupling of request/response flow
 
 ### Monitoring
+Health checks and structured logging are implemented:
+
 ```python
-def monitor_rag_performance():
-    """Monitor RAG system performance."""
-    metrics = {
-        "avg_query_time": measure_average_query_time(),
-        "cache_hit_rate": measure_cache_effectiveness(),
-        "retrieval_precision": measure_retrieval_accuracy(),
-        "user_satisfaction": measure_user_feedback()
-    }
-    return metrics
+# packages/server/src/domains/health/routes.py
+@app.route('/health')
+def health_check():
+    """Basic health check endpoint."""
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
+
+@app.route('/health/rag')
+def rag_health_check():
+    """Check RAG system components."""
+    # Verify Qdrant, Ollama, and worker connectivity
+    return check_rag_system_health()
 ```
 
 ### Security
-- **Input Validation**: Sanitize all user inputs
-- **Access Control**: Implement workspace/document-level permissions
-- **Audit Logging**: Track all queries and responses
-- **Data Privacy**: Ensure sensitive information is protected
+- **JWT Authentication**: Secure API access with token-based auth
+- **Workspace Scoping**: Users can only access their own workspaces/documents
+- **Input Validation**: Comprehensive validation using domain services
+- **Rate Limiting**: Configurable per-endpoint rate limits
 
 ## Common Pitfalls
 
@@ -398,15 +398,32 @@ def monitor_rag_performance():
 - **Hybrid Approaches**: Combine RAG with fine-tuned models
 - **Federated RAG**: Query across multiple knowledge bases
 
+## Implementation Status
+
+### Currently Implemented
+- **Vector RAG Pipeline**: Complete document processing and querying
+- **Multi-format Support**: PDF, DOCX, text, HTML document parsing
+- **Configurable Chunking**: Sentence-based chunking with overlap
+- **Embedding Models**: Ollama (local), OpenAI, Sentence Transformers
+- **Vector Storage**: Qdrant with workspace isolation
+- **Real-time Processing**: Async workers with WebSocket status updates
+- **Auto-retry Logic**: Queries without context are retried when documents are added
+
+### Planned Enhancements
+- **Graph RAG**: Neo4j-based entity relationship analysis
+- **Re-ranking**: Cross-encoder models for improved retrieval quality
+- **Query Expansion**: Multiple query variations for better results
+- **Hybrid Retrieval**: Combine vector and graph-based approaches
+- **Advanced Chunking**: Semantic chunking and hierarchical strategies
+
 ## Conclusion
 
-RAG represents a significant advancement in AI systems, enabling LLMs to provide accurate, up-to-date, and contextually relevant responses. By combining the reasoning capabilities of LLMs with efficient retrieval from external knowledge sources, RAG systems can tackle complex domain-specific problems that were previously challenging for AI systems.
+InsightHub's RAG implementation demonstrates a production-ready approach to document analysis with LLMs. The modular architecture using factory patterns allows for easy extension and customization. Key success factors include:
 
-The key to successful RAG implementation lies in:
-1. **Quality knowledge base preparation**
-2. **Effective chunking strategies**
-3. **Appropriate embedding models**
-4. **Efficient vector databases**
-5. **Well-engineered retrieval and generation pipelines**
+1. **Clean Architecture**: Separation of concerns with domain-driven design
+2. **Async Processing**: Worker-based pipeline prevents blocking operations
+3. **Real-time Feedback**: WebSocket updates keep users informed of progress
+4. **Workspace Isolation**: Multi-tenant architecture with data separation
+5. **Extensible Design**: Factory patterns enable easy addition of new components
 
-As the field continues to evolve, RAG will play an increasingly important role in building reliable and capable AI systems.
+The system successfully combines LLM reasoning with efficient document retrieval, providing contextually relevant responses for academic research and document analysis tasks.

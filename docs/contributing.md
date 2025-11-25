@@ -36,18 +36,39 @@ Thank you for your interest in contributing to InsightHub! This guide provides c
 
 ### Initial Setup
 
-1. **Fork and Clone**:
-   ```bash
-   git clone https://github.com/yourusername/insighthub.git
-   cd insighthub
-   ```
+1. **Prerequisites**:
+    ```bash
+    # Install Task (build automation)
+    sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
-2. **Backend Setup**:
-   ```bash
-   cd packages/server
-   poetry install
-   cp .env.example .env  # Configure as needed
-   ```
+    # Install Poetry (Python dependency management)
+    curl -sSL https://install.python-poetry.org | python3 -
+
+    # Install Bun (JavaScript runtime)
+    curl -fsSL https://bun.sh/install | bash
+    ```
+
+2. **Clone and Setup**:
+    ```bash
+    git clone https://github.com/yourusername/insighthub.git
+    cd insighthub
+
+    # Start infrastructure (PostgreSQL, Qdrant, etc.)
+    task up-infra
+    ```
+
+3. **Backend Setup**:
+    ```bash
+    cd packages/server
+    poetry install
+    cp .env.example .env  # Configure environment variables
+    ```
+
+4. **Frontend Setup**:
+    ```bash
+    cd packages/client
+    bun install
+    ```
 
 3. **Frontend Setup**:
    ```bash
@@ -80,17 +101,53 @@ Thank you for your interest in contributing to InsightHub! This guide provides c
 
 ## Development Workflow
 
-### 1. Create Feature Branch
+### Local Development
 
-```bash
-# Create a new feature branch from main
-git checkout main
-git pull origin main
-git checkout -b feature/your-feature-name
+1. **Containerized Development** (Recommended):
+    ```bash
+    # Start everything in containers with hot reload
+    task build-dev && task up-dev
 
-# Or for bug fixes
-git checkout -b fix/issue-description
-```
+    # Access points:
+    # Frontend: http://localhost:3000 (Vite HMR)
+    # Backend: http://localhost:5000 (Flask auto-reload)
+    ```
+
+2. **Local Development with Containerized Infra**:
+    ```bash
+    # Start infrastructure only
+    task up-infra
+
+    # Backend (terminal 1)
+    cd packages/server && task server
+
+    # Frontend (terminal 2)
+    cd packages/client && task dev
+    ```
+
+3. **Make Changes**:
+    - Backend: Edit files in `packages/server/src/`
+    - Frontend: Edit files in `packages/client/src/`
+    - Shared: Edit files in `packages/shared/`
+
+4. **Run Tests**:
+    ```bash
+    # All tests
+    task test
+
+    # Individual packages
+    cd packages/server && task test
+    cd packages/client && task test
+    ```
+
+5. **Code Quality**:
+    ```bash
+    # Format and lint
+    task format && task lint
+
+    # Type checking
+    cd packages/server && task typecheck
+    ```
 
 **Branch Naming Conventions**:
 - `feature/description` - New features and functionality

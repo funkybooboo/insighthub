@@ -24,7 +24,7 @@ def get_db() -> Generator[SqlDatabase, None, None]:
 def init_db(db_url: str | None = None) -> None:
     """Initialize the database by running migration SQL files."""
     url = db_url or config.DATABASE_URL
-    migrations_dir = Path(__file__).parent.parent.parent.parent / "migrations"
+    migrations_dir = Path(__file__).parent.parent.parent.parent.parent / "infra" / "migrations"
 
     # Get all migration files sorted by name
     migration_files = sorted(migrations_dir.glob("*.sql"))

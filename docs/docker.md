@@ -11,9 +11,9 @@ Comprehensive Docker setup and deployment guide for InsightHub dual RAG system w
 task build && task up
 
 # Access points:
-# Frontend: http://localhost:3000
+# Frontend: http://localhost:80 (Nginx)
+# API: http://localhost:8000 (Flask production)
 # ELK Monitoring: http://localhost:5601
-# API: http://localhost:8000
 ```
 
 ### Development Environment
@@ -23,8 +23,8 @@ task build && task up
 task build-dev && task up-dev
 
 # Access points:
-# Frontend Dev: http://localhost:3000 (Vite)
-# Backend Dev: http://localhost:5000 (Flask)
+# Frontend Dev: http://localhost:3000 (Vite HMR)
+# Backend Dev: http://localhost:5000 (Flask auto-reload)
 # ELK Monitoring: http://localhost:5601
 ```
 
@@ -35,6 +35,7 @@ task build-dev && task up-dev
 task up-infra
 
 # Services: PostgreSQL, Qdrant, MinIO, Ollama, RabbitMQ
+# Use this for local development with services running in containers
 ```
 
 ## Architecture Overview
@@ -42,11 +43,16 @@ task up-infra
 ### Service Components
 
 **Infrastructure Services** (always required):
-- **PostgreSQL** (port 5432) - Primary database
-- **Qdrant** (ports 6333, 6334) - Vector database with UI
-- **MinIO** (ports 9000, 9001) - Object storage with console
-- **Ollama** (port 11434) - Local LLM inference
-- **RabbitMQ** (ports 5672, 15672) - Message queue with management UI
+- **PostgreSQL** (port 5432) - Primary database for users, workspaces, chat
+- **Qdrant** (ports 6333, 6334) - Vector database for document embeddings
+- **MinIO** (ports 9000, 9001) - Object storage for uploaded documents
+- **Ollama** (port 11434) - Local LLM inference for embeddings and chat
+- **RabbitMQ** (ports 5672, 15672) - Message queue for async processing
+
+**Application Services**:
+- **Server** (port 5000 dev / 8000 prod) - Flask backend with WebSocket support
+- **Client** (port 3000 dev / 80 prod) - React frontend
+- **Workers** - Background processing (parser, chucker, embedder, indexer, chat)
 
 **Application Services**:
 - **Server** (port 5000 dev, 8000 prod) - Flask backend

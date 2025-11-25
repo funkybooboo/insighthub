@@ -1,5 +1,6 @@
 """Application context for dependency injection."""
 
+from shared.cache import create_cache
 from shared.database.sql import PostgresSqlDatabase, SqlDatabase
 from shared.database.vector import create_vector_database
 from shared.documents.embedding import create_embedding_encoder
@@ -106,7 +107,37 @@ def create_message_publisher() -> RabbitMQPublisher | None:
         return None
 
 
-def create_rag_system():
+def create_cache_instance():
+    """Create cache instance from config."""
+    if not config.REDIS_URL:
+        # Fall back to in-memory cache if Redis not configured
+        return create_cache("in_memory", default_ttl=3600)  # 1 hour default TTL
+
+    # Parse Redis URL
+    # Expected format: redis://[:password@]host:port/db
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(config.REDIS_URL)
+
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 6379
+        db = int(parsed.path.lstrip("/")) if parsed.path and parsed.path != "/" else 0
+        password = parsed.password
+
+        return create_cache(
+            "redis",
+            host=host,
+            port=port,
+            db=db,
+            password=password,
+            default_ttl=3600,  # 1 hour default TTL
+        )
+    except Exception:
+        # Redis configuration failed - fall back to in-memory
+        return create_cache("in_memory", default_ttl=3600)
+
+
+def create_rag_system(cache=None):
     """Create RAG system components from config."""
     try:
         # Create vector database
@@ -130,8 +161,8 @@ def create_rag_system():
         if not embedder:
             return None
 
-        # Create VectorRAG orchestrator
-        rag = VectorRAG(embedder=embedder, vector_store=vector_db)
+        # Create VectorRAG orchestrator with cache support
+        rag = VectorRAG(embedder=embedder, vector_store=vector_db, cache=cache)
         return rag
 
     except Exception:
@@ -147,6 +178,7 @@ class AppContext:
         db: SqlDatabase,
         blob_storage: BlobStorage | None = None,
         message_publisher: RabbitMQPublisher | None = None,
+        cache=None,
     ):
         """
         Initialize application context with dependencies.
@@ -155,6 +187,7 @@ class AppContext:
             db: SqlDatabase instance
             blob_storage: Optional blob storage instance (creates one if not provided)
             message_publisher: Optional RabbitMQ publisher (creates one if not provided)
+            cache: Optional cache instance (creates one if not provided)
         """
         self.db = db
 
@@ -166,11 +199,14 @@ class AppContext:
             message_publisher if message_publisher is not None else create_message_publisher()
         )
 
+        # Initialize cache
+        self.cache = cache if cache is not None else create_cache_instance()
+
         # Initialize LLM provider
         self.llm_provider = create_llm()
 
-        # Initialize RAG system (optional)
-        self.rag_system = create_rag_system()
+        # Initialize RAG system (optional) with cache support
+        self.rag_system = create_rag_system(cache=self.cache)
 
         # Create repositories using server implementations
         user_repo = UserRepository(db)
@@ -191,7 +227,8 @@ class AppContext:
             session_repository=session_repo,
             message_repository=message_repo,
             rag_system=self.rag_system,
-            message_publisher=self.message_publisher
+            message_publisher=self.message_publisher,
+            cache=self.cache
         )
         self.workspace_service = WorkspaceService(
             workspace_repo=workspace_repo,

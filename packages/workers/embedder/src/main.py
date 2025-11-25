@@ -5,22 +5,22 @@ Consumes: document.chunked
 Produces: document.embedded
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 from shared.workers import BaseWorker
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", "32"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+WORKER_CONCURRENCY = config.worker_concurrency
+EMBEDDING_MODEL = config.ollama_embedding_model
+BATCH_SIZE = config.batch_size
 
 
 @dataclass
@@ -89,16 +89,16 @@ class EmbedderWorker(BaseWorker):
         """Initialize the embedder worker."""
         super().__init__(
             worker_name="embedder",
-            rabbitmq_url=RABBITMQ_URL,
-            exchange=RABBITMQ_EXCHANGE,
+            rabbitmq_url=config.rabbitmq_url,
+            exchange=config.rabbitmq_exchange,
             exchange_type="topic",
             consume_routing_key="document.chunked",
             consume_queue="embedder.document.chunked",
-            prefetch_count=WORKER_CONCURRENCY,
+            prefetch_count=config.worker_concurrency,
         )
 
         # Initialize embedding generator
-        self.embedding_generator = EmbeddingGenerator(EMBEDDING_MODEL, BATCH_SIZE)
+        self.embedding_generator = EmbeddingGenerator(config.ollama_embedding_model, config.batch_size)
 
     def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
         """

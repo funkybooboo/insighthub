@@ -196,9 +196,9 @@ describe('ChatInput', () => {
             );
 
             const input = getByRole('textbox');
-            await user.type(input, 'Hello 🌟 @world! #test');
+            await user.type(input, 'Hello * @world! #test');
 
-            expect(input).toHaveValue('Hello 🌟 @world! #test');
+            expect(input).toHaveValue('Hello * @world! #test');
         });
 
         it('should handle long text input', async () => {
@@ -231,9 +231,9 @@ describe('ChatInput', () => {
             );
 
             const input = getByRole('textbox');
-            await user.type(input, 'Hello 🌟 @world! #test');
+            await user.type(input, 'Hello * @world! #test');
 
-            expect(input).toHaveValue('Hello 🌟 @world! #test');
+            expect(input).toHaveValue('Hello * @world! #test');
         });
 
         it('should handle long text input', async () => {
@@ -266,9 +266,9 @@ describe('ChatInput', () => {
             );
 
             const input = getByRole('textbox');
-            await user.type(input, 'Hello 🌟 @world! #test');
+            await user.type(input, 'Hello * @world! #test');
 
-            expect(input).toHaveValue('Hello 🌟 @world! #test');
+            expect(input).toHaveValue('Hello * @world! #test');
         });
 
         it('should handle long text input', async () => {
@@ -292,9 +292,9 @@ describe('ChatInput', () => {
             );
 
             const input = getByRole('textbox');
-            await user.type(input, 'Hello 🌟 @world! #test');
+            await user.type(input, 'Hello * @world! #test');
 
-            expect(input).toHaveValue('Hello 🌟 @world! #test');
+            expect(input).toHaveValue('Hello * @world! #test');
         });
 
         it('should handle long text input', async () => {

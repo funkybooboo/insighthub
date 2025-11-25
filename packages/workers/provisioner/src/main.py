@@ -5,10 +5,10 @@ Consumes: workspace.provision_requested
 Produces: workspace.provision_status
 """
 
-import os
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from shared.config import config
 import pika
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
@@ -19,12 +19,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment variables
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://insighthub:insighthub_dev@rabbitmq:5672/")
-RABBITMQ_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE", "insighthub")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://insighthub:insighthub_dev@postgres:5432/insighthub")
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
-WORKER_CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "4"))
+# Use unified config
+RABBITMQ_URL = config.rabbitmq_url
+RABBITMQ_EXCHANGE = config.rabbitmq_exchange
+DATABASE_URL = config.database_url
+QDRANT_URL = f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}"
+WORKER_CONCURRENCY = config.worker_concurrency
 
 
 @dataclass

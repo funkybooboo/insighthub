@@ -1,71 +1,122 @@
 # Configuration Guide
 
-This document explains how configuration works in the InsightHub server application.
+This document explains how configuration works in the InsightHub server application using Pydantic-based validation.
 
 ## Environment Files
 
 ### File Structure
 
 ```
-.env.example          # Template file (committed to git)
-.env.local.example    # Local-only setup template (committed to git)
-.env                  # Local development config (gitignored)
-.env.local            # Local-only config (gitignored)
-.env.test             # Test config (gitignored)
+infra/config/.env.local.example    # Development template (committed to git)
+infra/config/.env.prod.example      # Production template (committed to git)
+infra/config/.env.development       # Development config (gitignored) - Used by both server and workers
+infra/config/.env.local             # Personal overrides (gitignored)
+infra/config/.env.test              # Test config (gitignored)
+```
 ```
 
 ### Setup Instructions
 
-1. **Development Setup** (General):
-   ```bash
-   cp .env.example .env
-   # Edit .env with your local settings
-   ```
+1. **Development Setup**:
+     ```bash
+     cp infra/config/.env.local.example infra/config/.env.development
+     # Edit infra/config/.env.development with your development settings
+     ```
 
 2. **Local-Only Setup** (No external services):
-   ```bash
-   cp .env.local.example .env.local
-   # Edit .env.local with your local-only settings
-   # Uses local file storage, local Ollama, local Qdrant, etc.
-   ```
+     ```bash
+     cp infra/config/.env.local.example infra/config/.env.local
+     # Edit infra/config/.env.local with your local-only settings
+     # Uses local file storage, local Ollama, local Qdrant, etc.
+     ```
 
 3. **Test Setup**:
-   ```bash
-   cp .env.example .env.test
-   # Edit .env.test with test-specific settings
-   ```
+    ```bash
+    # .env.test is already configured for testing
+    # Edit if you need different test settings
+    ```
 
 4. **Production**:
-   - DO NOT use .env files in production
-   - Set environment variables directly via:
-     - Docker environment variables
-     - Kubernetes secrets/configmaps
-     - Cloud platform environment configuration
+    - DO NOT use .env files in production
+    - Set environment variables directly via:
+      - Docker environment variables
+      - Kubernetes secrets/configmaps
+      - Cloud platform environment configuration
 
 ## How Config Loading Works
 
-The `src/config.py` module automatically loads the correct environment file:
+The `src/config.py` module uses Pydantic Settings for type-safe configuration loading:
 
 ```python
-if os.getenv("PYTEST_CURRENT_TEST"):
-    # Running tests -> load .env.test
-    load_dotenv(".env.test", override=True)
-elif os.path.exists(".env"):
-    # Development -> load .env
-    load_dotenv(".env")
-# Production -> use environment variables (no file)
+# Priority order (higher = more precedence):
+# 1. Environment variables (highest - from Docker/K8s)
+# 2. infra/config/.env.local (personal overrides)
+# 3. infra/config/.env.development (development defaults - used by both server and workers)
+# 4. Pydantic field defaults (lowest)
 ```
 
-**Priority Order**:
-1. `.env.local` (if it exists, highest priority)
-2. `.env` (standard development config)
-3. Environment variables (production)
+**Configuration Sources** (in priority order):
+1. **Environment Variables** - Highest priority (production)
+2. **`.env.local`** - Local development overrides
+3. **`.env`** - Standard development config
+4. **Field Defaults** - Built-in defaults (lowest priority)
 
-To use local-only config:
-```bash
-cp .env.local.example .env.local
-# Now .env.local takes precedence over .env
+## Pydantic Configuration System
+
+InsightHub uses Pydantic Settings for robust, type-safe configuration:
+
+### Core Features
+
+- **Type Validation**: All config values are validated at startup
+- **Environment Variable Mapping**: Automatic env var loading
+- **Nested Configurations**: Hierarchical config objects
+- **Validation Rules**: Custom validators for complex requirements
+- **Documentation**: Self-documenting with descriptions
+
+### Example Usage
+
+```python
+from src.config import config
+
+# Type-safe access with autocomplete
+db_url = config.database.url  # Validated string
+redis_ttl = config.redis.default_ttl  # Validated int
+llm_provider = config.llm.provider  # Enum-validated
+cors_origins = config.security.cors_origins  # List[str]
 ```
+
+### Configuration Classes
+
+```python
+class DatabaseConfig(BaseSettings):
+    url: str = Field(description="Database connection URL")
+    pool_size: int = Field(default=10, description="Connection pool size")
+
+class AppConfig(BaseSettings):
+    database: DatabaseConfig
+    redis: RedisConfig = RedisConfig()
+    llm: LLMConfig = LLMConfig()
+    security: SecurityConfig
+```
+
+## Configuration Validation
+
+The system validates configuration at startup:
+
+```python
+def validate_config(self) -> None:
+    """Validate configuration and raise errors for invalid configurations."""
+    # Production requirements
+    if self.environment == Environment.PRODUCTION:
+        if not self.redis.url:
+            raise ValueError("REDIS_URL is required in production")
+
+    # LLM provider validation
+    if self.llm.provider == "openai" and not self.llm.openai_api_key:
+        raise ValueError("OPENAI_API_KEY is required when using OpenAI provider")
+```
+
+
 
 ## Configuration Sections
 

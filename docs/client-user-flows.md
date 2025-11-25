@@ -2,47 +2,49 @@
 
 This document provides a detailed breakdown of every significant user action within the InsightHub React Frontend, mapping the client-side flow, API interactions, and expected backend/worker behaviors. This level of detail aims to clarify the full application flow for developers working on the server and worker components.
 
+**Note**: This documentation is based on the actual implementation in the codebase as of the current version. Some advanced features (like Graph RAG, dedicated chat orchestrator workers, and Wikipedia fetching) are planned but not yet fully implemented. The current implementation focuses on Vector RAG with asynchronous document processing.
+
 ---
 
 ## Table of Contents
 
 1.  [User Authentication](#1-user-authentication)
-    *   [User Login](#user-login)
-    *   [User Signup](#user-signup)
-    *   [User Logout](#user-logout)
-    *   [Get Current User Profile](#get-current-user-profile)
-    *   [Update User Profile](#update-user-profile)
-    *   [Update User Preferences (e.g., Theme)](#update-user-preferences-eg-theme)
-    *   [Change User Password](#change-user-password)
+     *   [User Login](#user-login)
+     *   [User Signup](#user-signup)
+     *   [User Logout](#user-logout)
+     *   [Get Current User Profile](#get-current-user-profile)
+     *   [Update User Profile](#update-user-profile)
+     *   [Update User Preferences (e.g., Theme)](#update-user-preferences-eg-theme)
+     *   [Change User Password](#change-user-password)
 2.  [Default RAG Configuration Management](#2-default-rag-configuration-management)
-    *   [Fetch Default RAG Config](#fetch-default-rag-config)
-    *   [Save Default RAG Config](#save-default-rag-config)
+     *   [Fetch Default RAG Config](#fetch-default-rag-config)
+     *   [Save Default RAG Config](#save-default-rag-config)
 3.  [Workspace Management](#3-workspace-management)
-    *   [List Workspaces](#list-workspaces)
-    *   [Select Active Workspace](#select-active-workspace)
-    *   [Create New Workspace](#create-new-workspace)
-    *   [View Workspace Details](#view-workspace-details)
-    *   [Edit Workspace Details](#edit-workspace-details)
-    *   [Delete Workspace](#delete-workspace)
+     *   [List Workspaces](#list-workspaces)
+     *   [Select Active Workspace](#select-active-workspace)
+     *   [Create New Workspace](#create-new-workspace)
+     *   [View Workspace Details](#view-workspace-details)
+     *   [Edit Workspace Details](#edit-workspace-details)
+     *   [Delete Workspace](#delete-workspace)
 4.  [Chat Session Management](#4-chat-session-management)
-    *   [Create New Chat Session](#create-new-chat-session)
-    *   [Select Active Chat Session](#select-active-chat-session)
-    *   [Delete Chat Session](#delete-chat-session)
+     *   [Create New Chat Session](#create-new-chat-session)
+     *   [Select Active Chat Session](#select-active-chat-session)
+     *   [Delete Chat Session](#delete-chat-session)
 5.  [Document Management](#5-document-management)
-    *   [Upload Document](#upload-document)
-    *   [List Documents in Workspace](#list-documents-in-workspace)
-    *   [Delete Document](#delete-document)
+     *   [Upload Document](#upload-document)
+     *   [List Documents in Workspace](#list-documents-in-workspace)
+     *   [Delete Document](#delete-document)
 6.  [Chat Interaction](#6-chat-interaction)
-    *   [Send Chat Message](#send-chat-message)
-    *   [Cancel Chat Message Streaming](#cancel-chat-message-streaming)
-    *   [RAG Enhancement Prompt (No Context Found)](#rag-enhancement-prompt-no-context-found)
-        *   [Action: Upload a Document (from Prompt)](#action-upload-a-document-from-prompt)
-        *   [Action: Fetch from Wikipedia (from Prompt)](#action-fetch-from-wikipedia-from-prompt)
-        *   [Action: Continue without additional context (from Prompt)](#action-continue-without-additional-context-from-prompt)
+     *   [Send Chat Message](#send-chat-message)
+     *   [Cancel Chat Message Streaming](#cancel-chat-message-streaming)
+     *   [RAG Enhancement Prompt (No Context Found)](#rag-enhancement-prompt-no-context-found)
+         *   [Action: Upload a Document (from Prompt)](#action-upload-a-document-from-prompt)
+         *   [Action: Fetch from Wikipedia (from Prompt)](#action-fetch-from-wikipedia-from-prompt)
+         *   [Action: Continue without additional context (from Prompt)](#action-continue-without-additional-context-from-prompt)
 7.  [Real-time Status Updates (WebSocket)](#7-real-time-status-updates-websocket)
-    *   [Document Status Updates](#document-status-updates)
-    *   [Workspace Status Updates](#workspace-status-updates)
-    *   [Wikipedia Fetch Status Updates](#wikipedia-fetch-status-updates)
+     *   [Document Status Updates](#document-status-updates)
+     *   [Workspace Status Updates](#workspace-status-updates)
+     *   [Wikipedia Fetch Status Updates](#wikipedia-fetch-status-updates)
 
 ---
 
@@ -65,16 +67,16 @@ This document provides a detailed breakdown of every significant user action wit
 *   **Success Handling**: If API succeeds, JWT token saved to `localStorage`, `authSlice.login.fulfilled` dispatched, user navigated to `/` (main application).
 
 **Backend/Worker Interactions (Expected)**:
-*   **Server**:
+*   **Server** (`packages/server/src/domains/auth/routes.py`):
     *   Receives `POST /api/auth/login`.
-    *   Validates credentials against PostgreSQL user records.
-    *   If valid, generates a JWT.
+    *   Validates credentials against PostgreSQL user records using `UserService`.
+    *   If valid, generates a JWT using `jwt_utils.py`.
     *   Responds with JWT and user details.
 *   **Workers**: No direct worker interaction for login.
 
 **Real-time Feedback (Client-Side)**:
-*   Upon successful login, the client connects to the WebSocket server.
-*   `socketService.onConnected` event confirms connection, potentially logging "Connected to chat server".
+*   Upon successful login, the client connects to the WebSocket server via `socketService`.
+*   `socketService.onConnected` event confirms connection.
 
 ---
 
@@ -389,18 +391,18 @@ This document provides a detailed breakdown of every significant user action wit
 *   **Success Handling**: `workspaceSlice.addWorkspace` adds new workspace to Redux state. `workspaceSlice.setActiveWorkspace` sets it as active. Modal closes.
 
 **Backend/Worker Interactions (Expected)**:
-*   **Server**:
+*   **Server** (`packages/server/src/domains/workspaces/routes.py`):
     *   Receives `POST /api/workspaces`.
-    *   Authenticates JWT.
-    *   Validates input.
+    *   Authenticates JWT using middleware.
+    *   Validates input using `WorkspaceService`.
     *   Creates new workspace record in PostgreSQL with status 'provisioning'.
     *   Creates workspace RAG config record in PostgreSQL.
     *   Responds with the new workspace object.
-    *   **Publishes `workspace.provision_requested` event to RabbitMQ** (payload includes workspace_id, rag_config).
-*   **Worker (Orchestrator)**:
+    *   **Publishes `workspace.provision_requested` event to RabbitMQ** via `message_publisher`.
+*   **Worker (Provisioner)** (`packages/workers/provisioner/`):
     *   Consumes `workspace.provision_requested` event.
-    *   Initiates provisioning of RAG system resources (e.g., Qdrant collection, Neo4j graph structure).
-    *   Sends granular status updates via WebSocket events (e.g., `workspace_status`) to the server as provisioning progresses.
+    *   Creates Qdrant collection for the workspace.
+    *   Sends status updates via WebSocket events (`workspace_status`) to the server.
 
 **Real-time Feedback (Client-Side)**:
 *   The new workspace appears in the sidebar list with a 'provisioning' status badge and a loading spinner.
@@ -496,11 +498,10 @@ This document provides a detailed breakdown of every significant user action wit
     *   Updates workspace status in PostgreSQL to 'deleting'.
     *   **Publishes `workspace.deletion_requested` event to RabbitMQ** (payload includes workspace_id).
     *   Responds with initiation confirmation.
-*   **Worker (Orchestrator)**:
+*   **Worker (Deletion Worker)** (`packages/workers/deletion/`):
     *   Consumes `workspace.deletion_requested` event.
-    *   Initiates asynchronous cleanup of all RAG system resources (e.g., Qdrant collection, Neo4j graph) and associated documents/chat sessions in PostgreSQL.
-    *   Sends granular status updates via WebSocket events (e.g., `workspace_status`) to the server as deletion progresses.
-    *   Upon completion, it sends a final `workspace_status` event with `status: 'ready'` or `status: 'failed'` (if cleanup fails).
+    *   Cleans up RAG system resources (Qdrant collection) and associated data.
+    *   Sends status updates via `workspace_status` WebSocket events.
 
 **Real-time Feedback (Client-Side)**:
 *   Workspace in sidebar shows 'deleting' status badge.
@@ -519,12 +520,11 @@ This document provides a detailed breakdown of every significant user action wit
 **Client-Side Flow**:
 *   **UI State**: A new empty chat session appears in the Chat Sessions list.
 *   **Redux Actions**: `chatSlice.createSession` dispatched, creating a new local chat session. `chatSlice.setActiveSession` dispatched, making the new session active.
-*   **API Call**: No direct API call is made immediately. Chat sessions are managed locally until a message is sent.
-*   **Error Handling**: N/A.
+*   **API Call**: No direct API call. Chat sessions are managed locally until a message is sent.
 *   **Success Handling**: A new empty chat interface is displayed.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: No direct interaction until a message is sent in the new session.
+**Backend/Worker Interactions**:
+*   **Server**: No direct interaction until a message is sent.
 *   **Workers**: No direct interaction.
 
 **Real-time Feedback (Client-Side)**:
@@ -539,11 +539,10 @@ This document provides a detailed breakdown of every significant user action wit
 **Client-Side Flow**:
 *   **UI State**: The selected chat session is highlighted as active.
 *   **Redux Actions**: `chatSlice.setActiveSession(sessionId)` dispatched.
-*   **API Call**: No API call is made. Chat history is retrieved from local Redux state.
-*   **Error Handling**: N/A.
+*   **API Call**: No API call. Chat history retrieved from local Redux state.
 *   **Success Handling**: The chat panel displays the messages of the selected session.
 
-**Backend/Worker Interactions (Expected)**:
+**Backend/Worker Interactions**:
 *   **Server**: No direct interaction.
 *   **Workers**: No direct interaction.
 
@@ -554,17 +553,16 @@ This document provides a detailed breakdown of every significant user action wit
 
 ### Delete Chat Session
 
-**User Action**: User clicks the delete icon next to a chat session in the left sidebar, and confirms deletion in the dialog.
+**User Action**: User clicks the delete icon next to a chat session in the left sidebar, and confirms deletion.
 
 **Client-Side Flow**:
-*   **UI State**: Delete confirmation dialog opens. "Delete" button disabled during deletion.
+*   **UI State**: Delete confirmation dialog opens.
 *   **Redux Actions**: `chatSlice.deleteSession(sessionId)` dispatched.
-*   **API Call**: No direct API call to delete from backend. Chat sessions are currently managed client-side only (locally).
-*   **Error Handling**: N/A.
-*   **Success Handling**: The chat session is removed from the Redux state and the UI. If the deleted session was active, the client typically switches to the next available session or displays an empty chat state.
+*   **API Call**: No API call. Chat sessions are currently managed client-side only.
+*   **Success Handling**: The chat session is removed from Redux state and UI.
 
-**Backend/Worker Interactions (Expected)**):
-*   **Server**: No direct interaction (as chat sessions are local). (Future enhancement: persist chat sessions on backend).
+**Backend/Worker Interactions**:
+*   **Server**: No direct interaction (chat sessions are local).
 *   **Workers**: No direct interaction.
 
 **Real-time Feedback (Client-Side)**:
@@ -576,44 +574,54 @@ This document provides a detailed breakdown of every significant user action wit
 
 ### Upload Document
 
-**User Action**: User clicks the "Upload Document" button (either in the right column or triggered by the RAG Enhancement Prompt), selects a file(s) from their system
-       and confirms upload.
+**User Action**: User clicks the "Upload Document" button, selects a file(s) from their system and confirms upload.
 
 **Client-Side Flow**:
-*   **UI State**: Upload button disabled, file input disabled. Loading spinner shown next to the file name in the document list, with progress percentage if available
-       Document list might be automatically refreshed.
-*   **Redux Actions**: Implicitly, `statusSlice.updateDocumentStatus` is dispatched multiple times throughout the upload and processing.
+*   **UI State**: Upload button disabled, file input disabled. Loading spinner shown next to the file name in the document list.
+*   **Redux Actions**: `statusSlice.updateDocumentStatus` dispatched multiple times during processing.
 *   **API Call**:
-*   **Method**: `POST`
-*   **Endpoint**: `/api/workspaces/{workspaceId}/documents/upload` (JWT in Authorization header)
-*   **Payload**: `multipart/form-data` containing the file.
-*   **Expected Response (Success)**: `200 OK`, `{"message": "Document upload initiated", "document": {"id": 101, "filename": "report.pdf", ...}}`.
-*   **Expected Response (Failure)**: `400 Bad Request` (e.g., invalid file type, too large), `{"detail": "Error message"}`.
-*   **Error Handling**: Error message displayed in the UI (e.g., next to the document in the list, or a toast notification). Document status updated to 'failed'.
-*   **Success Handling**: Document is added to the local Redux state with 'pending' or 'parsing' status. UI updates to show the document in the list.
+    *   **Method**: `POST`
+    *   **Endpoint**: `/api/workspaces/{workspaceId}/documents/upload` (JWT in Authorization header)
+    *   **Payload**: `multipart/form-data` containing the file.
+    *   **Expected Response (Success)**: `200 OK`, `{"message": "Document upload initiated", "document": {"id": 101, "filename": "report.pdf", ...}}`.
+    *   **Expected Response (Failure)**: `400 Bad Request` (e.g., invalid file type, too large), `{"detail": "Error message"}`.
+*   **Error Handling**: Error message displayed in the UI. Document status updated to 'failed'.
+*   **Success Handling**: Document added to Redux state with 'pending' status. UI shows document in list.
 
 **Backend/Worker Interactions (Expected)**:
-*   **Server**:
-*   Receives `POST /api/workspaces/{workspaceId}/documents/upload`.
-*   Authenticates JWT.
-*   Validates workspace access and file.
-*   Saves file to BlobStorage (e.g., MinIO/S3).
-*   Creates Document record in PostgreSQL with status 'pending'.
-*   Responds with confirmation and initial document details.
-*   **Publishes `document.uploaded` event to RabbitMQ** (payload includes document_id, workspace_id, file_path_in_blob_storage).
-*   **Worker (Ingestion Worker Chain)**:
-*   **Parser Worker**: Consumes `document.uploaded`. Parses document text. Publishes `document.parsed`.
-*   **Chunker Worker**: Consumes `document.chunked`. Chunks text. Publishes `document.chunked`.
-*   **Embedder Worker**: Consumes `document.chunked`. Generates embeddings. Publishes `document.embedded`.
-*   **Indexer Worker**: Consumes `document.embedded`. Indexes vectors/graphs in Qdrant/Neo4j. Publishes `document.indexed`.
-*   **All Workers**: Send granular status updates to server via `document_status` WebSocket events as they process.
-*   **Server (receiving worker updates)**:
-*   Updates Document `processing_status` in PostgreSQL.
-*   **Emits real-time `document_status` WebSocket events to the client.**
+*   **Server** (`packages/server/src/domains/workspaces/documents/routes.py`):
+    *   Receives `POST /api/workspaces/{workspaceId}/documents/upload`.
+    *   Authenticates JWT.
+    *   Validates workspace access and file.
+    *   Saves file to MinIO/S3 via `BlobStorage`.
+    *   Creates Document record in PostgreSQL with status 'pending'.
+    *   Responds with confirmation and initial document details.
+    *   **Publishes `document.uploaded` event to RabbitMQ** via `message_publisher`.
+*   **Worker (Parser)** (`packages/workers/parser/`):
+    *   Consumes `document.uploaded` event.
+    *   Extracts text from PDF/DOCX using document parsers from shared library.
+    *   Updates document record with extracted text.
+    *   **Publishes `document.parsed` event** to RabbitMQ.
+*   **Worker (Chunker)** (`packages/workers/chucker/`):
+    *   Consumes `document.parsed` event.
+    *   Splits text into chunks using chunking strategies from shared library.
+    *   **Publishes `document.chunked` event** to RabbitMQ.
+*   **Worker (Embedder)** (`packages/workers/embedder/`):
+    *   Consumes `document.chunked` event.
+    *   Generates vector embeddings using Ollama/Sentence Transformers.
+    *   **Publishes `document.embedded` event** to RabbitMQ.
+*   **Worker (Indexer)** (`packages/workers/indexer/`):
+    *   Consumes `document.embedded` event.
+    *   Stores vectors in Qdrant collection for the workspace.
+    *   **Publishes `document.indexed` event** to RabbitMQ.
+*   **Server (Status Consumer)** (`api.py`):
+    *   Receives status updates from workers via `status_consumer`.
+    *   Updates Document `processing_status` in PostgreSQL.
+    *   **Emits real-time `document_status` WebSocket events to the client.**
 
 **Real-time Feedback (Client-Side)**:
 *   Document entry in the right column updates with status (`pending`, `parsing`, `chunking`, `embedding`, `indexing`, `ready`, `failed`).
-*   If triggered by RAG enhancement prompt, `ChatBot` remains paused until document status becomes 'ready' for the active workspace, then retries the last query.
+*   If triggered by RAG enhancement prompt, `ChatBot` waits until document status becomes 'ready', then auto-retries the last query.
 
 ---
 
@@ -688,39 +696,37 @@ This document provides a detailed breakdown of every significant user action wit
 **User Action**: User types a message in the chat input field and clicks "Send" or presses "Enter".
 
 **Client-Side Flow**:
-*   **UI State**: Chat input field disabled, send button disabled. User message immediately appended to chat history with a 'pending' status.
-*   **Redux Actions**: `chatSlice.addMessage` dispatched to add the user's message. `chatSlice.startStreamingResponse` dispatched to indicate bot response is incoming.
-*   **API Call**:
-    *   **Method**: `POST`
-    *   **Endpoint**: `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` (JWT in Authorization header)
-    *   **Payload**: `{"content": "user's message content", "message_type": "user"}`
-    *   **Expected Response (Success)**: `200 OK`, `{"message": "Query received, streaming response..."}` (initial ACK). The actual bot response will be streamed via WebSocket.
-    *   **Expected Response (Failure)**: `400 Bad Request` (e.g., invalid message), `{"detail": "Error message"}` or `401 Unauthorized`.
-*   **Error Handling**: If API fails, `chatSlice.addMessage` might update the user message status to 'failed', or an error message toast is displayed.
-*   **Success Handling**: The server acknowledges the message. The client then listens for WebSocket events for the streamed bot response.
+*   **UI State**: Chat input field disabled, send button disabled. User message immediately appended to chat history.
+*   **Redux Actions**: `chatSlice.addMessageToSession` dispatched to add the user's message. `chatSlice.setTyping(true)` dispatched.
+*   **WebSocket Call**:
+    *   **Event**: `chat_message`
+    *   **Payload**: `{"message": "user's message content", "session_id": 123, "workspace_id": 456, "rag_type": "vector"}`
+*   **Error Handling**: If WebSocket fails, error message displayed.
+*   **Success Handling**: Client listens for WebSocket events for the streamed bot response.
 
 **Backend/Worker Interactions (Expected)**:
-*   **Server**:
-    *   Receives `POST /api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages`.
+*   **Server** (`packages/server/src/domains/workspaces/chat/routes.py`):
+    *   Receives WebSocket `chat_message` event.
     *   Authenticates JWT and authorizes workspace/session access.
-    *   Stores user message in PostgreSQL.
-    *   **Publishes `chat.message_received` event to RabbitMQ** (payload includes message_id, session_id, workspace_id, user_message_content).
-    *   Responds with initial success message.
-    *   **Emits real-time `chat.response_chunk` WebSocket events to the client** as the LLM generates the response.
-    *   **Emits `chat.response_complete` or `chat.error` WebSocket events** upon completion or failure.
-*   **Worker (Chat Orchestrator)**:
+    *   Stores user message in PostgreSQL via `ChatService`.
+    *   **Publishes `chat.message_received` event to RabbitMQ** via `message_publisher`.
+    *   Chat worker processes the message asynchronously.
+*   **Worker (Chat Worker)** (`packages/workers/chat/`):
     *   Consumes `chat.message_received` event.
-    *   Orchestrates the RAG pipeline:
-        1.  Retrieves relevant context from the active workspace's RAG system (Vector Store / Graph Store) based on the user's query and chat history.
-        2.  Sends the query + retrieved context to the configured LLM.
-        3.  Streams LLM response chunks back to the server.
-    *   If no context is found, it can trigger a `chat.no_context_found` event, leading to the RAG Enhancement Prompt on the client.
+    *   Performs RAG retrieval using `VectorRAG` from shared library.
+    *   Calls LLM (Ollama/OpenAI) with retrieved context.
+    *   **Publishes response chunks** via `chat.response_chunk` events to RabbitMQ.
+    *   **Publishes completion** via `chat.response_complete` event.
+*   **Server (Event Consumer)** (`api.py`):
+    *   Receives chat events from RabbitMQ via `chat_event_consumer`.
+    *   Forwards `chat.response_chunk` events as WebSocket events to client.
+    *   Forwards `chat.response_complete` event to client.
 
 **Real-time Feedback (Client-Side)**:
-*   The bot's response is streamed into the chat interface character-by-character or word-by-word.
-*   A 'typing' indicator might be shown while the bot is generating a response.
-*   Upon completion, the bot's full message appears, and the input field is re-enabled.
-*   If `chat.no_context_found` is emitted, the RAG Enhancement Prompt appears.
+*   The bot's response is streamed into the chat interface token-by-token.
+*   Typing indicator shown while bot is generating response.
+*   Upon completion, bot's full message appears, input field re-enabled.
+*   If no context found, `chat.no_context_found` event triggers RAG Enhancement Prompt.
 
 ### Cancel Chat Message Streaming
 
@@ -744,7 +750,7 @@ This document provides a detailed breakdown of every significant user action wit
     *   Authenticates JWT.
     *   Sends a signal to the appropriate worker/LLM process to stop generating further response chunks for that specific session/message.
     *   Responds with confirmation.
-*   **Worker (Chat Orchestrator)**:
+*   **Worker (Chat Worker)**:
     *   Receives cancellation signal.
     *   Aborts the ongoing LLM generation and any further RAG processing for that message.
 
@@ -762,9 +768,9 @@ This document provides a detailed breakdown of every significant user action wit
 *   **Error Handling**: N/A.
 *   **Success Handling**: N/A.
 
-**Backend/Worker Interactions (Expected)**:
+**Backend/Worker Interactions**:
 *   **Server**: Emits `chat.no_context_found` WebSocket event to the client based on worker feedback.
-*   **Workers**: Chat Orchestrator worker determines no context was found for the user's query and signals the server.
+*   **Workers**: Chat worker determines no context was found and publishes `chat.no_context_found` event.
 
 **Real-time Feedback (Client-Side)**:
 *   The chat interface pauses, displaying the prompt options.
@@ -774,20 +780,18 @@ This document provides a detailed breakdown of every significant user action wit
 **User Action**: User clicks "Upload a Document" from the RAG Enhancement Prompt, selects a file(s), and confirms.
 
 **Client-Side Flow**:
-*   **UI State**: Prompt options are replaced by the file upload interface or a modal. Upload progress displayed.
-*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched. (Further actions mirror `Upload Document` flow).
-*   **API Call**: (Mirrors `Upload Document` flow).
-*   **Expected Response (Success)**: (Mirrors `Upload Document` flow).
-*   **Expected Response (Failure)**: (Mirrors `Upload Document` flow).
-*   **Error Handling**: (Mirrors `Upload Document` flow).
-*   **Success Handling**: Upon successful upload and document processing (`document_status: 'ready'`), the client automatically re-sends the original query that triggered the prompt.
+*   **UI State**: Prompt options replaced by file upload interface. Upload progress displayed.
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched.
+*   **API Call**: Same as `Upload Document` flow.
+*   **Success Handling**: Upon successful upload and document processing (`document_status: 'ready'`), the client automatically re-sends the original query.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: (Mirrors `Upload Document` flow).
-*   **Workers**: (Mirrors `Upload Document` flow).
+**Backend/Worker Interactions**:
+*   **Server**: Same as `Upload Document` flow.
+*   **Workers**: Same as `Upload Document` flow.
+*   **Auto-retry**: When document becomes 'ready', `ChatService.retry_pending_rag_queries()` is called to re-run the original query with new context.
 
 **Real-time Feedback (Client-Side)**:
-*   Document processing status updates are shown. Once ready, the chat re-submits the query.
+*   Document processing status updates shown. Once ready, chat automatically retries the query without user intervention.
 
 #### Action: Fetch from Wikipedia (from Prompt)
 
@@ -827,19 +831,16 @@ This document provides a detailed breakdown of every significant user action wit
 
 **Client-Side Flow**:
 *   **UI State**: Prompt options disappear. Chat input re-enabled.
-*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched. The original user query is re-submitted, but this time with a flag indicating to the server to *not* attempt RAG retrieval (or proceed with minimal context).
-*   **API Call**: (Mirrors `Send Chat Message` flow, but with an additional flag in payload, e.g., `"ignore_rag": true`).
-*   **Expected Response (Success)**: (Mirrors `Send Chat Message` flow).
-*   **Expected Response (Failure)**: (Mirrors `Send Chat Message` flow).
-*   **Error Handling**: (Mirrors `Send Chat Message` flow).
-*   **Success Handling**: (Mirrors `Send Chat Message` flow).
+*   **Redux Actions**: `chatSlice.setEnhancementPromptVisible(false)` dispatched.
+*   **WebSocket Call**: Re-sends the original query with `ignore_rag: true` flag.
+*   **Success Handling**: Chat proceeds with LLM response without RAG context.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: Receives message, passes the `ignore_rag` flag to the worker.
-*   **Worker (Chat Orchestrator)**: Processes the query, but bypasses or minimizes RAG retrieval based on the `ignore_rag` flag.
+**Backend/Worker Interactions**:
+*   **Server**: Receives message with `ignore_rag: true` flag.
+*   **Chat Worker**: Processes query but skips RAG retrieval, calls LLM directly.
 
 **Real-time Feedback (Client-Side)**:
-*   The bot provides a response, potentially less informed if no context was found.
+*   Bot provides response without retrieved context (may be less informed).
 
 ---
 
@@ -850,53 +851,100 @@ This document provides a detailed breakdown of every significant user action wit
 **WebSocket Event**: `document_status`
 
 **Client-Side Flow**:
-*   **Event Listener**: Client (e.g., `socketService`, `DocumentManager` component) listens for `document_status` events.
-*   **Data Structure (Expected)**: `{"document_id": "uuid", "workspace_id": "uuid", "status": "pending" | "parsing" | "chunking" | "embedding" | "indexing" | "ready" | "failed" | "deleted", "message": "Optional status message"}`
-*   **Redux Actions**: `statusSlice.updateDocumentStatus` dispatched with the received status update.
-*   **Error Handling**: If `status` is "failed", an error message might be displayed to the user.
-*   **Success Handling**: UI (e.g., `DocumentList`) updates the status badge/indicator for the specific document.
+*   **Event Listener**: `socketService` listens for `document_status` events.
+*   **Data Structure**: `{"document_id": 123, "workspace_id": 456, "status": "pending" | "parsing" | "chunking" | "embedding" | "indexing" | "ready" | "failed", "message": "Optional status message"}`
+*   **Redux Actions**: `statusSlice.updateDocumentStatus` dispatched.
+*   **Error Handling**: If `status` is "failed", error message displayed.
+*   **Success Handling**: `DocumentList` updates status badge for the specific document.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: Receives status updates from Ingestion Workers (Parser, Chunker, Embedder, Indexer) and immediately emits them as `document_status` WebSocket events to relevant clients (users subscribed to that workspace).
-*   **Workers**: After completing each stage of document processing (parsing, chunking, embedding, indexing), workers send a status update to the server.
+**Backend/Worker Interactions**:
+*   **Server** (`api.py` status consumer): Receives status updates from workers and emits `document_status` WebSocket events.
+*   **Workers**: Parser, Chunker, Embedder, Indexer workers send status updates after each processing stage.
 
 **Real-time Feedback (Client-Side)**:
-*   Document status is dynamically updated in the `DocumentList` as it progresses through ingestion.
+*   Document status dynamically updated in `DocumentList` as it progresses through ingestion pipeline.
 
 ### Workspace Status Updates
 
 **WebSocket Event**: `workspace_status`
 
 **Client-Side Flow**:
-*   **Event Listener**: Client (e.g., `socketService`, `WorkspaceColumn`, `WorkspaceDetailPage`) listens for `workspace_status` events.
-*   **Data Structure (Expected)**: `{"workspace_id": "uuid", "status": "provisioning" | "ready" | "deleting" | "failed", "message": "Optional status message"}`
-*   **Redux Actions**: `statusSlice.updateWorkspaceStatus` dispatched. If `status` becomes "ready" after a "provisioning" state, it might trigger `workspaceSlice.setWorkspaceReady`. If `status` becomes "ready" after a "deleting" state, it triggers `workspaceSlice.removeWorkspace`.
-*   **Error Handling**: If `status` is "failed", an error message related to workspace provisioning/deletion is displayed.
-*   **Success Handling**: UI (e.g., workspace name in sidebar, `WorkspaceDetailPage`) updates the status badge/indicator for the specific workspace.
+*   **Event Listener**: `socketService` listens for `workspace_status` events.
+*   **Data Structure**: `{"workspace_id": 123, "status": "provisioning" | "ready" | "deleting" | "failed", "message": "Optional status message"}`
+*   **Redux Actions**: `statusSlice.updateWorkspaceStatus` dispatched.
+*   **Error Handling**: If `status` is "failed", error message displayed.
+*   **Success Handling**: Workspace status updated in sidebar and detail pages.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: Receives status updates from the Orchestrator Worker regarding workspace provisioning or deletion and immediately emits them as `workspace_status` WebSocket events.
-*   **Worker (Orchestrator)**: Sends status updates to the server as it provisions or deletes workspace resources.
+**Backend/Worker Interactions**:
+*   **Server** (`api.py` status consumer): Receives status updates from provisioner/deletion workers and emits `workspace_status` WebSocket events.
+*   **Provisioner Worker**: Sends status updates during workspace creation (Qdrant collection setup).
 
 **Real-time Feedback (Client-Side)**:
-*   Workspace status is dynamically updated (e.g., 'provisioning' with a spinner, 'ready' with a checkmark, 'deleting' with a warning). Interactive elements for the workspace may enable/disable based on its status.
+*   Workspace status dynamically updated with spinners/badges. Interactive elements enable/disable based on status.
+
+### Chat Streaming Events
+
+**WebSocket Events**: `chat_chunk`, `chat_complete`, `chat_error`, `chat_no_context_found`
+
+**Client-Side Flow**:
+*   **Event Listener**: `socketService` forwards events to `ChatBot` component.
+*   **Data Structures**:
+    *   `chat_chunk`: `{"chunk": "token_text"}`
+    *   `chat_complete`: `{"session_id": 123, "full_response": "complete response"}`
+    *   `chat_error`: `{"error": "error message"}`
+    *   `chat_no_context_found`: Triggers RAG enhancement prompt
+*   **Redux Actions**: `chatSlice.updateMessageInSession` for chunks, `chatSlice.setTyping(false)` on complete.
+*   **Success Handling**: Chat interface streams response token-by-token, then shows complete message.
+
+**Backend/Worker Interactions**:
+*   **Chat Worker**: Publishes `chat.response_chunk`/`chat.response_complete` events to RabbitMQ.
+*   **Server** (`api.py` chat event consumer): Forwards events as WebSocket events to client.
+
+**Real-time Feedback (Client-Side)**:
+*   Response streams character-by-character in chat interface with typing indicator.
 
 ### Wikipedia Fetch Status Updates
 
 **WebSocket Event**: `wikipedia_fetch_status`
 
 **Client-Side Flow**:
-*   **Event Listener**: Client (e.g., `socketService`, `ChatBot` component) listens for `wikipedia_fetch_status` events.
-*   **Data Structure (Expected)**: `{"workspace_id": "uuid", "query": "string", "status": "fetching" | "processing" | "completed" | "failed", "document_ids": ["uuid", ...], "message": "Optional status message"}`
+*   **Event Listener**: `socketService` listens for `wikipedia_fetch_status` events.
+*   **Data Structure**: `{"workspace_id": 123, "query": "search query", "status": "fetching" | "processing" | "completed" | "failed", "document_ids": [456], "message": "status message"}`
 *   **Redux Actions**: `statusSlice.updateWikipediaFetchStatus` dispatched.
-*   **Error Handling**: If `status` is "failed", an error message is displayed in the chat.
-*   **Success Handling**: UI (e.g., `ChatBot`) updates its display to show fetching progress, then re-submits the original query if `status` is "completed".
+*   **Error Handling**: Error message displayed in chat.
+*   **Success Handling**: On completion, chat auto-retries the original query with new context.
 
-**Backend/Worker Interactions (Expected)**:
-*   **Server**: Receives status updates from the Wikipedia Worker and immediately emits them as `wikipedia_fetch_status` WebSocket events.
-*   **Worker (Wikipedia Worker)**: Sends status updates to the server as it searches, fetches, and initiates ingestion of Wikipedia content.
+**Backend/Worker Interactions**:
+*   **Wikipedia Worker** (`packages/workers/wikipedia/`): Fetches content, creates documents, goes through ingestion pipeline.
+*   **Server**: Emits `wikipedia_fetch_status` events based on worker progress.
 
 **Real-time Feedback (Client-Side)**:
-*   A loading indicator or status message is shown in the chat area while Wikipedia content is being fetched and processed. Once completed, the chat automatically re-queries.
+*   Loading indicator shown in chat while Wikipedia content is fetched and processed.
 
 ---
+
+## Implementation Status
+
+### Currently Implemented
+- **Vector RAG**: Full implementation with Qdrant, Ollama, and configurable chunking
+- **Document Processing Pipeline**: Parser -> Chucker -> Embedder -> Indexer workers
+- **Real-time Chat**: WebSocket streaming with async processing via chat worker
+- **Workspace Management**: Creation, configuration, and basic provisioning
+- **Authentication**: JWT-based auth with user profiles and preferences
+- **Status Updates**: Real-time WebSocket events for document/workspace processing
+
+### Planned/Not Yet Implemented
+- **Graph RAG**: Neo4j-based graph retrieval (shared library has interfaces but no implementation)
+- **Wikipedia Fetching**: Worker exists but integration not complete
+- **Advanced RAG Features**: Re-ranking, query expansion, multi-modal support
+- **Chat Session Persistence**: Currently client-side only
+- **Workspace Deletion**: Basic framework exists but full cleanup not implemented
+
+### Key Architecture Patterns
+- **Clean Architecture**: Presentation -> Domain -> Infrastructure layers
+- **Factory Pattern**: Pluggable RAG components and service instantiation
+- **Repository Pattern**: Abstracted data access with SQL implementations
+- **Observer Pattern**: Real-time status updates via WebSocket events
+- **Dependency Injection**: Services receive dependencies via constructors
+
+This documentation reflects the actual implementation as of the current codebase. Some features may be partially implemented or use simplified approaches compared to the full planned architecture.

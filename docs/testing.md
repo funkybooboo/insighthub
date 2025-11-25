@@ -27,27 +27,30 @@ Comprehensive testing strategy and guide for the InsightHub dual RAG system, cov
 ### Run All Tests
 
 ```bash
-# Client tests (from packages/client)
-cd packages/client
-task test              # Unit tests (438 tests passing)
-task test:e2e          # E2E tests
-task storybook         # Component documentation
+# From project root
+task test              # Run all tests across packages
 
-# Server tests (from packages/server)
-cd packages/server
-task test              # Unit and integration tests
+# Individual packages
+cd packages/client && task test     # Client unit tests
+cd packages/server && task test     # Server unit + integration tests
+cd packages/shared/python && task test  # Shared library tests
+
+# Specific test types
+task test:unit         # Unit tests only
+task test:integration  # Integration tests only
+task test:e2e          # End-to-end tests
 task test:api          # API tests (Bruno)
-
-# Worker tests (from packages/workers)
-cd packages/workers/{worker}
-task test              # Worker-specific tests
 ```
 
 ### Test Categories Overview
 
-| Test Type | Framework | Purpose | Location |
-|------------|------------|---------|----------|
-| Unit Tests | Vitest/Pytest | Test components in isolation | `src/**/*.test.*` |
+| Test Type | Framework | Purpose | Location | Status |
+|------------|------------|---------|----------|--------|
+| Unit Tests | Vitest (Client) | Test components in isolation | `packages/client/src/**/*.test.*` | [x] Implemented |
+| Unit Tests | Pytest (Server) | Test functions/classes in isolation | `packages/server/tests/unit/` | [x] Implemented |
+| Integration Tests | Pytest + Testcontainers | Test component interactions | `packages/server/tests/integration/` | [x] Implemented |
+| E2E Tests | Playwright | Test complete user flows | `packages/client/` | [WIP] Planned |
+| API Tests | Bruno | Test REST API endpoints | `packages/server/bruno/` | [x] Implemented |
 | Integration Tests | Testcontainers | Test component interactions | `tests/integration/` |
 | E2E Tests | Playwright | Test user workflows | `e2e/**/*.spec.ts` |
 | API Tests | Bruno | Test REST endpoints | `bruno/**/*.bru` |

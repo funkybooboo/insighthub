@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-import { runCommand } from './commands';
+import { program } from './lib/cli';
 
-console.log('Welcome to InsightHub CLI!');
-
-const args = process.argv.slice(2);
-runCommand(args);
+program.parse();

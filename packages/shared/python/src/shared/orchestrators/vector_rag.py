@@ -2,6 +2,9 @@
 
 from typing import List, BinaryIO
 
+from typing import Optional
+
+from shared.cache import Cache
 from shared.database.vector.vector_store import VectorStore
 from shared.documents.chunking.document_chunker import Chunker
 from shared.documents.embedding.vector_embedding_encoder import VectorEmbeddingEncoder
@@ -77,6 +80,7 @@ class VectorRAG:
         self,
         embedder: VectorEmbeddingEncoder,
         vector_store: VectorStore,
+        cache: Optional[Cache] = None,
     ):
         """
         Initialize the VectorRAG.
@@ -84,9 +88,11 @@ class VectorRAG:
         Args:
             embedder: The vector embedding encoder.
             vector_store: The vector store.
+            cache: Optional cache for performance optimization.
         """
         self.embedder = embedder
         self.vector_store = vector_store
+        self.cache = cache
 
     def query(self, query: str, top_k: int = 5) -> List[RetrievalResult]:
         """
@@ -99,11 +105,26 @@ class VectorRAG:
         Returns:
             A list of retrieval results.
         """
-        query_embedding_result = self.embedder.encode_one(query)
-        if query_embedding_result.is_err():
-            raise query_embedding_result.err()
-        
-        query_embedding = query_embedding_result.ok()
+        # Try to get cached embedding first
+        embedding_cache_key = f"embedding:{hash(query) % 1000000}"  # Simple hash-based key
+        query_embedding = None
+
+        if self.cache:
+            cached_embedding = self.cache.get(embedding_cache_key)
+            if cached_embedding is not None:
+                query_embedding = cached_embedding
+
+        # Generate embedding if not cached
+        if query_embedding is None:
+            query_embedding_result = self.embedder.encode_one(query)
+            if query_embedding_result.is_err():
+                raise query_embedding_result.err()
+
+            query_embedding = query_embedding_result.ok()
+
+            # Cache the embedding
+            if self.cache:
+                self.cache.set(embedding_cache_key, query_embedding, ttl=3600)  # Cache for 1 hour
 
         search_results = self.vector_store.search(query_embedding, top_k)
 
