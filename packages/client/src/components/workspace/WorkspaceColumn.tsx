@@ -117,42 +117,14 @@ const WorkspaceColumn: React.FC = () => {
 
         setIsCreating(true);
         try {
-            // Ensure required fields are present with defaults if not explicitly set
-            let finalRagConfig: CreateRagConfigRequest;
-
-            if (ragConfigForWorkspace.retriever_type === 'graph') {
-                finalRagConfig = {
-                    retriever_type: 'graph',
-                    max_hops: (ragConfigForWorkspace as Partial<GraphRagConfig>).max_hops || 2,
-                    entity_extraction_model:
-                        (ragConfigForWorkspace as Partial<GraphRagConfig>)
-                            .entity_extraction_model || 'ollama',
-                    relationship_extraction_model:
-                        (ragConfigForWorkspace as Partial<GraphRagConfig>)
-                            .relationship_extraction_model || 'ollama',
-                };
-            } else {
-                // Default to vector if retriever_type is not 'graph' or undefined
-                finalRagConfig = {
-                    retriever_type: 'vector',
-                    embedding_model:
-                        (ragConfigForWorkspace as Partial<VectorRagConfig>).embedding_model ||
-                        'nomic-embed-text',
-                    chunk_size:
-                        (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_size || 1000,
-                    chunk_overlap:
-                        (ragConfigForWorkspace as Partial<VectorRagConfig>).chunk_overlap || 200,
-                    top_k: (ragConfigForWorkspace as Partial<VectorRagConfig>).top_k || 8,
-                    rerank_enabled:
-                        (ragConfigForWorkspace as Partial<VectorRagConfig>).rerank_enabled || false,
-                    rerank_model: (ragConfigForWorkspace as Partial<VectorRagConfig>).rerank_model,
-                };
-            }
+            // Determine RAG type from config
+            const ragType = ragConfigForWorkspace.retriever_type === 'graph' ? 'graph' : 'vector';
 
             const workspace = await apiService.createWorkspace({
                 name: newWorkspaceName.trim(),
                 description: newWorkspaceDescription.trim() || undefined,
-                rag_config: finalRagConfig,
+                rag_type: ragType,
+                rag_config: ragConfigForWorkspace, // Pass the config directly
             });
 
             dispatch(addWorkspace(workspace));

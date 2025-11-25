@@ -77,9 +77,10 @@ def create_workspace() -> tuple[Response, int]:
     {
         "name": "My Research Workspace",
         "description": "For academic papers on AI",
+        "rag_type": "vector",
         "rag_config": {
-            "embedding_model": "nomic-embed-text",
-            "retriever_type": "vector",
+            "embedding_algorithm": "nomic-embed-text",
+            "chunking_algorithm": "sentence",
             "chunk_size": 1000,
             "chunk_overlap": 200,
             "top_k": 8
@@ -95,35 +96,41 @@ def create_workspace() -> tuple[Response, int]:
 
         name = data["name"].strip()
         description = data.get("description", "").strip() or None
+        rag_type = data.get("rag_type", "vector")
         rag_config = data.get("rag_config")
 
         if len(name) < 1 or len(name) > 100:
             return jsonify({"error": "Workspace name must be 1-100 characters"}), 400
 
-        # Validate RAG config if provided
+        # Validate rag_type
+        if rag_type not in ["vector", "graph"]:
+            return jsonify({"error": "rag_type must be 'vector' or 'graph'"}), 400
+
+        # Basic validation for rag_config if provided
         if rag_config:
-            valid_retriever_types = ["vector", "graph", "hybrid"]
-            if rag_config.get("retriever_type") not in valid_retriever_types:
-                return (
-                    jsonify(
-                        {
-                            "error": f"retriever_type must be one of: {', '.join(valid_retriever_types)}"
-                        }
-                    ),
-                    400,
-                )
+            if rag_type == "vector":
+                chunk_size = rag_config.get("chunk_size", 1000)
+                if not (100 <= chunk_size <= 5000):
+                    return jsonify({"error": "chunk_size must be between 100 and 5000"}), 400
+                chunk_overlap = rag_config.get("chunk_overlap", 200)
+                if not (0 <= chunk_overlap <= 1000):
+                    return jsonify({"error": "chunk_overlap must be between 0 and 1000"}), 400
+                top_k = rag_config.get("top_k", 8)
+                if not (1 <= top_k <= 50):
+                    return jsonify({"error": "top_k must be between 1 and 50"}), 400
+            elif rag_type == "graph":
+                max_hops = rag_config.get("max_hops", 2)
+                if not (1 <= max_hops <= 10):
+                    return jsonify({"error": "max_hops must be between 1 and 10"}), 400
 
-            chunk_size = rag_config.get("chunk_size", 1000)
-            if not (100 <= chunk_size <= 5000):
-                return jsonify({"error": "chunk_size must be between 100 and 5000"}), 400
-
-            chunk_overlap = rag_config.get("chunk_overlap", 200)
-            if not (0 <= chunk_overlap <= 1000):
-                return jsonify({"error": "chunk_overlap must be between 0 and 1000"}), 400
-
-            top_k = rag_config.get("top_k", 8)
-            if not (1 <= top_k <= 50):
-                return jsonify({"error": "top_k must be between 1 and 50"}), 400
+        user = get_current_user()
+        workspace = g.app_context.workspace_service.create_workspace(
+            name=name,
+            user_id=user.id,
+            description=description,
+            rag_type=rag_type,
+            rag_config=rag_config,
+        )
 
         user: User = get_current_user()
         user_id = user.id

@@ -29,25 +29,37 @@ export interface SignupRequest {
 
 // ===== WORKSPACE TYPES =====
 
+// Separate config types for Vector and Graph RAG
+export interface VectorRagConfig {
+  id?: number;
+  workspace_id: number;
+  embedding_algorithm: string;
+  chunking_algorithm: string;
+  chunk_size: number;
+  chunk_overlap: number;
+  top_k: number;
+  rerank_enabled: boolean;
+  rerank_algorithm?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GraphRagConfig {
+  id?: number;
+  workspace_id: number;
+  entity_extraction_algorithm: string;
+  relationship_extraction_algorithm: string;
+  clustering_algorithm: string;
+  max_hops: number;
+  min_cluster_size: number;
+  max_cluster_size: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Legacy types for backward compatibility
 export interface BaseRagConfig {
   retriever_type: "vector" | "graph";
-}
-
-export interface VectorRagConfig extends BaseRagConfig {
-  retriever_type: "vector";
-  embedding_model: string;
-  chunk_size: number;
-  chunk_overlap?: number;
-  top_k?: number;
-  rerank_enabled?: boolean;
-  rerank_model?: string;
-}
-
-export interface GraphRagConfig extends BaseRagConfig {
-  retriever_type: "graph";
-  max_hops?: number;
-  entity_extraction_model?: string;
-  relationship_extraction_model?: string;
 }
 
 export type RagConfig = (VectorRagConfig | GraphRagConfig) & {
@@ -77,6 +89,7 @@ export interface Workspace {
 export interface CreateWorkspaceRequest {
   name: string;
   description?: string;
+  rag_type?: string;
   rag_config?: CreateRagConfigRequest;
 }
 

@@ -1,6 +1,6 @@
 """RAG configuration and result types."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -49,8 +49,8 @@ class VectorRagConfig:
     rerank_enabled: bool = False
     rerank_algorithm: Optional[str] = None  # cross-encoder, etc.
 
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
@@ -74,8 +74,8 @@ class GraphRagConfig:
     min_cluster_size: int = 5
     max_cluster_size: int = 50
 
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass

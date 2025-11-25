@@ -421,13 +421,18 @@ class ChatService:
             # RAG INTEGRATION - Retrieval for Streaming Chat
             enhanced_history = conversation_history.copy()
             rag_context_found = False
-            if rag_type == "vector" and self._rag_system:
+            if rag_type == "vector":
                 try:
-                    # Query RAG system for relevant context, filtered by workspace
+                    # Get workspace-specific RAG system
                     workspace_id = session.workspace_id
-                    rag_results = self._rag_system.query(
-                        message, workspace_id=workspace_id, top_k=8
-                    )
+                    if workspace_id:
+                        rag_system = self._get_rag_system_for_workspace(workspace_id)
+                        if rag_system:
+                            rag_results = rag_system.query(message, top_k=8)
+                        else:
+                            rag_results = None
+                    else:
+                        rag_results = None
                     if rag_results:
                         # Check if we have meaningful context
                         meaningful_context = [
@@ -994,6 +999,18 @@ Guidelines:
             sessions=session_dtos,
             count=len(session_dtos),
         )
+
+    def _get_rag_system_for_workspace(self, workspace_id: int) -> Any:
+        """Get RAG system for a specific workspace."""
+        # Get from app context - this will be injected
+        try:
+            # Access via Flask g object which should have app_context
+            from flask import g
+            if hasattr(g, 'app_context') and g.app_context:
+                return g.app_context.get_rag_system_for_workspace(workspace_id)
+        except:
+            pass
+        return None
 
     def list_session_messages_as_dto(self, session_id: int) -> SessionMessagesResponse:
         """

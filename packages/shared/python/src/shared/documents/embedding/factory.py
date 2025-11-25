@@ -13,40 +13,25 @@ class EmbeddingEncoderType(Enum):
     OLLAMA = "ollama"
 
 
-def create_embedding_encoder(
-    encoder_type: str,
-    model: str | None = None,
-    base_url: str | None = None,
+def create_embedder_from_config(
+    embedding_algorithm: str,
+    base_url: str,
     timeout: int = 30,
 ) -> Optional[VectorEmbeddingEncoder]:
     """
-    Create an embedding encoder instance based on configuration.
+    Create an embedding encoder instance based on algorithm configuration.
 
     Args:
-        encoder_type: Type of embedding encoder ("ollama")
-        model: Model name (required for ollama)
-        base_url: Server URL (required for ollama)
+        embedding_algorithm: Algorithm/model type ("nomic-embed-text", "all-MiniLM-L6-v2", etc.)
+        base_url: Ollama server URL
         timeout: Request timeout in seconds (default 30)
 
     Returns:
-        VectorEmbeddingEncoder if creation succeeds, None if type unknown or params missing
-
-    Note:
-        Additional encoder types (OpenAI, Sentence Transformers) can be
-        added here when implemented.
+        VectorEmbeddingEncoder if creation succeeds, None if algorithm unknown
     """
-    try:
-        encoder_enum = EmbeddingEncoderType(encoder_type)
-    except ValueError:
-        return None
-
-    if encoder_enum == EmbeddingEncoderType.OLLAMA:
-        if model is None or base_url is None:
-            return None
-        return OllamaVectorEmbeddingEncoder(
-            model=model,
-            base_url=base_url,
-            timeout=timeout,
-        )
-
-    return None
+    # All embedding algorithms currently use Ollama infrastructure
+    return OllamaVectorEmbeddingEncoder(
+        model=embedding_algorithm,
+        base_url=base_url,
+        timeout=timeout,
+    )

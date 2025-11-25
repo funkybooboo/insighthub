@@ -3,7 +3,9 @@
 from enum import Enum
 from typing import Optional
 
+from .character_document_chunker import CharacterDocumentChunker
 from .document_chunker import Chunker
+from .semantic_document_chunker import SemanticDocumentChunker
 from .sentence_document_chunker import SentenceDocumentChunker
 
 
@@ -13,35 +15,34 @@ class ChunkerType(Enum):
     SENTENCE = "sentence"
 
 
-def create_chunker(
-    chunker_type: str,
-    chunk_size: int | None = None,
-    overlap: int | None = None,
+def create_chunker_from_config(
+    chunking_algorithm: str,
+    chunk_size: int,
+    overlap: int,
 ) -> Optional[Chunker]:
     """
-    Create a document chunker instance based on configuration.
+    Create a document chunker instance based on algorithm configuration.
 
     Args:
-        chunker_type: Type of chunker ("sentence")
-        chunk_size: Target size of each chunk in characters (required)
-        overlap: Number of characters to overlap between chunks (required)
+        chunking_algorithm: Algorithm type ("sentence", "character", "semantic")
+        chunk_size: Target size of each chunk in characters
+        overlap: Number of characters to overlap between chunks
 
     Returns:
-        Chunker if creation succeeds, None if type unknown or params missing
-
-    Note:
-        Additional chunker types (character, paragraph, semantic) can be
-        added here when implemented.
+        Chunker if creation succeeds, None if algorithm unknown
     """
-    try:
-        chunker_enum = ChunkerType(chunker_type)
-    except ValueError:
-        return None
-
-    if chunker_enum == ChunkerType.SENTENCE:
-        if chunk_size is None or overlap is None:
-            return None
+    if chunking_algorithm == "sentence":
         return SentenceDocumentChunker(
+            chunk_size=chunk_size,
+            overlap=overlap,
+        )
+    elif chunking_algorithm == "character":
+        return CharacterDocumentChunker(
+            chunk_size=chunk_size,
+            overlap=overlap,
+        )
+    elif chunking_algorithm == "semantic":
+        return SemanticDocumentChunker(
             chunk_size=chunk_size,
             overlap=overlap,
         )

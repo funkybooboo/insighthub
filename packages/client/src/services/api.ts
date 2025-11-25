@@ -362,6 +362,106 @@ class ApiService {
     }
 
     /**
+     * Get Vector RAG config for a workspace
+     */
+    async getVectorRagConfig(workspaceId: number): Promise<VectorRagConfig> {
+        const { data } = await this.client.get<VectorRagConfig>(
+            `/api/workspaces/${workspaceId}/vector-rag-config`
+        );
+        return data;
+    }
+
+    /**
+     * Create Vector RAG config for a workspace
+     */
+    async createVectorRagConfig(
+        workspaceId: number,
+        request: Partial<VectorRagConfig>
+    ): Promise<VectorRagConfig> {
+        const { data } = await this.client.post<VectorRagConfig>(
+            `/api/workspaces/${workspaceId}/vector-rag-config`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Update Vector RAG config for a workspace
+     */
+    async updateVectorRagConfig(
+        workspaceId: number,
+        request: Partial<VectorRagConfig>
+    ): Promise<VectorRagConfig> {
+        const { data } = await this.client.patch<VectorRagConfig>(
+            `/api/workspaces/${workspaceId}/vector-rag-config`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Get Graph RAG config for a workspace
+     */
+    async getGraphRagConfig(workspaceId: number): Promise<GraphRagConfig> {
+        const { data } = await this.client.get<GraphRagConfig>(
+            `/api/workspaces/${workspaceId}/graph-rag-config`
+        );
+        return data;
+    }
+
+    /**
+     * Create Graph RAG config for a workspace
+     */
+    async createGraphRagConfig(
+        workspaceId: number,
+        request: Partial<GraphRagConfig>
+    ): Promise<GraphRagConfig> {
+        const { data } = await this.client.post<GraphRagConfig>(
+            `/api/workspaces/${workspaceId}/graph-rag-config`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Update Graph RAG config for a workspace
+     */
+    async updateGraphRagConfig(
+        workspaceId: number,
+        request: Partial<GraphRagConfig>
+    ): Promise<GraphRagConfig> {
+        const { data } = await this.client.patch<GraphRagConfig>(
+            `/api/workspaces/${workspaceId}/graph-rag-config`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Get available algorithms for Vector RAG
+     */
+    async getVectorAlgorithms(): Promise<{
+        embedding_algorithms: Array<{ value: string; label: string }>;
+        chunking_algorithms: Array<{ value: string; label: string }>;
+        rerank_algorithms: Array<{ value: string; label: string }>;
+    }> {
+        const { data } = await this.client.get('/api/algorithms/vector');
+        return data;
+    }
+
+    /**
+     * Get available algorithms for Graph RAG
+     */
+    async getGraphAlgorithms(): Promise<{
+        entity_extraction_algorithms: Array<{ value: string; label: string }>;
+        relationship_extraction_algorithms: Array<{ value: string; label: string }>;
+        clustering_algorithms: Array<{ value: string; label: string }>;
+    }> {
+        const { data } = await this.client.get('/api/algorithms/graph');
+        return data;
+    }
+
+    /**
      * Get user's default RAG config
      */
     async getDefaultRagConfig(): Promise<DefaultRagConfig | null> {

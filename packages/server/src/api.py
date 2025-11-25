@@ -34,7 +34,10 @@ from src.domains.workspaces.documents.processing_events import (
 )
 from src.domains.workspaces.documents.routes import documents_bp
 from src.domains.workspaces.documents.status import DocumentStatusData, broadcast_document_status
+from src.domains.algorithms.routes import algorithms_bp
 from src.domains.workspaces.rag_config.routes import rag_config_bp
+from src.domains.workspaces.vector_rag_config_routes import vector_rag_config_bp
+from src.domains.workspaces.graph_rag_config_routes import graph_rag_config_bp
 from src.domains.workspaces.routes import workspace_bp
 from src.infrastructure.database import get_db, init_db
 from src.infrastructure.middleware import (
@@ -282,9 +285,12 @@ def create_app() -> InsightHubApp:
     # Register blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(algorithms_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(documents_bp)
-    app.register_blueprint(rag_config_bp)
+    app.register_blueprint(rag_config_bp)  # Legacy - to be deprecated
+    app.register_blueprint(vector_rag_config_bp)
+    app.register_blueprint(graph_rag_config_bp)
     app.register_blueprint(workspace_bp)
     logger.info("All blueprints registered")
 

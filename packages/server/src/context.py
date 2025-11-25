@@ -146,40 +146,96 @@ def create_cache_instance() -> Any:
         return create_cache("in_memory", default_ttl=3600)
 
 
-def create_rag_system(cache: Any = None) -> Any:
-    """Create RAG system components from config."""
+def create_rag_system_for_workspace(workspace_id: int, cache: Any = None) -> Any:
+    """Create RAG system for a specific workspace based on its config."""
     try:
-        # Create vector database
-        from shared.database.vector import QdrantVectorDatabase
+        # Get workspace to determine RAG type
+        workspace = None
+        if hasattr(cache, '_app_context') and cache._app_context:
+            workspace_repo = cache._app_context.workspace_repository
+            workspace = workspace_repo.get_by_id(workspace_id)
 
-        vector_db = QdrantVectorDatabase(
-            url=f"http://{config.QDRANT_HOST}:{config.QDRANT_PORT}",
-            collection_name=config.QDRANT_COLLECTION_NAME,
-            vector_size=768,  # Default embedding dimension
-        )
-
-        # Create embedding encoder
-        from shared.documents.embedding import OllamaVectorEmbeddingEncoder
-
-        embedder = OllamaVectorEmbeddingEncoder(
-            model=config.OLLAMA_EMBEDDING_MODEL,
-            base_url=config.OLLAMA_BASE_URL,
-            timeout=30,
-        )
-
-        # Create VectorRAG orchestrator with cache support
-        try:
-            from shared.orchestrators import VectorRAG
-
-            rag = VectorRAG(embedder=embedder, vector_store=vector_db)
-            return rag
-        except ImportError:
-            # VectorRAG not available
+        if not workspace:
             return None
+
+        # Get appropriate config based on workspace RAG type
+        if workspace.rag_type == "vector" and workspace.vector_rag_config_id:
+            vector_config_repo = cache._app_context.vector_rag_config_service.repository
+            config = vector_config_repo.get_vector_rag_config(workspace_id)
+            return _create_vector_rag_system(config, cache) if config else None
+
+        elif workspace.rag_type == "graph" and workspace.graph_rag_config_id:
+            graph_config_repo = cache._app_context.graph_rag_config_service.repository
+            config = graph_config_repo.get_graph_rag_config(workspace_id)
+            return _create_graph_rag_system(config, cache) if config else None
+
+        return None
 
     except Exception:
         # RAG system creation failed - continue without RAG
         return None
+
+
+def create_rag_system(rag_config: Any, cache: Any = None) -> Any:
+    """Create RAG system components from config (legacy support)."""
+    try:
+        if hasattr(rag_config, 'embedding_algorithm'):  # VectorRagConfig
+            return _create_vector_rag_system(rag_config, cache)
+        elif hasattr(rag_config, 'entity_extraction_algorithm'):  # GraphRagConfig
+            return _create_graph_rag_system(rag_config, cache)
+        else:
+            # Legacy RagConfig - default to vector
+            return _create_vector_rag_system(rag_config, cache)
+
+    except Exception:
+        # RAG system creation failed - continue without RAG
+        return None
+
+
+def _create_vector_rag_system(vector_config: Any, cache: Any = None) -> Any:
+    """Create vector RAG system from config."""
+    # Create vector database
+    from shared.database.vector import QdrantVectorDatabase
+
+    vector_db = QdrantVectorDatabase(
+        url=f"http://{config.QDRANT_HOST}:{config.QDRANT_PORT}",
+        collection_name=config.QDRANT_COLLECTION_NAME,
+        vector_size=768,  # Default embedding dimension
+    )
+
+    # Create embedding encoder based on config
+    from shared.documents.embedding import create_embedder_from_config
+
+    embedder = create_embedder_from_config(
+        embedding_algorithm=getattr(vector_config, 'embedding_algorithm', 'nomic-embed-text'),
+        base_url=config.OLLAMA_BASE_URL
+    )
+
+    # Create chunker based on config
+    from shared.documents.chunking import create_chunker_from_config
+
+    chunker = create_chunker_from_config(
+        chunking_algorithm=getattr(vector_config, 'chunking_algorithm', 'sentence'),
+        chunk_size=getattr(vector_config, 'chunk_size', 1000),
+        overlap=getattr(vector_config, 'chunk_overlap', 200)
+    )
+
+    # Create VectorRAG orchestrator
+    try:
+        from shared.orchestrators import VectorRAG
+
+        rag = VectorRAG(embedder=embedder, vector_store=vector_db, cache=cache)
+        return rag
+    except ImportError:
+        # VectorRAG not available
+        return None
+
+
+def _create_graph_rag_system(graph_config: Any, cache: Any = None) -> Any:
+    """Create graph RAG system from config."""
+    # TODO: Implement graph RAG system creation
+    # This would create Neo4j graph database, entity/relationship extractors, etc.
+    return None
 
 
 class AppContext:
@@ -217,8 +273,12 @@ class AppContext:
         # Initialize LLM provider
         self.llm_provider = create_llm()
 
-        # Initialize RAG system (optional) with cache support
-        self.rag_system = create_rag_system(cache=self.cache)
+        # Remove global RAG system - use workspace-specific systems instead
+        self.rag_system = None
+
+    def get_rag_system_for_workspace(self, workspace_id: int) -> Any:
+        """Get RAG system for a specific workspace."""
+        return create_rag_system_for_workspace(workspace_id, cache=self.cache)
 
         # Create repositories using server implementations
         postgres_db = cast(PostgresSqlDatabase, db)
@@ -248,12 +308,26 @@ class AppContext:
             message_publisher=self.message_publisher,
             cache=self.cache,
         )
+        # Initialize separate Vector and Graph RAG config services first
+        from shared.repositories.vector_rag_config import SqlVectorRagConfigRepository
+        from shared.repositories.graph_rag_config import SqlGraphRagConfigRepository
+        from src.domains.workspaces.vector_rag_config_service import VectorRagConfigService
+        from src.domains.workspaces.graph_rag_config_service import GraphRagConfigService
+
+        vector_rag_config_repo = SqlVectorRagConfigRepository(postgres_db)
+        graph_rag_config_repo = SqlGraphRagConfigRepository(postgres_db)
+
+        self.vector_rag_config_service = VectorRagConfigService(vector_rag_config_repo, self.workspace_repository)
+        self.graph_rag_config_service = GraphRagConfigService(graph_rag_config_repo, self.workspace_repository)
+
         self.workspace_service = WorkspaceService(
             workspace_repo=self.workspace_repository,
+            vector_rag_config_service=self.vector_rag_config_service,
+            graph_rag_config_service=self.graph_rag_config_service,
             message_publisher=self.message_publisher,
         )
 
-        # Initialize RAG config service (uses workspace repository)
+        # Initialize RAG config services
         self.rag_config_service = RagConfigService(
             self.workspace_repository, self.workspace_service
         )

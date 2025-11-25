@@ -8,6 +8,10 @@ from shared.logger.logger import Logger
 from shared.messaging import RabbitMQPublisher
 from shared.models.workspace import Workspace
 from shared.repositories.workspace import WorkspaceRepository
+from shared.types.rag import VectorRagConfig, GraphRagConfig
+
+from .vector_rag_config_service import VectorRagConfigService
+from .graph_rag_config_service import GraphRagConfigService
 
 logger: Logger = create_logger(__name__)
 
@@ -35,9 +39,13 @@ class WorkspaceService:
     def __init__(
         self,
         workspace_repo: WorkspaceRepository,
+        vector_rag_config_service: VectorRagConfigService,
+        graph_rag_config_service: GraphRagConfigService,
         message_publisher: RabbitMQPublisher | None = None,
     ):
         self._repo = workspace_repo
+        self._vector_rag_config_service = vector_rag_config_service
+        self._graph_rag_config_service = graph_rag_config_service
         self._message_publisher = message_publisher
 
     def create_workspace(
@@ -45,6 +53,7 @@ class WorkspaceService:
         name: str,
         user_id: int,
         description: str | None = None,
+        rag_type: str = "vector",
         rag_config: dict | None = None,
     ) -> Workspace:
         """
@@ -54,6 +63,7 @@ class WorkspaceService:
             name: Workspace name
             user_id: Owner user ID
             description: Optional description
+            rag_type: Type of RAG system ('vector' or 'graph')
             rag_config: Optional RAG configuration (uses defaults if not provided)
 
         Returns:
@@ -64,24 +74,46 @@ class WorkspaceService:
             user_id=user_id,
             name=name,
             description=description,
+            rag_type=rag_type,
         )
 
-        # Create RAG config for the workspace
-        if rag_config:
-            self._repo.create_rag_config(
-                workspace_id=workspace.id,
-                embedding_model=rag_config.get("embedding_model", "nomic-embed-text"),
-                embedding_dim=rag_config.get("embedding_dim"),
-                retriever_type=rag_config.get("retriever_type", "vector"),
-                chunk_size=rag_config.get("chunk_size", 1000),
-                chunk_overlap=rag_config.get("chunk_overlap", 200),
-                top_k=rag_config.get("top_k", 8),
-                rerank_enabled=rag_config.get("rerank_enabled", False),
-                rerank_model=rag_config.get("rerank_model"),
-            )
+        # Create appropriate RAG config for the workspace
+        if rag_type == "vector":
+            vector_config = self._create_vector_rag_config(workspace.id, user_id, rag_config)
+            workspace.vector_rag_config_id = vector_config.id
+        elif rag_type == "graph":
+            graph_config = self._create_graph_rag_config(workspace.id, user_id, rag_config)
+            workspace.graph_rag_config_id = graph_config.id
         else:
-            # Use default RAG config
-            self._repo.create_rag_config(workspace_id=workspace.id)
+            raise ValueError(f"Invalid rag_type: {rag_type}. Must be 'vector' or 'graph'.")
+
+        # Update workspace with config ID
+        self._repo.update(workspace.id, **{
+            "vector_rag_config_id": workspace.vector_rag_config_id,
+            "graph_rag_config_id": workspace.graph_rag_config_id,
+        })
+
+        return workspace
+
+    def _create_vector_rag_config(self, workspace_id: int, user_id: int, config_data: dict | None = None) -> VectorRagConfig:
+        """Create vector RAG config for workspace."""
+        # Use provided config data or defaults
+        config_params = config_data or {}
+        return self._vector_rag_config_service.create_vector_rag_config(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            **config_params
+        )
+
+    def _create_graph_rag_config(self, workspace_id: int, user_id: int, config_data: dict | None = None) -> GraphRagConfig:
+        """Create graph RAG config for workspace."""
+        # Use provided config data or defaults
+        config_params = config_data or {}
+        return self._graph_rag_config_service.create_graph_rag_config(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            **config_params
+        )
 
         # For now, mark workspace as ready immediately (synchronous provisioning)
         # TODO: Implement async provisioning with workers

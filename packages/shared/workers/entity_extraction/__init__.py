@@ -1,0 +1,1 @@
+"""Entity extraction worker package."""

@@ -288,12 +288,102 @@ tasks:
   logs-workers-dev:
     desc: Show all development worker logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-ingestion-dev worker-embeddings-dev worker-graph-dev worker-enrichment-dev worker-query-dev worker-retriever-dev
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chat-dev worker-chucker-dev worker-connector-dev worker-deletion-dev worker-embedder-dev worker-enricher-dev worker-indexer-dev worker-parser-dev worker-provisioner-dev worker-wikipedia-dev
 
   logs-workers:
     desc: Show all production worker logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-ingestion-prod worker-embeddings-prod worker-graph-prod worker-enrichment-prod worker-query-prod worker-retriever-prod
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chat-prod worker-chucker-prod worker-connector-prod worker-deletion-prod worker-embedder-prod worker-enricher-prod worker-indexer-prod worker-parser-prod
+
+  logs-worker-chat-dev:
+    desc: Show chat worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chat-dev
+
+  logs-worker-chat-prod:
+    desc: Show chat worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chat-prod
+
+  logs-worker-chucker-dev:
+    desc: Show chucker worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chucker-dev
+
+  logs-worker-chucker-prod:
+    desc: Show chucker worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chucker-prod
+
+  logs-worker-connector-dev:
+    desc: Show connector worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-connector-dev
+
+  logs-worker-connector-prod:
+    desc: Show connector worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-connector-prod
+
+  logs-worker-deletion-dev:
+    desc: Show deletion worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-deletion-dev
+
+  logs-worker-deletion-prod:
+    desc: Show deletion worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-deletion-prod
+
+  logs-worker-embedder-dev:
+    desc: Show embedder worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-embedder-dev
+
+  logs-worker-embedder-prod:
+    desc: Show embedder worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-embedder-prod
+
+  logs-worker-enricher-dev:
+    desc: Show enricher worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-enricher-dev
+
+  logs-worker-enricher-prod:
+    desc: Show enricher worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-enricher-prod
+
+  logs-worker-indexer-dev:
+    desc: Show indexer worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-indexer-dev
+
+  logs-worker-indexer-prod:
+    desc: Show indexer worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-indexer-prod
+
+  logs-worker-parser-dev:
+    desc: Show parser worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-parser-dev
+
+  logs-worker-parser-prod:
+    desc: Show parser worker logs (production)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-parser-prod
+
+  logs-worker-provisioner-dev:
+    desc: Show provisioner worker logs (development)
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-provisioner-dev
+
+  logs-worker-wikipedia-dev:
+    desc: Show wikipedia worker logs (development)
+    cmds:
+       - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-wikipedia-dev
 
   # --------------------------------------------------------------------------
   # Dev shortcuts

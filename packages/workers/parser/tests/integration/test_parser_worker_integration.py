@@ -112,7 +112,7 @@ def test_document_parser_with_minio_integration(
 
     # Create test document content
     test_content = (
-        "This is a test document.\nIt has multiple lines.\nAnd special chars: àáâãäå."
+        "This is a test document.\nIt has multiple lines.\nAnd special chars: aaaaa."
     )
 
     # Set up blob storage

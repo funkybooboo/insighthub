@@ -15,6 +15,9 @@ class Workspace:
     is_active: bool = True
     status: str = "provisioning"  # 'provisioning', 'ready', 'error'
     status_message: str | None = None
+    rag_type: str = "vector"  # 'vector', 'graph'
+    vector_rag_config_id: int | None = None
+    graph_rag_config_id: int | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
