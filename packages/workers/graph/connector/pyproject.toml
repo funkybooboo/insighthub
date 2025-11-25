@@ -8,7 +8,7 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-insighthub-shared = {path = "../../shared/python", develop = true}
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

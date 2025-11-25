@@ -1,22 +1,62 @@
 {
     "default": {
         "name": "Research Papers",
-        "description": "Workspace for academic research papers",
-        "ragConfig": {
-            "retriever_type": "vector",
-            "embedding_model": "nomic-embed-text",
-            "chunk_size": 1000,
-            "chunk_overlap": 200,
-            "top_k": 8
+        "description": "Workspace for academic research papers using Vector RAG",
+        "ragType": "vector",
+        "vectorConfig": {
+            "chunkingAlgorithm": "sentence",
+            "embeddingAlgorithm": "nomic-embed-text",
+            "topK": 5,
+            "chunkSize": 1000,
+            "chunkOverlap": 200
+        }
+    },
+    "vectorWorkspace": {
+        "name": "Vector RAG Workspace",
+        "description": "Testing Vector RAG functionality with embeddings",
+        "ragType": "vector",
+        "vectorConfig": {
+            "chunkingAlgorithm": "sentence",
+            "embeddingAlgorithm": "nomic-embed-text",
+            "topK": 8,
+            "chunkSize": 800,
+            "chunkOverlap": 100
         }
     },
     "graphWorkspace": {
         "name": "Graph RAG Workspace",
-        "description": "Testing Graph RAG functionality",
-        "ragConfig": {
-            "retriever_type": "graph",
-            "max_hops": 2,
-            "entity_extraction_model": "ollama"
+        "description": "Testing Graph RAG functionality with knowledge graphs",
+        "ragType": "graph",
+        "graphConfig": {
+            "entityExtractionModel": "ollama",
+            "relationshipExtractionModel": "ollama",
+            "communityDetectionAlgorithm": "leiden",
+            "maxHops": 2,
+            "minCommunitySize": 3
+        }
+    },
+    "largeChunkWorkspace": {
+        "name": "Large Chunk Workspace",
+        "description": "Workspace with larger chunk sizes for long-form content",
+        "ragType": "vector",
+        "vectorConfig": {
+            "chunkingAlgorithm": "character",
+            "embeddingAlgorithm": "nomic-embed-text",
+            "topK": 3,
+            "chunkSize": 2000,
+            "chunkOverlap": 400
+        }
+    },
+    "semanticWorkspace": {
+        "name": "Semantic Chunking Workspace",
+        "description": "Workspace using semantic chunking for better context preservation",
+        "ragType": "vector",
+        "vectorConfig": {
+            "chunkingAlgorithm": "semantic",
+            "embeddingAlgorithm": "nomic-embed-text",
+            "topK": 5,
+            "chunkSize": 1200,
+            "chunkOverlap": 150
         }
     }
 }

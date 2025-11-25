@@ -207,3 +207,200 @@ Cypress.Commands.add('clearLocalStorage', () => {
         win.localStorage.clear();
     });
 });
+
+/**
+ * Wait for document to be indexed command
+ * Waits for a document to complete the full Vector RAG pipeline
+ */
+Cypress.Commands.add('waitForDocumentIndexed', (documentId, timeout = 180000) => {
+    cy.waitUntil(
+        () => {
+            return cy
+                .request({
+                    url: `${Cypress.env('apiUrl')}/documents/${documentId}`,
+                    headers: {
+                        Authorization: `Bearer ${window.localStorage.getItem('token')}`,
+                    },
+                    failOnStatusCode: false,
+                })
+                .then((response) => {
+                    return response.status === 200 && response.body.status === 'ready';
+                });
+        },
+        {
+            timeout,
+            interval: 3000,
+            errorMsg: `Document ${documentId} was not indexed within ${timeout}ms`,
+        }
+    );
+});
+
+/**
+ * Query Vector RAG command
+ * Sends a query and waits for Vector RAG response with context
+ */
+Cypress.Commands.add('queryVectorRAG', (query, expectContext = true) => {
+    cy.sendChatMessage(query);
+
+    // Wait for bot response
+    cy.get('[data-testid="bot-message"]', { timeout: 120000 }).should('exist');
+
+    if (expectContext) {
+        // Should show retrieved context
+        cy.get('[data-testid="context-display"]').should('exist');
+    }
+
+    // Return the response for further assertions
+    return cy.get('[data-testid="bot-message"]').last();
+});
+
+/**
+ * Verify retrieved context command
+ * Opens context display and verifies chunks and scores
+ */
+Cypress.Commands.add('verifyRetrievedContext', (expectedChunkCount?: number, minScore?: number) => {
+    // Expand context display
+    cy.findByRole('button', { name: /show.*context|view.*sources/i }).click();
+
+    // Verify context is visible
+    cy.get('[data-testid="context-chunks"]').should('be.visible');
+
+    if (expectedChunkCount !== undefined) {
+        cy.get('[data-testid="context-chunk-item"]').should('have.length', expectedChunkCount);
+    }
+
+    if (minScore !== undefined) {
+        cy.get('[data-testid="chunk-score"]')
+            .first()
+            .invoke('text')
+            .then((scoreText) => {
+                const score = parseFloat(scoreText);
+                expect(score).to.be.gte(minScore);
+            });
+    }
+});
+
+/**
+ * Create Vector RAG workspace command
+ * Creates a workspace specifically configured for Vector RAG
+ */
+Cypress.Commands.add('createVectorWorkspace', (name, config) => {
+    cy.findByRole('button', { name: /create.*workspace|new workspace/i }).click();
+
+    // Basic info
+    cy.findByLabelText(/workspace name|name/i).type(name);
+    cy.findByLabelText(/description/i).type(config.description || 'Vector RAG test workspace');
+
+    // RAG type
+    cy.get('[data-testid="rag-type-select"]').select('vector');
+
+    // Vector RAG configuration
+    if (config.chunkingAlgorithm) {
+        cy.get('[data-testid="chunking-algorithm-select"]').select(config.chunkingAlgorithm);
+    }
+
+    if (config.embeddingAlgorithm) {
+        cy.get('[data-testid="embedding-algorithm-select"]').select(config.embeddingAlgorithm);
+    }
+
+    if (config.chunkSize) {
+        cy.findByLabelText(/chunk.*size/i)
+            .clear()
+            .type(config.chunkSize.toString());
+    }
+
+    if (config.chunkOverlap) {
+        cy.findByLabelText(/chunk.*overlap/i)
+            .clear()
+            .type(config.chunkOverlap.toString());
+    }
+
+    if (config.topK) {
+        cy.findByLabelText(/top.*k/i)
+            .clear()
+            .type(config.topK.toString());
+    }
+
+    // Create
+    cy.findByRole('button', { name: /create|save/i }).click();
+
+    // Wait for workspace to appear
+    cy.contains(name).should('be.visible');
+
+    // Wait for ready status
+    cy.contains(name)
+        .parent()
+        .within(() => {
+            cy.get('[data-testid="status-badge"]', { timeout: 120000 }).should(
+                'contain.text',
+                /ready/i
+            );
+        });
+});
+
+/**
+ * Upload and wait for document command
+ * Uploads a document and waits for it to be fully indexed
+ */
+Cypress.Commands.add('uploadAndIndexDocument', (filePath, timeout = 180000) => {
+    // Upload file
+    cy.get('input[type="file"]').attachFile(filePath);
+
+    // Get filename from path
+    const filename = filePath.split('/').pop() || filePath;
+
+    // Wait for upload success
+    cy.contains(/upload.*success/i, { timeout: 30000 }).should('be.visible');
+
+    // Wait for document to be ready
+    cy.contains(filename)
+        .parent()
+        .within(() => {
+            cy.get('[data-testid="status-badge"]', { timeout }).should('contain.text', /ready/i);
+        });
+
+    // Return filename for further use
+    cy.wrap(filename);
+});
+
+/**
+ * Get vector statistics command
+ * Fetches vector database statistics for a workspace
+ */
+Cypress.Commands.add('getVectorStats', (workspaceId) => {
+    return cy.window().then((win) => {
+        const token = win.localStorage.getItem('token');
+
+        return cy
+            .request({
+                url: `${Cypress.env('apiUrl')}/workspaces/${workspaceId}/vector-stats`,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            .then((response) => {
+                return cy.wrap(response.body);
+            });
+    });
+});
+
+/**
+ * Get document chunks command
+ * Fetches chunks for a specific document
+ */
+Cypress.Commands.add('getDocumentChunks', (documentId) => {
+    return cy.window().then((win) => {
+        const token = win.localStorage.getItem('token');
+
+        return cy
+            .request({
+                url: `${Cypress.env('apiUrl')}/documents/${documentId}/chunks`,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+            .then((response) => {
+                return cy.wrap(response.body.chunks);
+            });
+    });
+});

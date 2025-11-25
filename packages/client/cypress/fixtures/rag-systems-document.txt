@@ -1,0 +1,73 @@
+Retrieval-Augmented Generation (RAG) Systems
+
+Retrieval-Augmented Generation combines information retrieval with large language model generation to provide more accurate, up-to-date, and grounded responses.
+
+RAG Architecture:
+
+1. Indexing Phase:
+   - Document ingestion and parsing
+   - Text chunking and preprocessing
+   - Embedding generation using encoder models
+   - Vector storage in specialized databases
+
+2. Retrieval Phase:
+   - Query embedding generation
+   - Similarity search in vector database
+   - Top-K most relevant chunks retrieval
+   - Context ranking and filtering
+
+3. Generation Phase:
+   - Context injection into LLM prompt
+   - Response generation with retrieved evidence
+   - Streaming output for better user experience
+   - Source attribution and citation
+
+Benefits of RAG:
+- Reduces hallucination by grounding responses in actual documents
+- Enables updating knowledge without retraining the LLM
+- Provides source transparency and verifiability
+- Scales to large knowledge bases efficiently
+- Supports domain-specific applications
+
+Vector RAG vs Graph RAG:
+
+Vector RAG:
+- Uses dense vector embeddings for similarity search
+- Fast and efficient for semantic matching
+- Works well for unstructured text
+- Simpler implementation and lower computational cost
+
+Graph RAG:
+- Represents knowledge as entities and relationships
+- Leverages graph structure for multi-hop reasoning
+- Better for complex queries requiring relationship traversal
+- Community detection for hierarchical retrieval
+- More interpretable retrieval paths
+
+Chunking Strategies:
+- Fixed-size chunking: Simple but may split context
+- Sentence-based: Preserves sentence boundaries
+- Paragraph-based: Maintains logical units
+- Semantic chunking: Uses embeddings to identify natural breaks
+- Sliding window: Overlapping chunks for context continuity
+
+Embedding Models:
+- Sentence Transformers: Pre-trained models for semantic similarity
+- OpenAI Ada: Commercial embedding API
+- Cohere Embeddings: Multi-lingual support
+- Nomic Embed: Open-source alternative with competitive performance
+- E5 models: Efficient and effective embeddings from Microsoft
+
+Evaluation Metrics:
+- Retrieval Precision: How many retrieved chunks are relevant
+- Retrieval Recall: How many relevant chunks were retrieved
+- Answer Relevance: How well the generated answer addresses the query
+- Faithfulness: Whether the answer is supported by retrieved context
+- Context Relevance: How relevant the retrieved context is to the query
+
+Advanced RAG Techniques:
+- Hypothetical Document Embeddings (HyDE): Generate hypothetical answers first
+- Multi-query: Rephrase query to retrieve diverse perspectives
+- Fusion: Combine multiple retrieval methods
+- Re-ranking: Use cross-encoders to re-rank retrieved chunks
+- Self-RAG: LLM decides when to retrieve and critique its own outputs
