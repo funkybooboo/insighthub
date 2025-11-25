@@ -32,6 +32,12 @@ const meta: Meta<typeof LoginForm> = {
     },
   },
   tags: ['autodocs'],
+  argTypes: {
+    initialState: {
+      control: { type: 'object' },
+      description: 'Initial Redux state',
+    },
+  },
   decorators: [
     (Story, context) => {
       const store = createMockStore(context.args?.initialState || {
