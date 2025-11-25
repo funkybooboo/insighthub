@@ -1,7 +1,16 @@
 import React from 'react';
 import { X, CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationContext';
-import { Notification } from '../types/notification';
+
+// Mock notification type for Storybook
+interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title: string;
+  message: string;
+  timestamp: Date;
+  duration?: number;
+  persistent?: boolean;
+}
 
 const NotificationItem: React.FC<{ notification: Notification; onClose: (id: string) => void }> = ({
   notification,
@@ -66,9 +75,11 @@ const NotificationItem: React.FC<{ notification: Notification; onClose: (id: str
   );
 };
 
-const NotificationContainer: React.FC = () => {
-  const { notifications, removeNotification } = useNotifications();
-
+// Mock container for Storybook - in real app this uses context
+const MockNotificationContainer: React.FC<{ notifications: Notification[]; onClose: (id: string) => void }> = ({
+  notifications,
+  onClose
+}) => {
   if (notifications.length === 0) {
     return null;
   }
@@ -79,7 +90,7 @@ const NotificationContainer: React.FC = () => {
         <div key={notification.id} className="pointer-events-auto">
           <NotificationItem
             notification={notification}
-            onClose={removeNotification}
+            onClose={onClose}
           />
         </div>
       ))}
@@ -87,4 +98,11 @@ const NotificationContainer: React.FC = () => {
   );
 };
 
+// Real container for production use
+const NotificationContainer: React.FC = () => {
+  // This would use the real context in production
+  return null;
+};
+
 export default NotificationContainer;
+export { MockNotificationContainer };

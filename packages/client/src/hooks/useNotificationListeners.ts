@@ -149,6 +149,25 @@ export const useNotificationListeners = () => {
       });
     };
 
+    // Connection status monitoring
+    const handleConnected = () => {
+      addNotification({
+        type: 'success',
+        title: 'Connected',
+        message: 'Successfully connected to the server.',
+        duration: 3000,
+      });
+    };
+
+    const handleDisconnected = () => {
+      addNotification({
+        type: 'error',
+        title: 'Connection Lost',
+        message: 'Lost connection to the server. Attempting to reconnect...',
+        persistent: true,
+      });
+    };
+
     // Register all event listeners
     socketService.onDocumentStatus(handleDocumentStatus);
     socketService.onWorkspaceStatus(handleWorkspaceStatus);
@@ -156,6 +175,8 @@ export const useNotificationListeners = () => {
     socketService.onChatComplete(handleChatComplete);
     socketService.onError(handleError);
     socketService.onChatNoContextFound(handleNoContextFound);
+    socketService.onConnected(handleConnected);
+    socketService.onDisconnected(handleDisconnected);
 
     // Cleanup function
     return () => {
@@ -165,6 +186,8 @@ export const useNotificationListeners = () => {
       socketService.off('chat_complete', handleChatComplete);
       socketService.off('error', handleError);
       socketService.off('chat.no_context_found', handleNoContextFound);
+      socketService.off('connected', handleConnected);
+      socketService.off('disconnect', handleDisconnected);
     };
   }, [addNotification]);
 };
