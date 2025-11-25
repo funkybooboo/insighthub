@@ -23,6 +23,9 @@ FROM base AS dependencies
 # Copy package files
 COPY --chown=app:app packages/client/package.json packages/client/bun.lock ./
 
+# Copy shared TypeScript package
+COPY --chown=app:app packages/shared/typescript/ ./shared-typescript/
+
 # Install dependencies
 USER app
 RUN bun install --frozen-lockfile

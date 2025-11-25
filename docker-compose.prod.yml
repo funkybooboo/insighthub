@@ -87,28 +87,28 @@ services:
   # Production Workers - Background processing (optimized)
   # ============================================================================
 
-  worker-retriever-prod:
+  worker-chat-prod:
     labels:
       project: insighthub
-      worker: retriever
-    image: insighthub-worker-retriever:prod
-    container_name: insighthub-worker-retriever-prod
+      worker: chat
+    image: insighthub-worker-chat:prod
+    container_name: insighthub-worker-chat-prod
     profiles:
       - prod
       - workers
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/retriever/Dockerfile
+      dockerfile: packages/workers/chat/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
       RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
-      ARXIV_API_URL: ${ARXIV_API_URL:-http://export.arxiv.org/api/query}
-      WORKER_NAME: retriever
-      WORKER_CONCURRENCY: ${RETRIEVER_WORKER_CONCURRENCY:-5}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      WORKER_NAME: chat
+      WORKER_CONCURRENCY: ${CHAT_WORKER_CONCURRENCY:-5}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -305,7 +305,6 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
       RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
       RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      OPENALEX_API_KEY: ${OPENALEX_API_KEY:-}
       SEMANTIC_SCHOLAR_API_KEY: ${SEMANTIC_SCHOLAR_API_KEY:-}
       WORKER_NAME: enricher
       WORKER_CONCURRENCY: ${ENRICHER_WORKER_CONCURRENCY:-3}
