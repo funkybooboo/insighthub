@@ -6,13 +6,12 @@ Produces: chat.response_chunk, chat.response_complete, chat.error, chat.no_conte
 """
 
 from dataclasses import asdict, dataclass
-from typing import Any, List
-import json
+from typing import Any
 
 from shared.config import config
+from shared.database.sql.postgres import PostgresConnection
 from shared.logger import get_logger
 from shared.worker.worker import Worker as BaseWorker
-from shared.database.sql.postgres import PostgresConnection
 
 logger = get_logger(__name__)
 
@@ -30,6 +29,7 @@ WORKER_CONCURRENCY = config.worker_concurrency
 @dataclass
 class ChatResponseChunkEvent:
     """Event emitted for each chunk of chat response."""
+
     session_id: int
     message_id: str
     chunk: str
@@ -38,6 +38,7 @@ class ChatResponseChunkEvent:
 @dataclass
 class ChatResponseCompleteEvent:
     """Event emitted when chat response is complete."""
+
     session_id: int
     message_id: str
     full_response: str
@@ -46,6 +47,7 @@ class ChatResponseCompleteEvent:
 @dataclass
 class ChatErrorEvent:
     """Event emitted when chat processing fails."""
+
     session_id: int
     message_id: str
     error: str
@@ -54,6 +56,7 @@ class ChatErrorEvent:
 @dataclass
 class ChatNoContextFoundEvent:
     """Event emitted when no RAG context is found."""
+
     session_id: int
     message_id: str
     query: str
@@ -79,7 +82,7 @@ class ChatOrchestratorWorker(BaseWorker):
         self._rag_system = None
         self._llm_provider = None
 
-    def _init_rag_system(self, workspace_id: int):
+    def _init_rag_system(self, workspace_id: int) -> None:
         """Initialize RAG system if not already done."""
         if self._rag_system is not None:
             return
@@ -88,7 +91,7 @@ class ChatOrchestratorWorker(BaseWorker):
             from shared.database.vector import create_vector_database
             from shared.documents.embedding import create_embedding_encoder
             from shared.orchestrators import VectorRAG
-            
+
             collection_name = self._get_workspace_collection(workspace_id)
             rag_config = self._get_rag_config(workspace_id)
 
@@ -119,12 +122,13 @@ class ChatOrchestratorWorker(BaseWorker):
             self._rag_system = None
             raise
 
-    def _init_llm_provider(self):
+    def _init_llm_provider(self) -> None:
         """Initialize LLM provider if not already done."""
         if self._llm_provider is not None:
             return
         try:
             from shared.llm import create_llm_provider
+
             self._llm_provider = create_llm_provider(
                 provider_type="ollama",
                 base_url=OLLAMA_BASE_URL,
@@ -154,7 +158,7 @@ class ChatOrchestratorWorker(BaseWorker):
 
             if not self._llm_provider:
                 raise Exception("LLM provider not available")
-            
+
             rag_config = self._get_rag_config(workspace_id)
             top_k = rag_config.get("top_k", 8)
 
@@ -162,60 +166,81 @@ class ChatOrchestratorWorker(BaseWorker):
             if not ignore_rag and self._rag_system:
                 rag_results = self._rag_system.query(content, top_k=top_k)
                 if rag_results:
-                    context_chunks = [{"text": result.chunk.text, "score": result.score} for result in rag_results]
+                    context_chunks = [
+                        {"text": result.chunk.text, "score": result.score} for result in rag_results
+                    ]
 
             if not context_chunks and not ignore_rag:
-                event = ChatNoContextFoundEvent(session_id=session_id, message_id=message_id, query=content)
+                event = ChatNoContextFoundEvent(
+                    session_id=session_id, message_id=message_id, query=content
+                )
                 self.publish_event("chat.no_context_found", asdict(event))
                 return
 
             conversation_history = self._get_conversation_history(session_id)
-            
+
             enhanced_history = conversation_history.copy()
             if context_chunks:
-                context_str = "\n\n".join([f"[{i+1}] {chunk['text']}" for i, chunk in enumerate(context_chunks)])
-                system_message = f"Use the following context to answer the user's question:\n{context_str}"
+                context_str = "\n\n".join(
+                    [f"[{i+1}] {chunk['text']}" for i, chunk in enumerate(context_chunks)]
+                )
+                system_message = (
+                    f"Use the following context to answer the user's question:\n{context_str}"
+                )
                 enhanced_history.insert(0, {"role": "system", "content": system_message})
 
             full_response = ""
             for chunk in self._llm_provider.chat_stream(content, enhanced_history):
                 full_response += chunk
-                chunk_event = ChatResponseChunkEvent(session_id=session_id, message_id=message_id, chunk=chunk)
+                chunk_event = ChatResponseChunkEvent(
+                    session_id=session_id, message_id=message_id, chunk=chunk
+                )
                 self.publish_event("chat.response_chunk", asdict(chunk_event))
 
-            complete_event = ChatResponseCompleteEvent(session_id=session_id, message_id=message_id, full_response=full_response)
+            complete_event = ChatResponseCompleteEvent(
+                session_id=session_id, message_id=message_id, full_response=full_response
+            )
             self.publish_event("chat.response_complete", asdict(complete_event))
 
         except Exception as e:
-            logger.error("Failed to process chat message", extra={"message_id": message_id, "error": str(e)})
+            logger.error(
+                "Failed to process chat message", extra={"message_id": message_id, "error": str(e)}
+            )
             error_event = ChatErrorEvent(session_id=session_id, message_id=message_id, error=str(e))
             self.publish_event("chat.error", asdict(error_event))
 
-    def _get_conversation_history(self, session_id: int) -> List[dict]:
+    def _get_conversation_history(self, session_id: int) -> list[dict]:
         """Get conversation history from the database."""
         logger.info("Getting conversation history", extra={"session_id": session_id})
         try:
             with self.db_connection.get_cursor(as_dict=True) as cursor:
                 cursor.execute(
                     "SELECT role, content FROM chat_messages WHERE session_id = %s ORDER BY created_at ASC",
-                    (session_id,)
+                    (session_id,),
                 )
-                return cursor.fetchall()
+                return cursor.fetchall()  # type: ignore[no-any-return]
         except Exception as e:
-            logger.error("Failed to get conversation history", extra={"session_id": session_id, "error": str(e)})
+            logger.error(
+                "Failed to get conversation history",
+                extra={"session_id": session_id, "error": str(e)},
+            )
             return []
 
     def _get_workspace_collection(self, workspace_id: int) -> str:
         """Get the Qdrant collection name for the workspace."""
         try:
             with self.db_connection.get_cursor(as_dict=True) as cursor:
-                cursor.execute("SELECT rag_collection FROM workspaces WHERE id = %s", (workspace_id,))
+                cursor.execute(
+                    "SELECT rag_collection FROM workspaces WHERE id = %s", (workspace_id,)
+                )
                 result = cursor.fetchone()
                 if not result:
                     raise ValueError(f"Workspace {workspace_id} not found")
-                return result["rag_collection"]
+                return result["rag_collection"]  # type: ignore[no-any-return]
         except Exception as e:
-            raise ValueError(f"Failed to get workspace collection for workspace {workspace_id}: {e}")
+            raise ValueError(
+                f"Failed to get workspace collection for workspace {workspace_id}: {e}"
+            ) from e
 
     def _get_rag_config(self, workspace_id: int) -> dict:
         """Get the RAG config for the workspace."""
@@ -225,9 +250,10 @@ class ChatOrchestratorWorker(BaseWorker):
                 result = cursor.fetchone()
                 if not result:
                     raise ValueError(f"RAG config for workspace {workspace_id} not found")
-                return result
+                return result  # type: ignore[no-any-return]
         except Exception as e:
-            raise ValueError(f"Failed to get RAG config for workspace {workspace_id}: {e}")
+            raise ValueError(f"Failed to get RAG config for workspace {workspace_id}: {e}") from e
+
 
 def main() -> None:
     """Main entry point."""

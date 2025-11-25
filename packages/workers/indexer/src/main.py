@@ -5,18 +5,17 @@ Consumes: document.embedded
 Produces: document.indexed
 """
 
+import json
 from dataclasses import asdict, dataclass
 from typing import Any, List
-import json
-import uuid
 
-from shared.config import config
-from shared.worker.worker import Worker as BaseWorker
-from shared.logger import get_logger
-from shared.database.sql.postgres import PostgresConnection
 from qdrant_client import QdrantClient, models
+from shared.config import config
+from shared.database.sql.postgres import PostgresConnection
+from shared.logger import create_logger
+from shared.worker.worker import Worker as BaseWorker
 
-logger = get_logger(__name__)
+logger = create_logger(__name__)
 
 # Use unified config
 RABBITMQ_URL = config.rabbitmq_url
@@ -67,13 +66,19 @@ class IndexerWorker(BaseWorker):
 
         logger.info(
             "Indexing vectors",
-            extra={"document_id": document_id, "workspace_id": workspace_id, "vector_count": len(chunk_ids)}
+            extra={
+                "document_id": document_id,
+                "workspace_id": workspace_id,
+                "vector_count": len(chunk_ids),
+            },
         )
 
         try:
             collection_name = self._get_workspace_collection(workspace_id)
             if not collection_name:
-                raise ValueError(f"No collection name found for workspace {workspace_id}")
+                raise ValueError(
+                    f"No collection name found for workspace {workspace_id}"
+                )
 
             self._update_document_status(document_id, "indexing")
 
@@ -87,13 +92,19 @@ class IndexerWorker(BaseWorker):
                         "document_id": document_id,
                         "chunk_text": chunk["chunk_text"],
                         "chunk_index": chunk["chunk_index"],
-                    }
-                ) for chunk in chunks if chunk.get("embedding")
+                    },
+                )
+                for chunk in chunks
+                if chunk.get("embedding")
             ]
 
             if not points:
-                logger.warning("No embeddings to index", extra={"document_id": document_id})
-                self._update_document_status(document_id, "failed", {"error": "No embeddings found to index"})
+                logger.warning(
+                    "No embeddings to index", extra={"document_id": document_id}
+                )
+                self._update_document_status(
+                    document_id, "failed", {"error": "No embeddings found to index"}
+                )
                 return
 
             self.qdrant_client.upsert(
@@ -102,10 +113,11 @@ class IndexerWorker(BaseWorker):
                 wait=True,
             )
 
-            self._update_document_status(document_id, "ready", {
-                "vector_count": len(points),
-                "collection_name": collection_name
-            })
+            self._update_document_status(
+                document_id,
+                "ready",
+                {"vector_count": len(points), "collection_name": collection_name},
+            )
 
             indexed_event = DocumentIndexedEvent(
                 document_id=document_id,
@@ -121,29 +133,47 @@ class IndexerWorker(BaseWorker):
 
             logger.info(
                 "Successfully indexed document",
-                extra={"document_id": document_id, "vector_count": len(points), "collection_name": collection_name}
+                extra={
+                    "document_id": document_id,
+                    "vector_count": len(points),
+                    "collection_name": collection_name,
+                },
             )
 
         except Exception as e:
-            logger.error("Failed to index document", extra={"document_id": document_id, "error": str(e)})
+            logger.error(
+                "Failed to index document",
+                extra={"document_id": document_id, "error": str(e)},
+            )
             self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
 
     def _get_workspace_collection(self, workspace_id: str) -> str | None:
         """Get the Qdrant collection name for the workspace."""
-        logger.info("Getting workspace collection", extra={"workspace_id": workspace_id})
+        logger.info(
+            "Getting workspace collection", extra={"workspace_id": workspace_id}
+        )
         try:
             with self.db_connection.get_cursor(as_dict=True) as cursor:
-                cursor.execute("SELECT rag_collection FROM workspaces WHERE id = %s", (workspace_id,))
+                cursor.execute(
+                    "SELECT rag_collection FROM workspaces WHERE id = %s",
+                    (workspace_id,),
+                )
                 result = cursor.fetchone()
                 return result["rag_collection"] if result else None
         except Exception as e:
-            logger.error("Failed to get workspace collection", extra={"workspace_id": workspace_id, "error": str(e)})
+            logger.error(
+                "Failed to get workspace collection",
+                extra={"workspace_id": workspace_id, "error": str(e)},
+            )
             raise
-    
+
     def _get_chunks_and_embeddings(self, chunk_ids: List[str]) -> List[dict]:
         """Get chunks and their embeddings from the database."""
-        logger.info(f"Getting {len(chunk_ids)} chunks and embeddings from database", extra={"chunk_ids": chunk_ids})
+        logger.info(
+            f"Getting {len(chunk_ids)} chunks and embeddings from database",
+            extra={"chunk_ids": chunk_ids},
+        )
         try:
             with self.db_connection.get_cursor(as_dict=True) as cursor:
                 query = "SELECT id, chunk_text, chunk_index, embedding FROM document_chunks WHERE id = ANY(%s)"
@@ -151,26 +181,39 @@ class IndexerWorker(BaseWorker):
                 results = cursor.fetchall()
                 # The embedding is stored as a JSON string, so we need to parse it.
                 for r in results:
-                    if isinstance(r['embedding'], str):
-                        r['embedding'] = json.loads(r['embedding'])
+                    if isinstance(r["embedding"], str):
+                        r["embedding"] = json.loads(r["embedding"])
                 return results
         except Exception as e:
             logger.error("Failed to get chunks and embeddings", extra={"error": str(e)})
             raise
 
-    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+    def _update_document_status(
+        self, document_id: str, status: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Update document processing status."""
-        logger.info("Updating document status", extra={"document_id": document_id, "status": status})
+        logger.info(
+            "Updating document status",
+            extra={"document_id": document_id, "status": status},
+        )
         try:
             with self.db_connection.get_cursor() as cursor:
                 query = "UPDATE documents SET processing_status = %s, processing_metadata = %s, updated_at = NOW() WHERE id = %s"
-                cursor.execute(query, (status, json.dumps(metadata) if metadata else None, document_id))
-                self.db_connection.connection.commit()
+                cursor.execute(
+                    query,
+                    (status, json.dumps(metadata) if metadata else None, document_id),
+                )
+                if self.db_connection.connection:
+                    self.db_connection.connection.commit()
         except Exception as e:
-            logger.error("Failed to update document status", extra={"document_id": document_id, "error": str(e)})
+            logger.error(
+                "Failed to update document status",
+                extra={"document_id": document_id, "error": str(e)},
+            )
             if self.db_connection.connection:
                 self.db_connection.connection.rollback()
             raise
+
 
 def main() -> None:
     """Main entry point."""

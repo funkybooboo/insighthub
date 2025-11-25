@@ -97,3 +97,16 @@ class BlobStorage(ABC):
             SHA-256 hash hex digest
         """
         pass
+
+    @abstractmethod
+    def list_files(self, prefix: str | None = None) -> list[str]:
+        """
+        List files in blob storage with optional prefix filter.
+
+        Args:
+            prefix: Optional prefix to filter files by
+
+        Returns:
+            List of file keys/names
+        """
+        pass

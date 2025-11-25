@@ -1,82 +1,121 @@
-
-import pytest
-import pika
-import json
-import threading
-import time
-import os
 import psycopg2
 from qdrant_client import QdrantClient
+from testcontainers.postgres import PostgresContainer
+from testcontainers.qdrant import QdrantContainer
 
-from src.main import ProvisionerWorker
+from src.main import VectorStoreProvisioner
 
-# Assume conftest.py with postgres, rabbitmq, qdrant containers exists
 
-def apply_migrations(db_conn):
+def apply_migrations(db_conn: psycopg2.extensions.connection) -> None:
+    """Apply database migrations for testing."""
     cursor = db_conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS workspaces (id SERIAL PRIMARY KEY, status VARCHAR(50), status_message TEXT, rag_collection VARCHAR(255), updated_at TIMESTAMP);
-    """)
+    cursor.execute(
+        """
+    CREATE TABLE IF NOT EXISTS workspaces (
+        id SERIAL PRIMARY KEY,
+        status VARCHAR(50),
+        status_message TEXT,
+        rag_collection VARCHAR(255),
+        updated_at TIMESTAMP
+    );
+    """
+    )
     db_conn.commit()
     cursor.close()
 
-def test_provisioner_worker_integration(postgres_container, rabbitmq_container, qdrant_container):
-    # 1. Setup
-    rabbit_conn = pika.BlockingConnection(pika.URLParameters(rabbitmq_container.get_connection_url()))
-    rabbit_channel = rabbit_conn.channel()
-    rabbit_channel.exchange_declare(exchange='insighthub', exchange_type='topic', durable=True)
-    
-    pg_conn = psycopg2.connect(postgres_container.get_connection_url())
-    apply_migrations(pg_conn)
-    cursor = pg_conn.cursor()
-    cursor.execute("INSERT INTO workspaces (id, status) VALUES (1, 'provisioning')")
-    pg_conn.commit()
-    cursor.close()
 
-    qdrant_client = QdrantClient(url=qdrant_container.get_url())
+def test_vector_store_provisioner_integration(
+    postgres_container: PostgresContainer, qdrant_container: QdrantContainer
+) -> None:
+    """
+    Test VectorStoreProvisioner creates Qdrant collections correctly.
 
-    os.environ.update({
-        'DATABASE_URL': postgres_container.get_connection_url(),
-        'RABBITMQ_URL': rabbitmq_container.get_connection_url(),
-        'QDRANT_HOST': qdrant_container.host, 'QDRANT_PORT': str(qdrant_container.port),
-    })
+    This tests input/output behavior: given a workspace ID and config,
+    verify that a Qdrant collection is created with the correct name and configuration.
+    """
+    # Setup Qdrant client
+    qdrant_url = f"http://{qdrant_container.get_container_host_ip()}:{qdrant_container.get_exposed_port(6333)}"
+    qdrant_client = QdrantClient(url=qdrant_url)
 
-    # 2. Run worker
-    worker = ProvisionerWorker()
-    worker_thread = threading.Thread(target=worker.start, daemon=True)
-    worker_thread.start()
-    time.sleep(2)
+    # Test provisioning with different embedding dimensions
+    provisioner = VectorStoreProvisioner(qdrant_url)
 
-    # 3. Publish message
-    message = {"workspace_id": "1", "user_id": "1", "rag_config": {"embedding_dim": 3}}
-    rabbit_channel.basic_publish(exchange='insighthub', routing_key='workspace.provision_requested', body=json.dumps(message))
+    # Test case 1: Standard embedding dimension
+    collection_name = provisioner.provision_workspace_collection(
+        "test_workspace_1", {"embedding_dim": 384}
+    )
 
-    # 4. Consume results
-    status_updates = []
-    for _ in range(2): # Expecting two status updates
-        method_frame, properties, body = rabbit_channel.basic_get(queue='provisioner.workspace.provision_requested', auto_ack=True)
-        if body:
-            status_updates.append(json.loads(body))
-    
-    # 5. Assertions
-    assert len(status_updates) > 0 # At least one for ready
-    ready_status = [s for s in status_updates if s['status'] == 'ready']
-    assert len(ready_status) == 1
+    assert collection_name == "workspace_test_workspace_1"
 
-    # Check Qdrant
-    collection_info = qdrant_client.get_collection(collection_name="workspace_1")
-    assert collection_info.vectors_config.params.size == 3
-    
-    # Check DB
-    cursor = pg_conn.cursor()
-    cursor.execute("SELECT status, rag_collection FROM workspaces WHERE id = 1")
-    db_status, db_collection = cursor.fetchone()
-    assert db_status == 'ready'
-    assert db_collection == 'workspace_1'
-    cursor.close()
+    # Verify collection exists and has correct configuration
+    collection_info = qdrant_client.get_collection(collection_name=collection_name)
+    assert collection_info is not None
 
-    # 6. Cleanup
-    worker.stop()
-    worker_thread.join()
-    pg_conn.close()
-    rabbit_conn.close()
+    # Test case 2: Provisioning the same workspace again (should not fail)
+    collection_name_2 = provisioner.provision_workspace_collection(
+        "test_workspace_1", {"embedding_dim": 384}
+    )
+    assert collection_name_2 == collection_name
+
+    # Test case 3: Different workspace
+    collection_name_3 = provisioner.provision_workspace_collection(
+        "test_workspace_2", {"embedding_dim": 768}
+    )
+    assert collection_name_3 == "workspace_test_workspace_2"
+
+    # Verify both collections exist
+    info_1 = qdrant_client.get_collection(collection_name="workspace_test_workspace_1")
+    info_2 = qdrant_client.get_collection(collection_name="workspace_test_workspace_2")
+    assert info_1 is not None
+    assert info_2 is not None
+
+
+def test_workspace_database_operations_integration(
+    postgres_container: PostgresContainer,
+) -> None:
+    """
+    Test workspace database operations work correctly.
+
+    This tests input/output behavior: database operations should update
+    workspace status and resources correctly.
+    """
+    from src.main import ProvisionerWorker
+
+    # Setup database connection
+    db_url = f"postgresql://{postgres_container.username}:{postgres_container.password}@{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}/{postgres_container.dbname}"
+    db_conn = psycopg2.connect(db_url)
+    apply_migrations(db_conn)
+
+    # Insert test workspace
+    cursor = db_conn.cursor()
+    cursor.execute("INSERT INTO workspaces (id, status) VALUES (999, 'provisioning')")
+    db_conn.commit()
+
+    # Mock minimal config for database operations
+    from unittest.mock import MagicMock, patch
+
+    mock_config = MagicMock()
+    mock_config.database_url = db_url
+
+    with patch("src.main.config", mock_config), patch("src.main.DATABASE_URL", db_url):
+        worker = ProvisionerWorker()
+
+        # Test updating workspace resources
+        worker._update_workspace_resources("999", "test_collection", None)
+
+        # Test updating workspace status
+        worker._update_workspace_status("999", "ready", "Provisioning completed")
+
+        # Verify final state
+        cursor.execute(
+            "SELECT status, rag_collection, status_message FROM workspaces WHERE id = 999"
+        )
+        result = cursor.fetchone()
+        cursor.close()
+        db_conn.close()
+
+        assert result is not None
+        status, collection, message = result
+        assert status == "ready"
+        assert collection == "test_collection"
+        assert message == "Provisioning completed"

@@ -5,12 +5,13 @@ Consumes: document.indexed, graph.updated
 Produces: document.enriched
 """
 
+import json
 from dataclasses import asdict, dataclass
 from typing import Any
 
 from shared.config import config
-from shared.workers import BaseWorker
 from shared.logger import create_logger
+from shared.worker import Worker
 
 logger = create_logger(__name__)
 
@@ -33,7 +34,7 @@ class DocumentEnrichedEvent:
     metadata: dict[str, Any]
 
 
-class EnricherWorker(BaseWorker):
+class EnricherWorker(Worker):
     """Document enricher worker for metadata augmentation."""
 
     def __init__(self) -> None:
@@ -48,7 +49,7 @@ class EnricherWorker(BaseWorker):
             prefetch_count=WORKER_CONCURRENCY,
         )
 
-    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
+    def process_event(self, event_data: dict[str, Any]) -> None:
         """
         Process document.indexed or graph.updated event to enrich document metadata.
 
@@ -65,7 +66,7 @@ class EnricherWorker(BaseWorker):
             extra={
                 "document_id": document_id,
                 "workspace_id": workspace_id,
-            }
+            },
         )
 
         try:
@@ -75,15 +76,16 @@ class EnricherWorker(BaseWorker):
             # 3. Generate summaries, keywords, topics
             # 4. Store enrichment data
 
-            enrichments = []  # Placeholder
+            enrichments: list[dict[str, Any]] = []  # Placeholder
             entity_count = 0  # Placeholder
             enrichment_count = 0  # Placeholder
 
-            # TODO: Update document status
-            self._update_document_status(document_id, "enriched", {
-                "entity_count": entity_count,
-                "enrichment_count": enrichment_count
-            })
+            # Update document status
+            self._update_document_status(
+                document_id,
+                "enriched",
+                {"entity_count": entity_count, "enrichment_count": enrichment_count},
+            )
 
             # Publish document.enriched event
             enriched_event = DocumentEnrichedEvent(
@@ -96,9 +98,7 @@ class EnricherWorker(BaseWorker):
             )
             self.publish_event(
                 routing_key="document.enriched",
-                event_data=asdict(enriched_event),
-                correlation_id=message_context.get("correlation_id"),
-                message_id=document_id,
+                event=asdict(enriched_event),
             )
 
             logger.info(
@@ -106,29 +106,67 @@ class EnricherWorker(BaseWorker):
                 extra={
                     "document_id": document_id,
                     "entity_count": entity_count,
-                    "enrichment_count": enrichment_count
-                }
+                    "enrichment_count": enrichment_count,
+                },
             )
 
         except Exception as e:
             logger.error(
                 "Failed to enrich document",
-                extra={
-                    "document_id": document_id,
-                    "error": str(e)
-                }
+                extra={"document_id": document_id, "error": str(e)},
             )
             # TODO: Update document status to failed
             self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
 
-    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+    def _update_document_status(
+        self,
+        document_id: str,
+        status: str,
+        metadata: dict[str, Any] | None = None,
+        db_url: str | None = None,
+    ) -> None:
         """Update document processing status."""
-        # TODO: Implement status update
-        # 1. Connect to PostgreSQL
-        # 2. Update processing_status and processing_metadata
-        # 3. Handle connection errors
-        pass
+        from shared.database.sql import PostgresSqlDatabase
+
+        try:
+            # Create database connection
+            database_url = db_url or DATABASE_URL
+            db = PostgresSqlDatabase(db_url=database_url)
+
+            # Prepare metadata for JSON storage
+            processing_metadata = metadata or {}
+
+            # Update document status and metadata
+            query = """
+            UPDATE documents
+            SET processing_status = %(status)s, processing_metadata = %(metadata)s, updated_at = NOW()
+            WHERE id = %(id)s
+            """
+            db.execute(
+                query,
+                {
+                    "status": status,
+                    "metadata": json.dumps(processing_metadata),
+                    "id": document_id,
+                },
+            )
+
+            logger.info(
+                "Updated document status",
+                extra={
+                    "document_id": document_id,
+                    "status": status,
+                    "metadata": processing_metadata,
+                },
+            )
+
+        except Exception as e:
+            logger.error(
+                "Failed to update document status",
+                extra={"document_id": document_id, "status": status, "error": str(e)},
+            )
+            raise
 
 
 def main() -> None:

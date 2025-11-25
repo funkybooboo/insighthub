@@ -1,0 +1,61 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  check:
+    desc: Run all checks for deletion worker
+    cmds:
+      - cmd: echo "Formatting code..."
+        silent: true
+      - poetry run black src tests
+      - poetry run isort src tests
+      - cmd: echo "Linting code..."
+        silent: true
+      - poetry run ruff check src tests
+      - cmd: echo "Type checking..."
+        silent: true
+      - poetry run mypy src tests
+      - cmd: echo "Running tests..."
+        silent: true
+      - poetry run pytest tests/ -v --cov=src
+      - cmd: echo "All checks passed!"
+        silent: true
+
+  format:
+    desc: Format code
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+
+  lint:
+    desc: Lint code
+    cmds:
+      - poetry run ruff check src tests
+
+  type-check:
+    desc: Type check code
+    cmds:
+      - poetry run mypy src tests
+
+  test:
+    desc: Run tests
+    cmds:
+      - poetry run pytest tests/ -v --cov=src
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src

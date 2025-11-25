@@ -315,3 +315,38 @@ services:
         condition: service_healthy
     networks:
       - insighthub
+
+  worker-deletion-prod:
+    labels:
+      project: insighthub
+      worker: deletion
+    image: insighthub-worker-deletion:prod
+    container_name: insighthub-worker-deletion-prod
+    profiles:
+      - prod
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/deletion/Dockerfile
+      target: production
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
+      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-insighthub}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-insighthub_dev_secret}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
+      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
+      WORKER_NAME: deletion
+      WORKER_CONCURRENCY: ${DELETION_WORKER_CONCURRENCY:-2}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub

@@ -5,16 +5,17 @@ Consumes: workspace.deletion_requested, document.deleted
 Produces: workspace.deletion_status
 """
 
-from dataclasses import asdict, dataclass
-from typing import Any, List
 import json
+from dataclasses import asdict, dataclass
+from typing import Any
+
+from qdrant_client import QdrantClient, models
 
 from shared.config import config
-from shared.worker.worker import Worker as BaseWorker
-from shared.logger import get_logger
 from shared.database.sql.postgres import PostgresConnection
+from shared.logger import get_logger
 from shared.storage.s3_blob_storage import S3BlobStorage
-from qdrant_client import QdrantClient
+from shared.worker.worker import Worker as BaseWorker
 
 logger = get_logger(__name__)
 
@@ -36,6 +37,7 @@ class WorkspaceDeletionStatusEvent:
     status: str
     message: str
 
+
 class DeletionWorker(BaseWorker):
     """Deletion worker for cleaning up workspaces and documents."""
 
@@ -46,7 +48,7 @@ class DeletionWorker(BaseWorker):
             rabbitmq_url=RABBITMQ_URL,
             exchange=RABBITMQ_EXCHANGE,
             exchange_type="topic",
-            consume_routing_key="#", # Listen to all keys under the exchange
+            consume_routing_key="#",  # Listen to all keys under the exchange
             consume_queue="deletion_queue",
             prefetch_count=WORKER_CONCURRENCY,
         )
@@ -61,7 +63,7 @@ class DeletionWorker(BaseWorker):
             secure=False,
         )
 
-    def on_message(self, ch, method, properties, body):
+    def on_message(self, ch, method, properties, body) -> None:  # type: ignore[no-untyped-def]
         routing_key = method.routing_key
         event_data = json.loads(body)
 
@@ -72,7 +74,7 @@ class DeletionWorker(BaseWorker):
                 self._handle_document_deletion(event_data)
             else:
                 logger.warning(f"Unknown routing key for deletion worker: {routing_key}")
-            
+
             ch.basic_ack(delivery_tag=method.delivery_tag)
         except Exception as e:
             logger.error(f"Failed to process deletion message: {e}")
@@ -98,13 +100,19 @@ class DeletionWorker(BaseWorker):
             with self.db_connection.get_cursor() as cursor:
                 cursor.execute("DELETE FROM workspaces WHERE id = %s", (workspace_id,))
                 self.db_connection.connection.commit()
-            logger.info("Deleted workspace record from database", extra={"workspace_id": workspace_id})
+            logger.info(
+                "Deleted workspace record from database", extra={"workspace_id": workspace_id}
+            )
 
-            self._publish_deletion_status(workspace_id, "completed", "Workspace deleted successfully")
+            self._publish_deletion_status(
+                workspace_id, "completed", "Workspace deleted successfully"
+            )
             logger.info("Workspace deletion completed", extra={"workspace_id": workspace_id})
 
         except Exception as e:
-            logger.error("Workspace deletion failed", extra={"workspace_id": workspace_id, "error": str(e)})
+            logger.error(
+                "Workspace deletion failed", extra={"workspace_id": workspace_id, "error": str(e)}
+            )
             self._publish_deletion_status(workspace_id, "failed", f"Workspace deletion failed: {e}")
             raise
 
@@ -121,8 +129,14 @@ class DeletionWorker(BaseWorker):
 
             chunk_ids = self._get_document_chunk_ids(document_id)
             if chunk_ids:
-                self.qdrant_client.delete_points(collection_name=collection_name, points_selector=chunk_ids)
-                logger.info(f"Deleted {len(chunk_ids)} points from Qdrant", extra={"document_id": document_id})
+                self.qdrant_client.delete(
+                    collection_name=collection_name,
+                    points_selector=models.PointIdsList(points=chunk_ids),  # type: ignore[arg-type]
+                )
+                logger.info(
+                    f"Deleted {len(chunk_ids)} points from Qdrant",
+                    extra={"document_id": document_id},
+                )
 
             if file_path:
                 self.blob_storage.delete_file(file_path)
@@ -131,11 +145,15 @@ class DeletionWorker(BaseWorker):
             logger.info("Document deletion completed", extra={"document_id": document_id})
 
         except Exception as e:
-            logger.error("Document deletion failed", extra={"document_id": document_id, "error": str(e)})
+            logger.error(
+                "Document deletion failed", extra={"document_id": document_id, "error": str(e)}
+            )
             raise
 
     def _publish_deletion_status(self, workspace_id: str, status: str, message: str) -> None:
-        event = WorkspaceDeletionStatusEvent(workspace_id=workspace_id, status=status, message=message)
+        event = WorkspaceDeletionStatusEvent(
+            workspace_id=workspace_id, status=status, message=message
+        )
         self.publish_event(routing_key="workspace.deletion_status", event=asdict(event))
 
     def _get_workspace_collection(self, workspace_id: str) -> str | None:
@@ -144,19 +162,23 @@ class DeletionWorker(BaseWorker):
             result = cursor.fetchone()
             return result["rag_collection"] if result else None
 
-    def _get_workspace_file_paths(self, workspace_id: str) -> List[str]:
+    def _get_workspace_file_paths(self, workspace_id: str) -> list[str]:
         with self.db_connection.get_cursor(as_dict=True) as cursor:
-            cursor.execute("SELECT file_path FROM documents WHERE workspace_id = %s", (workspace_id,))
+            cursor.execute(
+                "SELECT file_path FROM documents WHERE workspace_id = %s", (workspace_id,)
+            )
             return [row["file_path"] for row in cursor.fetchall()]
 
-    def _get_document_chunk_ids(self, document_id: str) -> List[str]:
+    def _get_document_chunk_ids(self, document_id: str) -> list[str]:
         with self.db_connection.get_cursor(as_dict=True) as cursor:
             cursor.execute("SELECT id FROM document_chunks WHERE document_id = %s", (document_id,))
             return [str(row["id"]) for row in cursor.fetchall()]
 
+
 def main() -> None:
     worker = DeletionWorker()
     worker.start()
+
 
 if __name__ == "__main__":
     main()

@@ -9,8 +9,8 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from shared.config import config
-from shared.workers import BaseWorker
 from shared.logger import create_logger
+from shared.worker import Worker as BaseWorker
 
 logger = create_logger(__name__)
 
@@ -48,13 +48,12 @@ class ConnectorWorker(BaseWorker):
         )
         self._neo4j_url = NEO4J_URL
 
-    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
+    def process_event(self, event_data: dict[str, Any]) -> None:
         """
         Process embedding.created event to build graph nodes and edges.
 
         Args:
             event_data: Event data containing document_id, workspace_id, chunk_ids, etc.
-            message_context: Message context information
         """
         document_id = str(event_data.get("document_id", ""))
         workspace_id = str(event_data.get("workspace_id", ""))
@@ -66,8 +65,8 @@ class ConnectorWorker(BaseWorker):
             extra={
                 "document_id": document_id,
                 "workspace_id": workspace_id,
-                "chunk_count": len(chunk_ids)
-            }
+                "chunk_count": len(chunk_ids),
+            },
         )
 
         try:
@@ -81,10 +80,9 @@ class ConnectorWorker(BaseWorker):
             edge_count = len(chunk_ids) * 2  # Placeholder
 
             # TODO: Update document status
-            self._update_document_status(document_id, "graph_connected", {
-                "node_count": node_count,
-                "edge_count": edge_count
-            })
+            self._update_document_status(
+                document_id, "graph_connected", {"node_count": node_count, "edge_count": edge_count}
+            )
 
             # Publish graph.updated event
             graph_event = GraphUpdatedEvent(
@@ -96,9 +94,7 @@ class ConnectorWorker(BaseWorker):
             )
             self.publish_event(
                 routing_key="graph.updated",
-                event_data=asdict(graph_event),
-                correlation_id=message_context.get("correlation_id"),
-                message_id=document_id,
+                event=asdict(graph_event),
             )
 
             logger.info(
@@ -106,23 +102,22 @@ class ConnectorWorker(BaseWorker):
                 extra={
                     "document_id": document_id,
                     "node_count": node_count,
-                    "edge_count": edge_count
-                }
+                    "edge_count": edge_count,
+                },
             )
 
         except Exception as e:
             logger.error(
                 "Failed to build graph connections",
-                extra={
-                    "document_id": document_id,
-                    "error": str(e)
-                }
+                extra={"document_id": document_id, "error": str(e)},
             )
             # TODO: Update document status to failed
             self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
 
-    def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
+    def _update_document_status(
+        self, document_id: str, status: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Update document processing status."""
         # TODO: Implement status update
         # 1. Connect to PostgreSQL

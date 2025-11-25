@@ -91,7 +91,7 @@ class DocumentParser:
 
         logger.info(
             "Parsing document content",
-            extra={"document_id": document_id, "filename": filename},
+            extra={"document_id": document_id, "file_name": filename},
         )
 
         parse_result = parser_factory.parse_document(file_obj, filename)

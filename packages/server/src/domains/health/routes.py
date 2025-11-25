@@ -3,6 +3,7 @@
 from typing import Any
 
 from flask import Blueprint, Response, current_app, jsonify
+from shared.database.sql.sql_database import SqlDatabase
 
 health_bp = Blueprint("health", __name__)
 
@@ -34,7 +35,7 @@ def health() -> tuple[Response, int]:
     try:
         from src.infrastructure.database import get_db
 
-        db = next(get_db())
+        db: SqlDatabase = next(get_db())
         db.execute("SELECT 1")  # Simple query to test connectivity
         db.close()
         health_status["checks"]["database"] = {
@@ -148,7 +149,7 @@ def readiness() -> tuple[Response, int]:
         # Critical checks: database and basic app functionality
         from src.infrastructure.database import get_db
 
-        db = next(get_db())
+        db: SqlDatabase = next(get_db())
         db.execute("SELECT 1")
         db.close()
 

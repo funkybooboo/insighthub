@@ -7,6 +7,13 @@ from shared.models.document import Document
 
 from .document_repository import DocumentRepository
 
+# Columns that match the Document model
+DOCUMENT_COLUMNS = """
+    id, user_id, filename, file_path, file_size, mime_type, content_hash,
+    workspace_id, chunk_count, rag_collection, processing_status, processing_error,
+    parsed_text, created_at, updated_at
+"""
+
 
 class SqlDocumentRepository(DocumentRepository):
     """Repository for Document operations using direct SQL queries."""
@@ -38,7 +45,7 @@ class SqlDocumentRepository(DocumentRepository):
             (user_id, workspace_id, filename, file_path, file_size, mime_type, content_hash, chunk_count, rag_collection, processing_status, processing_error)
         VALUES
             (%(user_id)s, %(workspace_id)s, %(filename)s, %(file_path)s, %(file_size)s, %(mime_type)s, %(content_hash)s, %(chunk_count)s, %(rag_collection)s, %(processing_status)s, %(processing_error)s)
-        RETURNING *;
+        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, workspace_id, chunk_count, rag_collection, processing_status, processing_error, parsed_text, created_at, updated_at;
         """
         params = {
             "user_id": user_id,
@@ -60,7 +67,7 @@ class SqlDocumentRepository(DocumentRepository):
 
     def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
-        query = "SELECT * FROM documents WHERE id = %(id)s;"
+        query = f"SELECT {DOCUMENT_COLUMNS} FROM documents WHERE id = %(id)s;"
         row = self._db.fetchone(query, {"id": document_id})
         if row is None:
             return None
@@ -68,8 +75,8 @@ class SqlDocumentRepository(DocumentRepository):
 
     def get_by_user(self, user_id: int, skip: int, limit: int) -> list[Document]:
         """Get all documents for a user with pagination."""
-        query = """
-        SELECT * FROM documents
+        query = f"""
+        SELECT {DOCUMENT_COLUMNS} FROM documents
         WHERE user_id = %(user_id)s
         OFFSET %(skip)s
         LIMIT %(limit)s;
@@ -79,7 +86,7 @@ class SqlDocumentRepository(DocumentRepository):
 
     def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """Get document by content hash."""
-        query = "SELECT * FROM documents WHERE content_hash = %(content_hash)s;"
+        query = f"SELECT {DOCUMENT_COLUMNS} FROM documents WHERE content_hash = %(content_hash)s;"
         row = self._db.fetchone(query, {"content_hash": content_hash})
         if row is None:
             return None
@@ -96,7 +103,7 @@ class SqlDocumentRepository(DocumentRepository):
         UPDATE documents
         SET {set_clause}, updated_at = NOW()
         WHERE id = %(id)s
-        RETURNING *;
+        RETURNING id, user_id, filename, file_path, file_size, mime_type, content_hash, workspace_id, chunk_count, rag_collection, processing_status, processing_error, created_at, updated_at;
         """
         row = self._db.fetchone(query, kwargs)
         if row is None:
@@ -117,8 +124,8 @@ class SqlDocumentRepository(DocumentRepository):
         status_filter: str | None = None,
     ) -> list[Document]:
         """Get documents by workspace ID with pagination and optional status filter."""
-        base_query = """
-        SELECT * FROM documents
+        base_query = f"""
+        SELECT {DOCUMENT_COLUMNS} FROM documents
         WHERE workspace_id = %(workspace_id)s
         """
         params = {"workspace_id": workspace_id}

@@ -28,8 +28,15 @@ class TestSentenceDocumentChunkerCreation:
         """Chunker accepts chunk_size and overlap parameters."""
         chunker = SentenceDocumentChunker(chunk_size=500, overlap=50)
 
-        assert chunker._chunk_size == 500
-        assert chunker._overlap == 50
+        # Test that different chunk_size values produce different chunking behavior
+        doc = create_document("This is a test sentence. " * 20)  # Long document
+        chunks = chunker.chunk(doc)
+        assert len(chunks) > 0
+
+        # Test with smaller chunk size produces more chunks
+        small_chunker = SentenceDocumentChunker(chunk_size=100, overlap=10)
+        small_chunks = small_chunker.chunk(doc)
+        assert len(small_chunks) > len(chunks)
 
     def test_implements_chunker_interface(self) -> None:
         """SentenceDocumentChunker implements Chunker interface."""

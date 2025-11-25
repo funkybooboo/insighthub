@@ -1,5 +1,6 @@
 """Application context for dependency injection."""
 
+import contextlib
 from typing import Any, cast
 
 from shared.cache.factory import create_cache
@@ -13,11 +14,6 @@ from shared.repositories import (
     SqlWorkspaceRepository,
     create_user_repository,
 )
-
-try:
-    from shared.repositories import SqlDefaultRagConfigRepository
-except ImportError:
-    SqlDefaultRagConfigRepository = None
 from shared.storage import BlobStorage, FileSystemBlobStorage, S3BlobStorage
 
 from src import config
@@ -26,6 +22,11 @@ from src.domains.workspaces.chat.service import ChatService
 from src.domains.workspaces.documents.service import DocumentService
 from src.domains.workspaces.rag_config.service import RagConfigService
 from src.domains.workspaces.service import WorkspaceService
+
+# Try to import SqlDefaultRagConfigRepository, will be None if not available
+SqlDefaultRagConfigRepository: Any = None
+with contextlib.suppress(ImportError):
+    from shared.repositories import SqlDefaultRagConfigRepository
 
 
 def create_database() -> SqlDatabase:

@@ -77,11 +77,26 @@ tasks:
     cmds:
       - poetry build --format sdist
 
+  # Security tasks
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src
+
   # Utility tasks
   clean:
-    desc: Clean build artifacts and caches
-    cmds:
-      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-      - find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
-      - find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true
-      - rm -rf htmlcov .coverage dist *.egg-info
+     desc: Clean build artifacts and caches
+     cmds:
+       - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+       - find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
+       - find . -type d -name .mypy_cache -exec rm -rf {} + 2>/dev/null || true
+       - rm -rf htmlcov .coverage dist *.egg-info

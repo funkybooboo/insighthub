@@ -34,7 +34,7 @@ RUN poetry install --no-root
 COPY packages/workers/wikipedia/src ./src
 
 # Run worker
-CMD ["poetry", "run", "python", "src/main.py"]
+CMD ["poetry", "run", "python", "-m", "src.main"]
 
 # Production stage
 FROM base AS production
@@ -46,4 +46,4 @@ RUN poetry install --only main --no-root
 COPY packages/workers/wikipedia/src ./src
 
 # Run worker with optimizations
-CMD ["poetry", "run", "python", "-O", "src/main.py"]
+CMD ["poetry", "run", "python", "-O", "-m", "src.main"]

@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 tasks:
   default:
@@ -10,28 +10,30 @@ tasks:
   build:
     desc: Build the shared TypeScript package
     cmds:
-      - npm run build
+      - bun run build
 
   test:
     desc: Run tests for shared package
     cmds:
-      - echo "No tests configured for shared package yet"
+      - bun test tests/
 
   lint:
     desc: Run linting for shared package
     cmds:
-      - npm run lint
+      - bun run lint
 
   format:
     desc: Format code for shared package
     cmds:
-      - npm run format
+      - bun run format
 
   check:
     desc: Run all checks for shared package
     cmds:
+      - task: format
       - task: lint
       - task: build
+      - task: test
 
   clean:
     desc: Clean build artifacts

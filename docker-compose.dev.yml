@@ -275,3 +275,127 @@ services:
         condition: service_healthy
     networks:
       - insighthub
+
+  worker-chat-dev:
+    labels:
+      project: insighthub
+      worker: chat
+    image: insighthub-worker-chat:dev
+    container_name: insighthub-worker-chat-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/chat/Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/chat/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
+    environment:
+      PYTHONUNBUFFERED: 1
+      WORKER_NAME: chat
+      WORKER_CONCURRENCY: 5
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-deletion-dev:
+    labels:
+      project: insighthub
+      worker: deletion
+    image: insighthub-worker-deletion:dev
+    container_name: insighthub-worker-deletion-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/deletion/Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/deletion/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
+    environment:
+      PYTHONUNBUFFERED: 1
+      WORKER_NAME: deletion
+      WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-provisioner-dev:
+    labels:
+      project: insighthub
+      worker: provisioner
+    image: insighthub-worker-provisioner:dev
+    container_name: insighthub-worker-provisioner-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/provisioner/Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/provisioner/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
+    environment:
+      PYTHONUNBUFFERED: 1
+      WORKER_NAME: provisioner
+      WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub
+
+  worker-wikipedia-dev:
+    labels:
+      project: insighthub
+      worker: wikipedia
+    image: insighthub-worker-wikipedia:dev
+    container_name: insighthub-worker-wikipedia-dev
+    profiles:
+      - dev
+      - workers
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: packages/workers/wikipedia/Dockerfile
+      target: development
+    volumes:
+      - ./packages/workers/wikipedia/src:/app/src:ro
+      - ./infra/config/.env.development:/app/.env.development:ro
+    env_file:
+      - ./infra/config/.env.development
+    environment:
+      PYTHONUNBUFFERED: 1
+      WORKER_NAME: wikipedia
+      WORKER_CONCURRENCY: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - insighthub

@@ -4,11 +4,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from shared.logger import create_logger
+from shared.logger.logger import Logger
 from shared.messaging import RabbitMQPublisher
 from shared.models.workspace import Workspace
 from shared.repositories.workspace import WorkspaceRepository
 
-logger = create_logger(__name__)
+logger: Logger = create_logger(__name__)
 
 
 # Type for update data fields

@@ -20,6 +20,7 @@ class Document:
     rag_collection: str | None = None  # Vector store collection name
     processing_status: str = "pending"  # 'pending', 'processing', 'ready', 'failed'
     processing_error: str | None = None
+    parsed_text: str | None = None  # Extracted text content
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 

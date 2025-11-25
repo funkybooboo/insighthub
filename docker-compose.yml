@@ -50,7 +50,7 @@ services:
   ollama:
     labels:
       project: insighthub
-    image: ollama/ollama:0.5.1
+    image: ollama/ollama:0.13.0
     container_name: insighthub-ollama
     restart: unless-stopped
     ports:
@@ -69,7 +69,7 @@ services:
   ollama-setup:
     labels:
       project: insighthub
-    image: ollama/ollama:0.5.1
+    image: ollama/ollama:0.13.0
     container_name: insighthub-ollama-setup
     restart: on-failure:3
     depends_on:
@@ -139,7 +139,7 @@ services:
   qdrant:
     labels:
       project: insighthub
-    image: qdrant/qdrant:v1.7.4
+    image: qdrant/qdrant:v1.16.1
     container_name: insighthub-qdrant
     restart: unless-stopped
     ports:

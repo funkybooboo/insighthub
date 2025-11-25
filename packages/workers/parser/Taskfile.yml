@@ -36,3 +36,17 @@ tasks:
       - task: lint
       - task: type-check
       - task: test
+
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src

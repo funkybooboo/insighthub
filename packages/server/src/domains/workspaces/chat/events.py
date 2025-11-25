@@ -387,6 +387,26 @@ def handle_cancel_message(data: Mapping[str, object] | None = None) -> None:
     _chat_handler.handle_cancel_message(data)
 
 
+def handle_chat_response_chunk(data: Mapping[str, object]) -> None:
+    """Legacy function for backwards compatibility."""
+    _chat_handler.handle_chat_response_chunk(data)
+
+
+def handle_chat_response_complete(data: Mapping[str, object]) -> None:
+    """Legacy function for backwards compatibility."""
+    _chat_handler.handle_chat_response_complete(data)
+
+
+def handle_chat_no_context_found(data: Mapping[str, object]) -> None:
+    """Legacy function for backwards compatibility."""
+    _chat_handler.handle_chat_no_context_found(data)
+
+
+def handle_chat_error(data: Mapping[str, object]) -> None:
+    """Legacy function for backwards compatibility."""
+    _chat_handler.handle_chat_error(data)
+
+
 def emit_chat_no_context_found(session_id: int, query: str) -> None:
     """Legacy function for backwards compatibility."""
     _chat_handler.emit_chat_no_context_found(session_id, query)

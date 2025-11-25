@@ -90,3 +90,21 @@ class FileSystemBlobStorage(BlobStorage):
             sha256_hash.update(byte_block)
         file_obj.seek(0)
         return sha256_hash.hexdigest()
+
+    def list_files(self, prefix: str | None = None) -> list[str]:
+        """List files in file system storage with optional prefix filter."""
+        try:
+            all_files = []
+            for file_path in self._base_path.rglob("*"):
+                if file_path.is_file():
+                    # Get relative path from base path
+                    relative_path = file_path.relative_to(self._base_path)
+                    file_key = str(relative_path)
+
+                    # Apply prefix filter if specified
+                    if prefix is None or file_key.startswith(prefix):
+                        all_files.append(file_key)
+
+            return all_files
+        except OSError:
+            return []

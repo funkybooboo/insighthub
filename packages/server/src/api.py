@@ -378,11 +378,6 @@ def create_app() -> InsightHubApp:
     app.status_consumer = create_status_consumer(
         on_document_status=on_document_status,
         on_workspace_status=on_workspace_status,
-        on_document_parsed=on_document_parsed,
-        on_document_chunked=on_document_chunked,
-        on_document_embedded=on_document_embedded,
-        on_document_indexed=on_document_indexed,
-        on_workspace_provision_status=on_workspace_provision_status,  # type: ignore
     )
 
     # Create a simple chat event consumer for async chat processing

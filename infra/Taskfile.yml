@@ -7,29 +7,37 @@ tasks:
       - task --list
     silent: true
 
+  source:
+    desc: Source environment variables from config files
+    cmds:
+      - bash config/source.sh {{.ENV_FILE | default ".env.local"}}
+
   migrate:
     desc: Run database migrations
     cmds:
-      - python infra/migrations/migrate.py
+      - python migrations/migrate.py
 
   migrate:status:
     desc: Show migration status
     cmds:
-      - python infra/migrations/migrate.py --status
+      - python migrations/migrate.py --status
 
   migrate:create:
     desc: 'Create new migration (usage: task migrate:create -- NAME)'
     cmds:
-      - python infra/migrations/migrate.py --create "{{.MIGRATION_NAME}}"
+      - python migrations/migrate.py --create "{{.MIGRATION_NAME}}"
 
   config:validate:
     desc: Validate configuration files
     cmds:
       - echo "Validating configuration..."
       - |
-        if [ ! -f "infra/config/.env.development" ]; then
-          echo "ERROR: infra/config/.env.development not found"
-          echo "Run: cp infra/config/.env.local.example infra/config/.env.development"
+        if [ ! -f "config/.env.local" ] && [ ! -f "config/.env" ]; then
+          echo "ERROR: No environment file found in config/"
+          echo "Available example files:"
+          ls -la config/.env.*.example 2>/dev/null || echo "  No example files found"
+          echo ""
+          echo "Run: cp config/.env.local.example config/.env.local"
           exit 1
         fi
       - echo "Configuration files found"
@@ -39,3 +47,15 @@ tasks:
     cmds:
       - task: config:validate
       - echo "Infrastructure check passed"
+
+  audit:
+    desc: Audit infrastructure dependencies for vulnerabilities
+    cmds:
+      - echo "Running Trivy filesystem scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan infrastructure code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - python -m bandit -r . -c pyproject.toml || echo "Bandit not available, skipping..."

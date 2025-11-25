@@ -28,7 +28,7 @@
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
-        "@insighthub/shared-typescript": "file:./shared-typescript/dist",
+        "@insighthub/shared-typescript": "file:./shared-typescript",
         "@radix-ui/react-slot": "^1.2.4",
         "@reduxjs/toolkit": "^2.10.1",
         "@tailwindcss/typography": "^0.5.19",

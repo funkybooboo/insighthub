@@ -1,0 +1,50 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - poetry install
+
+  shell:
+    desc: Activate poetry shell
+    cmds:
+      - poetry shell
+
+  format:
+    desc: Format code with black and isort
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+
+  lint:
+    desc: Lint code with ruff
+    cmds:
+      - poetry run ruff check src tests
+
+  typecheck:
+    desc: Type check with mypy
+    cmds:
+      - poetry run mypy src tests
+
+  test:
+    desc: Run tests with coverage
+    cmds:
+      - poetry run pytest tests/ -v --cov=src
+
+  check:
+    desc: Run all quality checks
+    deps: [format, lint, typecheck, test]
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src

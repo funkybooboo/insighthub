@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: TODO to Issue
-        uses: alstr/todo-to-issue-action@v4
+        uses: alstr/todo-to-issue-action@v5.1.13
         with:
           # Auto-close issues when to-do is removed
           AUTO_ASSIGN: true

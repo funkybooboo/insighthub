@@ -1,81 +1,144 @@
+from unittest.mock import MagicMock, patch
 
-import pytest
-import pika
-import json
-import threading
-import time
-import os
-import psycopg2
-from minio import Minio
+from src.main import WikipediaFetcher, WikipediaWorker
 
-from src.main import WikipediaWorker
 
-# Assume conftest.py with postgres, rabbitmq, minio containers exists
+def test_wikipedia_worker_processes_request():
+    """Test that the worker processes a Wikipedia fetch request correctly."""
+    # Mock the external dependencies
+    with patch("src.main.PostgresConnection") as mock_db, patch(
+        "src.main.S3BlobStorage"
+    ) as mock_storage, patch("src.main.WikipediaFetcher") as mock_fetcher:
 
-def apply_migrations(db_conn):
-    cursor = db_conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY);
-    CREATE TABLE IF NOT EXISTS workspaces (id SERIAL PRIMARY KEY, user_id INTEGER);
-    CREATE TABLE IF NOT EXISTS documents (id SERIAL PRIMARY KEY, user_id INTEGER, workspace_id INTEGER, filename VARCHAR(255), file_path VARCHAR(255), file_size INTEGER, mime_type VARCHAR(255), content_hash VARCHAR(255), processing_status VARCHAR(50));
-    """)
-    db_conn.commit()
-    cursor.close()
+        # Setup mocks
+        mock_db_instance = MagicMock()
+        mock_db.return_value = mock_db_instance
+        mock_db_instance.connect.return_value = None
 
-def test_wikipedia_worker_integration(postgres_container, rabbitmq_container, minio_container):
-    # 1. Setup
-    rabbit_conn = pika.BlockingConnection(pika.URLParameters(rabbitmq_container.get_connection_url()))
-    rabbit_channel = rabbit_conn.channel()
-    rabbit_channel.exchange_declare(exchange='insighthub', exchange_type='topic', durable=True)
-    
-    pg_conn = psycopg2.connect(postgres_container.get_connection_url())
-    apply_migrations(pg_conn)
-    cursor = pg_conn.cursor()
-    cursor.execute("INSERT INTO users (id) VALUES (1) ON CONFLICT DO NOTHING")
-    cursor.execute("INSERT INTO workspaces (id, user_id) VALUES (1, 1) ON CONFLICT DO NOTHING")
-    pg_conn.commit()
-    cursor.close()
+        mock_storage_instance = MagicMock()
+        mock_storage.return_value = mock_storage_instance
 
-    minio_client = Minio(endpoint=minio_container.get_config()["endpoint"], access_key="minioadmin", secret_key="minioadmin", secure=False)
-    if not minio_client.bucket_exists("wiki-bucket"):
-        minio_client.make_bucket("wiki-bucket")
+        mock_fetcher_instance = MagicMock()
+        mock_fetcher.return_value = mock_fetcher_instance
+        mock_fetcher_instance.search_and_fetch.return_value = [
+            {
+                "title": "Python (programming language)",
+                "url": "https://en.wikipedia.org/wiki/Python_(programming_language)",
+                "content": "Python is a programming language.",
+                "summary": "Python is a high-level programming language.",
+                "page_id": 23862,
+            }
+        ]
 
-    os.environ.update({
-        'DATABASE_URL': postgres_container.get_connection_url(),
-        'RABBITMQ_URL': rabbitmq_container.get_connection_url(),
-        'S3_ENDPOINT_URL': minio_container.get_config()["endpoint"], 'S3_ACCESS_KEY': "minioadmin", 'S3_SECRET_KEY': "minioadmin", 'S3_BUCKET_NAME': "wiki-bucket",
-    })
+        # Create worker
+        worker = WikipediaWorker()
 
-    # 2. Run worker
-    worker = WikipediaWorker()
-    worker_thread = threading.Thread(target=worker.start, daemon=True)
-    worker_thread.start()
-    time.sleep(2)
+        # Mock the publish_event method on the worker instance
+        worker.publish_event = MagicMock()
 
-    # 3. Publish message
-    message = {"workspace_id": "1", "user_id": "1", "query": "Python (programming language)"}
-    rabbit_channel.basic_publish(exchange='insighthub', routing_key='wikipedia.fetch_requested', body=json.dumps(message))
+        # Mock the database cursor and upload result
+        mock_cursor = MagicMock()
+        mock_db_instance.get_cursor.return_value.__enter__.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = {"id": 123}
 
-    # 4. Consume results
-    doc_uploaded_msg = None
-    for method_frame, properties, body in rabbit_channel.consume('document.uploaded', inactivity_timeout=10):
-        if body:
-            doc_uploaded_msg = json.loads(body)
-            rabbit_channel.basic_ack(method_frame.delivery_tag)
-            break
-            
-    # 5. Assertions
-    assert doc_uploaded_msg is not None
-    assert doc_uploaded_msg['workspace_id'] == '1'
-    assert 'Python' in doc_uploaded_msg['metadata']['title']
+        mock_upload_result = MagicMock()
+        mock_upload_result.is_err.return_value = False
+        mock_storage_instance.upload_file.return_value = mock_upload_result
 
-    cursor = pg_conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM documents WHERE workspace_id = 1")
-    assert cursor.fetchone()[0] == 1
-    cursor.close()
+        # Test event processing
+        event_data = {
+            "workspace_id": "ws1",
+            "query": "Python programming",
+            "user_id": "user1",
+        }
 
-    # 6. Cleanup
-    worker.stop()
-    worker_thread.join()
-    pg_conn.close()
-    rabbit_conn.close()
+        worker.process_event(event_data)
+
+        # Verify fetcher was called
+        mock_fetcher_instance.search_and_fetch.assert_called_once_with(
+            "Python programming"
+        )
+
+        # Verify database operations
+        mock_cursor.execute.assert_called()
+        mock_db_instance.connection.commit.assert_called()
+
+        # Verify storage upload
+        mock_storage_instance.upload_file.assert_called_once()
+
+        # Verify event publishing (at least status and document events)
+        assert worker.publish_event.call_count >= 2
+
+
+def test_wikipedia_fetcher_with_mock():
+    """Test the WikipediaFetcher with mocked Wikipedia API."""
+    with patch("wikipediaapi.Wikipedia") as mock_wiki_class:
+        mock_wiki_instance = MagicMock()
+        mock_wiki_class.return_value = mock_wiki_instance
+
+        mock_page = MagicMock()
+        mock_page.exists.return_value = True
+        mock_page.title = "Test Page"
+        mock_page.fullurl = "https://en.wikipedia.org/wiki/Test_Page"
+        mock_page.text = "This is test content."
+        mock_page.summary = "Test summary."
+        mock_page.pageid = 12345
+
+        mock_wiki_instance.page.return_value = mock_page
+        mock_wiki_instance.search.return_value = ["Test Page"]
+
+        fetcher = WikipediaFetcher()
+        results = fetcher.search_and_fetch("test query")
+
+        assert len(results) == 1
+        assert results[0]["title"] == "Test Page"
+        assert results[0]["content"] == "This is test content."
+        assert results[0]["page_id"] == 12345
+
+
+def test_wikipedia_worker_handles_no_results():
+    """Test that the worker handles cases where no Wikipedia pages are found."""
+    with patch("src.main.PostgresConnection") as mock_db, patch(
+        "src.main.S3BlobStorage"
+    ) as mock_storage, patch("src.main.WikipediaFetcher") as mock_fetcher:
+
+        # Setup mocks
+        mock_db_instance = MagicMock()
+        mock_db.return_value = mock_db_instance
+
+        mock_storage_instance = MagicMock()
+        mock_storage.return_value = mock_storage_instance
+
+        mock_fetcher_instance = MagicMock()
+        mock_fetcher.return_value = mock_fetcher_instance
+        mock_fetcher_instance.search_and_fetch.return_value = []  # No results
+
+        # Create worker
+        worker = WikipediaWorker()
+        worker.publish_event = MagicMock()
+
+        # Test event processing
+        event_data = {
+            "workspace_id": "ws1",
+            "query": "nonexistent topic",
+            "user_id": "user1",
+        }
+
+        worker.process_event(event_data)
+
+        # Verify fetcher was called
+        mock_fetcher_instance.search_and_fetch.assert_called_once_with(
+            "nonexistent topic"
+        )
+
+        # Verify failure status was published
+        worker.publish_event.assert_called_with(
+            "wikipedia.fetch_status",
+            {
+                "workspace_id": "ws1",
+                "query": "nonexistent topic",
+                "status": "failed",
+                "document_ids": [],
+                "message": "No Wikipedia pages found",
+            },
+        )

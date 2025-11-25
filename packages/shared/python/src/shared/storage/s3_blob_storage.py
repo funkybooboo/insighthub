@@ -93,8 +93,8 @@ class S3BlobStorage(BlobStorage):
     def _ensure_bucket_exists(self) -> None:
         """Create bucket if it doesn't exist."""
         try:
-            if not self._client.bucket_exists(self._bucket_name):
-                self._client.make_bucket(self._bucket_name)
+            if not self._client.bucket_exists(bucket_name=self._bucket_name):
+                self._client.make_bucket(bucket_name=self._bucket_name)
                 logger.info("Created bucket", extra={"bucket": self._bucket_name})
             else:
                 logger.info("Bucket exists", extra={"bucket": self._bucket_name})
@@ -181,3 +181,11 @@ class S3BlobStorage(BlobStorage):
 
         file_obj.seek(0)
         return sha256_hash.hexdigest()
+
+    def list_files(self, prefix: str | None = None) -> list[str]:
+        """List files in MinIO bucket with optional prefix filter."""
+        try:
+            objects = self._client.list_objects(self._bucket_name, prefix=prefix)
+            return [obj.object_name for obj in objects if obj.object_name]
+        except S3Error:
+            return []

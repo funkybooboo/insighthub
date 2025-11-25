@@ -46,3 +46,9 @@ class InMemoryBlobStorage(BlobStorage):
             sha256_hash.update(byte_block)
         file_obj.seek(0)
         return sha256_hash.hexdigest()
+
+    def list_files(self, prefix: str | None = None) -> list[str]:
+        """List all files with optional prefix filter."""
+        if prefix:
+            return [key for key in self._storage if key.startswith(prefix)]
+        return list(self._storage.keys())

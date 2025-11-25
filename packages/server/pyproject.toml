@@ -30,6 +30,7 @@ pyjwt = "^2.8.0"
 flask-jwt-extended = "^4.6.0"
 anthropic = "^0.73.0"
  pika = "^1.3.2"
+insighthub-shared = {path = "../../packages/shared/python", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

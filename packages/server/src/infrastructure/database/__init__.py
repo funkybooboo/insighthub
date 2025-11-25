@@ -24,7 +24,9 @@ def get_db() -> Generator[SqlDatabase, None, None]:
 def init_db(db_url: str | None = None) -> None:
     """Initialize the database by running migration SQL files."""
     url = db_url or config.DATABASE_URL
-    migrations_dir = Path(__file__).parent.parent.parent.parent.parent / "infra" / "migrations"
+    migrations_dir = (
+        Path(__file__).parent.parent.parent.parent.parent.parent / "infra" / "migrations"
+    )
 
     # Get all migration files sorted by name
     migration_files = sorted(migrations_dir.glob("*.sql"))
@@ -32,6 +34,8 @@ def init_db(db_url: str | None = None) -> None:
     conn = psycopg2.connect(url)
     try:
         with conn.cursor() as cur:
+            # Enable pgvector extension
+            cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
             for migration_file in migration_files:
                 sql = migration_file.read_text()
                 cur.execute(sql)

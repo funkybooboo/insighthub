@@ -37,6 +37,11 @@ tasks:
         cmds:
             - bun run format:check
 
+    type-check:
+        desc: Run TypeScript type checking
+        cmds:
+            - bun run build
+
     test:
         desc: Run unit tests
         cmds:
@@ -68,10 +73,11 @@ tasks:
             - bun run build-storybook
 
     check:
-        desc: Run all checks (format-check, lint, test, build)
+        desc: Run all checks (format-check, lint, type-check, test, build)
         cmds:
             - task: format-check
             - task: lint
+            - task: type-check
             - task: test
             - task: build
 
@@ -101,3 +107,38 @@ tasks:
         cmds:
             - bun audit
             - trivy fs --scanners vuln --ignore-unfixed .
+
+    cypress:
+        desc: Open Cypress test runner
+        cmds:
+            - bun run cypress
+
+    cypress:headless:
+        desc: Run Cypress tests in headless mode
+        cmds:
+            - bun run cypress:headless
+
+    cypress:chrome:
+        desc: Run Cypress tests in Chrome browser
+        cmds:
+            - bun run cypress:chrome
+
+    cypress:firefox:
+        desc: Run Cypress tests in Firefox browser
+        cmds:
+            - bun run cypress:firefox
+
+    cypress:edge:
+        desc: Run Cypress tests in Edge browser
+        cmds:
+            - bun run cypress:edge
+
+    e2e:
+        desc: Run end-to-end tests (starts dev server automatically)
+        cmds:
+            - bun run e2e
+
+    e2e:headless:
+        desc: Run end-to-end tests in headless mode
+        cmds:
+            - bun run e2e:headless

@@ -3,7 +3,7 @@
 import time
 from collections import defaultdict
 
-from flask import Flask, Request, Response, abort, jsonify, request
+from flask import Flask, Request, Response, abort, request
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
@@ -88,13 +88,21 @@ class RateLimitMiddleware:
                     logger.warning(
                         f"Rate limit exceeded (per minute): {client_ip} - {minute_requests} requests"
                     )
-                    abort(429, description="Rate limit exceeded. Please try again later.", retry_after=60)
+                    abort(
+                        429,
+                        description="Rate limit exceeded. Please try again later.",
+                        retry_after=60,
+                    )
 
                 if hour_requests >= self.requests_per_hour:
                     logger.warning(
                         f"Rate limit exceeded (per hour): {client_ip} - {hour_requests} requests"
                     )
-                    abort(429, description="Rate limit exceeded. Please try again later.", retry_after=3600)
+                    abort(
+                        429,
+                        description="Rate limit exceeded. Please try again later.",
+                        retry_after=3600,
+                    )
             except Exception as e:
                 # Don't break the request if rate limiting fails
                 logger.warning(f"Rate limiting check failed: {e}")

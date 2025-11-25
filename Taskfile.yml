@@ -308,9 +308,9 @@ tasks:
     cmds:
       - task: client:dev
 
-  # --------------------------------------------------------------------------
-  # Subdirectory tasks
-  # --------------------------------------------------------------------------
+   # --------------------------------------------------------------------------
+   # Subdirectory tasks
+   # --------------------------------------------------------------------------
   shared:*:
     desc: Run shared tasks (use task shared:<task-name>)
     dir: packages/shared/python
@@ -335,6 +335,15 @@ tasks:
     cmds:
       - task {{index .MATCH 0}}
 
+  workers:*:
+    desc: Run worker tasks (use task workers:<worker-name>:<task-name>)
+    cmds:
+      - |
+        WORKER_TASK="{{index .MATCH 0}}"
+        WORKER=$(echo "$WORKER_TASK" | cut -d: -f1)
+        TASK=$(echo "$WORKER_TASK" | cut -d: -f2)
+        cd "packages/workers/$WORKER" && task "$TASK"
+
   shared:typescript:*:
     desc: Run shared TypeScript tasks (use task shared:typescript:<task-name>)
     dir: packages/shared/typescript
@@ -342,7 +351,7 @@ tasks:
       - npm run {{index .MATCH 1}}
 
   check:
-    desc: Run all checks for shared, server, and client
+    desc: Run all checks for shared, server, client, and workers
     cmds:
       - cmd: echo "Running shared checks..."
         silent: true
@@ -357,6 +366,20 @@ tasks:
       - cmd: echo "Running client checks..."
         silent: true
       - task: client:check
+      - cmd: echo ""
+        silent: true
+      - cmd: echo "Running worker checks..."
+        silent: true
+      - task: workers:chat:check
+      - task: workers:chucker:check
+      - task: workers:connector:check
+      - task: workers:deletion:check
+      - task: workers:embedder:check
+      - task: workers:enricher:check
+      - task: workers:indexer:check
+      - task: workers:parser:check
+      - task: workers:provisioner:check
+      - task: workers:wikipedia:check
       - cmd: echo ""
         silent: true
       - cmd: echo "All checks passed!"
@@ -380,6 +403,20 @@ tasks:
       - task: shared:test
       - cmd: echo ""
         silent: true
+      - cmd: echo "Running worker tests..."
+        silent: true
+      - task: workers:chat:test
+      - task: workers:chucker:test
+      - task: workers:connector:test
+      - task: workers:deletion:test
+      - task: workers:embedder:test
+      - task: workers:enricher:test
+      - task: workers:indexer:test
+      - task: workers:parser:test
+      - task: workers:provisioner:test
+      - task: workers:wikipedia:test
+      - cmd: echo ""
+        silent: true
       - cmd: echo "All tests completed!"
         silent: true
 
@@ -401,16 +438,26 @@ tasks:
       - cmd: echo "Code formatting complete!"
         silent: true
 
-  shared:rebuild:
-    desc: Rebuild shared package and reinstall in server
-    cmds:
-      - cmd: echo "Building shared package..."
-        silent: true
-      - task: shared:build
-      - cmd: echo "Reinstalling shared package in server..."
-        silent: true
-      - cd packages/server && poetry remove insighthub-shared || true
-      - cd packages/server && poetry add ../shared/python/dist/insighthub_shared-*.whl
+  shared:python:rebuild:
+     desc: Rebuild shared Python package and reinstall in server and workers
+     cmds:
+       - cmd: echo "Building shared Python package..."
+         silent: true
+       - task: shared:build
+       - cmd: echo "Reinstalling shared package in server..."
+         silent: true
+       - cd packages/server && poetry remove insighthub-shared || true
+       - cd packages/server && poetry add ../shared/python/dist/insighthub_shared-*.whl
+       - cmd: echo "Reinstalling shared package in workers..."
+         silent: true
+       - cd packages/workers/embedder && poetry remove insighthub-shared || true
+       - cd packages/workers/embedder && poetry add ../../shared/python/dist/insighthub_shared-*.whl
+       - cd packages/workers/indexer && poetry remove insighthub-shared || true
+       - cd packages/workers/indexer && poetry add ../../shared/python/dist/insighthub_shared-*.whl
+       - cd packages/workers/enricher && poetry remove insighthub-shared || true
+       - cd packages/workers/enricher && poetry add ../../shared/python/dist/insighthub_shared-*.whl
+       - cd packages/workers/connector && poetry remove insighthub-shared || true
+       - cd packages/workers/connector && poetry add ../../shared/python/dist/insighthub_shared-*.whl
 
   shared:typescript:build:
     desc: Build shared TypeScript package

@@ -1,0 +1,90 @@
+# Wikipedia Worker Tasks
+
+version: '3'
+
+vars:
+  DOCKER_IMAGE: insighthub/wikipedia-worker:latest
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - poetry install --no-root
+
+  test:
+    desc: Run all tests with coverage
+    cmds:
+      - PYTHONPATH=. poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html -m "not slow"
+
+  test:unit:
+    desc: Run unit tests only (fast)
+    cmds:
+      - poetry run pytest tests/unit/ -v --cov=src
+
+  test:integration:
+    desc: Run integration tests with testcontainers (slower, requires Docker)
+    cmds:
+      - PYTHONPATH=. poetry run pytest tests/integration/ -v -s
+
+  format:
+    desc: Format code with black, isort, and ruff
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+      - poetry run ruff check src tests --fix
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - poetry run ruff check src tests
+
+  type-check:
+    desc: Run mypy type checker
+    cmds:
+      - poetry run mypy src
+
+  check:
+    desc: Run all checks (format, lint, type-check, test)
+    cmds:
+      - task format
+      - task lint
+      - task type-check
+      - task test
+
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+      - find . -type f -name "*.pyc" -delete 2>/dev/null || true
+      - docker rmi {{.DOCKER_IMAGE}} || true
+
+  build:
+    desc: Build the wikipedia worker Docker image
+    cmds:
+      - docker build -t {{.DOCKER_IMAGE}} .
+
+  run:
+    desc: Run the wikipedia worker locally
+    cmds:
+      - PYTHONPATH=. python -m src.main
+
+  audit:
+    desc: Audit Python dependencies for vulnerabilities
+    cmds:
+      - echo "Running pip-audit on current Poetry environment..."
+      - poetry run pip-audit
+      - echo "Running Trivy dependency scan..."
+      - trivy fs --scanners vuln --ignore-unfixed .
+
+  scan:
+    desc: Scan Python code for security issues
+    cmds:
+      - echo "Running Bandit code scan..."
+      - poetry run bandit -r src

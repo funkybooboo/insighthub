@@ -84,7 +84,7 @@ class TestSecurityHeadersMiddleware:
         assert "https://example.com" in csp
         assert "https://api.example.com" in csp
 
-    @patch("src.config.CORS_ORIGINS", "*")
+    @patch("src.config.CORS_ORIGINS", ["*"])
     def test_default_config_handles_wildcard_cors(self, app: Flask) -> None:
         """_default_config handles wildcard CORS origins."""
         middleware = SecurityHeadersMiddleware(app)

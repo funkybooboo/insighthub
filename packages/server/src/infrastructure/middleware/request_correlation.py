@@ -61,4 +61,9 @@ class RequestCorrelationMiddleware:
     @staticmethod
     def get_correlation_id() -> str | None:
         """Get the current request correlation ID."""
-        return getattr(g, "correlation_id", None)
+        # Safely access g.correlation_id, returning None if no application context is active.
+        try:
+            return getattr(g, "correlation_id", None)
+        except RuntimeError:
+            # This handles cases where g is accessed outside of an application context
+            return None

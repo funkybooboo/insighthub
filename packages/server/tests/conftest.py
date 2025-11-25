@@ -1,9 +1,10 @@
 """Shared test fixtures and configuration."""
 
+from unittest.mock import Mock
+
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-from unittest.mock import Mock
 
 
 @pytest.fixture
@@ -36,12 +37,7 @@ def auth_token() -> str:
 @pytest.fixture
 def test_user():
     """Mock test user for testing."""
-    return {
-        "id": 1,
-        "username": "testuser",
-        "email": "test@example.com",
-        "full_name": "Test User"
-    }
+    return {"id": 1, "username": "testuser", "email": "test@example.com", "full_name": "Test User"}
 
 
 @pytest.fixture
@@ -58,7 +54,7 @@ def test_workspace():
             "chunk_size": 1000,
             "chunk_overlap": 200,
             "top_k": 8,
-        }
+        },
     }
 
 
@@ -83,12 +79,7 @@ def mock_app_context():
 @pytest.fixture
 def sample_user():
     """Sample user data for testing."""
-    return Mock(
-        id=1,
-        username="testuser",
-        email="test@example.com",
-        full_name="Test User"
-    )
+    return Mock(id=1, username="testuser", email="test@example.com", full_name="Test User")
 
 
 @pytest.fixture

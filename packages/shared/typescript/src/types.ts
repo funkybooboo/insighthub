@@ -7,7 +7,7 @@ export interface User {
   email: string;
   full_name?: string;
   created_at: string;
-  theme_preference?: 'light' | 'dark';
+  theme_preference?: "light" | "dark";
 }
 
 export interface AuthResponse {
@@ -30,11 +30,11 @@ export interface SignupRequest {
 // ===== WORKSPACE TYPES =====
 
 export interface BaseRagConfig {
-  retriever_type: 'vector' | 'graph';
+  retriever_type: "vector" | "graph";
 }
 
 export interface VectorRagConfig extends BaseRagConfig {
-  retriever_type: 'vector';
+  retriever_type: "vector";
   embedding_model: string;
   chunk_size: number;
   chunk_overlap?: number;
@@ -44,7 +44,7 @@ export interface VectorRagConfig extends BaseRagConfig {
 }
 
 export interface GraphRagConfig extends BaseRagConfig {
-  retriever_type: 'graph';
+  retriever_type: "graph";
   max_hops?: number;
   entity_extraction_model?: string;
   relationship_extraction_model?: string;
@@ -58,13 +58,15 @@ export type RagConfig = (VectorRagConfig | GraphRagConfig) & {
 };
 
 export type CreateRagConfigRequest = VectorRagConfig | GraphRagConfig;
-export type UpdateRagConfigRequest = Partial<VectorRagConfig> | Partial<GraphRagConfig>;
+export type UpdateRagConfigRequest =
+  | Partial<VectorRagConfig>
+  | Partial<GraphRagConfig>;
 
 export interface Workspace {
   id: number;
   name: string;
   description?: string;
-  status: 'provisioning' | 'ready' | 'failed' | 'deleting';
+  status: "provisioning" | "ready" | "failed" | "deleting";
   rag_config?: RagConfig;
   document_count?: number;
   session_count?: number;
@@ -81,7 +83,7 @@ export interface CreateWorkspaceRequest {
 export interface UpdateWorkspaceRequest {
   name?: string;
   description?: string;
-  status?: 'provisioning' | 'ready' | 'failed';
+  status?: "provisioning" | "ready" | "failed";
 }
 
 // ===== DOCUMENT TYPES =====
@@ -91,7 +93,14 @@ export interface Document {
   filename: string;
   content_type: string;
   file_size: number;
-  status: 'pending' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'ready' | 'failed';
+  status:
+    | "pending"
+    | "parsing"
+    | "chunking"
+    | "embedding"
+    | "indexing"
+    | "ready"
+    | "failed";
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -118,7 +127,7 @@ export interface Context {
 export interface ChatMessage {
   id: string;
   session_id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   metadata?: Record<string, any>;
   created_at: string;
@@ -134,7 +143,7 @@ export interface ChatSession {
 
 export interface ChatRequest {
   content: string;
-  rag_mode?: 'vector' | 'graph' | 'hybrid';
+  rag_mode?: "vector" | "graph" | "hybrid";
 }
 
 export interface ChatResponse {
@@ -163,7 +172,7 @@ export interface CliConfig {
     autoCreate: boolean;
   };
   output: {
-    format: 'table' | 'json' | 'yaml';
+    format: "table" | "json" | "yaml";
     color: boolean;
     pager?: string;
   };

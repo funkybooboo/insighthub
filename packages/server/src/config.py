@@ -1,46 +1,48 @@
 # Configuration constants for backward compatibility
-FLASK_HOST = "0.0.0.0"
-FLASK_PORT = 5000
-FLASK_DEBUG = False
-DATABASE_URL = "postgresql://test:test@localhost:5432/test"
-REDIS_URL = ""
-OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_EMBEDDING_MODEL = "nomic-embed-text"
-OLLAMA_LLM_MODEL = "llama3.2"
-QDRANT_COLLECTION_NAME = "insighthub"
-QDRANT_HOST = "localhost"
-QDRANT_PORT = 6333
-JWT_SECRET_KEY = "test-jwt-secret-key-32-chars-minimum"
-JWT_EXPIRE_MINUTES = 1440
-CORS_ORIGINS = ["http://localhost:3000"]
-LOG_FORMAT = "json"
-LOG_LEVEL = "INFO"
-BLOB_STORAGE_TYPE = "file_system"
-FILE_SYSTEM_STORAGE_PATH = "uploads"
-S3_ACCESS_KEY = "test-access-key"
-S3_BUCKET_NAME = "documents"
-S3_ENDPOINT_URL = "http://localhost:9000"
-S3_SECRET_KEY = "test-secret-key"
-CHAT_MESSAGE_REPOSITORY_TYPE = "sql"
-CHAT_SESSION_REPOSITORY_TYPE = "sql"
-DOCUMENT_REPOSITORY_TYPE = "sql"
-USER_REPOSITORY_TYPE = "sql"
-LLM_PROVIDER = "ollama"
-OPENAI_API_KEY = None
-OPENAI_MODEL = "gpt-3.5-turbo"
-ANTHROPIC_API_KEY = None
-ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
-HUGGINGFACE_API_KEY = None
-HUGGINGFACE_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
-RABBITMQ_EXCHANGE = "insighthub"
-UPLOAD_FOLDER = "uploads"
-MAX_CONTENT_LENGTH = 16777216
-RATE_LIMIT_ENABLED = True
-RATE_LIMIT_PER_MINUTE = 60
-RATE_LIMIT_PER_HOUR = 1000
-SLOW_REQUEST_THRESHOLD = 1.0
-ENABLE_PERFORMANCE_STATS = True
+import os
+
+FLASK_HOST = os.environ.get("FLASK_HOST", "0.0.0.0")
+FLASK_PORT = int(os.environ.get("FLASK_PORT", "5000"))
+FLASK_DEBUG = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
+REDIS_URL = os.environ.get("REDIS_URL", "")
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_EMBEDDING_MODEL = os.environ.get("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+OLLAMA_LLM_MODEL = os.environ.get("OLLAMA_LLM_MODEL", "llama3.2")
+QDRANT_COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION_NAME", "insighthub")
+QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
+QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "test-jwt-secret-key-32-chars-minimum")
+JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "1440"))
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",")
+LOG_FORMAT = os.environ.get("LOG_FORMAT", "json")
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+BLOB_STORAGE_TYPE = os.environ.get("BLOB_STORAGE_TYPE", "file_system")
+FILE_SYSTEM_STORAGE_PATH = os.environ.get("FILE_SYSTEM_STORAGE_PATH", "uploads")
+S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY", "test-access-key")
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "documents")
+S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL", "http://localhost:9000")
+S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY", "test-secret-key")
+CHAT_MESSAGE_REPOSITORY_TYPE = os.environ.get("CHAT_MESSAGE_REPOSITORY_TYPE", "sql")
+CHAT_SESSION_REPOSITORY_TYPE = os.environ.get("CHAT_SESSION_REPOSITORY_TYPE", "sql")
+DOCUMENT_REPOSITORY_TYPE = os.environ.get("DOCUMENT_REPOSITORY_TYPE", "sql")
+USER_REPOSITORY_TYPE = os.environ.get("USER_REPOSITORY_TYPE", "sql")
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-3.5-turbo")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY")
+HUGGINGFACE_MODEL = os.environ.get("HUGGINGFACE_MODEL", "meta-llama/Llama-3.2-3B-Instruct")
+RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
+RABBITMQ_EXCHANGE = os.environ.get("RABBITMQ_EXCHANGE", "insighthub")
+UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "uploads")
+MAX_CONTENT_LENGTH = int(os.environ.get("MAX_CONTENT_LENGTH", "16777216"))
+RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT_ENABLED", "True").lower() == "true"
+RATE_LIMIT_PER_MINUTE = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "60"))
+RATE_LIMIT_PER_HOUR = int(os.environ.get("RATE_LIMIT_PER_HOUR", "1000"))
+SLOW_REQUEST_THRESHOLD = float(os.environ.get("SLOW_REQUEST_THRESHOLD", "1.0"))
+ENABLE_PERFORMANCE_STATS = os.environ.get("ENABLE_PERFORMANCE_STATS", "True").lower() == "true"
 
 
 def validate_config() -> None:
@@ -71,9 +73,9 @@ def validate_config() -> None:
 
     # Validate REDIS_URL
     if REDIS_URL and not (
-        REDIS_URL.startswith("redis://") or
-        REDIS_URL.startswith("rediss://") or
-        REDIS_URL.startswith("unix://")
+        REDIS_URL.startswith("redis://")
+        or REDIS_URL.startswith("rediss://")
+        or REDIS_URL.startswith("unix://")
     ):
         raise ValueError("REDIS_URL must start with redis://, rediss://, or unix://")
 

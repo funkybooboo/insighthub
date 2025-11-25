@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Embeddings worker - generates vector embeddings from text chunks"
 authors = ["Nate Stott <nate.stott@pm.me>"]
 readme = "README.md"
-package-mode = false
+packages = [{include = "*", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -15,11 +15,15 @@ python-dotenv = "^1.0.0"
 sentence-transformers = "^2.2.0"
 torch = "^2.0.0"
 numpy = "^1.24.0"
+insighthub-shared = {path = "../../shared/python", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 mypy = "^1.8.0"
 ruff = "^0.2.0"
+isort = "^5.13.0"
+testcontainers = "^4.0.0"
+pytest-cov = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

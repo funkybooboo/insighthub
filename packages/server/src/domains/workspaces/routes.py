@@ -3,6 +3,7 @@
 from typing import TypedDict
 
 from flask import Blueprint, Response, g, jsonify, request
+from shared.models import User
 from shared.models.workspace import Workspace
 
 from src.domains.workspaces.service import WorkspaceService
@@ -124,7 +125,8 @@ def create_workspace() -> tuple[Response, int]:
             if not (1 <= top_k <= 50):
                 return jsonify({"error": "top_k must be between 1 and 50"}), 400
 
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         service = get_workspace_service()
         workspace = service.create_workspace(
@@ -158,7 +160,8 @@ def list_workspaces() -> tuple[Response, int]:
     - include_inactive: boolean (default: false)
     """
     try:
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
         include_inactive = request.args.get("include_inactive", "false").lower() == "true"
 
         service = get_workspace_service()
@@ -187,7 +190,8 @@ def get_workspace(workspace_id: str) -> tuple[Response, int]:
     Get a specific workspace by ID.
     """
     try:
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         service = get_workspace_service()
         workspace = service.get_workspace(workspace_id, user_id)
@@ -224,7 +228,8 @@ def update_workspace(workspace_id: str) -> tuple[Response, int]:
     """
     try:
         data = request.get_json()
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         # Build update dict with only provided fields
         update_data = {}
@@ -266,7 +271,8 @@ def delete_workspace(workspace_id: str) -> tuple[Response, int]:
     Delete a workspace and all its data (cascades to documents, chats, etc.).
     """
     try:
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         service = get_workspace_service()
         success = service.delete_workspace(workspace_id, user_id)
@@ -287,7 +293,8 @@ def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
     Get statistics for a workspace.
     """
     try:
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         service = get_workspace_service()
         stats = service.get_workspace_stats(workspace_id, user_id)
@@ -324,7 +331,8 @@ def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
     Useful for client-side permission checks.
     """
     try:
-        user_id = get_current_user().id
+        user: User = get_current_user()
+        user_id = user.id
 
         service = get_workspace_service()
         has_access = service.validate_workspace_access(workspace_id, user_id)

@@ -5,15 +5,15 @@ Consumes: workspace.provision_requested
 Produces: workspace.provision_status
 """
 
+import logging
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from shared.config import config
 import pika
+import psycopg2
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-import psycopg2
-import logging
+from shared.config import config
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 RABBITMQ_URL = config.rabbitmq_url
 RABBITMQ_EXCHANGE = config.rabbitmq_exchange
 DATABASE_URL = config.database_url
-QDRANT_URL = f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}"
+QDRANT_URL = (
+    f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}"
+)
 WORKER_CONCURRENCY = config.worker_concurrency
 
 
@@ -68,9 +70,7 @@ class Worker:
 
         # Declare exchange
         self.channel.exchange_declare(
-            exchange=self.exchange,
-            exchange_type=self.exchange_type,
-            durable=True
+            exchange=self.exchange, exchange_type=self.exchange_type, durable=True
         )
 
         # Declare queue
@@ -78,7 +78,7 @@ class Worker:
         self.channel.queue_bind(
             exchange=self.exchange,
             queue=self.consume_queue,
-            routing_key=self.consume_routing_key
+            routing_key=self.consume_routing_key,
         )
 
         # Set prefetch count
@@ -86,8 +86,7 @@ class Worker:
 
         # Start consuming
         self.channel.basic_consume(
-            queue=self.consume_queue,
-            on_message_callback=self._on_message
+            queue=self.consume_queue, on_message_callback=self._on_message
         )
 
         logger.info(f"Started {self.worker_name} worker")
@@ -105,12 +104,13 @@ class Worker:
         ch: pika.channel.Channel,
         method: pika.spec.Basic.Deliver,
         properties: pika.spec.BasicProperties,
-        body: bytes
+        body: bytes,
     ) -> None:
         """Handle incoming message."""
         try:
             import json
-            event_data = json.loads(body.decode('utf-8'))
+
+            event_data = json.loads(body.decode("utf-8"))
             self.process_event(event_data)
             ch.basic_ack(delivery_tag=method.delivery_tag)
         except Exception as e:
@@ -127,18 +127,19 @@ class Worker:
             raise RuntimeError("Worker not started")
 
         import json
+
         self.channel.basic_publish(
             exchange=self.exchange,
             routing_key=routing_key,
-            body=json.dumps(event_data).encode('utf-8'),
+            body=json.dumps(event_data).encode("utf-8"),
             properties=pika.BasicProperties(
                 delivery_mode=2,  # Make message persistent
-                content_type='application/json'
-            )
+                content_type="application/json",
+            ),
         )
 
 
-def get_db_connection():
+def get_db_connection() -> psycopg2.extensions.connection:
     """Get database connection."""
     return psycopg2.connect(DATABASE_URL)
 
@@ -150,7 +151,9 @@ class VectorStoreProvisioner:
         self.qdrant_url = qdrant_url
         self.client = QdrantClient(url=qdrant_url)
 
-    def provision_workspace_collection(self, workspace_id: str, rag_config: dict[str, Any]) -> str:
+    def provision_workspace_collection(
+        self, workspace_id: str, rag_config: dict[str, Any]
+    ) -> str:
         """
         Provision a Qdrant collection for the workspace.
 
@@ -164,8 +167,9 @@ class VectorStoreProvisioner:
         collection_name = f"workspace_{workspace_id}"
 
         # Get embedding dimension from config or use default
-        embedding_model = rag_config.get("embedding_model", "nomic-embed-text")
-        embedding_dim = rag_config.get("embedding_dim", 768)  # Default for nomic-embed-text
+        embedding_dim = rag_config.get(
+            "embedding_dim", 768
+        )  # Default for nomic-embed-text
 
         try:
             # Check if collection exists
@@ -176,15 +180,16 @@ class VectorStoreProvisioner:
             self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(
-                    size=embedding_dim,
-                    distance=models.Distance.COSINE
+                    size=embedding_dim, distance=models.Distance.COSINE
                 ),
                 # Enable payload indexing for metadata filtering
                 optimizers_config=models.OptimizersConfigDiff(
                     indexing_threshold=0  # Index all vectors immediately
-                )
+                ),
             )
-            logger.info(f"Created collection {collection_name} with vector size {embedding_dim}")
+            logger.info(
+                f"Created collection {collection_name} with vector size {embedding_dim}"
+            )
 
         return collection_name
 
@@ -197,7 +202,9 @@ class GraphStoreProvisioner:
         # TODO: Initialize Neo4j driver when graph RAG is implemented
         self.driver = None
 
-    def provision_workspace_graph(self, workspace_id: str, rag_config: dict[str, Any]) -> str:
+    def provision_workspace_graph(
+        self, workspace_id: str, rag_config: dict[str, Any]
+    ) -> str:
         """
         Provision a Neo4j graph database for the workspace.
 
@@ -233,7 +240,9 @@ class ProvisionerWorker(Worker):
 
         # Initialize provisioners
         self.vector_provisioner = VectorStoreProvisioner(QDRANT_URL)
-        self.graph_provisioner = GraphStoreProvisioner("bolt://neo4j:7687")  # Placeholder
+        self.graph_provisioner = GraphStoreProvisioner(
+            "bolt://neo4j:7687"
+        )  # Placeholder
 
     def process_event(self, event_data: dict[str, Any]) -> None:
         """
@@ -251,95 +260,120 @@ class ProvisionerWorker(Worker):
             extra={
                 "workspace_id": workspace_id,
                 "user_id": user_id,
-                "retriever_type": rag_config.get("retriever_type", "vector")
-            }
+                "retriever_type": rag_config.get("retriever_type", "vector"),
+            },
         )
 
         try:
             # Update workspace status to provisioning
-            self._update_workspace_status(workspace_id, "provisioning", "Initializing workspace resources...")
+            self._update_workspace_status(
+                workspace_id, "provisioning", "Initializing workspace resources..."
+            )
 
             # Publish initial status event
-            self._publish_status_event(workspace_id, user_id, "provisioning", "Starting provisioning...")
+            self._publish_status_event(
+                workspace_id, user_id, "provisioning", "Starting provisioning..."
+            )
 
             retriever_type = rag_config.get("retriever_type", "vector")
 
             # Provision vector store (always needed)
-            collection_name = self.vector_provisioner.provision_workspace_collection(workspace_id, rag_config)
+            collection_name = self.vector_provisioner.provision_workspace_collection(
+                workspace_id, rag_config
+            )
 
             # Provision graph store if needed
             graph_name = None
             if retriever_type in ["graph", "hybrid"]:
-                graph_name = self.graph_provisioner.provision_workspace_graph(workspace_id, rag_config)
+                graph_name = self.graph_provisioner.provision_workspace_graph(
+                    workspace_id, rag_config
+                )
 
             # Update workspace with provisioned resource names
             self._update_workspace_resources(workspace_id, collection_name, graph_name)
 
             # Update workspace status to ready
-            self._update_workspace_status(workspace_id, "ready", "Workspace provisioning completed")
+            self._update_workspace_status(
+                workspace_id, "ready", "Workspace provisioning completed"
+            )
 
             # Publish final status event
-            self._publish_status_event(workspace_id, user_id, "ready", "Workspace ready for use")
+            self._publish_status_event(
+                workspace_id, user_id, "ready", "Workspace ready for use"
+            )
 
             logger.info(
                 "Successfully provisioned workspace",
                 extra={
                     "workspace_id": workspace_id,
-                    "collection_name": collection_name
-                }
+                    "collection_name": collection_name,
+                },
             )
 
         except Exception as e:
             logger.error(
                 "Failed to provision workspace",
-                extra={
-                    "workspace_id": workspace_id,
-                    "error": str(e)
-                }
+                extra={"workspace_id": workspace_id, "error": str(e)},
             )
             # Update workspace status to failed
-            self._update_workspace_status(workspace_id, "failed", f"Provisioning failed: {str(e)}")
+            self._update_workspace_status(
+                workspace_id, "failed", f"Provisioning failed: {str(e)}"
+            )
 
             # Publish failure status event
-            self._publish_status_event(workspace_id, user_id, "failed", f"Provisioning failed: {str(e)}")
+            self._publish_status_event(
+                workspace_id, user_id, "failed", f"Provisioning failed: {str(e)}"
+            )
             raise
 
-    def _update_workspace_status(self, workspace_id: str, status: str, message: str) -> None:
+    def _update_workspace_status(
+        self, workspace_id: str, status: str, message: str
+    ) -> None:
         """Update workspace status in database."""
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE workspaces
                     SET status = %s, status_message = %s, updated_at = NOW()
                     WHERE id = %s
-                """, (status, message, workspace_id))
+                """,
+                    (status, message, workspace_id),
+                )
             conn.commit()
         finally:
             conn.close()
 
-    def _update_workspace_resources(self, workspace_id: str, collection_name: str, graph_name: str | None) -> None:
+    def _update_workspace_resources(
+        self, workspace_id: str, collection_name: str, graph_name: str | None
+    ) -> None:
         """Update workspace with provisioned resource names."""
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE workspaces
                     SET rag_collection = %s, updated_at = NOW()
                     WHERE id = %s
-                """, (collection_name, workspace_id))
+                """,
+                    (collection_name, workspace_id),
+                )
             conn.commit()
         finally:
             conn.close()
 
-    def _publish_status_event(self, workspace_id: str, user_id: str, status: str, message: str) -> None:
+    def _publish_status_event(
+        self, workspace_id: str, user_id: str, status: str, message: str
+    ) -> None:
         """Publish workspace provision status event."""
         event = WorkspaceProvisionStatusEvent(
             workspace_id=workspace_id,
             user_id=user_id,
             status=status,
             message=message,
-            metadata={}
+            metadata={},
         )
         self.publish_event("workspace.provision_status", asdict(event))
 
