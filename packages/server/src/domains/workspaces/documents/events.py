@@ -1,6 +1,6 @@
 """Document status broadcasting functions."""
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from flask_socketio import SocketIO, emit
 from shared.logger import create_logger
@@ -53,7 +53,7 @@ def broadcast_document_status(event_data: dict, socketio: SocketIO) -> None:
     )
 
 
-def emit_wikipedia_fetch_status(workspace_id: int, query: str, status: str, **kwargs) -> None:
+def emit_wikipedia_fetch_status(workspace_id: int, query: str, status: str, **kwargs: Any) -> None:
     """Emit wikipedia_fetch_status event during Wikipedia fetching."""
     data = {"workspace_id": workspace_id, "query": query, "status": status, **kwargs}
     emit("wikipedia_fetch_status", data)

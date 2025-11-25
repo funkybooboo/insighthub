@@ -4,7 +4,7 @@ import time
 
 import psycopg2
 import pytest
-from shared.database.sql import PostgresSQLDatabase
+from shared.database.sql import PostgresDatabase
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -122,7 +122,7 @@ def test_cascade_delete_session_messages(
     assert found.is_nothing()
 
 
-def test_unique_constraints(user_repository: UserRepository, db: PostgresSQLDatabase) -> None:
+def test_unique_constraints(user_repository: UserRepository, db: PostgresDatabase) -> None:
     """Test that unique constraints are enforced."""
     # Create first user
     user_repository.create(username="testuser", email="test@example.com", password="password123")

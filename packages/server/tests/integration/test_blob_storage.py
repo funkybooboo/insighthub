@@ -7,7 +7,7 @@ from typing import BinaryIO
 import pytest
 from shared.storage.blob_storage import BlobStorage, BlobStorageError
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
-from shared.storage.result import Err, Ok, Result
+from shared.types.result import Err, Ok, Result
 
 
 class FakeBlobStorage(BlobStorage):

@@ -7,7 +7,7 @@ from typing import Any
 from flask import g, request
 
 
-def require_rate_limit(max_requests: int = 10, window_seconds: int = 60):
+def require_rate_limit(max_requests: int = 10, window_seconds: int = 60) -> Callable[..., Any]:
     """
     Decorator to apply rate limiting to a route.
 

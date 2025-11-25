@@ -39,16 +39,21 @@ class UnitTestContext:
         self.blob_storage: BlobStorage = InMemoryBlobStorage()
 
         # Initialize repositories
-        self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
-        self.document_repository: DocumentRepository = create_document_repository(
-            "postgres", db_url=db_url
-        )
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(
-            "postgres", db_url=db_url
-        )
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(
-            "postgres", db_url=db_url
-        )
+        user_repo = create_user_repository("postgres", db_url=db_url)
+        assert user_repo is not None
+        self.user_repository: UserRepository = user_repo
+
+        doc_repo = create_document_repository("postgres", db_url=db_url)
+        assert doc_repo is not None
+        self.document_repository: DocumentRepository = doc_repo
+
+        session_repo = create_chat_session_repository("postgres", db_url=db_url)
+        assert session_repo is not None
+        self.chat_session_repository: ChatSessionRepository = session_repo
+
+        message_repo = create_chat_message_repository("postgres", db_url=db_url)
+        assert message_repo is not None
+        self.chat_message_repository: ChatMessageRepository = message_repo
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)
@@ -82,16 +87,21 @@ class IntegrationTestContext:
         self.blob_storage = blob_storage
 
         # Initialize repositories
-        self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
-        self.document_repository: DocumentRepository = create_document_repository(
-            "postgres", db_url=db_url
-        )
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(
-            "postgres", db_url=db_url
-        )
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(
-            "postgres", db_url=db_url
-        )
+        user_repo = create_user_repository("postgres", db_url=db_url)
+        assert user_repo is not None
+        self.user_repository: UserRepository = user_repo
+
+        doc_repo = create_document_repository("postgres", db_url=db_url)
+        assert doc_repo is not None
+        self.document_repository: DocumentRepository = doc_repo
+
+        session_repo = create_chat_session_repository("postgres", db_url=db_url)
+        assert session_repo is not None
+        self.chat_session_repository: ChatSessionRepository = session_repo
+
+        message_repo = create_chat_message_repository("postgres", db_url=db_url)
+        assert message_repo is not None
+        self.chat_message_repository: ChatMessageRepository = message_repo
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)

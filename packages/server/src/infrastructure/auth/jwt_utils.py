@@ -32,7 +32,8 @@ def create_access_token(user_id: int) -> str:
     payload = {"user_id": user_id, "exp": expire}
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     logger.info(
-        "Created access token", user_id=user_id, expires_in_minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        "Created access token",
+        extra={"user_id": user_id, "expires_in_minutes": ACCESS_TOKEN_EXPIRE_MINUTES},
     )
     return token
 
@@ -52,13 +53,13 @@ def decode_access_token(token: str) -> dict[str, int]:
     """
     try:
         payload = cast(dict[str, int], jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]))
-        logger.debug("Successfully decoded token", user_id=payload.get("user_id"))
+        logger.debug("Successfully decoded token", extra={"user_id": payload.get("user_id")})
         return payload
     except ExpiredSignatureError:
         logger.warning("Token decode failed: token has expired")
         raise InvalidTokenError("Token has expired") from None
     except Exception as e:
-        logger.warning("Token decode failed", error=str(e))
+        logger.warning("Token decode failed", extra={"error": str(e)})
         raise InvalidTokenError("Invalid token") from e
 
 
@@ -87,8 +88,10 @@ def get_current_user() -> User:
 
     user = cast(User | None, g.app_context.user_service.get_user_by_id(user_id))
     if not user:
-        logger.warning("Authentication failed: user not found", user_id=user_id)
+        logger.warning("Authentication failed: user not found", extra={"user_id": user_id})
         raise InvalidTokenError("User not found")
 
-    logger.debug("User authenticated successfully", user_id=user.id, username=user.username)
+    logger.debug(
+        "User authenticated successfully", extra={"user_id": user.id, "username": user.username}
+    )
     return user

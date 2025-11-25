@@ -40,8 +40,10 @@ class SocketHandler:
         Args:
             auth: Optional authentication data from client
         """
+        # Get client ID from current request context
+        from flask import request
 
-        client_id = request.sid  # Socket.IO session ID
+        client_id = getattr(request, "sid", "unknown")  # Socket.IO session ID
 
         print(f"Client connected: {client_id}")
 
@@ -62,6 +64,7 @@ class SocketHandler:
                 "heartbeat_interval": 30000,  # 30 seconds
             },
         )
+        return True
 
     def _handle_disconnect(self, reason: str | None = None) -> None:
         """
@@ -71,7 +74,7 @@ class SocketHandler:
             reason: Optional disconnection reason
         """
 
-        client_id = request.sid
+        client_id = getattr(request, "sid", "unknown")
 
         print(f"Client disconnected: {client_id}, reason: {reason}")
 
@@ -87,7 +90,7 @@ class SocketHandler:
             data: Ping data from client
         """
 
-        client_id = request.sid
+        client_id = getattr(request, "sid", "unknown")
 
         # Update last ping time
         if hasattr(self, "_connections") and client_id in self._connections:
@@ -106,7 +109,7 @@ class SocketHandler:
             data: Pong data from client
         """
 
-        client_id = request.sid
+        client_id = getattr(request, "sid", "unknown")
 
         # Update last ping time
         if hasattr(self, "_connections") and client_id in self._connections:

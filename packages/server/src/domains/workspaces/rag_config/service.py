@@ -1,5 +1,7 @@
 """RAG Config service for managing workspace RAG configurations."""
 
+from typing import Any
+
 from shared.models.workspace import RagConfig
 from shared.repositories import WorkspaceRepository
 
@@ -7,7 +9,7 @@ from shared.repositories import WorkspaceRepository
 class RagConfigService:
     """Service for RAG configuration operations."""
 
-    def __init__(self, repository: WorkspaceRepository, workspace_service) -> None:
+    def __init__(self, repository: WorkspaceRepository, workspace_service: Any) -> None:
         """Initialize the service."""
         self.repository = repository
         self.workspace_service = workspace_service

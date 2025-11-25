@@ -143,27 +143,24 @@ class RateLimitMiddleware:
 
     def _count_requests(self, ip: str, window: int) -> int:
         """Count requests within the time window (in seconds)."""
-        if self.redis_client:
-            return self._count_requests_redis(ip, window)
-        else:
-            return self._count_requests_memory(ip, window)
+        current_time = time.time()
+        window_start = current_time - window
 
-    def _count_requests_redis(self, ip: str, window: int) -> int:
-        """Count requests using Redis."""
         try:
-            current_time = int(time.time())
-            window_start = current_time - window
+            if self.redis_client:
+                # Use Redis sorted set to count requests in window
+                key = f"ratelimit:{ip}:{window}"
+                count = self.redis_client.zcount(key, window_start, current_time)
 
-            # Use Redis sorted set to count requests in window
-            key = f"ratelimit:{ip}:{window}"
-            count = self.redis_client.zcount(key, window_start, current_time)
+                # Add current request
+                self.redis_client.zadd(key, {str(current_time): 1})
+                # Set expiration to clean up old keys
+                self.redis_client.expire(key, 3600)
 
-            # Add current request
-            self.redis_client.zadd(key, {str(current_time): 1})
-            # Set expiration to clean up old keys
-            self.redis_client.expire(key, 3600)
-
-            return int(count)
+                return int(count)
+            else:
+                # This should not happen since we check above
+                return 0
         except Exception as e:
             logger.warning(f"Redis rate limit check failed: {e}, falling back to memory")
             return self._count_requests_memory(ip, window)

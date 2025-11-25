@@ -128,7 +128,7 @@ def create_chat_event_consumer(socketio: SocketIO) -> Any | None:
             )
 
         # Create consumer with event handlers
-        consumer = RabbitMQConsumer(
+        consumer = RabbitMQConsumer(  # type: ignore
             queue_name="server_events",
             exchange_name="server_events",
             routing_keys=[
@@ -259,7 +259,7 @@ def create_app() -> InsightHubApp:
         init_db()
         logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error("Could not initialize database", error=str(e))
+        logger.error("Could not initialize database", extra={"error": str(e)})
 
     # Initialize message publisher (singleton for the app lifetime)
     app.message_publisher = create_message_publisher()
@@ -382,7 +382,7 @@ def create_app() -> InsightHubApp:
         on_document_chunked=on_document_chunked,
         on_document_embedded=on_document_embedded,
         on_document_indexed=on_document_indexed,
-        on_workspace_provision_status=on_workspace_provision_status,
+        on_workspace_provision_status=on_workspace_provision_status,  # type: ignore
     )
 
     # Create a simple chat event consumer for async chat processing

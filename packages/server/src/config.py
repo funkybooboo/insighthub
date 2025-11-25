@@ -1,6 +1,52 @@
-# Minimal config for testing - replace with proper shared config when available
+# Configuration constants for backward compatibility
+FLASK_HOST = "0.0.0.0"
+FLASK_PORT = 5000
+FLASK_DEBUG = False
+DATABASE_URL = "postgresql://test:test@localhost:5432/test"
+REDIS_URL = ""
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_EMBEDDING_MODEL = "nomic-embed-text"
+OLLAMA_LLM_MODEL = "llama3.2"
+QDRANT_COLLECTION_NAME = "insighthub"
+QDRANT_HOST = "localhost"
+QDRANT_PORT = 6333
+JWT_SECRET_KEY = "test-jwt-secret-key-32-chars-minimum"
+JWT_EXPIRE_MINUTES = 1440
+CORS_ORIGINS = ["http://localhost:3000"]
+LOG_FORMAT = "json"
+LOG_LEVEL = "INFO"
+BLOB_STORAGE_TYPE = "filesystem"
+FILE_SYSTEM_STORAGE_PATH = "uploads"
+S3_ACCESS_KEY = "test-access-key"
+S3_BUCKET_NAME = "documents"
+S3_ENDPOINT_URL = "http://localhost:9000"
+S3_SECRET_KEY = "test-secret-key"
+CHAT_MESSAGE_REPOSITORY_TYPE = "sql"
+CHAT_SESSION_REPOSITORY_TYPE = "sql"
+DOCUMENT_REPOSITORY_TYPE = "sql"
+USER_REPOSITORY_TYPE = "sql"
+LLM_PROVIDER = "ollama"
+OPENAI_API_KEY = None
+OPENAI_MODEL = "gpt-3.5-turbo"
+ANTHROPIC_API_KEY = None
+ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
+HUGGINGFACE_API_KEY = None
+HUGGINGFACE_MODEL = "meta-llama/Llama-3.2-3B-Instruct"
+RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+RABBITMQ_EXCHANGE = "insighthub"
+UPLOAD_FOLDER = "uploads"
+MAX_CONTENT_LENGTH = 16777216
+RATE_LIMIT_ENABLED = True
+RATE_LIMIT_PER_MINUTE = 60
+RATE_LIMIT_PER_HOUR = 1000
+SLOW_REQUEST_THRESHOLD = 1.0
+ENABLE_PERFORMANCE_STATS = True
+
+
 class MockConfig:
-    def __init__(self):
+    """Mock config class for testing with proper type annotations."""
+
+    def __init__(self) -> None:
         self.host = "0.0.0.0"
         self.port = 5000
         self.debug = False
@@ -45,44 +91,74 @@ class MockConfig:
 
     # Properties for compatibility
     @property
-    def database(self):
+    def database(self) -> object:
         class DB:
-            url = self.database_url
-        return DB()
+            def __init__(self, url: str) -> None:
+                self.url = url
+
+        return DB(self.database_url)
 
     @property
-    def redis(self):
+    def redis(self) -> object:
         class Redis:
-            url = self.redis_url
-            default_ttl = 3600
-        return Redis()
+            def __init__(self, url: str | None) -> None:
+                self.url = url
+                self.default_ttl = 3600
+
+        return Redis(self.redis_url)
 
     @property
-    def security(self):
+    def security(self) -> object:
         class Security:
-            jwt_secret_key = self.jwt_secret_key
-            jwt_expire_minutes = self.jwt_expire_minutes
-            cors_origins = self.cors_origins
-        return Security()
+            def __init__(
+                self, jwt_secret_key: str, jwt_expire_minutes: int, cors_origins: list[str]
+            ) -> None:
+                self.jwt_secret_key = jwt_secret_key
+                self.jwt_expire_minutes = jwt_expire_minutes
+                self.cors_origins = cors_origins
+
+        return Security(self.jwt_secret_key, self.jwt_expire_minutes, self.cors_origins)
 
     @property
-    def storage(self):
+    def storage(self) -> object:
         class Storage:
-            blob_storage_type = self.blob_storage_type
-            file_system_storage_path = self.file_system_storage_path
-            s3_endpoint_url = self.s3_endpoint_url
-            s3_access_key = self.s3_access_key
-            s3_secret_key = self.s3_secret_key
-            s3_bucket_name = self.s3_bucket_name
-        return Storage()
+            def __init__(
+                self,
+                blob_storage_type: str,
+                file_system_storage_path: str,
+                s3_endpoint_url: str | None,
+                s3_access_key: str | None,
+                s3_secret_key: str | None,
+                s3_bucket_name: str,
+            ) -> None:
+                self.blob_storage_type = blob_storage_type
+                self.file_system_storage_path = file_system_storage_path
+                self.s3_endpoint_url = s3_endpoint_url
+                self.s3_access_key = s3_access_key
+                self.s3_secret_key = s3_secret_key
+                self.s3_bucket_name = s3_bucket_name
+
+        return Storage(
+            self.blob_storage_type,
+            self.file_system_storage_path,
+            self.s3_endpoint_url,
+            self.s3_access_key,
+            self.s3_secret_key,
+            self.s3_bucket_name,
+        )
 
     @property
-    def vector_store(self):
+    def vector_store(self) -> object:
         class VectorStore:
-            qdrant_host = self.qdrant_host
-            qdrant_port = self.qdrant_port
-            qdrant_collection_name = self.qdrant_collection_name
-        return VectorStore()
+            def __init__(
+                self, qdrant_host: str, qdrant_port: int, qdrant_collection_name: str
+            ) -> None:
+                self.qdrant_host = qdrant_host
+                self.qdrant_port = qdrant_port
+                self.qdrant_collection_name = qdrant_collection_name
+
+        return VectorStore(self.qdrant_host, self.qdrant_port, self.qdrant_collection_name)
+
 
 # Create mock config instance
 config = MockConfig()

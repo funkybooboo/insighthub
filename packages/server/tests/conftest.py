@@ -1,86 +1,97 @@
 """Shared test fixtures and configuration."""
 
-# Temporarily disabled due to shared package import issues
-# from src.api import create_app
-# from src.infrastructure.database import init_db
+import pytest
+from flask import Flask
+from flask.testing import FlaskClient
+from unittest.mock import Mock
 
-# @pytest.fixture(scope="session")
-# def test_db():
-#     """Create a temporary test database."""
-#     # Create temporary database file
-#     db_fd, db_path = tempfile.mkstemp()
 
-#     # Override database URL for testing
-#     original_db_url = os.environ.get("DATABASE_URL")
-#     test_db_url = "postgresql://test:test@localhost:5432/test_insighthub"
+@pytest.fixture
+def app():
+    """Create a minimal test app for basic testing."""
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    app.config["SECRET_KEY"] = "test-secret-key"
 
-#     os.environ["DATABASE_URL"] = test_db_url
+    # Add a simple test route
+    @app.route("/test")
+    def test_route():
+        return {"status": "ok"}
 
-#     try:
-#         # Initialize test database
-#         init_db(test_db_url)
+    return app
 
-#         yield test_db_url
 
-#     finally:
-#         # Restore original database URL
-#         if original_db_url:
-#             os.environ["DATABASE_URL"] = original_db_url
-#         else:
-#             os.environ.pop("DATABASE_URL", None)
+@pytest.fixture
+def client(app: Flask) -> FlaskClient:
+    """A test client for the app."""
+    return app.test_client()
 
-#         # Clean up temporary file
-#         os.close(db_fd)
-#         os.unlink(db_path)
 
-# @pytest.fixture
-# def app(test_db):
-#     """Create and configure a test app instance."""
-#     app = create_app()
-#     app.config["TESTING"] = True
-#     app.config["DATABASE_URL"] = test_db
+@pytest.fixture
+def auth_token() -> str:
+    """Mock authentication token for testing."""
+    return "mock-jwt-token"
 
-#     with app.app_context():
-#         yield app
 
-# @pytest.fixture
-# def client(app):
-#     """A test client for the app."""
-#     return app.test_client()
+@pytest.fixture
+def test_user():
+    """Mock test user for testing."""
+    return {
+        "id": 1,
+        "username": "testuser",
+        "email": "test@example.com",
+        "full_name": "Test User"
+    }
 
-# @pytest.fixture
-# def auth_token(client):
-#     """Create a test user and return authentication token."""
-#     # Register a test user
-#     register_response = client.post(
-#         "/api/auth/signup",
-#         json={"username": "testuser", "email": "test@example.com", "password": "testpass123"},
-#     )
-#     assert register_response.status_code == 201
 
-#     register_data = register_response.get_json()
-#     token = register_data["access_token"]
+@pytest.fixture
+def test_workspace():
+    """Mock test workspace for testing."""
+    return {
+        "id": 1,
+        "name": "Test Workspace",
+        "description": "Workspace for testing",
+        "owner_id": 1,
+        "rag_config": {
+            "embedding_model": "nomic-embed-text",
+            "retriever_type": "vector",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "top_k": 8,
+        }
+    }
 
-#     return token
 
-# @pytest.fixture
-# def test_workspace(client, auth_token):
-#     """Create a test workspace and return its data."""
-#     workspace_data = {
-#         "name": "Test Workspace",
-#         "description": "Workspace for testing",
-#         "rag_config": {
-#             "embedding_model": "nomic-embed-text",
-#             "retriever_type": "vector",
-#             "chunk_size": 1000,
-#             "chunk_overlap": 200,
-#             "top_k": 8,
-#         },
-#     }
+@pytest.fixture
+def mock_service():
+    """Mock service for testing."""
+    return Mock()
 
-#     response = client.post(
-#         "/api/workspaces", json=workspace_data, headers={"Authorization": f"Bearer {auth_token}"}
-#     )
-#     assert response.status_code == 201
 
-#     return response.get_json()
+@pytest.fixture
+def mock_workspace_service():
+    """Mock workspace service for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_app_context():
+    """Mock app context for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def sample_user():
+    """Sample user data for testing."""
+    return Mock(
+        id=1,
+        username="testuser",
+        email="test@example.com",
+        full_name="Test User"
+    )
+
+
+@pytest.fixture
+def auth_headers(auth_token: str):
+    """Authentication headers for testing."""
+    return {"Authorization": f"Bearer {auth_token}"}

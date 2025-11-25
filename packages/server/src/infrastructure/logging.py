@@ -44,17 +44,17 @@ def configure_logging() -> None:
         logger.set_level(level)
 
 
-def get_request_logger() -> logging.Logger:
+def get_request_logger() -> Any:
     """Get a logger specifically for request handling."""
     return create_logger("insighthub.requests", LogLevel.INFO)
 
 
-def get_security_logger() -> logging.Logger:
+def get_security_logger() -> Any:
     """Get a logger specifically for security events."""
     return create_logger("insighthub.security", LogLevel.WARNING)
 
 
-def get_performance_logger() -> logging.Logger:
+def get_performance_logger() -> Any:
     """Get a logger specifically for performance monitoring."""
     return create_logger("insighthub.performance", LogLevel.INFO)
 

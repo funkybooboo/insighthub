@@ -2,10 +2,10 @@
   "name": "@insighthub/shared-typescript",
   "version": "0.1.0",
   "description": "Shared TypeScript utilities and types for InsightHub",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "mkdir -p dist && tsc && sed 's|dist/||g' package.json > dist/package.json",
     "dev": "tsc --watch",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "format": "prettier --write 'src/**/*.{ts,tsx}'"

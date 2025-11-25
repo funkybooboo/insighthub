@@ -3,11 +3,12 @@
 # ============================================================================
 # Base Stage - Common dependencies for all stages
 # ============================================================================
-FROM oven/bun:1.1.38-slim AS base
+FROM oven/bun:1.3.3-slim AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory and user
@@ -26,9 +27,16 @@ COPY --chown=app:app packages/client/package.json packages/client/bun.lock ./
 # Copy shared TypeScript package
 COPY --chown=app:app packages/shared/typescript/ ./shared-typescript/
 
-# Install dependencies
+# Build shared TypeScript package
 USER app
-RUN bun install --frozen-lockfile
+WORKDIR /app/shared-typescript
+RUN bun install && bun run build
+
+# Return to main app directory
+WORKDIR /app
+
+	# Install dependencies
+	RUN bun install
 
 # ============================================================================
 # Development Stage - For local development with hot-reload

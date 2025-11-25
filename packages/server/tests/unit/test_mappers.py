@@ -7,8 +7,8 @@ import pytest
 from shared.models import ChatMessage, ChatSession, Document, User
 
 from src.domains.auth.mappers import UserMapper
-from src.domains.chat.mappers import ChatMapper
-from src.domains.documents.mappers import DocumentMapper
+from src.domains.workspaces.chat.mappers import ChatMapper
+from src.domains.workspaces.documents.mappers import DocumentMapper
 
 
 class TestDocumentMapper:

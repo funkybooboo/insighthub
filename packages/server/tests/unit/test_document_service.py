@@ -97,10 +97,11 @@ def fake_repository() -> FakeDocumentRepository:
     """Provide a fake repository."""
     return FakeDocumentRepository()
 
-    @pytest.fixture
-    def fake_storage() -> InMemoryBlobStorage:
-        """Provide a fake blob storage."""
-        return InMemoryBlobStorage()
+
+@pytest.fixture
+def fake_storage() -> InMemoryBlobStorage:
+    """Provide a fake blob storage."""
+    return InMemoryBlobStorage()
 
 
 @pytest.fixture

@@ -9,6 +9,7 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
+            '@insighthub/shared-typescript': path.resolve(__dirname, './shared-typescript/dist'),
         },
     },
     server: {

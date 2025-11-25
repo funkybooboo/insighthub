@@ -32,18 +32,16 @@ class TestRagConfigService:
         workspace_id = 123
         user_id = 456
         expected_config = RagConfig(
+            workspace_id=1,
             id=1,
-            workspace_id=workspace_id,
             embedding_model="nomic-embed-text",
             embedding_dim=None,
             retriever_type="vector",
-            chunk_size=1000,
+            chunk_size=1500,
             chunk_overlap=200,
             top_k=8,
             rerank_enabled=False,
             rerank_model=None,
-            created_at=None,
-            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -92,8 +90,6 @@ class TestRagConfigService:
             top_k=8,
             rerank_enabled=False,
             rerank_model=None,
-            created_at=None,
-            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -119,7 +115,6 @@ class TestRagConfigService:
         workspace_id = 123
         user_id = 456
         existing_config = RagConfig(
-            id=1,
             workspace_id=workspace_id,
             embedding_model="existing-model",
             embedding_dim=None,
@@ -129,8 +124,6 @@ class TestRagConfigService:
             top_k=8,
             rerank_enabled=False,
             rerank_model=None,
-            created_at=None,
-            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -158,18 +151,16 @@ class TestRagConfigService:
         user_id = 456
         update_data = {"chunk_size": 1200, "top_k": 10}
         updated_config = RagConfig(
-            id=1,
             workspace_id=workspace_id,
+            id=1,
             embedding_model="nomic-embed-text",
-            embedding_dim=None,
+            embedding_dim=768,
             retriever_type="vector",
             chunk_size=1200,
             chunk_overlap=200,
             top_k=10,
             rerank_enabled=False,
             rerank_model=None,
-            created_at=None,
-            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True

@@ -64,7 +64,7 @@ class InputSanitizer:
                 log_security_event(
                     event="potential_sql_injection",
                     details={"pattern": pattern, "input": text[:100]},
-                    client_ip=request.remote_addr if request else "unknown",
+                    client_ip=request.remote_addr or "unknown" if request else "unknown",
                 )
                 break
 
@@ -100,7 +100,12 @@ class InputSanitizer:
     def validate_password_strength(password: str) -> PasswordValidationResult:
         """Validate password strength and return detailed feedback."""
         if not password:
-            return {"valid": False, "errors": ["Password cannot be empty"]}
+            return {
+                "valid": False,
+                "errors": ["Password cannot be empty"],
+                "strength": "weak",
+                "score": 0,
+            }
 
         errors = []
         score = 0

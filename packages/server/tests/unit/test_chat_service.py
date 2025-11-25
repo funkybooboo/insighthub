@@ -419,8 +419,14 @@ class TestProcessChatMessage:
     """Tests for process_chat_message."""
 
     def test_process_chat_message_creates_session(self, service: ChatService) -> None:
-        """Test that processing creates a session."""
-        response = service.process_chat_message(user_id=1, message="Hello")
+        """Test that process_chat_message creates a session if none provided."""
+        from unittest.mock import Mock
+
+        llm_provider = Mock()
+        llm_provider.chat.return_value = "Hello! How can I help you?"
+        response = service.process_chat_message(
+            user_id=1, message="Hello", llm_provider=llm_provider
+        )
 
         assert response.session_id is not None
         session = service.get_session_by_id(response.session_id)
@@ -428,7 +434,13 @@ class TestProcessChatMessage:
 
     def test_process_chat_message_stores_messages(self, service: ChatService) -> None:
         """Test that processing stores both user and assistant messages."""
-        response = service.process_chat_message(user_id=1, message="Hello")
+        from unittest.mock import Mock
+
+        llm_provider = Mock()
+        llm_provider.chat.return_value = "Hello! How can I help you?"
+        response = service.process_chat_message(
+            user_id=1, message="Hello", llm_provider=llm_provider
+        )
 
         messages = service.list_session_messages(response.session_id)
         assert len(messages) == 2
@@ -437,9 +449,15 @@ class TestProcessChatMessage:
         assert messages[1].role == "assistant"
 
     def test_process_chat_message_with_existing_session(self, service: ChatService) -> None:
-        """Test processing with existing session."""
+        """Test that process_chat_message works with existing session."""
+        from unittest.mock import Mock
+
         session = service.create_session(user_id=1, title="Test")
-        response = service.process_chat_message(user_id=1, message="Hello", session_id=session.id)
+        llm_provider = Mock()
+        llm_provider.chat.return_value = "Hello! How can I help you?"
+        response = service.process_chat_message(
+            user_id=1, message="Hello", llm_provider=llm_provider, session_id=session.id
+        )
 
         assert response.session_id == session.id
 

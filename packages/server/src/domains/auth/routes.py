@@ -152,7 +152,9 @@ def login() -> tuple[Response, int]:
 
         from src.infrastructure.logging import log_security_event
 
-        log_security_event(event="login_successful", user_id=user.id, client_ip=request.remote_addr)
+        log_security_event(
+            event="login_successful", user_id=user.id, client_ip=request.remote_addr or "unknown"
+        )
 
         return (
             jsonify(
@@ -179,7 +181,7 @@ def login() -> tuple[Response, int]:
 
         log_security_event(
             event="login_failed",
-            client_ip=request.remote_addr,
+            client_ip=request.remote_addr or "unknown",
             details={"username": username, "reason": str(e)},
         )
         return jsonify({"error": str(e)}), 401
@@ -299,7 +301,7 @@ def change_password() -> tuple[Response, int]:
             log_security_event(
                 event="password_change_failed",
                 user_id=user.id,
-                client_ip=request.remote_addr,
+                client_ip=request.remote_addr or "unknown",
                 details={"reason": "incorrect_current_password"},
             )
             return jsonify({"error": "Current password is incorrect"}), 401
@@ -313,7 +315,9 @@ def change_password() -> tuple[Response, int]:
 
         from src.infrastructure.logging import log_security_event
 
-        log_security_event(event="password_changed", user_id=user.id, client_ip=request.remote_addr)
+        log_security_event(
+            event="password_changed", user_id=user.id, client_ip=request.remote_addr or "unknown"
+        )
 
         return jsonify({"message": "Password changed successfully"}), 200
 

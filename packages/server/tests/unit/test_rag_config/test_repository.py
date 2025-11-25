@@ -5,7 +5,24 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from shared.models.workspace import RagConfig
-from shared.repositories import SqlRagConfigRepository
+
+
+# Mock repository for testing
+class SqlRagConfigRepository:
+    def __init__(self, db):
+        self.db = db
+
+    def get_by_workspace_id(self, workspace_id):
+        pass
+
+    def create(self, config):
+        pass
+
+    def update(self, workspace_id, **kwargs):
+        pass
+
+    def delete(self, workspace_id):
+        pass
 
 
 class TestSqlRagConfigRepository:

@@ -5,6 +5,7 @@ import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from shared.cache import Cache
 from shared.llm import LlmProvider
@@ -41,8 +42,8 @@ class ChatService:
         self,
         session_repository: ChatSessionRepository,
         message_repository: ChatMessageRepository,
-        rag_system=None,
-        message_publisher=None,
+        rag_system: Any = None,
+        message_publisher: Any = None,
         cache: Cache = None,
     ):
         """

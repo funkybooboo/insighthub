@@ -1,5 +1,7 @@
 """Health check routes."""
 
+from typing import Any
+
 from flask import Blueprint, Response, current_app, jsonify
 
 health_bp = Blueprint("health", __name__)
@@ -19,7 +21,7 @@ def health() -> tuple[Response, int]:
     Checks database connectivity, external services, and system components.
     Returns detailed health status for monitoring and debugging.
     """
-    health_status = {
+    health_status: dict[str, Any] = {
         "status": "healthy",
         "timestamp": "2025-11-24T00:00:00Z",  # Would be dynamic in real implementation
         "version": "1.0.0",
@@ -104,11 +106,11 @@ def health() -> tuple[Response, int]:
 
     # Redis health check (if configured)
     try:
+        import redis
+
         from src import config
 
         if config.REDIS_URL:
-            import redis
-
             redis_client = redis.from_url(config.REDIS_URL)
             redis_client.ping()
             health_status["checks"]["redis"] = {

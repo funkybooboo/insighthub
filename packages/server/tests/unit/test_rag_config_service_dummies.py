@@ -1,6 +1,7 @@
 """Unit tests for RagConfigService using dummy implementations."""
 
 from datetime import datetime
+from typing import Any
 
 import pytest
 from shared.models.workspace import RagConfig, Workspace
@@ -53,7 +54,7 @@ class FakeWorkspaceRepository:
                 result.append(ws)
         return result
 
-    def update(self, workspace_id: int, **kwargs) -> Workspace | None:
+    def update(self, workspace_id: int, **kwargs: Any) -> Workspace | None:
         """Update workspace fields."""
         ws = self.workspaces.get(workspace_id)
         if ws is None:
@@ -110,7 +111,7 @@ class FakeWorkspaceRepository:
         """Get RAG config for workspace."""
         return self.rag_configs.get(workspace_id)
 
-    def update_rag_config(self, workspace_id: int, **kwargs) -> RagConfig | None:
+    def update_rag_config(self, workspace_id: int, **kwargs: Any) -> RagConfig | None:
         """Update RAG config fields."""
         config = self.rag_configs.get(workspace_id)
         if config is None:
@@ -162,7 +163,7 @@ def service(
     fake_repository: FakeWorkspaceRepository, fake_workspace_service: FakeWorkspaceService
 ) -> RagConfigService:
     """Provide a RagConfigService with fake dependencies."""
-    return RagConfigService(fake_repository, fake_workspace_service)
+    return RagConfigService(fake_repository, fake_workspace_service)  # type: ignore
 
 
 class TestRagConfigServiceGet:

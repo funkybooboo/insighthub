@@ -29,9 +29,7 @@ bcrypt = "^4.0.0"
 pyjwt = "^2.8.0"
 flask-jwt-extended = "^4.6.0"
 anthropic = "^0.73.0"
-pika = "^1.3.2"
-# insighthub-shared is installed separately via pip from the wheel file
-insighthub-shared = {path = "../shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl"}
+ pika = "^1.3.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -139,9 +137,16 @@ module = [
     "src.domains.documents.service",
     "src.domains.workspaces.*",
     "src.api",
+    "src.context",
 ]
 warn_return_any = false
 disable_error_code = ["arg-type", "assignment", "return-value", "union-attr", "attr-defined"]
+
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+]
+disable_error_code = ["no-untyped-def", "var-annotated", "unused-ignore", "import-untyped", "arg-type", "assignment", "return-value", "union-attr", "attr-defined", "dict-item", "comparison-overlap"]
 
 # Ruff configuration
 [tool.ruff]

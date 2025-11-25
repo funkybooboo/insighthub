@@ -246,7 +246,6 @@ class DocumentService:
             workspace_id=workspace_id,
             status="pending",
             message="Document uploaded, queued for processing",
-            filename=filename,
         )
 
         # Publish document.uploaded event to RabbitMQ for async processing
@@ -497,7 +496,6 @@ class DocumentService:
                 status=status,
                 message=f"Document {status}",
                 error=error_message,
-                chunk_count=chunk_count,
             )
             return True
 
