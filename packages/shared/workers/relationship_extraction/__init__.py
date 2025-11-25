@@ -1,1 +1,0 @@
-"""Relationship extraction worker package."""

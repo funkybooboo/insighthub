@@ -3,7 +3,7 @@
  * Re-exports shared types with client-specific extensions
  */
 
-export {
+export type {
     BaseRagConfig,
     VectorRagConfig,
     GraphRagConfig,

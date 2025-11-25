@@ -1,14 +1,8 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseApiClient = void 0;
-const axios_1 = __importDefault(require("axios"));
-class BaseApiClient {
+import axios from "axios";
+export class BaseApiClient {
     constructor(baseURL, timeout = 30000) {
         this.token = null;
-        this.client = axios_1.default.create({
+        this.client = axios.create({
             baseURL,
             timeout,
             headers: {
@@ -168,4 +162,3 @@ class BaseApiClient {
         return this.handleResponse(this.client.get("/health"));
     }
 }
-exports.BaseApiClient = BaseApiClient;

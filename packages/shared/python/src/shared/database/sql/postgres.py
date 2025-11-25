@@ -1,6 +1,6 @@
 """PostgreSQL database interface using psycopg2."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -101,7 +101,7 @@ class PostgresDatabase:
         cursor.execute(query, params)
         results = cursor.fetchall()
         cursor.close()
-        return results  # type: ignore
+        return cast(List[Dict[str, Any]], results)
 
     def fetchone(
         self, query: str, params: Optional[Dict[str, Any]] = None
@@ -120,7 +120,7 @@ class PostgresDatabase:
         cursor.execute(query, params)
         result = cursor.fetchone()
         cursor.close()
-        return result  # type: ignore
+        return cast(Optional[Dict[str, Any]], result)
 
     def execute_many(self, query: str, params_list: List[Dict[str, Any]]) -> None:
         """Execute a query with multiple sets of parameters."""

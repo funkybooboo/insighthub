@@ -1,34 +1,57 @@
-# Workers
+# InsightHub Workers
 
-This folder contains all the **workers** responsible for processing documents, embeddings, chat messages, and graph structures in the InsightHub RAG system. Workers are **action-focused** and communicate via RabbitMQ events, allowing for **scalable, decoupled pipelines**.
+Event-driven background workers for document processing, RAG pipelines, and infrastructure management.
 
-The design supports:
+## Directory Structure
 
-- **User-uploaded documents**
-- **External knowledge retrieval** (Wikipedia, URLs)
-- **Vector-based RAG**
-- **Graph-based RAG**
-- **Hybrid RAG**
-- **Chat interactions with streaming responses**
-- **Workspace provisioning and management**
-- **Large document handling** through chunking and streaming
+```
+workers/
+|-- general/          # General-purpose workers
+|   |-- parser/        # Document parsing (PDF, DOCX, etc.)
+|   |-- chunker/       # Document chunking (sentence, character, etc.)
+|   |-- router/        # Pipeline routing decisions
+|   |-- wikipedia/     # External Wikipedia content fetching
+|   |-- enricher/      # Content enrichment and processing
+|   |-- chat/          # Chat message processing
+|   |-- infrastructure-manager/ # Consolidated provisioning + deletion
+|-- vector/           # Vector RAG pipeline workers
+|   |-- processor/    # Consolidated embedding + vector indexing
+|   |-- query/        # Vector similarity search queries
++-- graph/            # Graph RAG pipeline workers
+    |-- preprocessor/ # Consolidated entity + relationship + community extraction
+    |-- construction/ # Neo4j graph construction
+    |-- query/        # Graph traversal queries
+    +-- connector/    # Graph connectivity utilities
+```
 
----
+## Worker Categories
+
+### Vector Workers (`vector/`)
+Workers specific to the Vector RAG pipeline for similarity-based retrieval.
+
+### Graph Workers (`graph/`)
+Workers specific to the Graph RAG pipeline for knowledge graph-based retrieval.
+
+### General Workers
+Workers that provide shared functionality across pipelines or handle infrastructure tasks.
 
 ## Worker List
 
-| Worker        | Responsibility                                            | Status        | Events Consumed                     | Events Produced                                                                        |
-|---------------|-----------------------------------------------------------|---------------|-------------------------------------|----------------------------------------------------------------------------------------|
-| `parser`      | Extract text/content from PDFs, DOCX, HTML, and TXT files | [x] Implemented | `document.uploaded`                 | `document.parsed`                                                                      |
-| `chucker`     | Split documents into smaller chunks for embeddings        | [x] Implemented | `document.parsed`                   | `document.chunked`                                                                     |
-| `embedder`    | Generate embeddings from document chunks                  | [x] Implemented | `document.chunked`                  | `document.embedded`                                                                    |
-| `indexer`     | Store embeddings into Qdrant vector database              | [x] Implemented | `document.embedded`                 | `document.indexed`                                                                     |
-| `connector`   | Build graph nodes and edges in Neo4j (Graph RAG)          | [x] Implemented | `document.embedded`                 | `graph.updated`                                                                        |
-| `enricher`    | Add metadata, summaries, classifications                  | [x] Implemented | `document.indexed`, `graph.updated` | `document.enriched`                                                                    |
-| `chat`        | Process chat messages with RAG and LLM streaming          | [x] Implemented | `chat.message_received`             | `chat.response_chunk`, `chat.response_complete`, `chat.error`, `chat.no_context_found` |
-| `wikipedia`   | Fetch content from Wikipedia and create documents         | [x] Implemented | `wikipedia.fetch_requested`         | `document.uploaded`, `wikipedia.fetch_completed`                                       |
-| `provisioner` | Workspace infrastructure provisioning                     | [x] Implemented | `workspace.provision_requested`     | `workspace.provision_status`                                                           |
-| `deletion`    | Workspace and document cleanup/deletion                   | [x] Implemented | `workspace.deletion_requested`, `document.deleted` | `workspace.deletion_status` |
+| Category | Worker                    | Responsibility                                            | Status          | Events Consumed                                    | Events Produced                                                                        |
+|----------|---------------------------|-----------------------------------------------------------|-----------------|----------------------------------------------------|----------------------------------------------------------------------------------------|
+| General  | `parser`                  | Extract text/content from PDFs, DOCX, HTML, and TXT files | [x] Implemented | `document.uploaded`                                | `document.parsed`                                                                      |
+| General  | `chunker`                 | Split documents into smaller chunks for embeddings        | [x] Implemented | `document.parsed`                                  | `document.chunked`                                                                     |
+| Vector   | `processor`             | Consolidated embedding generation + vector indexing       | [x] Implemented | `document.chunked`                               | `document.indexed`                                                                    |
+| Vector   | `query`                  | Handle vector-based retrieval queries                     | [x] Implemented | `chat.vector_query`                               | `chat.vector_query_completed`, `chat.vector_query_failed`                              |
+| Graph    | `preprocessor`           | Consolidated entity + relationship + community extraction | [x] Implemented | `document.chunked`                                | `document.communities_detected`                                                        |
+| Graph    | `construction`           | Build Neo4j graphs from extracted entities/relationships  | [x] Implemented | `document.communities_detected`                   | `document.graph_constructed`                                                           |
+| Graph    | `query`                  | Handle graph-based retrieval queries                      | [x] Implemented | `chat.graph_query`                                | `chat.graph_query_completed`, `chat.graph_query_failed`                                |
+| Graph    | `connector`              | Graph connectivity utilities and maintenance              | [x] Implemented | `document.embedded`                               | `graph.updated`                                                                        |
+| General  | `router`                 | Route documents to appropriate RAG pipelines             | [x] Implemented | `document.chunked`                                | Routes to vector/graph pipelines                                                       |
+| General  | `enricher`               | Add metadata, summaries, classifications                  | [x] Implemented | `document.indexed`, `graph.updated`               | `document.enriched`                                                                    |
+| General  | `chat`                   | Process chat messages with RAG and LLM streaming          | [x] Implemented | `chat.message_received`                           | `chat.response_chunk`, `chat.response_complete`, `chat.error`, `chat.no_context_found` |
+| General  | `wikipedia`              | Fetch content from Wikipedia and create documents         | [x] Implemented | `wikipedia.fetch_requested`                       | `document.uploaded`, `wikipedia.fetch_completed`                                       |
+| General  | `infrastructure-manager` | Consolidated workspace provisioning + deletion            | [x] Implemented | `workspace.provision_requested`, `workspace.deletion_requested` | `workspace.provision_status`, `workspace.deletion_status` |
 
 ---
 
@@ -37,13 +60,11 @@ The design supports:
 ### Document Processing Pipeline (Vector + Graph RAG)
 
 ```
-document.uploaded --> Parser --> document.parsed --> Chucker --> document.chunked --> Embedder --> document.embedded
-                                                                                      |
-                                                                      Indexer --> document.indexed
-                                                                                      |
-                                                                Enricher --> document.enriched
-                                                                                      ^
-document.embedded --> Connector --> graph.updated ------------------------------^
+document.uploaded --> Parser --> document.parsed --> Chucker --> document.chunked --> Embedder --> document.embedded --> Indexer --> document.indexed --> Enricher --> document.enriched
+                                                                                       |
+                                                                       Entity Extraction --> document.entities_extracted --> Relationship Extraction --> document.relationships_extracted --> Community Detection --> document.communities_detected --> Graph Construction --> document.graph_constructed
+                                                                                       |
+                                                                       Graph Connector --> graph.updated --------------------------------^
 ```
 
 ### Wikipedia Content Pipeline
@@ -55,7 +76,13 @@ wikipedia.fetch_requested --> Wikipedia --> document.uploaded --> [Document Proc
 ### Chat Interaction Pipeline
 
 ```
-chat.message_received --> Chat --> chat.response_chunk/chat.response_complete/chat.error/chat.no_context_found
+chat.message_received --> Chat --> chat.vector_query/chat.graph_query --> Vector Query/Graph Query --> chat.response_chunk/chat.response_complete/chat.error/chat.no_context_found
+```
+
+### Graph Query Pipeline
+
+```
+chat.graph_query --> Graph Query --> chat.graph_query_completed/chat.graph_query_failed
 ```
 
 ### Workspace Management Pipelines
@@ -68,11 +95,31 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
 
 ---
 
+## Worker Role Clarifications
+
+### Provisioner vs Construction Workers
+
+**Provisioner Worker** (`provisioner/`):
+- **Purpose**: Sets up infrastructure for new workspaces *before* any documents are processed
+- **Timing**: Runs when a workspace is created, before document ingestion
+- **Scope**: Creates database collections, initializes schemas, sets up storage buckets
+- **Example**: Creates Qdrant collections, Neo4j graph structures, MinIO buckets for a new workspace
+
+**Construction Worker** (`graph/construction/`):
+- **Purpose**: Builds actual knowledge graphs from processed document data
+- **Timing**: Runs after documents have been parsed, entities extracted, relationships identified
+- **Scope**: Constructs graph nodes and relationships from real document content
+- **Example**: Takes extracted entities/relationships and builds the actual Neo4j knowledge graph
+
+**Key Difference**: Provisioner creates the empty infrastructure, Construction fills it with processed data.
+
+---
+
 ## Detailed Worker Descriptions
 
-### Core Document Processing Workers
+### General Workers
 
-#### Parser Worker (`packages/workers/parser/`)
+#### Parser Worker (`packages/workers/general/parser/`)
 **Purpose**: Extract clean text content from various document formats
 - **Input**: `document.uploaded` events with file metadata
 - **Output**: `document.parsed` events with extracted text
@@ -83,7 +130,7 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
   - Store parsed text in PostgreSQL database
   - Update document processing status
 
-#### Chucker Worker (`packages/workers/chucker/`)
+#### Chucker Worker (`packages/workers/general/chunker/`)
 **Purpose**: Split large documents into manageable chunks for embedding
 - **Input**: `document.parsed` events with document text
 - **Output**: `document.chunked` events with chunk metadata
@@ -94,40 +141,18 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
   - Store chunks in database with metadata
   - Generate unique chunk IDs
 
-#### Embedder Worker (`packages/workers/embedder/`)
-**Purpose**: Generate vector embeddings from text chunks
-- **Input**: `document.chunked` events with chunk IDs
-- **Output**: `document.embedded` events with embedding metadata
+#### Router Worker (`packages/workers/general/router/`)
+**Purpose**: Route documents to appropriate RAG pipelines based on configuration
+- **Input**: `document.chunked` events after chunking
+- **Output**: Routes events to vector and/or graph pipelines
 - **Responsibilities**:
-  - Retrieve text chunks from database
-  - Generate embeddings using Sentence Transformers
-  - Batch processing for performance
-  - Store embeddings in database
-  - Handle GPU/CPU selection automatically
+  - Evaluate document characteristics and workspace settings
+  - Route to vector pipeline (processor) for similarity search
+  - Route to graph pipeline (preprocessor) for knowledge graphs
+  - Support hybrid RAG by routing to both pipelines
+  - Enable configurable pipeline selection per workspace
 
-#### Indexer Worker (`packages/workers/indexer/`)
-**Purpose**: Store embeddings in vector database for similarity search
-- **Input**: `document.embedded` events with embedding data
-- **Output**: `document.indexed` events confirming storage
-- **Responsibilities**:
-  - Connect to Qdrant vector database
-  - Create/manage collections as needed
-  - Upsert vectors with metadata
-  - Handle batch operations efficiently
-  - Update document processing status
-
-#### Connector Worker (`packages/workers/connector/`)
-**Purpose**: Build knowledge graphs from document embeddings
-- **Input**: `document.embedded` events with chunk data
-- **Output**: `graph.updated` events with graph statistics
-- **Responsibilities**:
-  - Extract entities and relationships from chunks
-  - Connect to Neo4j graph database
-  - Create/update nodes and relationships
-  - Apply graph algorithms (Leiden clustering)
-  - Generate graph statistics
-
-#### Enricher Worker (`packages/workers/enricher/`)
+#### Enricher Worker (`packages/workers/general/enricher/`)
 **Purpose**: Enhance documents with metadata and insights
 - **Input**: `document.indexed` and `graph.updated` events
 - **Output**: `document.enriched` events with enhanced metadata
@@ -137,8 +162,6 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
   - Extract entities and topics
   - Calculate document importance scores
   - Store enrichment data
-
-### Specialized Workers
 
 #### Chat Worker (`packages/workers/chat/`)
 **Purpose**: Handle conversational AI interactions with RAG
@@ -151,7 +174,8 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
   - Handle conversation memory and context
   - Provide fallback responses when no context found
 
-#### Wikipedia Worker (`packages/workers/wikipedia/`)
+#### Wikipedia Worker (`packages/workers/general/wikipedia/`)
+
 **Purpose**: Fetch and process Wikipedia content for knowledge augmentation
 - **Input**: `wikipedia.fetch_requested` events with article titles
 - **Output**: `document.uploaded` events for each fetched article
@@ -162,28 +186,177 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
   - Trigger document processing pipeline
   - Handle rate limiting and errors
 
-#### Provisioner Worker (`packages/workers/provisioner/`)
-**Purpose**: Set up infrastructure for new workspaces
-- **Input**: `workspace.provision_requested` events
-- **Output**: `workspace.provision_status` events with progress
+#### Infrastructure Manager Worker (`packages/workers/general/infrastructure-manager/`)
+**Purpose**: Consolidated infrastructure lifecycle management: provisioning + deletion
+- **Input**: `workspace.provision_requested` and `workspace.deletion_requested` events
+- **Output**: `workspace.provision_status` and `workspace.deletion_status` events
 - **Responsibilities**:
-  - Create Qdrant collections for new workspaces
-  - Initialize Neo4j graph structures
-  - Set up MinIO buckets
-  - Configure workspace-specific settings
-  - Report provisioning progress
+  - **Provisioning**: Create Qdrant collections, Neo4j schemas, MinIO buckets
+  - **Deletion**: Remove vectors, graphs, files, and database records
+  - Handle workspace lifecycle operations
+  - Provide progress updates and error handling
+  - Support both creation and cleanup of infrastructure
 
-#### Deletion Worker (`packages/workers/deletion/`)
-**Purpose**: Clean up workspaces and documents when deleted
-- **Input**: `workspace.deletion_requested` and `document.deleted` events
-- **Output**: `workspace.deletion_status` events with progress
+### Vector Workers
+
+#### Processor Worker (`packages/workers/vector/processor/`)
+**Purpose**: Consolidated vector processing: embedding generation + database indexing
+- **Input**: `document.chunked` events with chunk data
+- **Output**: `document.indexed` events confirming complete vector processing
 - **Responsibilities**:
-  - Delete all documents in a workspace
-  - Remove vectors from Qdrant collections
-  - Clean up graph data from Neo4j
-  - Delete files from MinIO storage
-  - Remove database records
-  - Provide progress updates during deletion
+  - Retrieve text chunks from database
+  - Generate embeddings using Sentence Transformers
+  - Connect to Qdrant vector database
+  - Create/manage collections as needed
+  - Store vectors with metadata in batch operations
+  - Handle GPU/CPU selection and performance optimization
+
+#### Query Worker (`packages/workers/vector/query/`)
+**Purpose**: Handle vector-based retrieval queries for similarity search
+- **Input**: `chat.vector_query` events with query data
+- **Output**: `chat.vector_query_completed` or `chat.vector_query_failed` events
+- **Responsibilities**:
+  - Generate embeddings for user queries
+  - Perform similarity search against vector database
+  - Return relevant context for LLM generation
+  - Handle query errors and timeouts
+
+### Graph Workers
+
+#### Preprocessor Worker (`packages/workers/graph/preprocessor/`)
+**Purpose**: Consolidated graph preprocessing: entity + relationship + community extraction
+- **Input**: `document.chunked` events with chunk data
+- **Output**: `document.communities_detected` events with complete preprocessing data
+- **Responsibilities**:
+  - Extract named entities using NER (PERSON, ORG, GPE, etc.)
+  - Identify relationships between entities
+  - Apply community detection algorithms (Leiden, Louvain)
+  - Store entities, relationships, and communities in database
+  - Maintain state across sequential processing steps
+
+#### Construction Worker (`packages/workers/graph/construction/`)
+**Purpose**: Build Neo4j knowledge graphs from extracted data
+- **Input**: `document.communities_detected` events with preprocessing data
+- **Output**: `document.graph_constructed` events with graph statistics
+- **Responsibilities**:
+  - Retrieve entities, relationships, and communities
+  - Construct Neo4j graph nodes and edges
+  - Apply graph schema and constraints
+  - Store graph in Neo4j database
+  - Generate graph construction statistics
+
+#### Query Worker (`packages/workers/graph/query/`)
+**Purpose**: Handle graph-based retrieval queries for Graph RAG
+- **Input**: `chat.graph_query` events with query data
+- **Output**: `chat.graph_query_completed` or `chat.graph_query_failed` events
+- **Responsibilities**:
+  - Parse graph queries from chat requests
+  - Execute graph traversal algorithms
+  - Retrieve relevant context from Neo4j
+  - Return structured results for LLM generation
+  - Handle query errors and timeouts
+
+#### Connector Worker (`packages/workers/graph/connector/`)
+**Purpose**: Graph connectivity utilities and maintenance
+- **Input**: Various graph-related events
+- **Output**: Graph status and maintenance events
+- **Responsibilities**:
+  - Provide graph connectivity and utility functions
+  - Handle graph maintenance operations
+  - Monitor graph health and performance
+  - Support graph debugging and inspection
+
+### Vector Workers
+
+#### Embedder Worker (`packages/workers/vector/embedder/`)
+**Purpose**: Generate vector embeddings from text chunks
+- **Input**: `document.chunked` events with chunk IDs
+- **Output**: `document.embedded` events with embedding metadata
+- **Responsibilities**:
+  - Retrieve text chunks from database
+  - Generate embeddings using Sentence Transformers
+  - Batch processing for performance
+  - Store embeddings in database
+  - Handle GPU/CPU selection automatically
+
+#### Indexer Worker (`packages/workers/vector/indexer/`)
+**Purpose**: Store embeddings in vector database for similarity search
+- **Input**: `document.embedded` events with embedding data
+- **Output**: `document.indexed` events confirming storage
+- **Responsibilities**:
+  - Connect to Qdrant vector database
+  - Create/manage collections as needed
+  - Upsert vectors with metadata
+  - Handle batch operations efficiently
+  - Update document processing status
+
+### Graph Workers
+
+#### Entity Extraction Worker (`packages/workers/graph/entity-extraction/`)
+**Purpose**: Extract named entities from document chunks for Graph RAG
+- **Input**: `document.chunked` events with chunk data
+- **Output**: `document.entities_extracted` events with entity data
+- **Responsibilities**:
+  - Retrieve text chunks from database
+  - Apply NER using LLM or spaCy
+  - Extract entities (PERSON, ORG, GPE, etc.)
+  - Store entities in database with confidence scores
+  - Generate entity metadata
+
+#### Relationship Extraction Worker (`packages/workers/graph/relationship-extraction/`)
+**Purpose**: Identify relationships between extracted entities
+- **Input**: `document.entities_extracted` events with entity data
+- **Output**: `document.relationships_extracted` events with relationship data
+- **Responsibilities**:
+  - Retrieve extracted entities from database
+  - Apply relationship extraction algorithms
+  - Identify connections between entities
+  - Store relationships with confidence scores
+  - Generate relationship metadata
+
+#### Community Detection Worker (`packages/workers/graph/community-detection/`)
+**Purpose**: Apply clustering algorithms to group related entities
+- **Input**: `document.relationships_extracted` events with relationship data
+- **Output**: `document.communities_detected` events with community data
+- **Responsibilities**:
+  - Retrieve entity relationships from database
+  - Apply community detection algorithms (Leiden, Louvain)
+  - Group entities into communities/clusters
+  - Store community assignments
+  - Generate community statistics
+
+#### Graph Construction Worker (`packages/workers/graph/graph-construction/`)
+**Purpose**: Build Neo4j knowledge graphs from extracted data
+- **Input**: `document.communities_detected` events with community data
+- **Output**: `document.graph_constructed` events with graph statistics
+- **Responsibilities**:
+  - Retrieve entities, relationships, and communities
+  - Construct Neo4j graph nodes and edges
+  - Apply graph schema and constraints
+  - Store graph in Neo4j database
+  - Generate graph construction statistics
+
+#### Graph Query Worker (`packages/workers/graph/graph-query/`)
+**Purpose**: Handle graph-based retrieval queries for Graph RAG
+- **Input**: `chat.graph_query` events with query data
+- **Output**: `chat.graph_query_completed` or `chat.graph_query_failed` events
+- **Responsibilities**:
+  - Parse graph queries from chat requests
+  - Execute graph traversal algorithms
+  - Retrieve relevant context from Neo4j
+  - Return structured results for LLM generation
+  - Handle query errors and timeouts
+
+#### Graph Connector Worker (`packages/workers/graph/graph-connector/`)
+**Purpose**: Build graph nodes and edges in Neo4j (legacy Graph RAG)
+- **Input**: `document.embedded` events with chunk data
+- **Output**: `graph.updated` events with graph statistics
+- **Responsibilities**:
+  - Extract entities and relationships from chunks
+  - Connect to Neo4j graph database
+  - Create/update nodes and relationships
+  - Apply graph algorithms (Leiden clustering)
+  - Generate graph statistics
 
 ---
 
@@ -196,6 +369,7 @@ workspace.deletion_requested --> Deletion --> workspace.deletion_status
 5. **Stateless**: Workers don't maintain state between operations
 6. **Configurable**: Environment-based configuration for different environments
 7. **Observable**: Comprehensive logging and health checks
+8. **Categorized**: Workers organized by pipeline (vector, graph, general)
 
 ---
 
@@ -246,11 +420,12 @@ WORKER_CONCURRENCY=4
 
 ### Adding a New Worker
 
-1. Create a new folder in `packages/workers/` with a verb-based name
-2. Implement the worker inheriting from `BaseWorker`
-3. Define input/output events following the established patterns
-4. Add Docker configuration and health checks
-5. Update this README with the new worker documentation
+1. Choose appropriate category (`vector/`, `graph/`, or root level)
+2. Create worker directory with standard structure (`src/`, `README.md`, `Taskfile.yml`, etc.)
+3. Implement worker inheriting from `BaseWorker`
+4. Define input/output events following established patterns
+5. Add Docker configuration and health checks
+6. Update this README with documentation
 
 ### Running Workers
 
@@ -259,12 +434,12 @@ WORKER_CONCURRENCY=4
 docker compose --profile workers up
 
 # Run individual worker
-cd packages/workers/parser
-docker build -t insighthub-parser .
-docker run insighthub-parser
+cd packages/workers/vector/processor
+docker build -t insighthub-vector-processor .
+docker run insighthub-vector-processor
 
 # Development with hot reload
-cd packages/workers/parser
+cd packages/workers/vector/embedder
 poetry install
 poetry run python src/main.py
 ```
@@ -283,20 +458,117 @@ All workers include:
 
 ---
 
+## Server & Client Integration
+
+### Server Integration
+
+**API Layer**:
+- **Document Upload**: REST endpoints trigger parser worker via RabbitMQ
+- **Workspace Management**: Provisioner worker called during workspace creation
+- **Chat Processing**: Chat worker receives messages and coordinates retrieval
+
+**Service Layer**:
+- **RAG Orchestration**: Server selects appropriate RAG system (vector/graph) per workspace
+- **Query Routing**: Chat service routes queries to appropriate retrieval workers
+- **Progress Tracking**: Server aggregates worker events for real-time UI updates
+
+**Configuration**:
+- **Environment Variables**: Workers read config from server environment
+- **Workspace Settings**: Server passes workspace-specific config to workers
+- **Health Monitoring**: Server monitors worker health via health check endpoints
+
+### Client Integration
+
+**User Interface**:
+- **Document Upload**: Drag-and-drop triggers server API --> parser worker pipeline
+- **Progress Indicators**: Real-time progress bars from worker event streams
+- **Chat Interface**: Messages sent to chat worker with streaming responses
+
+**Configuration UI**:
+- **Workspace Settings**: Client configures RAG type (vector/graph) per workspace
+- **Advanced Options**: Tuning parameters passed to workers (chunk size, algorithms, etc.)
+
+**Visualization**:
+- **Knowledge Graphs**: Graph workers provide data for relationship visualization
+- **Search Results**: Workers return structured data for rich result display
+- **Analytics**: Worker metrics displayed in admin dashboards
+
+### Event Flow Examples
+
+**Document Processing**:
+```
++------------------+     +---------+     +---------+     +--------+
+|  Document Upload | --> | Parser  | --> | Chunker | --> | Router |
++------------------+     +---------+     +---------+     +--------+
+                                                                  |
++-----------------------------------------------------------------+---------------------------------------------+
+|                                                                 |                                             |
+|  +-----------------+     +-----------------+     +-------------+  |  +-----------------+     +-----------------+ |
+|  | Vector Processor| --> |  Vector Query   |                     |  |Graph Preprocessor| --> |Graph Construction| |
+|  +-----------------+     +-----------------+                     |  +-----------------+     +-----------------+ |
+|           |                                                          |           |                            |
+|           v                                                          |           v                            |
++-----------+----------------------------------------------------------+-----------+----------------------------+
+            |                                                          |           |
+            v                                                          v           v
++------------------+     +---------+     +---------+     +---------------------+     +-----------------+
+|   Wikipedia      | --> |Enricher | --> |  Chat   | <-- |   Infrastructure      |
++------------------+     +---------+     +---------+     +---------------------+     +-----------------+
+```
+
+**Worker Categories:**
+```
+|-- General Workers (7) --+- parser: Document parsing
+|                         +- chunker: Text chunking
+|                         +- router: Pipeline routing
+|                         +- wikipedia: External content
+|                         +- enricher: Content enhancement
+|                         +- chat: User interaction
+|                         +- infrastructure-manager: Workspace lifecycle
+|
+|-- Vector Workers (2) ---+- processor: Embedding + indexing
+|                         +- query: Similarity search
+|
++-- Graph Workers (4) ----+- preprocessor: Entity/relationship/community
+                          +- construction: Graph building
+                          +- query: Graph traversal
+                          +- connector: Graph utilities
+```
+
+**Worker Consolidation Results:**
+- **Before**: 17 workers (embedder + indexer + entity-extraction + relationship-extraction + community-detection + provisioner + deletion)
+- **After**: 11 workers (35% reduction)
+- **Benefits**: Reduced complexity, fewer network hops, better performance, easier maintenance
+
+**Graph RAG Query**:
+```
+Client Question --> Server Chat --> query worker --> graph traversal --> structured results --> LLM generation --> streaming response
+```
+
+**Workspace Setup**:
+```
+Client Create Workspace --> Server API --> provisioner worker --> infrastructure ready --> vector/graph workers initialized
+```
+
+---
+
 ## Current Implementation Status
 
 ### Fully Implemented Workers
 - **Base Worker Infrastructure**: Shared `BaseWorker` class with RabbitMQ integration
 - **Parser Worker**: Document parsing with MinIO integration
-- **Chucker Worker**: Multi-strategy text chunking
-- **Embedder Worker**: Sentence Transformer embeddings
-- **Indexer Worker**: Qdrant vector storage
-- **Connector Worker**: Neo4j graph construction
+- **Chunker Worker**: Multi-strategy text chunking
+- **Router Worker**: Intelligent pipeline routing for RAG systems
+- **Vector Processor Worker**: Consolidated embedding + vector indexing
+- **Vector Query Worker**: Vector similarity search queries
+- **Graph Preprocessor Worker**: Consolidated entity/relationship/community extraction
+- **Graph Construction Worker**: Neo4j graph construction
+- **Graph Query Worker**: Graph traversal queries
+- **Graph Connector Worker**: Graph connectivity utilities
 - **Enricher Worker**: Metadata enrichment framework
 - **Chat Worker**: Streaming LLM responses with RAG
 - **Wikipedia Worker**: External content fetching
-- **Provisioner Worker**: Workspace infrastructure setup
-- **Deletion Worker**: Workspace and document cleanup
+- **Infrastructure Manager Worker**: Consolidated provisioning + deletion
 
 ### Ready for Implementation
 All workers have complete scaffolding with TODO comments for complex operations. The heavy lifting (database operations, external service integrations, complex algorithms) remains to be implemented in each worker's TODO sections.
@@ -311,5 +583,6 @@ All workers have complete scaffolding with TODO comments for complex operations.
 - **Testability**: Event-driven design enables comprehensive testing
 - **Flexibility**: Easy to add new workers or modify existing pipelines
 - **Observability**: Complete event tracing through the entire pipeline
+- **Extensibility**: Clean abstractions for adding new RAG systems
 
-This architecture supports both **Vector RAG** and **Graph RAG** simultaneously, with the ability to add new RAG approaches (hybrid, multi-modal, etc.) without disrupting existing functionality.
+This **consolidated architecture** supports both **Vector RAG** and **Graph RAG** simultaneously, with **35% fewer workers** through strategic consolidation while maintaining all architectural benefits. The design enables easy addition of new RAG approaches (hybrid, multi-modal, etc.) without disrupting existing functionality.

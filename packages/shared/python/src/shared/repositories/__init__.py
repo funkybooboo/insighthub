@@ -30,6 +30,17 @@ from shared.repositories.workspace import (
     WorkspaceRepository,
     create_workspace_repository,
 )
+from shared.repositories.graph_rag import (
+    EntityRepository,
+    SqlEntityRepository,
+    create_entity_repository,
+    RelationshipRepository,
+    SqlRelationshipRepository,
+    create_relationship_repository,
+    CommunityRepository,
+    SqlCommunityRepository,
+    create_community_repository,
+)
 
 __all__ = [
     "UserRepository",
@@ -52,4 +63,13 @@ __all__ = [
     "WorkspaceRepository",
     "SqlWorkspaceRepository",
     "create_workspace_repository",
+    "EntityRepository",
+    "SqlEntityRepository",
+    "create_entity_repository",
+    "RelationshipRepository",
+    "SqlRelationshipRepository",
+    "create_relationship_repository",
+    "CommunityRepository",
+    "SqlCommunityRepository",
+    "create_community_repository",
 ]

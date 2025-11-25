@@ -194,14 +194,18 @@ def create_rag_system(rag_config: Any, cache: Any = None) -> Any:
 
 def _create_vector_rag_system(vector_config: Any, cache: Any = None) -> Any:
     """Create vector RAG system from config."""
-    # Create vector database
-    from shared.database.vector import QdrantVectorDatabase
+    # Create vector store (high-level interface that works with Chunk objects)
+    from shared.database.vector import create_vector_store
 
-    vector_db = QdrantVectorDatabase(
+    vector_store = create_vector_store(
+        db_type="qdrant",
         url=f"http://{config.QDRANT_HOST}:{config.QDRANT_PORT}",
         collection_name=config.QDRANT_COLLECTION_NAME,
         vector_size=768,  # Default embedding dimension
     )
+
+    if not vector_store:
+        raise RuntimeError("Failed to create vector store")
 
     # Create embedding encoder based on config
     from shared.documents.embedding import create_embedder_from_config
@@ -224,7 +228,7 @@ def _create_vector_rag_system(vector_config: Any, cache: Any = None) -> Any:
     try:
         from shared.orchestrators import VectorRAG
 
-        rag = VectorRAG(embedder=embedder, vector_store=vector_db, cache=cache)
+        rag = VectorRAG(embedder=embedder, vector_store=vector_store, cache=cache)
         return rag
     except ImportError:
         # VectorRAG not available

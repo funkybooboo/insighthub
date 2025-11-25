@@ -163,10 +163,11 @@ class SecretsFilter(logging.Filter):
         redacted_data: dict[Any, Any] = {}
         for key, value in data.items():
             redacted_key = self._redact_secrets_from_str(key)
+            redacted_value: Any
             if isinstance(value, dict):
                 redacted_value = self._redact_secrets_from_dict(value)
             elif isinstance(value, str):
-                redacted_value = self._redact_secrets_from_str(value)  # type: ignore
+                redacted_value = self._redact_secrets_from_str(value)
             else:
                 redacted_value = value
             redacted_data[redacted_key] = redacted_value

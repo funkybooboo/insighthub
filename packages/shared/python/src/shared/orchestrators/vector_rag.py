@@ -128,10 +128,10 @@ class VectorRAG:
 
         return [
             RetrievalResult(
-                id=chunk.id,
+                id=chunk.chunk_id,
                 score=score,
                 source="vector",
-                payload={"text": chunk.text, "metadata": str(chunk.metadata)},
+                payload={"text": chunk.chunk_text, "metadata": chunk.metadata},
             )
             for chunk, score in search_results
         ]

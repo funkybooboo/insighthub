@@ -74,6 +74,14 @@ export type UpdateRagConfigRequest =
   | Partial<VectorRagConfig>
   | Partial<GraphRagConfig>;
 
+// Export type constructors to ensure they appear in JavaScript
+export const VectorRagConfig = {} as any;
+export const GraphRagConfig = {} as any;
+export const BaseRagConfig = {} as any;
+export const RagConfig = {} as any;
+export const CreateRagConfigRequest = {} as any;
+export const UpdateRagConfigRequest = {} as any;
+
 export interface Workspace {
   id: number;
   name: string;

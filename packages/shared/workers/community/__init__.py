@@ -1,1 +1,0 @@
-"""Community detection worker package."""

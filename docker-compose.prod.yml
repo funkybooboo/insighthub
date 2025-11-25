@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/chat/Dockerfile
+      dockerfile: packages/workers/general/chat/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -127,7 +127,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/parser/Dockerfile
+      dockerfile: packages/workers/general/parser/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -162,7 +162,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/chucker/Dockerfile
+      dockerfile: packages/workers/general/chunker/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -181,77 +181,6 @@ services:
     networks:
       - insighthub
 
-  worker-embedder-prod:
-    labels:
-      project: insighthub
-      worker: embedder
-    image: insighthub-worker-embedder:prod
-    container_name: insighthub-worker-embedder-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: packages/workers/embedder/Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-documents}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: embedder
-      WORKER_CONCURRENCY: ${EMBEDDER_WORKER_CONCURRENCY:-2}
-      BATCH_SIZE: ${EMBEDDER_BATCH_SIZE:-100}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
-  worker-indexer-prod:
-    labels:
-      project: insighthub
-      worker: indexer
-    image: insighthub-worker-indexer:prod
-    container_name: insighthub-worker-indexer-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: packages/workers/indexer/Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-      QDRANT_COLLECTION_NAME: ${QDRANT_COLLECTION_NAME:-documents}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: indexer
-      WORKER_CONCURRENCY: ${INDEXER_WORKER_CONCURRENCY:-2}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub
-
   worker-connector-prod:
     labels:
       project: insighthub
@@ -264,7 +193,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/connector/Dockerfile
+      dockerfile: packages/workers/graph/connector/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -298,7 +227,7 @@ services:
     restart: unless-stopped
     build:
       context: .
-      dockerfile: packages/workers/enricher/Dockerfile
+      dockerfile: packages/workers/general/enricher/Dockerfile
       target: production
     environment:
       PYTHONUNBUFFERED: 1
@@ -316,37 +245,3 @@ services:
     networks:
       - insighthub
 
-  worker-deletion-prod:
-    labels:
-      project: insighthub
-      worker: deletion
-    image: insighthub-worker-deletion:prod
-    container_name: insighthub-worker-deletion-prod
-    profiles:
-      - prod
-      - workers
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: packages/workers/deletion/Dockerfile
-      target: production
-    environment:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: ${DATABASE_URL:-postgresql://insighthub:insighthub_dev@postgres:5432/insighthub}
-      MINIO_ENDPOINT_URL: ${MINIO_ENDPOINT_URL:-http://minio:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-insighthub}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-insighthub_dev_secret}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://insighthub:insighthub_dev@rabbitmq:5672/}
-      RABBITMQ_EXCHANGE: ${RABBITMQ_EXCHANGE:-insighthub}
-      WORKER_NAME: deletion
-      WORKER_CONCURRENCY: ${DELETION_WORKER_CONCURRENCY:-2}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - insighthub

@@ -43,8 +43,23 @@ WORKDIR /app
 # ============================================================================
 FROM dependencies AS development
 
-# Copy application code
-COPY --chown=app:app packages/client/ .
+# Copy application code (excluding shared-typescript which is already handled)
+COPY --chown=app:app packages/client/.storybook ./storybook/
+COPY --chown=app:app packages/client/cypress ./cypress/
+COPY --chown=app:app packages/client/src ./src/
+COPY --chown=app:app packages/client/public ./public/
+COPY --chown=app:app packages/client/*.json ./
+COPY --chown=app:app packages/client/*.ts ./
+COPY --chown=app:app packages/client/*.js ./
+COPY --chown=app:app packages/client/*.html ./
+COPY --chown=app:app packages/client/*.conf ./
+COPY --chown=app:app packages/client/*.sh ./
+COPY --chown=app:app packages/client/*.md ./
+COPY --chown=app:app packages/client/.env.example ./
+COPY --chown=app:app packages/client/.dockerignore ./
+COPY --chown=app:app packages/client/.gitignore ./
+COPY --chown=app:app packages/client/.prettierignore ./
+COPY --chown=app:app packages/client/.prettierrc ./
 
 # Expose Vite dev server port
 EXPOSE 5173
@@ -67,8 +82,23 @@ CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 # ============================================================================
 FROM dependencies AS builder
 
-# Copy application code
-COPY --chown=app:app packages/client/ .
+# Copy application code (excluding shared-typescript which is already handled)
+COPY --chown=app:app packages/client/.storybook ./storybook/
+COPY --chown=app:app packages/client/cypress ./cypress/
+COPY --chown=app:app packages/client/src ./src/
+COPY --chown=app:app packages/client/public ./public/
+COPY --chown=app:app packages/client/*.json ./
+COPY --chown=app:app packages/client/*.ts ./
+COPY --chown=app:app packages/client/*.js ./
+COPY --chown=app:app packages/client/*.html ./
+COPY --chown=app:app packages/client/*.conf ./
+COPY --chown=app:app packages/client/*.sh ./
+COPY --chown=app:app packages/client/*.md ./
+COPY --chown=app:app packages/client/.env.example ./
+COPY --chown=app:app packages/client/.dockerignore ./
+COPY --chown=app:app packages/client/.gitignore ./
+COPY --chown=app:app packages/client/.prettierignore ./
+COPY --chown=app:app packages/client/.prettierrc ./
 
 # Switch to app user for build
 USER app
