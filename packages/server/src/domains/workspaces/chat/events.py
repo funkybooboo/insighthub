@@ -87,25 +87,45 @@ class ChatSocketHandler:
                 # Validate message (will raise EmptyMessageError if invalid)
                 app_context.chat_service.validate_message(user_message)
 
-                # Get user
+                # Get user from authentication context
+                # For now, use a default user - in production this should come from JWT
                 user = app_context.user_service.get_or_create_default_user()
 
-                # Delegate to chat service for streaming
-                for event in app_context.chat_service.stream_chat_response(
+                # Check if RAG context is available before streaming
+                has_rag_context = False
+                if rag_type == "vector" and app_context.rag_system:
+                    try:
+                        rag_results = app_context.rag_system.query(user_message, top_k=8)
+                        meaningful_context = [result for result in rag_results if result.score > 0.1]
+                        has_rag_context = len(meaningful_context) > 0
+                    except Exception:
+                        has_rag_context = False
+
+                # For async processing, we send the message via the chat service
+                # which publishes to RabbitMQ, and the chat worker will handle streaming
+                # The worker will emit events back via WebSocket
+
+                # Send message via chat service (this publishes to RabbitMQ)
+                # Note: For WebSocket connections, we may not have workspace context
+                # In production, this should be enhanced to track workspace context per client
+                message_id = app_context.chat_service.send_message(
+                    workspace_id=0,  # Placeholder - WebSocket context doesn't provide workspace
+                    session_id=session_id or 0,
                     user_id=user.id,
-                    message=user_message,
-                    llm_provider=app_context.llm_provider,
-                    session_id=session_id,
-                    rag_type=rag_type,
-                    request_id=request_id,
-                ):
-                    # Emit events based on event type
-                    if event.event_type == "chunk":
-                        emit("chat_chunk", {"chunk": event.data["chunk"]})
-                        # Also emit the new chat.response_chunk event that client expects
-                        emit("chat.response_chunk", {"chunk": event.data["chunk"], "message_id": request_id})
-                    elif event.event_type == "complete":
-                        emit("chat_complete", event.data)
+                    content=user_message,
+                    message_type="user",
+                    ignore_rag=rag_type != "vector"
+                )
+
+                # Emit initial acknowledgment
+                emit("chat.response_started", {
+                    "message_id": message_id,
+                    "session_id": session_id,
+                    "request_id": request_id
+                })
+
+                # Note: The actual streaming responses will come from the chat worker
+                # via the event handlers below (handle_chat_response_chunk, etc.)
 
             except Exception as e:
                 emit("error", {"error": f"Error processing chat: {str(e)}"})
@@ -119,6 +139,106 @@ class ChatSocketHandler:
                 if db is not None:
                     db.close()
 
+
+    def handle_chat_response_chunk(self, data: Mapping[str, object]) -> None:
+        """
+        Handle chat.response_chunk events from the chat worker.
+
+        Expected data:
+            {
+                "session_id": int,
+                "message_id": str,
+                "request_id": str,
+                "chunk": str
+            }
+        """
+        session_id = data.get("session_id")
+        message_id = data.get("message_id")
+        request_id = data.get("request_id")
+        chunk = data.get("chunk", "")
+
+        # Emit to the client
+        emit("chat.response_chunk", {
+            "chunk": chunk,
+            "message_id": message_id,
+            "session_id": session_id,
+            "request_id": request_id
+        })
+
+    def handle_chat_response_complete(self, data: Mapping[str, object]) -> None:
+        """
+        Handle chat.response_complete events from the chat worker.
+
+        Expected data:
+            {
+                "session_id": int,
+                "message_id": str,
+                "request_id": str,
+                "full_response": str
+            }
+        """
+        session_id = data.get("session_id")
+        message_id = data.get("message_id")
+        request_id = data.get("request_id")
+        full_response = data.get("full_response", "")
+
+        # Emit to the client
+        emit("chat.response_complete", {
+            "session_id": session_id,
+            "full_response": full_response,
+            "message_id": message_id,
+            "request_id": request_id
+        })
+
+    def handle_chat_no_context_found(self, data: Mapping[str, object]) -> None:
+        """
+        Handle chat.no_context_found events from the chat worker.
+
+        Expected data:
+            {
+                "session_id": int,
+                "message_id": str,
+                "request_id": str,
+                "query": str
+            }
+        """
+        session_id = data.get("session_id")
+        message_id = data.get("message_id")
+        request_id = data.get("request_id")
+        query = data.get("query", "")
+
+        # Emit to the client
+        emit("chat.no_context_found", {
+            "session_id": session_id,
+            "query": query,
+            "message_id": message_id,
+            "request_id": request_id
+        })
+
+    def handle_chat_error(self, data: Mapping[str, object]) -> None:
+        """
+        Handle chat.error events from the chat worker.
+
+        Expected data:
+            {
+                "session_id": int,
+                "message_id": str,
+                "request_id": str,
+                "error": str
+            }
+        """
+        session_id = data.get("session_id")
+        message_id = data.get("message_id")
+        request_id = data.get("request_id")
+        error = data.get("error", "Unknown error")
+
+        # Emit to the client
+        emit("chat.error", {
+            "session_id": session_id,
+            "error": error,
+            "message_id": message_id,
+            "request_id": request_id
+        })
 
     def handle_cancel_message(self, data: Mapping[str, object] | None = None) -> None:
         """
@@ -172,6 +292,12 @@ class ChatSocketHandler:
         handler = SocketHandler(socketio)
         handler.register_event("chat_message", self.handle_chat_message)
         handler.register_event("cancel_message", self.handle_cancel_message)
+
+        # Register async chat event handlers (from chat worker)
+        handler.register_event("chat_response_chunk", self.handle_chat_response_chunk)
+        handler.register_event("chat_response_complete", self.handle_chat_response_complete)
+        handler.register_event("chat_no_context_found", self.handle_chat_no_context_found)
+        handler.register_event("chat_error", self.handle_chat_error)
 
 
 def handle_connect() -> None:

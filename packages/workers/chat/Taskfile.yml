@@ -1,0 +1,32 @@
+# Chat Worker Tasks
+
+version: '3'
+
+vars:
+  DOCKER_IMAGE: insighthub/chat-worker:latest
+
+tasks:
+  build:
+    desc: Build the chat worker Docker image
+    cmds:
+      - docker build -t {{.DOCKER_IMAGE}} .
+
+  run:
+    desc: Run the chat worker locally
+    cmds:
+      - python -m src.main
+
+  test:
+    desc: Run tests for the chat worker
+    cmds:
+      - echo "No tests implemented yet"
+
+  lint:
+    desc: Lint the chat worker code
+    cmds:
+      - echo "No linting configured yet"
+
+  clean:
+    desc: Clean up build artifacts
+    cmds:
+      - docker rmi {{.DOCKER_IMAGE}} || true

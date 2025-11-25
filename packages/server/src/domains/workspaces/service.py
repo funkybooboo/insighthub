@@ -83,7 +83,14 @@ class WorkspaceService:
             # Use default RAG config
             self._repo.create_rag_config(workspace_id=workspace.id)
 
-        # Publish workspace provision requested event
+        # For now, mark workspace as ready immediately (synchronous provisioning)
+        # TODO: Implement async provisioning with workers
+        try:
+            self._repo.update(workspace.id, status="ready", status_message="Workspace provisioned successfully")
+        except Exception as e:
+            print(f"Warning: Failed to update workspace status: {e}")
+
+        # Publish workspace provision requested event for future async processing
         if self._message_publisher:
             try:
                 event_data = {
@@ -98,7 +105,7 @@ class WorkspaceService:
                 )
             except Exception as e:
                 # Log error but don't fail workspace creation
-                print(f"Failed to publish workspace provision event: {e}")
+                print(f"Warning: Failed to publish workspace provision event: {e}")
 
         return workspace
 

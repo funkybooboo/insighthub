@@ -1,8 +1,11 @@
 """Application context for dependency injection."""
 
 from shared.database.sql import PostgresSqlDatabase, SqlDatabase
+from shared.database.vector import create_vector_database
+from shared.documents.embedding import create_embedding_encoder
 from shared.llm import LlmProvider, create_llm_provider
 from shared.messaging import RabbitMQPublisher
+from shared.orchestrators import VectorRAG
 from shared.repositories import (
     SqlChatMessageRepository,
     SqlChatSessionRepository,
@@ -100,6 +103,39 @@ def create_message_publisher() -> RabbitMQPublisher | None:
         return None
 
 
+def create_rag_system():
+    """Create RAG system components from config."""
+    try:
+        # Create vector database
+        vector_db = create_vector_database(
+            db_type="qdrant",
+            url=f"http://{config.QDRANT_HOST}:{config.QDRANT_PORT}",
+            collection_name=config.QDRANT_COLLECTION_NAME,
+            vector_size=768,  # Default embedding dimension
+        )
+
+        if not vector_db:
+            return None
+
+        # Create embedding encoder
+        embedder = create_embedding_encoder(
+            encoder_type="ollama",
+            model=config.OLLAMA_EMBEDDING_MODEL,
+            base_url=config.OLLAMA_BASE_URL,
+        )
+
+        if not embedder:
+            return None
+
+        # Create VectorRAG orchestrator
+        rag = VectorRAG(embedder=embedder, vector_store=vector_db)
+        return rag
+
+    except Exception:
+        # RAG system creation failed - continue without RAG
+        return None
+
+
 class AppContext:
     """Application context that holds service implementations."""
 
@@ -130,6 +166,9 @@ class AppContext:
         # Initialize LLM provider
         self.llm_provider = create_llm()
 
+        # Initialize RAG system (optional)
+        self.rag_system = create_rag_system()
+
         # Create repositories using shared library SQL implementations
         user_repo = SqlUserRepository(db)
         document_repo = SqlDocumentRepository(db)
@@ -146,7 +185,10 @@ class AppContext:
             message_publisher=self.message_publisher,
         )
         self.chat_service = ChatService(
-            session_repository=session_repo, message_repository=message_repo
+            session_repository=session_repo,
+            message_repository=message_repo,
+            rag_system=self.rag_system,
+            message_publisher=self.message_publisher
         )
         self.workspace_service = WorkspaceService(
             workspace_repo=workspace_repo,

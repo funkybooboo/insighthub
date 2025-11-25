@@ -1,0 +1,35 @@
+meta {
+  name: Update Chat Session Success
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/api/workspaces/1/chat/sessions/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "title": "Updated Session Title"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.session_id: eq 1
+  res.body.title: eq "Updated Session Title"
+}
+
+tests {
+  test("should update chat session", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().session_id).to.equal(1);
+    expect(res.getBody().title).to.equal("Updated Session Title");
+  });
+}

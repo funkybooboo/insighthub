@@ -52,15 +52,25 @@ class SqlChatSessionRepository(ChatSessionRepository):
         return ChatSession(**row)
 
     def get_by_user(self, user_id: int, skip: int, limit: int) -> list[ChatSession]:
-        """Get all chat sessions for a user with pagination."""
+        """Get sessions by user ID with pagination."""
         query = """
         SELECT * FROM chat_sessions
         WHERE user_id = %(user_id)s
         ORDER BY updated_at DESC
-        OFFSET %(skip)s
-        LIMIT %(limit)s;
+        LIMIT %(limit)s OFFSET %(skip)s;
         """
-        rows = self._db.fetchall(query, {"user_id": user_id, "skip": skip, "limit": limit})
+        rows = self._db.fetchall(query, {"user_id": user_id, "limit": limit, "skip": skip})
+        return [ChatSession(**row) for row in rows]
+
+    def get_by_workspace(self, workspace_id: int, skip: int, limit: int) -> list[ChatSession]:
+        """Get sessions by workspace ID with pagination."""
+        query = """
+        SELECT * FROM chat_sessions
+        WHERE workspace_id = %(workspace_id)s
+        ORDER BY updated_at DESC
+        LIMIT %(limit)s OFFSET %(skip)s;
+        """
+        rows = self._db.fetchall(query, {"workspace_id": workspace_id, "limit": limit, "skip": skip})
         return [ChatSession(**row) for row in rows]
 
     def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:

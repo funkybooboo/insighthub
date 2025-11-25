@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "chat-worker"
+version = "0.1.0"
+description = "Chat orchestrator worker for InsightHub"
+authors = ["InsightHub Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+shared = {path = "../../../shared/python", develop = true}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

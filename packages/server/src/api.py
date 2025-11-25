@@ -5,12 +5,14 @@ This module provides the main Flask application with all routes registered.
 """
 
 import atexit
+import os
+from typing import Any, Callable
 
 from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from shared.logger import LogLevel, create_logger
+from shared.logger import LogLevel, create_logger, create_status_consumer
 from shared.messaging import StatusConsumer
 from shared.messaging.status_consumer import create_status_consumer
 
@@ -45,6 +47,20 @@ from src.infrastructure.middleware import (
     SecurityHeadersMiddleware,
 )
 from src.infrastructure.socket import SocketHandler
+
+
+def create_simple_chat_consumer(socketio: SocketIO) -> Any | None:
+    """
+    Create a simple chat event consumer.
+
+    For now, this is a placeholder that will be implemented when the
+    chat worker is fully integrated. The chat worker will publish events
+    to RabbitMQ, and this consumer will forward them to WebSocket clients.
+    """
+    # TODO: Implement proper chat event consumer
+    # For now, chat events are handled synchronously
+    logger.info("Simple chat consumer placeholder created")
+    return "chat_consumer_placeholder"
 
 
 class InsightHubApp(Flask):
@@ -189,12 +205,14 @@ def create_app() -> InsightHubApp:
         on_workspace_status=on_workspace_status,
     )
 
-    if status_consumer:
-        logger.info("Status update consumer started")
-        # Store consumer reference for graceful shutdown
-        app.status_consumer = status_consumer
+    # Create a simple chat event consumer for async chat processing
+    # This listens for chat events from the chat worker and emits them via WebSocket
+    chat_event_consumer = create_simple_chat_consumer(socketio)
+    if chat_event_consumer:
+        logger.info("Chat event consumer started")
+        app.chat_event_consumer = chat_event_consumer
     else:
-        logger.info("Status update consumer disabled (RabbitMQ not configured)")
+        logger.info("Chat event consumer disabled")
 
     logger.info("Socket.IO initialized")
 

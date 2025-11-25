@@ -38,14 +38,16 @@ class ChatResponse:
     context: list[ContextChunk]
     session_id: int
     documents_count: int
+    no_context_found: bool = False
 
-    def to_dict(self) -> dict[str, str | list[dict[str, str | float | dict[str, str]]] | int]:
+    def to_dict(self) -> dict[str, str | list[dict[str, str | float | dict[str, str]]] | int | bool]:
         """Convert to dictionary for JSON serialization."""
         return {
             "answer": self.answer,
             "context": [chunk.to_dict() for chunk in self.context],
             "session_id": self.session_id,
             "documents_count": self.documents_count,
+            "no_context_found": self.no_context_found,
         }
 
 

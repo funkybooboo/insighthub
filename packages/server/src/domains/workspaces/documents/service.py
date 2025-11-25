@@ -5,6 +5,8 @@ from typing import BinaryIO, Optional
 
 from pypdf import PdfReader
 from shared.messaging import RabbitMQPublisher, publish_document_status
+
+from .events import emit_wikipedia_fetch_status
 from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
@@ -240,13 +242,14 @@ class DocumentService:
             mime_type=mime_type,
         )
 
-        # Publish initial status update (pending -> processing)
+        # Publish initial status update (document uploaded, pending processing)
         workspace_id = document.workspace_id or 0
         publish_document_status(
             document_id=document.id,
             workspace_id=workspace_id,
             status="pending",
-            message="Document uploaded, waiting for processing",
+            message="Document uploaded, queued for processing",
+            filename=filename,
         )
 
         # Publish document.uploaded event to RabbitMQ for async processing
@@ -261,8 +264,6 @@ class DocumentService:
                         "filename": filename,
                         "file_path": document.file_path,
                         "mime_type": mime_type,
-                        "text": text,
-                        "text_length": len(text),
                         "uploaded_at": document.created_at.isoformat(),
                     },
                 )
@@ -270,20 +271,12 @@ class DocumentService:
                 # Log error but don't fail the upload - async processing can be retried
                 print(f"Warning: Failed to publish document.uploaded event: {e}")
 
-        # RAG INTEGRATION - Async Processing
-        # The above RabbitMQ event will trigger the ingestion worker which uses
-        # shared.orchestrators.vector_rag.VectorRAGIndexer to process the document.
-        #
-        # The flow is:
-        # 1. Server uploads file to MinIO and creates DB record
-        # 2. Server publishes 'document.uploaded' event
-        # 3. Ingestion worker consumes event
-        # 4. Ingestion worker downloads file and uses VectorRAGIndexer.ingest()
-        # 5. VectorRAGIndexer handles parsing, chunking, embedding, and indexing
+        # Document remains in "pending" status until workers process it
+        # Workers will update status through the /documents/{id}/status endpoint
 
         return DocumentUploadResult(
             document=document,
-            text_length=len(text),
+            text_length=0,  # Text length not known until processing
             is_duplicate=False,
         )
 
@@ -641,7 +634,10 @@ class DocumentService:
         language: str = "en",
     ) -> DocumentUploadResponse:
         """
-        Fetch a Wikipedia article and add it to a workspace.
+        Initiate Wikipedia article fetch for a workspace.
+
+        This method creates a placeholder document and publishes an event
+        for async processing by the Wikipedia worker.
 
         Args:
             workspace_id: ID of the workspace
@@ -650,112 +646,56 @@ class DocumentService:
             language: Language code (default: "en")
 
         Returns:
-            DocumentUploadResponse DTO
+            DocumentUploadResponse DTO with placeholder document
         """
-        import requests
         from io import BytesIO
 
-        # First, search for the article
-        search_url = f"https://{language}.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+        # Create a placeholder document initially
+        filename = f"Wikipedia_{query.replace(' ', '_')}_pending.md"
+        placeholder_content = f"# Wikipedia Article: {query}\n\n*Fetching content from Wikipedia...*\n\n---\n*Language: {language}*"
 
-        try:
-            response = requests.get(search_url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+        # Create file-like object with placeholder content
+        file_obj = BytesIO(placeholder_content.encode('utf-8'))
 
-            # Extract article content
-            title = data.get("title", query)
-            extract = data.get("extract", "")
-            description = data.get("description", "")
+        # Upload placeholder document
+        result = self.upload_document_to_workspace(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            filename=filename,
+            file_obj=file_obj,
+        )
 
-            # Create markdown content
-            content = f"# {title}\n\n"
-            if description:
-                content += f"**{description}**\n\n"
-            content += f"{extract}\n\n"
-            content += f"---\n*Source: [{title}](https://{language}.wikipedia.org/wiki/{query.replace(' ', '_')})*"
-
-            # Create filename
-            filename = f"Wikipedia_{title.replace(' ', '_').replace('/', '_')}.md"
-
-            # Create file-like object
-            file_obj = BytesIO(content.encode('utf-8'))
-
-            # Upload as document
-            result = self.upload_document_to_workspace(
-                workspace_id=workspace_id,
-                user_id=user_id,
-                filename=filename,
-                file_obj=file_obj,
-            )
-
-            # Publish wikipedia.fetch_requested event for potential enhancement
-            if self.message_publisher:
-                try:
-                    self.message_publisher.publish(
-                        routing_key="wikipedia.fetch_requested",
-                        message={
-                            "workspace_id": workspace_id,
-                            "user_id": user_id,
-                            "query": query,
-                            "language": language,
-                            "document_id": result.document.id,
-                            "title": title,
-                            "url": f"https://{language}.wikipedia.org/wiki/{query.replace(' ', '_')}",
-                        },
-                    )
-                except Exception as e:
-                    print(f"Warning: Failed to publish wikipedia.fetch_requested event: {e}")
-
-            return result
-
-        except requests.RequestException as e:
-            print(f"Warning: Direct Wikipedia API call failed for '{query}': {e}")
-            # If the direct page lookup fails, try search
-            search_api_url = f"https://{language}.wikipedia.org/w/api.php"
-            search_params = {
-                "action": "query",
-                "list": "search",
-                "srsearch": query,
-                "format": "json",
-                "srlimit": 1,
-            }
-
+        # Publish wikipedia.fetch_requested event for async processing
+        if self.message_publisher:
             try:
-                search_response = requests.get(search_api_url, params=search_params, timeout=10)
-                search_response.raise_for_status()
-                search_data = search_response.json()
+                self.message_publisher.publish(
+                    routing_key="wikipedia.fetch_requested",
+                    message={
+                        "workspace_id": workspace_id,
+                        "user_id": user_id,
+                        "query": query,
+                        "language": language,
+                        "document_id": result.document.id,
+                        "requested_at": result.document.created_at.isoformat(),
+                    },
+                )
 
-                if search_data.get("query", {}).get("search"):
-                    # Use the first search result
-                    first_result = search_data["query"]["search"][0]
-                    title = first_result["title"]
+                # Emit initial status update
+                emit_wikipedia_fetch_status(
+                    workspace_id=workspace_id,
+                    query=query,
+                    status="fetching",
+                    message="Initiating Wikipedia article fetch"
+                )
 
-                    # Try to fetch the page again with the corrected title
-                    return self.fetch_wikipedia_article(workspace_id, user_id, title, language)
+            except Exception as e:
+                print(f"Warning: Failed to publish wikipedia.fetch_requested event: {e}")
+                # Update document status to failed
+                self.update_document_status(
+                    document_id=result.document.id,
+                    status="failed",
+                    error_message=f"Failed to initiate fetch: {str(e)}"
+                )
+                raise DocumentProcessingError(query, f"Failed to initiate Wikipedia fetch: {str(e)}")
 
-                else:
-                    raise DocumentProcessingError(query, "No search results found")
-
-            except Exception as search_error:
-                print(f"Warning: Wikipedia search also failed for '{query}': {search_error}")
-                # If all else fails, create a placeholder document
-                content = f"# {query}\n\nUnable to fetch Wikipedia content for: {query}\n\nThe Wikipedia API may be unavailable or the article may not exist.\n\nError: {str(search_error)}"
-                filename = f"Wikipedia_{query.replace(' ', '_')}_error.md"
-
-                try:
-                    file_obj = BytesIO(content.encode('utf-8'))
-
-                    result = self.upload_document_to_workspace(
-                        workspace_id=workspace_id,
-                        user_id=user_id,
-                        filename=filename,
-                        file_obj=file_obj,
-                    )
-
-                    return result
-                except Exception as upload_error:
-                    raise DocumentProcessingError(
-                        filename,
-                        f"Failed to create error placeholder document: {str(upload_error)}"
-                    ) from upload_error
+        return result

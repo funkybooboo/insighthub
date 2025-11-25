@@ -1,0 +1,33 @@
+meta {
+  name: Update Chat Session Invalid Title
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/workspaces/1/chat/sessions/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "title": ""
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error: isDefined
+}
+
+tests {
+  test("should reject empty title", function() {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody().error).to.include("empty");
+  });
+}

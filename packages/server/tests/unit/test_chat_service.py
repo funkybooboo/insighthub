@@ -1,18 +1,11 @@
-"""Unit tests for ChatService."""
-
-import json
-import time
-from collections.abc import Generator
-from datetime import datetime
-from typing import Optional
+"""Unit tests for chat service."""
 
 import pytest
-from shared.llm import LlmProvider
-from shared.models import ChatMessage, ChatSession
-from shared.repositories import ChatMessageRepository, ChatSessionRepository
+from unittest.mock import Mock
 
-from src.domains.chat.exceptions import EmptyMessageError
-from src.domains.chat.service import ChatService
+from shared.models import ChatSession, ChatMessage
+from src.domains.workspaces.chat.service import ChatService
+from src.domains.workspaces.chat.dtos import ChatResponse, ContextChunk
 
 
 class DummyLlmProvider(LlmProvider):

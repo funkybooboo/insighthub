@@ -1,0 +1,33 @@
+meta {
+  name: Upload Document Async Processing
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/workspaces/1/documents/upload
+  body: multipart-form
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:multipart-form {
+  file: @/path/to/test_document.txt
+}
+
+assert {
+  res.status: eq 201
+  res.body.document.processing_status: eq "pending"
+  res.body.document.filename: isDefined
+}
+
+tests {
+  test("should upload document and mark as pending", function() {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().document.processing_status).to.equal("pending");
+    expect(res.getBody().document.filename).to.be.a("string");
+  });
+}

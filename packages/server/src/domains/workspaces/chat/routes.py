@@ -37,18 +37,23 @@ def create_chat_session(workspace_id: str) -> tuple[Response, int]:
         if title and (len(title.strip()) == 0 or len(title) > 200):
             return jsonify({"error": "Title must be 1-200 characters"}), 400
 
-        # TODO: Validate workspace access
-        # TODO: Create chat session via service
-        # session = g.app_context.chat_service.create_session(
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id,
-        #     title=title.strip() if title else None
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
 
-        # Mock response for now
+        # Create chat session via service
+        chat_service = g.app_context.chat_service
+        session = chat_service.create_session(
+            user_id=user.id,
+            workspace_id=int(workspace_id),
+            title=title.strip() if title else None,
+            rag_type="vector",  # Default to vector RAG
+        )
+
         return jsonify({
-            "session_id": 1,
-            "title": title or "New Chat"
+            "session_id": session.id,
+            "title": session.title or "New Chat"
         }), 201
 
     except ValueError as e:
@@ -87,25 +92,28 @@ def list_chat_sessions(workspace_id: str) -> tuple[Response, int]:
         limit = min(int(request.args.get("limit", 50)), 100)
         offset = max(int(request.args.get("offset", 0)), 0)
 
-        # TODO: Validate workspace access
-        # TODO: Get sessions via service
-        # sessions = g.app_context.chat_service.list_workspace_sessions(
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id,
-        #     limit=limit,
-        #     offset=offset
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
 
-        # Mock response for now
-        return jsonify([
-            {
-                "session_id": 1,
-                "title": "Sample Chat Session",
-                "created_at": "2025-01-01T00:00:00Z",
-                "updated_at": "2025-01-01T00:00:00Z",
-                "message_count": 0
-            }
-        ]), 200
+        # Get sessions via service
+        chat_service = g.app_context.chat_service
+        sessions = chat_service.list_workspace_sessions(workspace_id=int(workspace_id), skip=offset, limit=limit)
+
+        # Convert to response format
+        result = []
+        for session in sessions:
+            message_count = chat_service.list_session_messages(session.id).__len__()
+            result.append({
+                "session_id": session.id,
+                "title": session.title or "Untitled Chat",
+                "created_at": session.created_at.isoformat(),
+                "updated_at": session.updated_at.isoformat(),
+                "message_count": message_count
+            })
+
+        return jsonify(result), 200
 
     except ValueError as e:
         return jsonify({"error": f"Invalid workspace ID: {str(e)}"}), 400
@@ -128,13 +136,17 @@ def delete_chat_session(workspace_id: str, session_id: str) -> tuple[Response, i
     try:
         user = get_current_user()
 
-        # TODO: Validate workspace and session access
-        # TODO: Delete session via service
-        # g.app_context.chat_service.delete_session(
-        #     session_id=int(session_id),
-        #     workspace_id=int(workspace_id),
-        #     user_id=user.id
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
+        # Delete session via service
+        chat_service = g.app_context.chat_service
+        success = chat_service.delete_session(int(session_id))
+
+        if not success:
+            return jsonify({"error": "Chat session not found"}), 404
 
         return jsonify({"message": "Chat session deleted successfully"}), 200
 
@@ -142,6 +154,140 @@ def delete_chat_session(workspace_id: str, session_id: str) -> tuple[Response, i
         return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
     except Exception as e:
         return jsonify({"error": f"Failed to delete chat session: {str(e)}"}), 500
+
+
+@chat_bp.route("/<workspace_id>/chat/sessions/<session_id>", methods=["GET"])
+@require_auth
+def get_chat_session(workspace_id: str, session_id: str) -> tuple[Response, int]:
+    """
+    Get a specific chat session from a workspace.
+
+    Returns:
+        200: {
+            "session_id": int,
+            "title": "string",
+            "rag_type": "string",
+            "created_at": "string",
+            "updated_at": "string",
+            "message_count": int
+        }
+        403: {"error": "string"} - No access to workspace/session
+        404: {"error": "string"} - Session not found
+        500: {"error": "string"} - Server error
+    """
+    try:
+        user = get_current_user()
+
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
+        # Get session via service
+        chat_service = g.app_context.chat_service
+        session = chat_service.get_session_by_id(int(session_id))
+
+        if not session:
+            return jsonify({"error": "Chat session not found"}), 404
+
+        # Verify session belongs to workspace
+        if session.workspace_id != int(workspace_id):
+            return jsonify({"error": "Chat session not found in this workspace"}), 404
+
+        # Get message count
+        message_count = chat_service.list_session_messages(session.id).__len__()
+
+        return jsonify({
+            "session_id": session.id,
+            "title": session.title or "Untitled Chat",
+            "rag_type": session.rag_type,
+            "created_at": session.created_at.isoformat(),
+            "updated_at": session.updated_at.isoformat(),
+            "message_count": message_count
+        }), 200
+
+    except ValueError as e:
+        return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Failed to get chat session: {str(e)}"}), 500
+
+
+@chat_bp.route("/<workspace_id>/chat/sessions/<session_id>", methods=["PATCH"])
+@require_auth
+def update_chat_session(workspace_id: str, session_id: str) -> tuple[Response, int]:
+    """
+    Update a chat session in a workspace.
+
+    Request Body:
+        {
+            "title": "New session title"  // optional
+        }
+
+    Returns:
+        200: {
+            "session_id": int,
+            "title": "string",
+            "rag_type": "string",
+            "created_at": "string",
+            "updated_at": "string"
+        }
+        400: {"error": "string"} - Invalid request data
+        403: {"error": "string"} - No access to workspace/session
+        404: {"error": "string"} - Session not found
+        500: {"error": "string"} - Server error
+    """
+    try:
+        user = get_current_user()
+        data = request.get_json() or {}
+
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
+        # Validate request data
+        title = data.get("title")
+        if title is not None:
+            title = title.strip()
+            if not title:
+                return jsonify({"error": "Title cannot be empty"}), 400
+            if len(title) > 200:
+                return jsonify({"error": "Title must be 200 characters or less"}), 400
+
+        # Get current session to verify ownership
+        chat_service = g.app_context.chat_service
+        session = chat_service.get_session_by_id(int(session_id))
+
+        if not session:
+            return jsonify({"error": "Chat session not found"}), 404
+
+        # Verify session belongs to workspace
+        if session.workspace_id != int(workspace_id):
+            return jsonify({"error": "Chat session not found in this workspace"}), 404
+
+        # Update session
+        update_data = {}
+        if title is not None:
+            update_data["title"] = title
+
+        if update_data:
+            updated_session = chat_service.update_session(session.id, **update_data)
+            if not updated_session:
+                return jsonify({"error": "Failed to update chat session"}), 500
+            session = updated_session
+
+        return jsonify({
+            "session_id": session.id,
+            "title": session.title or "Untitled Chat",
+            "rag_type": session.rag_type,
+            "created_at": session.created_at.isoformat(),
+            "updated_at": session.updated_at.isoformat()
+        }), 200
+
+    except ValueError as e:
+        return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Failed to update chat session: {str(e)}"}), 500
 
 
 @chat_bp.route("/<workspace_id>/chat/sessions/<session_id>/messages", methods=["POST"])
@@ -184,19 +330,23 @@ def send_chat_message(workspace_id: str, session_id: str) -> tuple[Response, int
 
         ignore_rag = bool(data.get("ignore_rag", False))
 
-        # TODO: Validate workspace and session access
-        # TODO: Send message via service with RAG processing
-        # message_id = g.app_context.chat_service.send_message(
-        #     workspace_id=int(workspace_id),
-        #     session_id=int(session_id),
-        #     user_id=user.id,
-        #     content=content,
-        #     message_type=message_type,
-        #     ignore_rag=ignore_rag
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
 
-        # Mock response for now
-        return jsonify({"message_id": f"msg-{session_id}-123"}), 200
+        # Send message via service
+        chat_service = g.app_context.chat_service
+        message_id = chat_service.send_message(
+            workspace_id=int(workspace_id),
+            session_id=int(session_id),
+            user_id=user.id,
+            content=content,
+            message_type=message_type,
+            ignore_rag=ignore_rag
+        )
+
+        return jsonify({"message_id": message_id}), 200
 
     except ValueError as e:
         return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
@@ -227,14 +377,19 @@ def cancel_chat_message(workspace_id: str, session_id: str) -> tuple[Response, i
         data = request.get_json() or {}
         message_id = data.get("message_id")
 
-        # TODO: Validate workspace and session access
-        # TODO: Cancel message via service
-        # g.app_context.chat_service.cancel_message(
-        #     workspace_id=int(workspace_id),
-        #     session_id=int(session_id),
-        #     user_id=user.id,
-        #     message_id=message_id
-        # )
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user.id):
+            return jsonify({"error": "No access to workspace"}), 403
+
+        # Cancel message via service
+        chat_service = g.app_context.chat_service
+        chat_service.cancel_message(
+            workspace_id=int(workspace_id),
+            session_id=int(session_id),
+            user_id=user.id,
+            message_id=message_id
+        )
 
         return jsonify({"message": "Message cancelled successfully"}), 200
 

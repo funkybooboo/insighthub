@@ -1,5 +1,5 @@
 meta {
-  name: Send Message Success
+  name: Send Chat Message Async
   type: http
   seq: 1
 }
@@ -16,7 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "content": "What is machine learning?",
+    "content": "Explain quantum computing in simple terms",
     "message_type": "user",
     "ignore_rag": false
   }
@@ -28,7 +28,7 @@ assert {
 }
 
 tests {
-  test("should return message ID", function() {
+  test("should accept chat message for async processing", function() {
     expect(res.getStatus()).to.equal(200);
     expect(res.getBody().message_id).to.be.a("string");
   });

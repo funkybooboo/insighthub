@@ -11,7 +11,7 @@ from shared.logger import create_logger
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
 
-from .dtos import ChatResponse as ChatResponseDTO
+from .dtos import ChatResponse as ChatResponseDTO, ContextChunk
 from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
 from .exceptions import EmptyMessageError
 from .mappers import ChatMapper
@@ -19,13 +19,7 @@ from .mappers import ChatMapper
 logger = create_logger(__name__)
 
 
-@dataclass
-class ChatContext:
-    """Context chunk retrieved from RAG system."""
-
-    text: str
-    score: float
-    metadata: dict[str, str]
+# ChatContext is now imported from dtos as ContextChunk
 
 
 @dataclass
@@ -33,7 +27,7 @@ class ChatResponse:
     """Result of processing a chat message."""
 
     answer: str
-    context: list[ChatContext]
+    context: list[ContextChunk]
     session_id: int
     user_message: ChatMessage
     assistant_message: ChatMessage
@@ -43,7 +37,11 @@ class ChatService:
     """Service for chat-related business logic."""
 
     def __init__(
-        self, session_repository: ChatSessionRepository, message_repository: ChatMessageRepository
+        self,
+        session_repository: ChatSessionRepository,
+        message_repository: ChatMessageRepository,
+        rag_system=None,
+        message_publisher=None
     ):
         """
         Initialize service with repositories.
@@ -51,9 +49,13 @@ class ChatService:
         Args:
             session_repository: Chat session repository implementation
             message_repository: Chat message repository implementation
+            rag_system: Optional RAG system for context retrieval
+            message_publisher: Optional message publisher for async processing
         """
         self.session_repository = session_repository
         self.message_repository = message_repository
+        self._rag_system = rag_system
+        self._message_publisher = message_publisher
         self._cancel_flags: dict[str, threading.Event] = {}
         self._cancel_flags_lock = threading.Lock()
 
@@ -114,6 +116,7 @@ class ChatService:
     def create_session(
         self,
         user_id: int,
+        workspace_id: int | None = None,
         title: str | None = None,
         rag_type: str = "vector",
         first_message: str | None = None,
@@ -123,6 +126,7 @@ class ChatService:
 
         Args:
             user_id: The user ID
+            workspace_id: Optional workspace ID to associate the session with
             title: Optional session title
             rag_type: Type of RAG to use (vector or graph)
             first_message: Optional first message to use as title if title not provided
@@ -134,9 +138,9 @@ class ChatService:
         if not title and first_message:
             title = first_message[:50] + "..." if len(first_message) > 50 else first_message
 
-        logger.info(f"Creating chat session: user_id={user_id}, rag_type={rag_type}, title={title}")
-        session = self.session_repository.create(user_id=user_id, title=title, rag_type=rag_type)
-        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}")
+        logger.info(f"Creating chat session: user_id={user_id}, workspace_id={workspace_id}, rag_type={rag_type}, title={title}")
+        session = self.session_repository.create(user_id=user_id, workspace_id=workspace_id, title=title, rag_type=rag_type)
+        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}, workspace_id={workspace_id}")
         return session
 
     def get_session_by_id(self, session_id: int) -> Optional[ChatSession]:
@@ -148,6 +152,12 @@ class ChatService:
     ) -> list[ChatSession]:
         """List all chat sessions for a user with pagination."""
         return self.session_repository.get_by_user(user_id, skip=skip, limit=limit)
+
+    def list_workspace_sessions(
+        self, workspace_id: int, skip: int = 0, limit: int = 100
+    ) -> list[ChatSession]:
+        """List all chat sessions for a workspace with pagination."""
+        return self.session_repository.get_by_workspace(workspace_id, skip=skip, limit=limit)
 
     def update_session(self, session_id: int, **kwargs: str) -> Optional[ChatSession]:
         """Update chat session fields."""
@@ -191,13 +201,14 @@ class ChatService:
         return self.message_repository.delete(message_id)
 
     def get_or_create_session(
-        self, user_id: int, session_id: int | None = None, first_message: str | None = None
+        self, user_id: int, workspace_id: int | None = None, session_id: int | None = None, first_message: str | None = None
     ) -> ChatSession:
         """
         Get existing session or create a new one.
 
         Args:
             user_id: The user ID
+            workspace_id: Optional workspace ID for new sessions
             session_id: Optional existing session ID
             first_message: Optional first message to use as title for new sessions
 
@@ -210,7 +221,7 @@ class ChatService:
                 return session
 
         # Create new session
-        return self.create_session(user_id=user_id, first_message=first_message)
+        return self.create_session(user_id=user_id, workspace_id=workspace_id, first_message=first_message)
 
     def process_chat_message(
         self,
@@ -261,7 +272,7 @@ class ChatService:
         # Mock response for now
         answer = f"Mock response to: {message}"
         context_chunks = [
-            ChatContext(
+            ContextChunk(
                 text="Sample context chunk 1",
                 score=0.85,
                 metadata={"source": "document_1"},
@@ -338,6 +349,7 @@ class ChatService:
             # Get or create session
             session = self.get_or_create_session(
                 user_id=user_id,
+                workspace_id=None,  # For now, allow workspace-less sessions for backward compatibility
                 session_id=session_id,
                 first_message=message,
             )
@@ -358,11 +370,38 @@ class ChatService:
                 content=message,
             )
 
-            # TODO: RAG INTEGRATION - Retrieval for Streaming Chat
-            # Same as non-streaming chat - retrieve relevant context before streaming
-            # See process_chat_message_with_llm() for detailed implementation steps
-            # Key difference: Context should be prepended to conversation_history
-            # before calling llm_provider.chat_stream()
+            # RAG INTEGRATION - Retrieval for Streaming Chat
+            enhanced_history = conversation_history.copy()
+            rag_context_found = False
+            if rag_type == "vector" and self._rag_system:
+                try:
+                    # Query RAG system for relevant context
+                    rag_results = self._rag_system.query(message, top_k=8)
+                    if rag_results:
+                        # Check if we have meaningful context
+                        meaningful_context = [result for result in rag_results if result.score > 0.1]
+                        if meaningful_context:
+                            context_str = "\n\n".join([
+                                f"[{i+1}] {result.chunk.text}"
+                                for i, result in enumerate(meaningful_context)
+                            ])
+                            system_message = f"Use the following context to answer the user's question:\n{context_str}"
+                            enhanced_history.insert(0, {"role": "system", "content": system_message})
+                            rag_context_found = True
+                            logger.debug(f"RAG context added for streaming: session_id={session.id}, chunks={len(meaningful_context)}")
+                        else:
+                            # No meaningful context found - will emit no_context_found event
+                            logger.debug(f"No meaningful RAG context found for streaming: session_id={session.id}")
+                    else:
+                        logger.debug(f"No RAG results found for streaming: session_id={session.id}")
+                except Exception as e:
+                    logger.warning(f"RAG retrieval failed for streaming: {e}")
+
+            # If no context found and RAG is enabled, emit no_context_found event
+            if not rag_context_found and rag_type == "vector" and self._rag_system:
+                # This would be emitted via WebSocket in the calling code
+                # For now, we'll just log it
+                logger.info(f"No context found for query: session_id={session.id}, query='{message[:50]}...'")
 
             # Stream LLM response
             logger.debug(f"Starting LLM streaming: session_id={session.id}")
@@ -370,19 +409,26 @@ class ChatService:
             chunk_count = 0
             cancelled = False
 
-            for chunk in llm_provider.chat_stream(message, conversation_history):
-                # Check for cancellation
-                if cancel_flag and cancel_flag.is_set():
-                    logger.info(
-                        f"Stream cancelled: session_id={session.id}, request_id={request_id}, "
-                        f"chunks_sent={chunk_count}"
-                    )
-                    cancelled = True
-                    break
+            try:
+                for chunk in llm_provider.chat_stream(message, enhanced_history):
+                    # Check for cancellation
+                    if cancel_flag and cancel_flag.is_set():
+                        logger.info(
+                            f"Stream cancelled: session_id={session.id}, request_id={request_id}, "
+                            f"chunks_sent={chunk_count}"
+                        )
+                        cancelled = True
+                        break
 
-                full_response += chunk
-                chunk_count += 1
-                yield StreamEvent.chunk(chunk)
+                    full_response += chunk
+                    chunk_count += 1
+                    yield StreamEvent.chunk(chunk)
+            except AttributeError:
+                # If chat_stream is not available, fall back to regular chat
+                logger.warning("LLM provider does not support streaming, falling back to regular chat")
+                full_response = llm_provider.chat(message, enhanced_history)
+                # Yield the full response as a single chunk
+                yield StreamEvent.chunk(full_response)
 
             if cancelled:
                 logger.info(
@@ -417,6 +463,145 @@ class ChatService:
             if request_id:
                 self._cleanup_cancel_flag(request_id)
 
+    def send_message(
+        self,
+        workspace_id: int | None,
+        session_id: int | None,
+        user_id: int,
+        content: str,
+        message_type: str = "user",
+        ignore_rag: bool = False,
+    ) -> str:
+        """
+        Send a chat message to a workspace session.
+
+        This method handles storing the user message and triggering the async
+        chat processing workflow.
+
+        Args:
+            workspace_id: ID of the workspace
+            session_id: ID of the chat session
+            user_id: ID of the user sending the message
+            content: Message content
+            message_type: Type of message ("user" or "system")
+            ignore_rag: Whether to skip RAG processing
+
+        Returns:
+            Message ID of the stored user message
+        """
+        # For WebSocket connections, session_id might be None initially
+        # We'll create a temporary session or handle this case
+        actual_session_id: int
+        if session_id is None:
+            # Create a temporary session for WebSocket messages
+            temp_session = self.create_session(
+                user_id=user_id,
+                workspace_id=workspace_id,
+                title=f"WebSocket Session - {content[:50]}..."
+            )
+            actual_session_id = temp_session.id
+        else:
+            actual_session_id = session_id
+
+        logger.info(
+            f"Sending chat message: workspace_id={workspace_id}, session_id={actual_session_id}, "
+            f"user_id={user_id}, message_type={message_type}, ignore_rag={ignore_rag}"
+        )
+
+        # Validate message
+        self.validate_message(content)
+
+        # Store user message
+        user_message = self.create_message(
+            session_id=actual_session_id,
+            role=message_type,
+            content=content,
+        )
+        logger.debug(f"User message stored: message_id={user_message.id}")
+
+        # Publish chat.message_received event to trigger async processing
+        # This will be handled by a chat orchestrator worker that:
+        # 1. Retrieves RAG context (if not ignore_rag)
+        # 2. Calls LLM with context
+        # 3. Streams response back via WebSocket
+
+        try:
+            # Get message publisher from context
+            message_publisher = getattr(self, '_message_publisher', None)
+            if message_publisher:
+                event_data = {
+                    "message_id": str(user_message.id),
+                    "session_id": actual_session_id,
+                    "workspace_id": workspace_id,
+                    "user_id": user_id,
+                    "content": content,
+                    "message_type": message_type,
+                    "ignore_rag": ignore_rag,
+                    "request_id": f"chat-{actual_session_id}-{user_message.id}",
+                }
+
+                message_publisher.publish(
+                    routing_key="chat.message_received",
+                    message=event_data,
+                )
+
+                logger.info(
+                    f"Chat message event published: workspace_id={workspace_id}, session_id={actual_session_id}, "
+                    f"message_id={user_message.id}, request_id={event_data['request_id']}"
+                )
+            else:
+                logger.warning("Message publisher not available, falling back to synchronous processing")
+
+                # Fallback to synchronous processing if message publisher is not available
+                from src.context import create_llm
+                llm_provider = create_llm()
+
+                response_dto = self.process_chat_message_with_llm(
+                    user_id=user_id,
+                    message=content,
+                    llm_provider=llm_provider,
+                    session_id=session_id,
+                    rag_type="vector",
+                    ignore_rag=ignore_rag,
+                    top_k=8
+                )
+
+                logger.info(
+                    f"Chat message processed synchronously: workspace_id={workspace_id}, session_id={session_id}, "
+                    f"message_id={user_message.id}, response_length={len(response_dto.answer)}"
+                )
+        except Exception as e:
+            logger.error(f"Failed to process chat message: {e}")
+
+        return str(user_message.id)
+
+    def cancel_message(
+        self,
+        workspace_id: int,
+        session_id: int,
+        user_id: int,
+        message_id: str | None = None,
+    ) -> None:
+        """
+        Cancel a streaming chat message.
+
+        Args:
+            workspace_id: ID of the workspace
+            session_id: ID of the chat session
+            user_id: ID of the user
+            message_id: Optional message ID to cancel (for future use)
+        """
+        logger.info(
+            f"Cancelling chat message: workspace_id={workspace_id}, session_id={session_id}, "
+            f"user_id={user_id}, message_id={message_id}"
+        )
+
+        # For now, we just log the cancellation
+        # In a full implementation, this would signal the LLM generation to stop
+        # and potentially clean up any partial responses
+
+        logger.info("Chat message cancellation requested")
+
     def process_chat_message_with_llm(
         self,
         user_id: int,
@@ -425,6 +610,8 @@ class ChatService:
         session_id: int | None = None,
         rag_type: str = "vector",
         documents_count: int = 0,
+        ignore_rag: bool = False,
+        top_k: int = 8,
     ) -> ChatResponseDTO:
         """
         Process a chat message and return a DTO (non-streaming).
@@ -455,6 +642,7 @@ class ChatService:
         # Get or create session
         session = self.get_or_create_session(
             user_id=user_id,
+            workspace_id=None,  # For now, allow workspace-less sessions for backward compatibility
             session_id=session_id,
             first_message=message,
         )
@@ -468,24 +656,45 @@ class ChatService:
             f"Retrieved conversation history: session_id={session.id}, message_count={len(messages)}"
         )
 
-        # TODO: RAG INTEGRATION - Retrieval for Chat
-        # Before generating LLM response, retrieve relevant context from RAG system
-        #
-        # Implementation steps:
-        # 1. Send message to RAG worker via RabbitMQ
-        # 2. Wait for RAG worker response with context
-        # 3. Format context for LLM:
-        #    context_str = "\n\n".join([
-        #        f"[{i+1}] {chunk['text']}"
-        #        for i, chunk in enumerate(rag_results)
-        #    ])
-        # 4. Prepend context to conversation or use system message:
-        #    system_message = f"Use the following context to answer:\n{context_str}"
-        # 5. Store context metadata in message for later analysis
+        # RAG INTEGRATION - Retrieval for Chat
+        context_chunks = []
+        rag_context_found = False
+        if not ignore_rag and rag_type == "vector" and self._rag_system:
+            try:
+                # Query RAG system for relevant context
+                rag_results = self._rag_system.query(message, top_k=top_k)
+                context_chunks = [
+                    ContextChunk(
+                        text=result.chunk.text,
+                        score=result.score,
+                        metadata=result.chunk.metadata or {}
+                    )
+                    for result in rag_results
+                ]
+
+                # Check if we have meaningful context (score > threshold)
+                meaningful_context = [chunk for chunk in context_chunks if chunk.score > 0.1]
+                rag_context_found = len(meaningful_context) > 0
+
+                logger.debug(f"RAG context retrieved: session_id={session.id}, chunks={len(context_chunks)}, meaningful={len(meaningful_context)}")
+            except Exception as e:
+                logger.warning(f"RAG retrieval failed: {e}")
+                context_chunks = []
+                rag_context_found = False
+
+        # Format context for LLM if available
+        enhanced_history = conversation_history.copy()
+        if context_chunks:
+            context_str = "\n\n".join([
+                f"[{i+1}] {chunk.text}"
+                for i, chunk in enumerate(context_chunks)
+            ])
+            system_message = f"Use the following context to answer the user's question:\n{context_str}"
+            enhanced_history.insert(0, {"role": "system", "content": system_message})
 
         # Generate LLM response
         logger.debug(f"Generating LLM response: session_id={session.id}")
-        llm_answer = llm_provider.chat(message, conversation_history)
+        llm_answer = llm_provider.chat(message, enhanced_history)
         logger.debug(
             f"LLM response generated: session_id={session.id}, response_length={len(llm_answer)}"
         )
@@ -513,9 +722,10 @@ class ChatService:
         # Build response DTO
         return ChatResponseDTO(
             answer=llm_answer,
-            context=[],  # TODO: Add RAG context from worker response
+            context=context_chunks,
             session_id=session.id,
             documents_count=documents_count,
+            no_context_found=not rag_context_found and not ignore_rag,
         )
 
     def list_user_sessions_as_dto(self, user_id: int) -> SessionListResponse:

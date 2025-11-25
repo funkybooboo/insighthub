@@ -1,0 +1,33 @@
+meta {
+  name: Cancel Chat Message Success
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/workspaces/1/chat/sessions/1/cancel
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "message_id": "msg-123"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: contains "cancelled"
+}
+
+tests {
+  test("should cancel chat message", function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().message.toLowerCase()).to.include("cancelled");
+  });
+}

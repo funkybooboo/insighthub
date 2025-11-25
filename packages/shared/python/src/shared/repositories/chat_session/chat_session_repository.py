@@ -60,6 +60,21 @@ class ChatSessionRepository(ABC):
         pass
 
     @abstractmethod
+    def get_by_workspace(self, workspace_id: int, skip: int, limit: int) -> list[ChatSession]:
+        """
+        Get sessions by workspace ID with pagination.
+
+        Args:
+            workspace_id: Workspace ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of chat sessions
+        """
+        pass
+
+    @abstractmethod
     def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:
         """
         Update session fields.
