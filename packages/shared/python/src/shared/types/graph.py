@@ -41,3 +41,9 @@ class GraphEdge:
     target: str
     label: str
     properties: PropertiesDict
+
+
+# Type aliases for backward compatibility
+Graph = dict  # Placeholder - will be defined properly when graph implementation is complete
+Node = GraphNode
+Relationship = GraphEdge

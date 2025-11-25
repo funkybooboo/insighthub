@@ -1,10 +1,9 @@
 """Unit tests for WorkspaceService."""
 
-import pytest
 from datetime import datetime
-from typing import Optional
 from unittest.mock import Mock
 
+import pytest
 from shared.models.workspace import RagConfig, Workspace
 from shared.repositories.workspace import WorkspaceRepository
 
@@ -44,7 +43,7 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         self.next_ws_id += 1
         return workspace
 
-    def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
+    def get_by_id(self, workspace_id: int) -> Workspace | None:
         """Get workspace by ID."""
         return self.workspaces.get(workspace_id)
 
@@ -52,12 +51,11 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         """Get all workspaces for a user."""
         result = []
         for ws in self.workspaces.values():
-            if ws.user_id == user_id:
-                if include_inactive or ws.is_active:
-                    result.append(ws)
+            if ws.user_id == user_id and (include_inactive or ws.is_active):
+                result.append(ws)
         return result
 
-    def update(self, workspace_id: int, **kwargs: str | int | bool | None) -> Optional[Workspace]:
+    def update(self, workspace_id: int, **kwargs: str | int | bool | None) -> Workspace | None:
         """Update workspace fields."""
         ws = self.workspaces.get(workspace_id)
         if ws is None:
@@ -110,13 +108,13 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         self.next_config_id += 1
         return config
 
-    def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
+    def get_rag_config(self, workspace_id: int) -> RagConfig | None:
         """Get RAG config for workspace."""
         return self.rag_configs.get(workspace_id)
 
     def update_rag_config(
         self, workspace_id: int, **kwargs: str | int | bool | None
-    ) -> Optional[RagConfig]:
+    ) -> RagConfig | None:
         """Update RAG config fields."""
         config = self.rag_configs.get(workspace_id)
         if config is None:
@@ -151,9 +149,13 @@ def mock_message_publisher() -> Mock:
 
 
 @pytest.fixture
-def service(fake_repository: FakeWorkspaceRepository, mock_message_publisher: Mock) -> WorkspaceService:
+def service(
+    fake_repository: FakeWorkspaceRepository, mock_message_publisher: Mock
+) -> WorkspaceService:
     """Provide a WorkspaceService with fake repository and message publisher."""
-    return WorkspaceService(workspace_repo=fake_repository, message_publisher=mock_message_publisher)
+    return WorkspaceService(
+        workspace_repo=fake_repository, message_publisher=mock_message_publisher
+    )
 
 
 class TestWorkspaceServiceCreate:
@@ -293,7 +295,7 @@ class TestWorkspaceServiceList:
         self, service: WorkspaceService, fake_repository: FakeWorkspaceRepository
     ) -> None:
         """list_workspaces excludes inactive workspaces by default."""
-        ws1 = service.create_workspace(name="Active", user_id=1)
+        service.create_workspace(name="Active", user_id=1)
         ws2 = service.create_workspace(name="Inactive", user_id=1)
         fake_repository.update(ws2.id, is_active=False)
 
@@ -306,7 +308,7 @@ class TestWorkspaceServiceList:
         self, service: WorkspaceService, fake_repository: FakeWorkspaceRepository
     ) -> None:
         """list_workspaces includes inactive when include_inactive=True."""
-        ws1 = service.create_workspace(name="Active", user_id=1)
+        service.create_workspace(name="Active", user_id=1)
         ws2 = service.create_workspace(name="Inactive", user_id=1)
         fake_repository.update(ws2.id, is_active=False)
 
@@ -344,7 +346,7 @@ class TestWorkspaceServiceGet:
 
     def test_get_workspace_accepts_string_id(self, service: WorkspaceService) -> None:
         """get_workspace accepts string workspace_id."""
-        created = service.create_workspace(name="Test", user_id=1)
+        service.create_workspace(name="Test", user_id=1)
 
         workspace = service.get_workspace(workspace_id="1", user_id=1)
 
@@ -370,9 +372,7 @@ class TestWorkspaceServiceUpdate:
         assert updated.name == "Updated Name"
         assert updated.description == "New description"
 
-    def test_update_workspace_returns_none_for_nonexistent(
-        self, service: WorkspaceService
-    ) -> None:
+    def test_update_workspace_returns_none_for_nonexistent(self, service: WorkspaceService) -> None:
         """update_workspace returns None for nonexistent workspace."""
         result = service.update_workspace(
             workspace_id=999,
@@ -422,9 +422,7 @@ class TestWorkspaceServiceDelete:
 
         assert result is False
 
-    def test_delete_workspace_returns_false_for_wrong_user(
-        self, service: WorkspaceService
-    ) -> None:
+    def test_delete_workspace_returns_false_for_wrong_user(self, service: WorkspaceService) -> None:
         """delete_workspace returns False when user doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
@@ -499,9 +497,6 @@ class TestWorkspaceServiceStats:
         stats = service.get_workspace_stats(workspace_id=created.id, user_id=2)
 
         assert stats is None
-
-
-
 
 
 class TestWorkspaceServiceValidateAccess:

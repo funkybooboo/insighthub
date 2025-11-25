@@ -3,6 +3,7 @@
 from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
+
 from .sql_workspace_repository import SqlWorkspaceRepository
 from .workspace_repository import WorkspaceRepository
 

@@ -3,8 +3,10 @@
 from flask import Blueprint, Response, g, jsonify, request
 from jwt.exceptions import InvalidTokenError
 
-from .exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.infrastructure.auth import create_access_token, get_current_user
+from src.infrastructure.security.rate_limit_decorator import require_rate_limit
+
+from .exceptions import UserAlreadyExistsError, UserAuthenticationError
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -52,7 +54,14 @@ def signup() -> tuple[Response, int]:
 
     # Validate input formats
     if not InputSanitizer.validate_username(username):
-        return jsonify({"error": "Username must be 3-50 characters and contain only letters, numbers, underscores, and hyphens"}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Username must be 3-50 characters and contain only letters, numbers, underscores, and hyphens"
+                }
+            ),
+            400,
+        )
 
     if not InputSanitizer.validate_email(email):
         return jsonify({"error": "Invalid email format"}), 400
@@ -60,11 +69,16 @@ def signup() -> tuple[Response, int]:
     # Enhanced password validation
     password_validation = InputSanitizer.validate_password_strength(password)
     if not password_validation["valid"]:
-        return jsonify({
-            "error": "Password does not meet requirements",
-            "details": password_validation["errors"],
-            "strength": password_validation["strength"]
-        }), 400
+        return (
+            jsonify(
+                {
+                    "error": "Password does not meet requirements",
+                    "details": password_validation["errors"],
+                    "strength": password_validation["strength"],
+                }
+            ),
+            400,
+        )
 
     try:
         user = g.app_context.user_service.register_user(
@@ -134,13 +148,11 @@ def login() -> tuple[Response, int]:
         token = create_access_token(user.id)
 
         # Log successful login
-        from src.infrastructure.logging import log_security_event
         from flask import request
-        log_security_event(
-            event="login_successful",
-            user_id=user.id,
-            client_ip=request.remote_addr
-        )
+
+        from src.infrastructure.logging import log_security_event
+
+        log_security_event(event="login_successful", user_id=user.id, client_ip=request.remote_addr)
 
         return (
             jsonify(
@@ -161,12 +173,14 @@ def login() -> tuple[Response, int]:
         )
     except UserAuthenticationError as e:
         # Log failed login attempt
-        from src.infrastructure.logging import log_security_event
         from flask import request
+
+        from src.infrastructure.logging import log_security_event
+
         log_security_event(
             event="login_failed",
             client_ip=request.remote_addr,
-            details={"username": username, "reason": str(e)}
+            details={"username": username, "reason": str(e)},
         )
         return jsonify({"error": str(e)}), 401
 
@@ -270,18 +284,23 @@ def change_password() -> tuple[Response, int]:
         # Check for common weak passwords
         weak_passwords = ["password", "123456", "qwerty", "abc123", "password123"]
         if new_password.lower() in weak_passwords:
-            return jsonify({"error": "Password is too common, please choose a stronger password"}), 400
+            return (
+                jsonify({"error": "Password is too common, please choose a stronger password"}),
+                400,
+            )
 
         # Verify current password
         if not user.check_password(current_password):
             # Log failed password verification
-            from src.infrastructure.logging import log_security_event
             from flask import request
+
+            from src.infrastructure.logging import log_security_event
+
             log_security_event(
                 event="password_change_failed",
                 user_id=user.id,
                 client_ip=request.remote_addr,
-                details={"reason": "incorrect_current_password"}
+                details={"reason": "incorrect_current_password"},
             )
             return jsonify({"error": "Current password is incorrect"}), 401
 
@@ -290,13 +309,11 @@ def change_password() -> tuple[Response, int]:
         g.app_context.user_service.update_user(user.id)
 
         # Log successful password change
-        from src.infrastructure.logging import log_security_event
         from flask import request
-        log_security_event(
-            event="password_changed",
-            user_id=user.id,
-            client_ip=request.remote_addr
-        )
+
+        from src.infrastructure.logging import log_security_event
+
+        log_security_event(event="password_changed", user_id=user.id, client_ip=request.remote_addr)
 
         return jsonify({"message": "Password changed successfully"}), 200
 

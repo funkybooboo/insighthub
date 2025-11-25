@@ -4,6 +4,7 @@ from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.chat import ChatSession
+
 from .chat_session_repository import ChatSessionRepository
 
 
@@ -70,7 +71,9 @@ class SqlChatSessionRepository(ChatSessionRepository):
         ORDER BY updated_at DESC
         LIMIT %(limit)s OFFSET %(skip)s;
         """
-        rows = self._db.fetchall(query, {"workspace_id": workspace_id, "limit": limit, "skip": skip})
+        rows = self._db.fetchall(
+            query, {"workspace_id": workspace_id, "limit": limit, "skip": skip}
+        )
         return [ChatSession(**row) for row in rows]
 
     def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:

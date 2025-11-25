@@ -4,6 +4,7 @@ from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.chat import ChatMessage
+
 from .chat_message_repository import ChatMessageRepository
 
 

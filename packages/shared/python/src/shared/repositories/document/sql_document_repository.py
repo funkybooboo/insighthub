@@ -4,6 +4,7 @@ from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.document import Document
+
 from .document_repository import DocumentRepository
 
 

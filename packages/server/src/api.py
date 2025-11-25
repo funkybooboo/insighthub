@@ -5,48 +5,37 @@ This module provides the main Flask application with all routes registered.
 """
 
 import atexit
-import os
-from typing import Any, Callable
+from typing import Any
 
 from dotenv import load_dotenv
 from flask import Flask, g
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from shared.logger import LogLevel, create_logger, create_status_consumer
+from shared.logger import LogLevel, create_logger
 from shared.messaging import StatusConsumer
 from shared.messaging.status_consumer import create_status_consumer
 
 from src import config
-
-# Create logger using shared library
-logger = create_logger("api", LogLevel.INFO, config.LOG_FORMAT)
 from src.context import AppContext, create_message_publisher
 from src.domains.auth.routes import auth_bp
 from src.domains.health.routes import health_bp
-from src.domains.workspaces.routes import workspace_bp
-from src.domains.workspaces.chat.routes import chat_bp
-from src.domains.workspaces.chat.events import register_socket_handlers
-from src.domains.workspaces.documents.routes import documents_bp
-from src.domains.workspaces.rag_config.routes import rag_config_bp
 from src.domains.workspaces.chat.events import (
     WorkspaceStatusData,
     broadcast_workspace_status,
+    register_socket_handlers,
     register_status_socket_handlers,
 )
-from src.domains.workspaces.documents.status import (
-    DocumentStatusData,
-    broadcast_document_status,
-    emit_wikipedia_fetch_status,
-)
+from src.domains.workspaces.chat.routes import chat_bp
 from src.domains.workspaces.documents.processing_events import (
-    handle_document_parsed,
     handle_document_chunked,
     handle_document_embedded,
     handle_document_indexed,
+    handle_document_parsed,
 )
-from src.domains.workspaces.events import (
-    handle_workspace_provision_status,
-)
+from src.domains.workspaces.documents.routes import documents_bp
+from src.domains.workspaces.documents.status import DocumentStatusData, broadcast_document_status
+from src.domains.workspaces.rag_config.routes import rag_config_bp
+from src.domains.workspaces.routes import workspace_bp
 from src.infrastructure.database import get_db, init_db
 from src.infrastructure.middleware import (
     PerformanceMonitoringMiddleware,
@@ -57,6 +46,9 @@ from src.infrastructure.middleware import (
     SecurityHeadersMiddleware,
 )
 from src.infrastructure.socket import SocketHandler
+
+# Create logger using shared library
+logger = create_logger("api", LogLevel.INFO)
 
 
 def create_chat_event_consumer(socketio: SocketIO) -> Any | None:
@@ -73,11 +65,12 @@ def create_chat_event_consumer(socketio: SocketIO) -> Any | None:
     """
     try:
         from shared.messaging import RabbitMQConsumer
+
         from src.domains.workspaces.chat.events import (
+            handle_chat_error,
+            handle_chat_no_context_found,
             handle_chat_response_chunk,
             handle_chat_response_complete,
-            handle_chat_no_context_found,
-            handle_chat_error,
         )
 
         def on_chat_response_chunk(event_data: dict) -> None:
@@ -105,28 +98,33 @@ def create_chat_event_consumer(socketio: SocketIO) -> Any | None:
             if workspace_id and user_id:
                 try:
                     from src.context import create_llm
+
                     llm_provider = create_llm()
 
                     # Get chat service from app context
                     from flask import g
-                    if hasattr(g, 'app_context') and hasattr(g.app_context, 'chat_service'):
+
+                    if hasattr(g, "app_context") and hasattr(g.app_context, "chat_service"):
                         chat_service = g.app_context.chat_service
                         chat_service.retry_pending_rag_queries(
                             workspace_id=int(workspace_id),
                             user_id=int(user_id),
-                            llm_provider=llm_provider
+                            llm_provider=llm_provider,
                         )
                 except Exception as retry_error:
-                    print(f"Failed to retry pending RAG queries after Wikipedia fetch: {retry_error}")
+                    print(
+                        f"Failed to retry pending RAG queries after Wikipedia fetch: {retry_error}"
+                    )
 
             # Emit completion status
             from src.domains.workspaces.documents.events import emit_wikipedia_fetch_status
+
             emit_wikipedia_fetch_status(
                 workspace_id=int(workspace_id) if workspace_id else 0,
                 query=event_data.get("query", ""),
                 status="completed",
                 document_ids=event_data.get("document_ids", []),
-                message="Wikipedia article fetched and processed"
+                message="Wikipedia article fetched and processed",
             )
 
         # Create consumer with event handlers
@@ -146,7 +144,7 @@ def create_chat_event_consumer(socketio: SocketIO) -> Any | None:
                 "chat.no_context_found": on_chat_no_context_found,
                 "chat.error": on_chat_error,
                 "wikipedia.fetch_completed": on_wikipedia_fetch_completed,
-            }
+            },
         )
 
         logger.info("Chat event consumer created")
@@ -183,10 +181,11 @@ def create_app() -> InsightHubApp:
     """
     # Configure logging first
     from src.infrastructure.logging import configure_logging
+
     configure_logging()
 
     # Initialize database (run migrations in development)
-    from src.infrastructure.database import init_db
+
     if config.FLASK_DEBUG:  # Only run migrations automatically in development
         logger.info("Running database migrations (development mode)")
         init_db()
@@ -198,7 +197,7 @@ def create_app() -> InsightHubApp:
     # CORS configuration
     CORS(
         app,
-        origins=config.CORS_ORIGINS.split(","),
+        origins=config.CORS_ORIGINS,
         supports_credentials=True,
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -335,36 +334,48 @@ def create_app() -> InsightHubApp:
             if workspace_id and user_id:
                 try:
                     from src.context import create_llm
+
                     llm_provider = create_llm()
 
                     # Get chat service from app context
                     from flask import g
-                    if hasattr(g, 'app_context') and hasattr(g.app_context, 'chat_service'):
+
+                    if hasattr(g, "app_context") and hasattr(g.app_context, "chat_service"):
                         chat_service = g.app_context.chat_service
                         chat_service.retry_pending_rag_queries(
                             workspace_id=int(workspace_id),
                             user_id=int(user_id),
-                            llm_provider=llm_provider
+                            llm_provider=llm_provider,
                         )
                 except Exception as retry_error:
-                    print(f"Failed to retry pending RAG queries after Wikipedia fetch: {retry_error}")
+                    print(
+                        f"Failed to retry pending RAG queries after Wikipedia fetch: {retry_error}"
+                    )
 
             # Emit completion status
             from src.domains.workspaces.documents.events import emit_wikipedia_fetch_status
+
             emit_wikipedia_fetch_status(
                 workspace_id=int(workspace_id) if workspace_id else 0,
                 query=event_data.get("query", ""),
                 status="completed",
                 document_ids=event_data.get("document_ids", []),
-                message="Wikipedia article fetched and processed"
+                message="Wikipedia article fetched and processed",
             )
+
+    def on_workspace_provision_status(event_data: dict) -> None:
+        """Handle workspace provision status from provision worker."""
+        from src.domains.workspaces.events import handle_workspace_provision_status
+
+        handle_workspace_provision_status(event_data, socketio)
 
     def on_workspace_deletion_status(event_data: dict) -> None:
         """Handle workspace deletion status from deletion worker."""
         from src.domains.workspaces.events import handle_workspace_deletion_status
+
         handle_workspace_deletion_status(event_data, socketio)
 
-    status_consumer = create_status_consumer(
+    app.status_consumer = create_status_consumer(
         on_document_status=on_document_status,
         on_workspace_status=on_workspace_status,
         on_document_parsed=on_document_parsed,
@@ -372,7 +383,6 @@ def create_app() -> InsightHubApp:
         on_document_embedded=on_document_embedded,
         on_document_indexed=on_document_indexed,
         on_workspace_provision_status=on_workspace_provision_status,
-        on_workspace_deletion_status=on_workspace_deletion_status,
     )
 
     # Create a simple chat event consumer for async chat processing

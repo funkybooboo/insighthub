@@ -2,10 +2,7 @@
 
 import json
 
-import pytest
-from flask import Flask
 from flask.testing import FlaskClient
-from shared.models import User
 
 
 class TestWorkspaceCreateEndpoint:
@@ -333,9 +330,7 @@ class TestWorkspaceDeleteEndpoint:
 class TestWorkspaceStatsEndpoint:
     """Tests for GET /api/workspaces/<id>/stats endpoint."""
 
-    def test_get_stats_returns_200(
-        self, client: FlaskClient, auth_headers: dict[str, str]
-    ) -> None:
+    def test_get_stats_returns_200(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
         """GET /api/workspaces/<id>/stats returns 200 with stats."""
         create_response = client.post(
             "/api/workspaces",
@@ -375,9 +370,7 @@ class TestRagConfigEndpoints:
         )
         workspace_id = json.loads(create_response.data)["id"]
 
-        response = client.get(
-            f"/api/workspaces/{workspace_id}/rag-config", headers=auth_headers
-        )
+        response = client.get(f"/api/workspaces/{workspace_id}/rag-config", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -491,9 +484,7 @@ class TestValidateAccessEndpoint:
         self, client: FlaskClient, auth_headers: dict[str, str]
     ) -> None:
         """GET /api/workspaces/<id>/validate-access for nonexistent returns has_access=false."""
-        response = client.get(
-            "/api/workspaces/99999/validate-access", headers=auth_headers
-        )
+        response = client.get("/api/workspaces/99999/validate-access", headers=auth_headers)
 
         assert response.status_code == 200
         data = json.loads(response.data)

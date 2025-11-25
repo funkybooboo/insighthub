@@ -1,7 +1,7 @@
 """Graph store interface for storing and retrieving graph data."""
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List
 
 from shared.types.graph import Graph, Node, Relationship
 

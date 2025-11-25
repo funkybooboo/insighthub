@@ -1,9 +1,9 @@
 """PostgreSQL database interface using psycopg2."""
 
+from typing import Any, Dict, List, Optional
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from typing import Any, List, Dict, Optional
-import os
 
 
 class PostgresConnection:
@@ -57,7 +57,9 @@ class PostgresDatabase:
         """
         self.connection = connection
 
-    def execute(self, query: str, params: Optional[Dict[str, Any]] = None, commit: bool = False) -> None:
+    def execute(
+        self, query: str, params: Optional[Dict[str, Any]] = None, commit: bool = False
+    ) -> None:
         """
         Execute a SQL query.
 
@@ -89,7 +91,9 @@ class PostgresDatabase:
         cursor.close()
         return results
 
-    def fetchone(self, query: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def fetchone(
+        self, query: str, params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Execute a SQL query and fetch one result.
 
@@ -105,7 +109,7 @@ class PostgresDatabase:
         result = cursor.fetchone()
         cursor.close()
         return result
-    
+
     def execute_many(self, query: str, params_list: List[Dict[str, Any]]) -> None:
         """Execute a query with multiple sets of parameters."""
         cursor = self.connection.get_cursor()

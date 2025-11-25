@@ -57,7 +57,7 @@ class TestRequestCorrelationMiddleware:
 
         @app.route("/check_g")
         def check_g() -> str:
-            correlation_id = getattr(g, 'correlation_id', None)
+            correlation_id = getattr(g, "correlation_id", None)
             return correlation_id or "None"
 
         with app.test_client() as client:

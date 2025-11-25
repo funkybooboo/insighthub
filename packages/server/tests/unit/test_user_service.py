@@ -1,8 +1,6 @@
 """Unit tests for UserService."""
 
 import pytest
-from typing import Optional
-
 from shared.models import User
 from shared.repositories import UserRepository
 
@@ -34,18 +32,18 @@ class FakeUserRepository(UserRepository):
         self.next_id += 1
         return user
 
-    def get_by_id(self, user_id: int) -> Optional[User]:
+    def get_by_id(self, user_id: int) -> User | None:
         """Get user by ID."""
         return self.users.get(user_id)
 
-    def get_by_username(self, username: str) -> Optional[User]:
+    def get_by_username(self, username: str) -> User | None:
         """Get user by username."""
         for user in self.users.values():
             if user.username == username:
                 return user
         return None
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         """Get user by email."""
         for user in self.users.values():
             if user.email == email:
@@ -57,7 +55,7 @@ class FakeUserRepository(UserRepository):
         all_users = list(self.users.values())
         return all_users[skip : skip + limit]
 
-    def update(self, user_id: int, **kwargs: str) -> Optional[User]:
+    def update(self, user_id: int, **kwargs: str) -> User | None:
         """Update user fields."""
         user = self.users.get(user_id)
         if not user:

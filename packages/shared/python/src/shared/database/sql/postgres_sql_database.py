@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from .postgres import PostgresDatabase, PostgresConnection
+from .postgres import PostgresConnection, PostgresDatabase
 from .sql_database import SqlDatabase
 
 
@@ -23,7 +23,9 @@ class PostgresSqlDatabase(SqlDatabase):
         """Execute a query that does not return results (INSERT, UPDATE, DELETE)."""
         self.db.execute(query, params, commit=True)
 
-    def fetchone(self, query: str, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def fetchone(
+        self, query: str, params: Optional[Dict[str, Any]] = None
+    ) -> Optional[Dict[str, Any]]:
         """Execute a query and return a single row."""
         return self.db.fetch_one(query, params)
 

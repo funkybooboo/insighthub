@@ -15,6 +15,7 @@ def get_workspace_service() -> WorkspaceService:
     """Get workspace service from app context."""
     return g.app_context.workspace_service
 
+
 class WorkspaceDict(TypedDict, total=False):
     """TypedDict for workspace response."""
 
@@ -102,9 +103,14 @@ def create_workspace() -> tuple[Response, int]:
         if rag_config:
             valid_retriever_types = ["vector", "graph", "hybrid"]
             if rag_config.get("retriever_type") not in valid_retriever_types:
-                return jsonify({
-                    "error": f"retriever_type must be one of: {', '.join(valid_retriever_types)}"
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "error": f"retriever_type must be one of: {', '.join(valid_retriever_types)}"
+                        }
+                    ),
+                    400,
+                )
 
             chunk_size = rag_config.get("chunk_size", 1000)
             if not (100 <= chunk_size <= 5000):
@@ -308,6 +314,7 @@ def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
 
     except Exception as e:
         return jsonify({"error": f"Failed to get workspace stats: {str(e)}"}), 500
+
 
 @workspace_bp.route("/<workspace_id>/validate-access", methods=["GET"])
 @require_auth

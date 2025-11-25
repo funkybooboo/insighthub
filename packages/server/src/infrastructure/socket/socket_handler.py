@@ -40,25 +40,28 @@ class SocketHandler:
         Args:
             auth: Optional authentication data from client
         """
-        from flask import request
+
         client_id = request.sid  # Socket.IO session ID
 
         print(f"Client connected: {client_id}")
 
         # Store connection info for management
-        if not hasattr(self, '_connections'):
+        if not hasattr(self, "_connections"):
             self._connections = {}
         self._connections[client_id] = {
-            'connected_at': '2025-11-24T00:00:00Z',  # Would be datetime.now()
-            'last_ping': '2025-11-24T00:00:00Z',
-            'user_id': None  # Would be set during auth
+            "connected_at": "2025-11-24T00:00:00Z",  # Would be datetime.now()
+            "last_ping": "2025-11-24T00:00:00Z",
+            "user_id": None,  # Would be set during auth
         }
 
-        emit("connected", {
-            "status": "connected",
-            "client_id": client_id,
-            "heartbeat_interval": 30000  # 30 seconds
-        })
+        emit(
+            "connected",
+            {
+                "status": "connected",
+                "client_id": client_id,
+                "heartbeat_interval": 30000,  # 30 seconds
+            },
+        )
 
     def _handle_disconnect(self, reason: str | None = None) -> None:
         """
@@ -67,13 +70,13 @@ class SocketHandler:
         Args:
             reason: Optional disconnection reason
         """
-        from flask import request
+
         client_id = request.sid
 
         print(f"Client disconnected: {client_id}, reason: {reason}")
 
         # Clean up connection tracking
-        if hasattr(self, '_connections') and client_id in self._connections:
+        if hasattr(self, "_connections") and client_id in self._connections:
             del self._connections[client_id]
 
     def _handle_ping(self, data: dict[str, str] | None = None) -> None:
@@ -83,12 +86,14 @@ class SocketHandler:
         Args:
             data: Ping data from client
         """
-        from flask import request
+
         client_id = request.sid
 
         # Update last ping time
-        if hasattr(self, '_connections') and client_id in self._connections:
-            self._connections[client_id]['last_ping'] = '2025-11-24T00:00:00Z'  # Would be datetime.now()
+        if hasattr(self, "_connections") and client_id in self._connections:
+            self._connections[client_id][
+                "last_ping"
+            ] = "2025-11-24T00:00:00Z"  # Would be datetime.now()
 
         # Respond with pong
         emit("pong", {"timestamp": "2025-11-24T00:00:00Z"})
@@ -100,12 +105,14 @@ class SocketHandler:
         Args:
             data: Pong data from client
         """
-        from flask import request
+
         client_id = request.sid
 
         # Update last ping time
-        if hasattr(self, '_connections') and client_id in self._connections:
-            self._connections[client_id]['last_ping'] = '2025-11-24T00:00:00Z'  # Would be datetime.now()
+        if hasattr(self, "_connections") and client_id in self._connections:
+            self._connections[client_id][
+                "last_ping"
+            ] = "2025-11-24T00:00:00Z"  # Would be datetime.now()
 
     def register_event(self, event_name: str, handler: EventHandler) -> None:
         """

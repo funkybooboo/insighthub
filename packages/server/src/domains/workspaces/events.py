@@ -1,7 +1,6 @@
 """Workspace processing event handlers."""
 
 from flask_socketio import SocketIO
-
 from shared.logger import create_logger
 
 logger = create_logger(__name__)
@@ -29,13 +28,12 @@ def handle_workspace_provision_status(event_data: dict, socketio: SocketIO) -> N
         try:
             # Get workspace service from app context
             from flask import g
-            if hasattr(g, 'app_context') and hasattr(g.app_context, 'workspace_service'):
+
+            if hasattr(g, "app_context") and hasattr(g.app_context, "workspace_service"):
                 workspace_service = g.app_context.workspace_service
                 # Update workspace status
                 workspace_service.update_workspace_status(
-                    workspace_id=int(workspace_id),
-                    status=status,
-                    status_message=message
+                    workspace_id=int(workspace_id), status=status, status_message=message
                 )
                 logger.debug(f"Updated workspace {workspace_id} status to {status}")
             else:
@@ -82,7 +80,8 @@ def handle_workspace_deletion_status(event_data: dict, socketio: SocketIO) -> No
         try:
             # Get workspace service from app context
             from flask import g
-            if hasattr(g, 'app_context') and hasattr(g.app_context, 'workspace_service'):
+
+            if hasattr(g, "app_context") and hasattr(g.app_context, "workspace_service"):
                 workspace_service = g.app_context.workspace_service
                 if status == "deleted":
                     # Actually delete the workspace when deletion is complete
@@ -90,7 +89,9 @@ def handle_workspace_deletion_status(event_data: dict, socketio: SocketIO) -> No
                     logger.info(f"Workspace {workspace_id} fully deleted")
                 else:
                     # Update status for in-progress deletion
-                    workspace_service._repo.update(int(workspace_id), status=status, status_message=message)
+                    workspace_service._repo.update(
+                        int(workspace_id), status=status, status_message=message
+                    )
                     logger.debug(f"Updated workspace {workspace_id} deletion status to {status}")
             else:
                 logger.warning("Workspace service not available in app context")

@@ -6,10 +6,7 @@ interface ScrollToBottomButtonProps {
     visible: boolean;
 }
 
-export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({
-    onClick,
-    visible
-}) => {
+export const ScrollToBottomButton: React.FC<ScrollToBottomButtonProps> = ({ onClick, visible }) => {
     if (!visible) return null;
 
     return (
@@ -30,19 +27,17 @@ interface ChatScrollContainerProps {
     className?: string;
 }
 
-export const ChatScrollContainer = React.forwardRef<HTMLDivElement, ChatScrollContainerProps>(({
-    children,
-    onScroll,
-    className = ''
-}, ref) => (
-    <div
-        ref={ref}
-        onScroll={onScroll}
-        className={`h-full overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}
-    >
-        {children}
-    </div>
-));
+export const ChatScrollContainer = React.forwardRef<HTMLDivElement, ChatScrollContainerProps>(
+    ({ children, onScroll, className = '' }, ref) => (
+        <div
+            ref={ref}
+            onScroll={onScroll}
+            className={`h-full overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 ${className}`}
+        >
+            {children}
+        </div>
+    )
+);
 
 interface EmptyChatStateProps {
     onExampleClick?: (query: string) => void;
@@ -76,13 +71,13 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({ onExampleClick }
                 <p className="text-sm text-gray-600 dark:text-gray-400">Try asking:</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                     <button
-                        onClick={() => onExampleClick("What is RAG?")}
+                        onClick={() => onExampleClick('What is RAG?')}
                         className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                     >
                         What is RAG?
                     </button>
                     <button
-                        onClick={() => onExampleClick("How does vector search work?")}
+                        onClick={() => onExampleClick('How does vector search work?')}
                         className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                     >
                         How does vector search work?

@@ -5,7 +5,6 @@ import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from shared.cache import Cache
 from shared.llm import LlmProvider
@@ -13,8 +12,8 @@ from shared.logger import create_logger
 from shared.models import ChatMessage, ChatSession
 from shared.repositories import ChatMessageRepository, ChatSessionRepository
 
-from .dtos import ChatResponse as ChatResponseDTO, ContextChunk
-from .dtos import SessionListResponse, SessionMessagesResponse, StreamEvent
+from .dtos import ChatResponse as ChatResponseDTO
+from .dtos import ContextChunk, SessionListResponse, SessionMessagesResponse, StreamEvent
 from .exceptions import EmptyMessageError
 from .mappers import ChatMapper
 
@@ -44,7 +43,7 @@ class ChatService:
         message_repository: ChatMessageRepository,
         rag_system=None,
         message_publisher=None,
-        cache: Cache = None
+        cache: Cache = None,
     ):
         """
         Initialize service with repositories.
@@ -143,12 +142,18 @@ class ChatService:
         if not title and first_message:
             title = first_message[:50] + "..." if len(first_message) > 50 else first_message
 
-        logger.info(f"Creating chat session: user_id={user_id}, workspace_id={workspace_id}, rag_type={rag_type}, title={title}")
-        session = self.session_repository.create(user_id=user_id, workspace_id=workspace_id, title=title, rag_type=rag_type)
-        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}, workspace_id={workspace_id}")
+        logger.info(
+            f"Creating chat session: user_id={user_id}, workspace_id={workspace_id}, rag_type={rag_type}, title={title}"
+        )
+        session = self.session_repository.create(
+            user_id=user_id, workspace_id=workspace_id, title=title, rag_type=rag_type
+        )
+        logger.info(
+            f"Chat session created: session_id={session.id}, user_id={user_id}, workspace_id={workspace_id}"
+        )
         return session
 
-    def get_session_by_id(self, session_id: int) -> Optional[ChatSession]:
+    def get_session_by_id(self, session_id: int) -> ChatSession | None:
         """Get chat session by ID."""
         return self.session_repository.get_by_id(session_id)
 
@@ -164,7 +169,7 @@ class ChatService:
         """List all chat sessions for a workspace with pagination."""
         return self.session_repository.get_by_workspace(workspace_id, skip=skip, limit=limit)
 
-    def update_session(self, session_id: int, **kwargs: str) -> Optional[ChatSession]:
+    def update_session(self, session_id: int, **kwargs: str) -> ChatSession | None:
         """Update chat session fields."""
         return self.session_repository.update(session_id, **kwargs)
 
@@ -201,7 +206,7 @@ class ChatService:
 
         return message
 
-    def get_message_by_id(self, message_id: int) -> Optional[ChatMessage]:
+    def get_message_by_id(self, message_id: int) -> ChatMessage | None:
         """Get chat message by ID."""
         return self.message_repository.get_by_id(message_id)
 
@@ -233,7 +238,11 @@ class ChatService:
         return self.message_repository.delete(message_id)
 
     def get_or_create_session(
-        self, user_id: int, workspace_id: int | None = None, session_id: int | None = None, first_message: str | None = None
+        self,
+        user_id: int,
+        workspace_id: int | None = None,
+        session_id: int | None = None,
+        first_message: str | None = None,
     ) -> ChatSession:
         """
         Get existing session or create a new one.
@@ -253,7 +262,9 @@ class ChatService:
                 return session
 
         # Create new session
-        return self.create_session(user_id=user_id, workspace_id=workspace_id, first_message=first_message)
+        return self.create_session(
+            user_id=user_id, workspace_id=workspace_id, first_message=first_message
+        )
 
     def process_chat_message(
         self,
@@ -307,7 +318,7 @@ class ChatService:
             session_id=session_id,
             rag_type=rag_type,
             ignore_rag=False,
-            top_k=8
+            top_k=8,
         )
 
         # Convert DTO to response object
@@ -413,22 +424,34 @@ class ChatService:
                 try:
                     # Query RAG system for relevant context, filtered by workspace
                     workspace_id = session.workspace_id
-                    rag_results = self._rag_system.query(message, workspace_id=workspace_id, top_k=8)
+                    rag_results = self._rag_system.query(
+                        message, workspace_id=workspace_id, top_k=8
+                    )
                     if rag_results:
                         # Check if we have meaningful context
-                        meaningful_context = [result for result in rag_results if result.score > 0.1]
+                        meaningful_context = [
+                            result for result in rag_results if result.score > 0.1
+                        ]
                         if meaningful_context:
-                            context_str = "\n\n".join([
-                                f"[{i+1}] {result.chunk.text}"
-                                for i, result in enumerate(meaningful_context)
-                            ])
+                            context_str = "\n\n".join(
+                                [
+                                    f"[{i+1}] {result.chunk.text}"
+                                    for i, result in enumerate(meaningful_context)
+                                ]
+                            )
                             system_message = f"Use the following context to answer the user's question:\n{context_str}"
-                            enhanced_history.insert(0, {"role": "system", "content": system_message})
+                            enhanced_history.insert(
+                                0, {"role": "system", "content": system_message}
+                            )
                             rag_context_found = True
-                            logger.debug(f"RAG context added for streaming: session_id={session.id}, chunks={len(meaningful_context)}")
+                            logger.debug(
+                                f"RAG context added for streaming: session_id={session.id}, chunks={len(meaningful_context)}"
+                            )
                         else:
                             # No meaningful context found - will emit no_context_found event
-                            logger.debug(f"No meaningful RAG context found for streaming: session_id={session.id}")
+                            logger.debug(
+                                f"No meaningful RAG context found for streaming: session_id={session.id}"
+                            )
                     else:
                         logger.debug(f"No RAG results found for streaming: session_id={session.id}")
                 except Exception as e:
@@ -442,9 +465,11 @@ class ChatService:
                     session_id=session.id,
                     user_id=user_id,
                     query=message,
-                    request_id=request_id or ""
+                    request_id=request_id or "",
                 )
-                logger.info(f"No context found for query: session_id={session.id}, query='{message[:50]}...', stored for auto-retry")
+                logger.info(
+                    f"No context found for query: session_id={session.id}, query='{message[:50]}...', stored for auto-retry"
+                )
 
             # Stream LLM response
             logger.debug(f"Starting LLM streaming: session_id={session.id}")
@@ -468,7 +493,9 @@ class ChatService:
                     yield StreamEvent.chunk(chunk)
             except AttributeError:
                 # If chat_stream is not available, fall back to regular chat
-                logger.warning("LLM provider does not support streaming, falling back to regular chat")
+                logger.warning(
+                    "LLM provider does not support streaming, falling back to regular chat"
+                )
                 full_response = llm_provider.chat(message, enhanced_history)
                 # Yield the full response as a single chunk
                 yield StreamEvent.chunk(full_response)
@@ -540,7 +567,7 @@ class ChatService:
             temp_session = self.create_session(
                 user_id=user_id,
                 workspace_id=workspace_id,
-                title=f"WebSocket Session - {content[:50]}..."
+                title=f"WebSocket Session - {content[:50]}...",
             )
             actual_session_id = temp_session.id
         else:
@@ -570,7 +597,7 @@ class ChatService:
 
         try:
             # Get message publisher from context
-            message_publisher = getattr(self, '_message_publisher', None)
+            message_publisher = getattr(self, "_message_publisher", None)
             if message_publisher:
                 event_data = {
                     "message_id": str(user_message.id),
@@ -593,10 +620,13 @@ class ChatService:
                     f"message_id={user_message.id}, request_id={event_data['request_id']}"
                 )
             else:
-                logger.warning("Message publisher not available, falling back to synchronous processing")
+                logger.warning(
+                    "Message publisher not available, falling back to synchronous processing"
+                )
 
                 # Fallback to synchronous processing if message publisher is not available
                 from src.context import create_llm
+
                 llm_provider = create_llm()
 
                 response_dto = self.process_chat_message_with_llm(
@@ -606,7 +636,7 @@ class ChatService:
                     session_id=session_id,
                     rag_type="vector",
                     ignore_rag=ignore_rag,
-                    top_k=8
+                    top_k=8,
                 )
 
                 logger.info(
@@ -706,12 +736,14 @@ class ChatService:
             try:
                 # Query RAG system for relevant context, filtered by workspace
                 workspace_id = session.workspace_id
-                rag_results = self._rag_system.query(message, workspace_id=workspace_id, top_k=top_k)
+                rag_results = self._rag_system.query(
+                    message, workspace_id=workspace_id, top_k=top_k
+                )
                 context_chunks = [
                     ContextChunk(
                         text=result.chunk.text,
                         score=result.score,
-                        metadata=result.chunk.metadata or {}
+                        metadata=result.chunk.metadata or {},
                     )
                     for result in rag_results
                 ]
@@ -720,7 +752,9 @@ class ChatService:
                 meaningful_context = [chunk for chunk in context_chunks if chunk.score > 0.1]
                 rag_context_found = len(meaningful_context) > 0
 
-                logger.debug(f"RAG context retrieved: session_id={session.id}, chunks={len(context_chunks)}, meaningful={len(meaningful_context)}")
+                logger.debug(
+                    f"RAG context retrieved: session_id={session.id}, chunks={len(context_chunks)}, meaningful={len(meaningful_context)}"
+                )
             except Exception as e:
                 logger.warning(f"RAG retrieval failed: {e}")
                 context_chunks = []
@@ -729,11 +763,12 @@ class ChatService:
         # Format context for LLM if available
         enhanced_history = conversation_history.copy()
         if context_chunks:
-            context_str = "\n\n".join([
-                f"[{i+1}] {chunk.text}"
-                for i, chunk in enumerate(context_chunks)
-            ])
-            system_message = f"Use the following context to answer the user's question:\n{context_str}"
+            context_str = "\n\n".join(
+                [f"[{i+1}] {chunk.text}" for i, chunk in enumerate(context_chunks)]
+            )
+            system_message = (
+                f"Use the following context to answer the user's question:\n{context_str}"
+            )
             enhanced_history.insert(0, {"role": "system", "content": system_message})
 
         # Generate LLM response
@@ -801,7 +836,7 @@ class ChatService:
             }
 
             # Store in instance cache (in production, use Redis/database)
-            if not hasattr(self, '_pending_queries'):
+            if not hasattr(self, "_pending_queries"):
                 self._pending_queries = {}
             self._pending_queries[cache_key] = pending_data
 
@@ -814,7 +849,7 @@ class ChatService:
         """
         Get pending RAG queries for a workspace and user.
         """
-        if not hasattr(self, '_pending_queries'):
+        if not hasattr(self, "_pending_queries"):
             return []
 
         cache_key = f"pending_rag_query:{workspace_id}:{user_id}"
@@ -825,7 +860,7 @@ class ChatService:
         """
         Clear pending RAG queries after successful auto-retry.
         """
-        if hasattr(self, '_pending_queries'):
+        if hasattr(self, "_pending_queries"):
             cache_key = f"pending_rag_query:{workspace_id}:{user_id}"
             self._pending_queries.pop(cache_key, None)
 
@@ -854,7 +889,7 @@ class ChatService:
                     session_id=pending["session_id"],
                     rag_type="vector",
                     ignore_rag=False,
-                    top_k=8
+                    top_k=8,
                 )
 
                 # If we got a response with context, clear the pending query
@@ -872,7 +907,7 @@ class ChatService:
         context_chunks: list[ContextChunk],
         conversation_history: list[dict],
         llm_provider: LlmProvider,
-        rag_context_found: bool
+        rag_context_found: bool,
     ) -> str:
         """
         Generate a response using the LLM with optional RAG context.
@@ -932,7 +967,7 @@ Guidelines:
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 max_tokens=1000,
-                temperature=0.7
+                temperature=0.7,
             )
 
             return response.strip()

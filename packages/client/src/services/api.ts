@@ -12,18 +12,7 @@ import type {
     UpdateRagConfigRequest,
     VectorRagConfig,
     GraphRagConfig,
-    User,
-    AuthResponse,
-    LoginRequest,
-    SignupRequest,
-    Document,
-    UploadResponse,
-    DocumentsListResponse,
-    ChatSession,
-    ChatMessage,
     ChatRequest,
-    ChatResponse,
-    HealthResponse,
 } from '@insighthub/shared-typescript';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';

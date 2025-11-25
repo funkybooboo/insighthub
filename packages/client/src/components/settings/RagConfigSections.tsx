@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '../ui/button';
 
 interface EmbeddingConfigSectionProps {
     config: {
@@ -10,7 +9,7 @@ interface EmbeddingConfigSectionProps {
 
 export const EmbeddingConfigSection: React.FC<EmbeddingConfigSectionProps> = ({
     config,
-    onChange
+    onChange,
 }) => (
     <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -47,7 +46,7 @@ interface RetrieverConfigSectionProps {
 
 export const RetrieverConfigSection: React.FC<RetrieverConfigSectionProps> = ({
     config,
-    onChange
+    onChange,
 }) => (
     <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -83,7 +82,7 @@ interface ChunkingConfigSectionProps {
 
 export const ChunkingConfigSection: React.FC<ChunkingConfigSectionProps> = ({
     config,
-    onChange
+    onChange,
 }) => (
     <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -136,7 +135,7 @@ interface RetrievalConfigSectionProps {
 
 export const RetrievalConfigSection: React.FC<RetrievalConfigSectionProps> = ({
     config,
-    onChange
+    onChange,
 }) => (
     <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -171,7 +170,7 @@ interface RerankingConfigSectionProps {
 
 export const RerankingConfigSection: React.FC<RerankingConfigSectionProps> = ({
     config,
-    onChange
+    onChange,
 }) => (
     <div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">

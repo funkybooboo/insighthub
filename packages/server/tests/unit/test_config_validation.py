@@ -1,7 +1,8 @@
 """Unit tests for configuration validation."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from src.config import validate_config
 
@@ -19,66 +20,84 @@ class TestConfigurationValidation:
 
     def test_validate_config_invalid_flask_port(self) -> None:
         """Test validation fails with invalid Flask port."""
-        with patch('src.config.FLASK_PORT', 1023):  # Below minimum
-            with pytest.raises(ValueError, match="FLASK_PORT must be between 1024 and 65535"):
-                validate_config()
+        with (
+            patch("src.config.FLASK_PORT", 1023),
+            pytest.raises(ValueError, match="FLASK_PORT must be between 1024 and 65535"),
+        ):
+            validate_config()
 
     def test_validate_config_missing_database_url(self) -> None:
         """Test validation fails with missing database URL."""
-        with patch('src.config.DATABASE_URL', ''):
-            with pytest.raises(ValueError, match="DATABASE_URL is required"):
-                validate_config()
+        with (
+            patch("src.config.DATABASE_URL", ""),
+            pytest.raises(ValueError, match="DATABASE_URL is required"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_jwt_secret(self) -> None:
         """Test validation fails with invalid JWT secret."""
-        with patch('src.config.JWT_SECRET_KEY', 'short'):
-            with pytest.raises(ValueError, match="JWT_SECRET_KEY must be at least 32 characters"):
-                validate_config()
+        with (
+            patch("src.config.JWT_SECRET_KEY", "short"),
+            pytest.raises(ValueError, match="JWT_SECRET_KEY must be at least 32 characters"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_jwt_expire(self) -> None:
         """Test validation fails with invalid JWT expiration."""
-        with patch('src.config.JWT_EXPIRE_MINUTES', 30):  # Below minimum
-            with pytest.raises(ValueError, match="JWT_EXPIRE_MINUTES must be between 60 and 1440"):
-                validate_config()
+        with (
+            patch("src.config.JWT_EXPIRE_MINUTES", 30),
+            pytest.raises(ValueError, match="JWT_EXPIRE_MINUTES must be between 60 and 1440"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_rate_limits(self) -> None:
         """Test validation fails with invalid rate limits."""
-        with patch('src.config.RATE_LIMIT_PER_MINUTE', 0):
-            with pytest.raises(ValueError, match="RATE_LIMIT_PER_MINUTE must be between 1 and 1000"):
-                validate_config()
+        with (
+            patch("src.config.RATE_LIMIT_PER_MINUTE", 0),
+            pytest.raises(ValueError, match="RATE_LIMIT_PER_MINUTE must be between 1 and 1000"),
+        ):
+            validate_config()
 
-        with patch('src.config.RATE_LIMIT_PER_HOUR', 20000):  # Above maximum
-            with pytest.raises(ValueError, match="RATE_LIMIT_PER_HOUR must be between 10 and 10000"):
-                validate_config()
+        with (
+            patch("src.config.RATE_LIMIT_PER_HOUR", 20000),
+            pytest.raises(ValueError, match="RATE_LIMIT_PER_HOUR must be between 10 and 10000"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_redis_url(self) -> None:
         """Test validation fails with invalid Redis URL."""
-        with patch('src.config.REDIS_URL', 'invalid://url'):
-            with pytest.raises(ValueError, match="REDIS_URL must start with"):
-                validate_config()
+        with (
+            patch("src.config.REDIS_URL", "invalid://url"),
+            pytest.raises(ValueError, match="REDIS_URL must start with"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_llm_provider(self) -> None:
         """Test validation fails with invalid LLM provider."""
-        with patch('src.config.LLM_PROVIDER', 'invalid_provider'):
-            with pytest.raises(ValueError, match="LLM_PROVIDER must be one of"):
-                validate_config()
+        with (
+            patch("src.config.LLM_PROVIDER", "invalid_provider"),
+            pytest.raises(ValueError, match="LLM_PROVIDER must be one of"),
+        ):
+            validate_config()
 
     def test_validate_config_invalid_log_level(self) -> None:
         """Test validation fails with invalid log level."""
-        with patch('src.config.LOG_LEVEL', 'INVALID'):
-            with pytest.raises(ValueError, match="LOG_LEVEL must be one of"):
-                validate_config()
+        with (
+            patch("src.config.LOG_LEVEL", "INVALID"),
+            pytest.raises(ValueError, match="LOG_LEVEL must be one of"),
+        ):
+            validate_config()
 
     def test_validate_config_valid_redis_url(self) -> None:
         """Test validation accepts valid Redis URLs."""
         valid_urls = [
-            'redis://localhost:6379',
-            'rediss://secure-host:6379',
-            'unix:///tmp/redis.sock'
+            "redis://localhost:6379",
+            "rediss://secure-host:6379",
+            "unix:///tmp/redis.sock",
         ]
 
         for url in valid_urls:
-            with patch('src.config.REDIS_URL', url):
+            with patch("src.config.REDIS_URL", url):
                 # Should not raise an exception
                 try:
                     validate_config()
@@ -88,7 +107,7 @@ class TestConfigurationValidation:
 
     def test_validate_config_empty_redis_url_allowed(self) -> None:
         """Test validation allows empty Redis URL (optional)."""
-        with patch('src.config.REDIS_URL', ''):
+        with patch("src.config.REDIS_URL", ""):
             # Should not raise an exception for Redis URL
             try:
                 validate_config()

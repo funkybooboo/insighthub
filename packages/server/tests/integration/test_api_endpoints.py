@@ -1,4 +1,5 @@
-""Placeholder: integration endpoints scaffold (sanity check)."""
+"""Placeholder: integration endpoints scaffold (sanity check)."""
 
-def test_placeholder():
+
+def test_placeholder() -> None:
     assert True

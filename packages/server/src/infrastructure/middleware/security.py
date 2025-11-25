@@ -39,7 +39,7 @@ class SecurityHeadersMiddleware:
         # Allow connections to configured CORS origins for WebSocket and API calls
         connect_src = "'self'"
         if config.CORS_ORIGINS != "*":
-            connect_src += " " + " ".join(config.CORS_ORIGINS.split(","))
+            connect_src += " " + " ".join(config.CORS_ORIGINS)
         else:
             # In development, allow connections to common localhost ports
             connect_src += " http://localhost:* ws://localhost:* wss://localhost:*"

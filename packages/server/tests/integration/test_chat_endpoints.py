@@ -1,7 +1,6 @@
 """Integration tests for chat endpoints."""
 
 import json
-from typing import Any
 
 from flask.testing import FlaskClient
 
@@ -11,14 +10,14 @@ def test_send_chat_message_success(client: FlaskClient, auth_token: str) -> None
     message_data = {
         "content": "What is machine learning?",
         "message_type": "user",
-        "ignore_rag": False
+        "ignore_rag": False,
     }
 
     response = client.post(
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 200
@@ -35,7 +34,7 @@ def test_send_chat_message_missing_content(client: FlaskClient, auth_token: str)
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -51,7 +50,7 @@ def test_send_chat_message_empty_content(client: FlaskClient, auth_token: str) -
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -68,7 +67,7 @@ def test_send_chat_message_too_long(client: FlaskClient, auth_token: str) -> Non
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -84,7 +83,7 @@ def test_send_chat_message_invalid_type(client: FlaskClient, auth_token: str) ->
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -99,7 +98,7 @@ def test_send_chat_message_unauthorized(client: FlaskClient) -> None:
     response = client.post(
         "/api/workspaces/1/chat/sessions/1/messages",
         data=json.dumps(message_data),
-        content_type="application/json"
+        content_type="application/json",
     )
 
     assert response.status_code == 401
@@ -113,7 +112,7 @@ def test_cancel_chat_message_success(client: FlaskClient, auth_token: str) -> No
         "/api/workspaces/1/chat/sessions/1/cancel",
         data=json.dumps(cancel_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 200
@@ -124,8 +123,7 @@ def test_cancel_chat_message_success(client: FlaskClient, auth_token: str) -> No
 def test_cancel_chat_message_unauthorized(client: FlaskClient) -> None:
     """Test cancelling message without authentication."""
     response = client.post(
-        "/api/workspaces/1/chat/sessions/1/cancel",
-        content_type="application/json"
+        "/api/workspaces/1/chat/sessions/1/cancel", content_type="application/json"
     )
 
     assert response.status_code == 401
@@ -139,7 +137,7 @@ def test_create_chat_session_success(client: FlaskClient, auth_token: str) -> No
         "/api/workspaces/1/chat/sessions",
         data=json.dumps(session_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
@@ -154,7 +152,7 @@ def test_create_chat_session_no_title(client: FlaskClient, auth_token: str) -> N
     response = client.post(
         "/api/workspaces/1/chat/sessions",
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
@@ -172,7 +170,7 @@ def test_create_chat_session_title_too_long(client: FlaskClient, auth_token: str
         "/api/workspaces/1/chat/sessions",
         data=json.dumps(session_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -187,7 +185,7 @@ def test_create_chat_session_unauthorized(client: FlaskClient) -> None:
     response = client.post(
         "/api/workspaces/1/chat/sessions",
         data=json.dumps(session_data),
-        content_type="application/json"
+        content_type="application/json",
     )
 
     assert response.status_code == 401
@@ -196,8 +194,7 @@ def test_create_chat_session_unauthorized(client: FlaskClient) -> None:
 def test_list_chat_sessions_success(client: FlaskClient, auth_token: str) -> None:
     """Test successful chat session listing."""
     response = client.get(
-        "/api/workspaces/1/chat/sessions",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 200
@@ -215,8 +212,7 @@ def test_list_chat_sessions_unauthorized(client: FlaskClient) -> None:
 def test_delete_chat_session_success(client: FlaskClient, auth_token: str) -> None:
     """Test successful chat session deletion."""
     response = client.delete(
-        "/api/workspaces/1/chat/sessions/1",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/1", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 200
@@ -227,8 +223,7 @@ def test_delete_chat_session_success(client: FlaskClient, auth_token: str) -> No
 def test_delete_chat_session_not_found(client: FlaskClient, auth_token: str) -> None:
     """Test deleting non-existent chat session."""
     response = client.delete(
-        "/api/workspaces/1/chat/sessions/999",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/999", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 404
@@ -246,8 +241,7 @@ def test_delete_chat_session_unauthorized(client: FlaskClient) -> None:
 def test_get_chat_session_success(client: FlaskClient, auth_token: str) -> None:
     """Test successful chat session retrieval."""
     response = client.get(
-        "/api/workspaces/1/chat/sessions/1",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/1", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 200
@@ -260,8 +254,7 @@ def test_get_chat_session_success(client: FlaskClient, auth_token: str) -> None:
 def test_get_chat_session_not_found(client: FlaskClient, auth_token: str) -> None:
     """Test getting non-existent chat session."""
     response = client.get(
-        "/api/workspaces/1/chat/sessions/999",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/999", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 404
@@ -284,7 +277,7 @@ def test_update_chat_session_success(client: FlaskClient, auth_token: str) -> No
         "/api/workspaces/1/chat/sessions/1",
         data=json.dumps(update_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 200
@@ -301,7 +294,7 @@ def test_update_chat_session_invalid_title(client: FlaskClient, auth_token: str)
         "/api/workspaces/1/chat/sessions/1",
         data=json.dumps(update_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -316,7 +309,7 @@ def test_update_chat_session_unauthorized(client: FlaskClient) -> None:
     response = client.patch(
         "/api/workspaces/1/chat/sessions/1",
         data=json.dumps(update_data),
-        content_type="application/json"
+        content_type="application/json",
     )
 
     assert response.status_code == 401
@@ -327,8 +320,7 @@ def test_list_chat_sessions_workspace_filtering(client: FlaskClient, auth_token:
     # First create sessions in different workspaces
     # This would require setting up test data, but for now we'll just test the endpoint exists
     response = client.get(
-        "/api/workspaces/1/chat/sessions",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 200
@@ -344,7 +336,7 @@ def test_create_session_workspace_association(client: FlaskClient, auth_token: s
         "/api/workspaces/2/chat/sessions",  # Different workspace
         data=json.dumps(session_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
@@ -356,8 +348,7 @@ def test_get_session_workspace_validation(client: FlaskClient, auth_token: str) 
     """Test that getting a session validates workspace ownership."""
     # Try to get a session that might belong to a different workspace
     response = client.get(
-        "/api/workspaces/1/chat/sessions/1",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/1", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     # Should either succeed (if session belongs to workspace) or return 404
@@ -372,7 +363,7 @@ def test_update_session_workspace_validation(client: FlaskClient, auth_token: st
         "/api/workspaces/1/chat/sessions/1",
         data=json.dumps(update_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     # Should either succeed or return 404 (depending on whether session exists in workspace)
@@ -382,8 +373,7 @@ def test_update_session_workspace_validation(client: FlaskClient, auth_token: st
 def test_delete_session_workspace_validation(client: FlaskClient, auth_token: str) -> None:
     """Test that deleting a session validates workspace ownership."""
     response = client.delete(
-        "/api/workspaces/1/chat/sessions/1",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/chat/sessions/1", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     # Should either succeed or return 404

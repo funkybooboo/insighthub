@@ -1,7 +1,5 @@
 """Integration tests for health endpoints."""
 
-import pytest
-from flask import Flask
 from flask.testing import FlaskClient
 
 
@@ -86,7 +84,7 @@ class TestHealthEndpoints:
         data = response.get_json()
         checks = data["checks"]
 
-        for check_name, check_data in checks.items():
+        for _check_name, check_data in checks.items():
             assert "status" in check_data
             assert check_data["status"] in ["healthy", "unhealthy", "warning"]
             assert "message" in check_data

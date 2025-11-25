@@ -1,13 +1,10 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Cypress
+cypress/videos
+cypress/screenshots
+cypress/downloads
+cypress.env.json
 
-node_modules
+# Vite
 dist
 dist-ssr
 *.local
@@ -23,5 +20,29 @@ dist-ssr
 *.sln
 *.sw?
 
-*storybook.log
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage
+.nyc_output
+
+# Storybook
 storybook-static
+
+# Dependencies
+node_modules
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Trivy
+trivy-report.json

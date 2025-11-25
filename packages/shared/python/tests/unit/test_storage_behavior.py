@@ -6,7 +6,6 @@ not HOW it does it (implementation details).
 """
 
 from io import BytesIO
-from typing import Optional
 
 from shared.storage import BlobStorageType, InMemoryBlobStorage, create_blob_storage
 

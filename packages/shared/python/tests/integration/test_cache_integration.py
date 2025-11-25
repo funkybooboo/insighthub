@@ -5,7 +5,6 @@ These tests verify that cache implementations work correctly together
 with the factory and other components.
 """
 
-import pytest
 
 from shared.cache.cache import Cache
 from shared.cache.factory import create_cache

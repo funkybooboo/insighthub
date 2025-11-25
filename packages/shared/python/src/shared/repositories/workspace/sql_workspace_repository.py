@@ -4,6 +4,7 @@ from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models.workspace import RagConfig, Workspace
+
 from .workspace_repository import WorkspaceRepository
 
 

@@ -1,18 +1,5 @@
 # Re-export shared config for backward compatibility
-from shared.config import (
-    AppConfig,
-    DatabaseConfig,
-    RedisConfig,
-    LLMConfig,
-    SecurityConfig,
-    WorkerConfig,
-    StorageConfig,
-    VectorStoreConfig,
-    GraphStoreConfig,
-    Environment,
-    config,
-    load_config,
-)
+from shared.config import config
 
 # Backward compatibility - expose individual config values
 # These can be removed once all code is updated to use config.*

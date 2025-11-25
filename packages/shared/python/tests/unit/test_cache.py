@@ -6,15 +6,12 @@ provide consistent caching behavior for key-value storage operations.
 """
 
 import time
-from typing import Optional
 
 import pytest
 
-from shared.cache.cache import Cache
 from shared.cache.factory import CacheType, create_cache
 from shared.cache.in_memory_cache import InMemoryCache
 from shared.cache.noop_cache import NoOpCache
-
 
 
 class TestInMemoryCacheBehavior:

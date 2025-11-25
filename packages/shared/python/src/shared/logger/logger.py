@@ -125,9 +125,7 @@ class SecretsFilter(logging.Filter):
             record.msg = self._redact_secrets_from_str(str(record.msg))
 
         if record.args:
-            record.args = tuple(
-                self._redact_secrets(arg) for arg in record.args
-            )
+            record.args = tuple(self._redact_secrets(arg) for arg in record.args)
         return True
 
     def _redact_secrets(self, data: any) -> any:

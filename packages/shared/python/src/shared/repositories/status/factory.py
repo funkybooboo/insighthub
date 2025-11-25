@@ -3,6 +3,7 @@
 from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
+
 from .sql_status_repository import SqlStatusRepository
 from .status_repository import StatusRepository
 

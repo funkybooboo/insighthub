@@ -7,7 +7,6 @@ and integrate with other components.
 
 from datetime import datetime
 
-import pytest
 
 from shared.models.chat import ChatMessage, ChatSession
 from shared.models.document import Document
@@ -165,8 +164,12 @@ class TestChatSessionAndMessageIntegration:
         session1 = ChatSession(id=1, user_id=1)
         session2 = ChatSession(id=2, user_id=1)
 
-        msg1 = ChatMessage(id=1, session_id=session1.id, role="user", content="Message in session 1")
-        msg2 = ChatMessage(id=2, session_id=session2.id, role="user", content="Message in session 2")
+        msg1 = ChatMessage(
+            id=1, session_id=session1.id, role="user", content="Message in session 1"
+        )
+        msg2 = ChatMessage(
+            id=2, session_id=session2.id, role="user", content="Message in session 2"
+        )
 
         assert msg1.session_id != msg2.session_id
 
@@ -217,7 +220,15 @@ class TestModelTimestamps:
     def test_all_models_have_timestamps(self) -> None:
         """All models have created_at and updated_at timestamps."""
         user = User(username="test", email="test@test.com", password_hash="hash")
-        doc = Document(id=1, user_id=1, filename="f", file_path="p", file_size=1, mime_type="t", content_hash="h")
+        doc = Document(
+            id=1,
+            user_id=1,
+            filename="f",
+            file_path="p",
+            file_size=1,
+            mime_type="t",
+            content_hash="h",
+        )
         workspace = Workspace(user_id=1, name="ws")
         config = RagConfig(workspace_id=1)
         session = ChatSession(id=1, user_id=1)

@@ -1,6 +1,6 @@
 """Graph RAG orchestrator for indexing and querying documents."""
 
-from typing import List, BinaryIO
+from typing import BinaryIO, List
 
 from shared.database.graph.graph_store import GraphStore
 from shared.documents.parsing.document_parser import DocumentParser

@@ -1,10 +1,8 @@
-""Workspace endpoints access control scaffold tests"""
+"""Workspace endpoints access control scaffold tests"""
 
-import json
-
-import pytest
 from io import BytesIO
 
+import pytest
 from flask import Flask
 from flask.testing import FlaskClient
 
@@ -25,7 +23,9 @@ def client(app: Flask) -> FlaskClient:
 
 def test_workspace_upload_requires_auth(client: FlaskClient) -> None:
     data = {"file": (BytesIO(b"data"), "doc.txt", "text/plain")}
-    resp = client.post("/api/workspaces/1/documents/upload", data=data, content_type="multipart/form-data")
+    resp = client.post(
+        "/api/workspaces/1/documents/upload", data=data, content_type="multipart/form-data"
+    )
     assert resp.status_code in (401, 403)
 
 

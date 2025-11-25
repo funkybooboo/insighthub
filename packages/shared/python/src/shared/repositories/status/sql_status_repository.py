@@ -5,6 +5,7 @@ from typing import Optional
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
 from shared.models import Document, Workspace
 from shared.types.status import DocumentProcessingStatus, WorkspaceStatus
+
 from .status_repository import StatusRepository
 
 

@@ -51,11 +51,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError }) => (
                 <Button onClick={() => window.location.reload()} className="flex-1">
                     Refresh Page
                 </Button>
-                <Button
-                    variant="outline"
-                    onClick={resetError}
-                    className="flex-1"
-                >
+                <Button variant="outline" onClick={resetError} className="flex-1">
                     Try Again
                 </Button>
             </div>
@@ -70,7 +66,7 @@ interface ErrorBoundaryProps {
 
 const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({
     children,
-    fallback: Fallback = ErrorFallback
+    fallback: Fallback = ErrorFallback,
 }) => {
     const [error, setError] = useState<Error | null>(null);
 
@@ -89,7 +85,8 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({
         };
 
         const rejectionHandler = (event: PromiseRejectionEvent) => {
-            const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+            const error =
+                event.reason instanceof Error ? event.reason : new Error(String(event.reason));
             handleError(error, { componentStack: '' });
         };
 

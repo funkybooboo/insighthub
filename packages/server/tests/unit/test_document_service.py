@@ -1,18 +1,13 @@
 """Unit tests for DocumentService."""
 
-import hashlib
 import io
 from datetime import datetime
-from typing import BinaryIO, Optional
 from unittest.mock import Mock, patch
 
 import pytest
 from shared.models import Document
 from shared.repositories import DocumentRepository
-from shared.storage import BlobStorage
-from shared.storage.blob_storage import BlobStorageError
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
-from shared.types.result import Err, Ok, Result
 
 from src.domains.workspaces.documents.exceptions import (
     DocumentNotFoundError,
@@ -20,9 +15,6 @@ from src.domains.workspaces.documents.exceptions import (
     InvalidFileTypeError,
 )
 from src.domains.workspaces.documents.service import DocumentService
-
-
-
 
 
 class FakeDocumentRepository(DocumentRepository):
@@ -64,11 +56,11 @@ class FakeDocumentRepository(DocumentRepository):
         self.next_id += 1
         return doc
 
-    def get_by_id(self, document_id: int) -> Optional[Document]:
+    def get_by_id(self, document_id: int) -> Document | None:
         """Get document by ID."""
         return self.documents.get(document_id)
 
-    def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
+    def get_by_content_hash(self, content_hash: str) -> Document | None:
         """Get document by content hash."""
         for doc in self.documents.values():
             if doc.content_hash == content_hash:
@@ -80,7 +72,7 @@ class FakeDocumentRepository(DocumentRepository):
         user_docs = [doc for doc in self.documents.values() if doc.user_id == user_id]
         return user_docs[skip : skip + limit]
 
-    def update(self, document_id: int, **kwargs: str | int | None) -> Optional[Document]:
+    def update(self, document_id: int, **kwargs: str | int | None) -> Document | None:
         """Update document fields."""
         doc = self.documents.get(document_id)
         if not doc:
@@ -104,7 +96,6 @@ class FakeDocumentRepository(DocumentRepository):
 def fake_repository() -> FakeDocumentRepository:
     """Provide a fake repository."""
     return FakeDocumentRepository()
-
 
     @pytest.fixture
     def fake_storage() -> InMemoryBlobStorage:
@@ -247,8 +238,6 @@ class TestDocumentUpload:
 
         assert document.chunk_count == 5
         assert document.rag_collection == "test_collection"
-
-
 
 
 class TestProcessDocumentUpload:
@@ -569,7 +558,9 @@ class TestWorkspaceDocumentOperations:
             user_id=1, filename="test.txt", file_obj=file_obj, mime_type="text/plain"
         )
 
-        with patch('src.domains.workspaces.documents.service.publish_document_status') as mock_publish:
+        with patch(
+            "src.domains.workspaces.documents.service.publish_document_status"
+        ) as mock_publish:
             result = service.update_document_status(
                 document_id=doc.id,
                 status="ready",
@@ -589,7 +580,7 @@ class TestWorkspaceDocumentOperations:
 
     def test_fetch_wikipedia_article_success(self, service: DocumentService) -> None:
         """Test successful Wikipedia article fetching."""
-        with patch('src.domains.workspaces.documents.service.requests.get') as mock_get:
+        with patch("src.domains.workspaces.documents.service.requests.get") as mock_get:
             # Mock successful API response
             mock_response = Mock()
             mock_response.raise_for_status.return_value = None
@@ -612,7 +603,7 @@ class TestWorkspaceDocumentOperations:
 
     def test_fetch_wikipedia_article_api_failure(self, service: DocumentService) -> None:
         """Test Wikipedia fetching when API fails."""
-        with patch('src.domains.workspaces.documents.service.requests.get') as mock_get:
+        with patch("src.domains.workspaces.documents.service.requests.get") as mock_get:
             mock_get.side_effect = Exception("API error")
 
             result = service.fetch_wikipedia_article(

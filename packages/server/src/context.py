@@ -12,18 +12,16 @@ from shared.repositories import (
     SqlChatSessionRepository,
     SqlDefaultRagConfigRepository,
     SqlDocumentRepository,
-    SqlRagConfigRepository,
-    SqlUserRepository,
     SqlWorkspaceRepository,
+    UserRepository,
 )
 from shared.storage import BlobStorage, FileSystemBlobStorage, S3BlobStorage
 
 from src import config
+from src.domains.auth.service import UserService
 from src.domains.workspaces.chat.service import ChatService
 from src.domains.workspaces.documents.service import DocumentService
 from src.domains.workspaces.rag_config.service import RagConfigService
-from src.domains.auth.service import UserService
-from shared.repositories import UserRepository
 from src.domains.workspaces.service import WorkspaceService
 
 
@@ -88,17 +86,23 @@ def create_llm() -> LlmProvider:
 def create_message_publisher() -> RabbitMQPublisher | None:
     """Create message publisher from config (None if not configured)."""
     # RabbitMQ is optional - return None if not configured
-    if not config.RABBITMQ_HOST:
-        return None
-
     try:
+        # Parse RabbitMQ URL to extract components
+        from urllib.parse import urlparse
+
+        parsed = urlparse(config.rabbitmq_url)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 5672
+        username = parsed.username or "guest"
+        password = parsed.password or "guest"
+
         publisher = RabbitMQPublisher(
-            host=config.RABBITMQ_HOST,
-            port=config.RABBITMQ_PORT,
-            username=config.RABBITMQ_USER,
-            password=config.RABBITMQ_PASS,
-            exchange=config.RABBITMQ_EXCHANGE,
-            exchange_type=config.RABBITMQ_EXCHANGE_TYPE,
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            exchange=config.rabbitmq_exchange,
+            exchange_type="topic",  # Default exchange type
         )
         publisher.connect()
         return publisher
@@ -117,6 +121,7 @@ def create_cache_instance():
     # Expected format: redis://[:password@]host:port/db
     try:
         from urllib.parse import urlparse
+
         parsed = urlparse(config.REDIS_URL)
 
         host = parsed.hostname or "localhost"
@@ -213,7 +218,7 @@ class AppContext:
         document_repo = SqlDocumentRepository(db)
         session_repo = SqlChatSessionRepository(db)
         message_repo = SqlChatMessageRepository(db)
-        workspace_repo = SqlWorkspaceRepository(db)
+        self.workspace_repository = SqlWorkspaceRepository(db)
         default_rag_config_repo = SqlDefaultRagConfigRepository(db)
 
         # Initialize services with dependency injection
@@ -228,16 +233,17 @@ class AppContext:
             message_repository=message_repo,
             rag_system=self.rag_system,
             message_publisher=self.message_publisher,
-            cache=self.cache
+            cache=self.cache,
         )
         self.workspace_service = WorkspaceService(
-            workspace_repo=workspace_repo,
+            workspace_repo=self.workspace_repository,
             message_publisher=self.message_publisher,
         )
 
-        # Initialize RAG config repository and service
-        rag_config_repo = SqlRagConfigRepository(db)
-        self.rag_config_service = RagConfigService(rag_config_repo, self.workspace_service)
+        # Initialize RAG config service (uses workspace repository)
+        self.rag_config_service = RagConfigService(
+            self.workspace_repository, self.workspace_service
+        )
 
         # Initialize repositories
         self.default_rag_config_repository = default_rag_config_repo

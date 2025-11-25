@@ -1,9 +1,9 @@
 """Unit tests for RAG config repository."""
 
-import pytest
-from unittest.mock import MagicMock, patch
 from datetime import datetime
+from unittest.mock import MagicMock, patch
 
+import pytest
 from shared.models.workspace import RagConfig
 from shared.repositories import SqlRagConfigRepository
 
@@ -53,9 +53,18 @@ class TestSqlRagConfigRepository:
         mock_db.get_connection.return_value.__enter__.return_value = mock_connection
         mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (
-            1, workspace_id, "nomic-embed-text", 768, "vector",
-            1000, 200, 8, False, None,
-            datetime(2025, 1, 1, 12, 0, 0), datetime(2025, 1, 1, 12, 0, 0)
+            1,
+            workspace_id,
+            "nomic-embed-text",
+            768,
+            "vector",
+            1000,
+            200,
+            8,
+            False,
+            None,
+            datetime(2025, 1, 1, 12, 0, 0),
+            datetime(2025, 1, 1, 12, 0, 0),
         )
 
         # Execute
@@ -92,18 +101,23 @@ class TestSqlRagConfigRepository:
         """Test creating RAG config successfully."""
         # Setup
         workspace_id = 123
-        config_data = {
-            "embedding_model": "custom-model",
-            "chunk_size": 1500,
-            "top_k": 10
-        }
+        config_data = {"embedding_model": "custom-model", "chunk_size": 1500, "top_k": 10}
 
         mock_db.get_connection.return_value.__enter__.return_value = mock_connection
         mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (
-            1, workspace_id, "custom-model", None, "vector",
-            1500, 200, 10, False, None,
-            datetime(2025, 1, 1, 12, 0, 0), datetime(2025, 1, 1, 12, 0, 0)
+            1,
+            workspace_id,
+            "custom-model",
+            None,
+            "vector",
+            1500,
+            200,
+            10,
+            False,
+            None,
+            datetime(2025, 1, 1, 12, 0, 0),
+            datetime(2025, 1, 1, 12, 0, 0),
         )
 
         # Execute
@@ -140,9 +154,18 @@ class TestSqlRagConfigRepository:
         mock_db.get_connection.return_value.__enter__.return_value = mock_connection
         mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
         mock_cursor.fetchone.return_value = (
-            1, workspace_id, "nomic-embed-text", None, "vector",
-            1200, 200, 12, False, None,
-            datetime(2025, 1, 1, 12, 0, 0), datetime(2025, 1, 1, 12, 0, 0)
+            1,
+            workspace_id,
+            "nomic-embed-text",
+            None,
+            "vector",
+            1200,
+            200,
+            12,
+            False,
+            None,
+            datetime(2025, 1, 1, 12, 0, 0),
+            datetime(2025, 1, 1, 12, 0, 0),
         )
 
         # Execute
@@ -160,14 +183,22 @@ class TestSqlRagConfigRepository:
         # Setup
         workspace_id = 123
         current_config = RagConfig(
-            id=1, workspace_id=workspace_id, embedding_model="nomic-embed-text",
-            embedding_dim=None, retriever_type="vector", chunk_size=1000,
-            chunk_overlap=200, top_k=8, rerank_enabled=False, rerank_model=None,
-            created_at=datetime(2025, 1, 1, 12, 0, 0), updated_at=datetime(2025, 1, 1, 12, 0, 0)
+            id=1,
+            workspace_id=workspace_id,
+            embedding_model="nomic-embed-text",
+            embedding_dim=None,
+            retriever_type="vector",
+            chunk_size=1000,
+            chunk_overlap=200,
+            top_k=8,
+            rerank_enabled=False,
+            rerank_model=None,
+            created_at=datetime(2025, 1, 1, 12, 0, 0),
+            updated_at=datetime(2025, 1, 1, 12, 0, 0),
         )
 
         # Mock get_by_workspace_id to return current config
-        with patch.object(repository, 'get_by_workspace_id', return_value=current_config):
+        with patch.object(repository, "get_by_workspace_id", return_value=current_config):
             # Execute
             result = repository.update(workspace_id)
 

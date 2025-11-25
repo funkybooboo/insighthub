@@ -6,8 +6,6 @@ import fnmatch
 import threading
 import time
 from types import TracebackType
-
-from shared.types.common import JsonValue
 from typing import Optional
 
 from shared.types.common import JsonValue

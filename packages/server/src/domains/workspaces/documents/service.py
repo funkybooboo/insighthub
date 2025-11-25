@@ -1,18 +1,16 @@
 """Document service implementation."""
 
 from dataclasses import dataclass
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 from pypdf import PdfReader
 from shared.messaging import RabbitMQPublisher, publish_document_status
-
-from .events import emit_wikipedia_fetch_status
 from shared.models import Document
 from shared.repositories import DocumentRepository
 from shared.storage import BlobStorage
-from shared.types.result import Err, Ok
 
 from .dtos import DocumentListResponse, DocumentUploadResponse
+from .events import emit_wikipedia_fetch_status
 from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
 from .mappers import DocumentMapper
 
@@ -159,8 +157,7 @@ class DocumentService:
             upload_result = self.blob_storage.upload_file(file_obj, blob_key)
             if not upload_result.is_ok():
                 raise DocumentProcessingError(
-                    filename,
-                    f"Failed to upload to blob storage: {upload_result.err()}"
+                    filename, f"Failed to upload to blob storage: {upload_result.err()}"
                 )
 
             # Create database record
@@ -177,10 +174,10 @@ class DocumentService:
 
             if not document:
                 # If database creation failed, try to clean up blob storage
-                try:
+                from contextlib import suppress
+
+                with suppress(Exception):
                     self.blob_storage.delete_file(blob_key)
-                except Exception:
-                    pass  # Ignore cleanup errors
                 raise DocumentProcessingError(filename, "Failed to create database record")
 
             return document
@@ -280,7 +277,7 @@ class DocumentService:
             is_duplicate=False,
         )
 
-    def download_document(self, document_id: int) -> Optional[bytes]:
+    def download_document(self, document_id: int) -> bytes | None:
         """
         Download document content from blob storage.
 
@@ -300,11 +297,11 @@ class DocumentService:
                 return None
         return None
 
-    def get_document_by_id(self, document_id: int) -> Optional[Document]:
+    def get_document_by_id(self, document_id: int) -> Document | None:
         """Get document by ID."""
         return self.repository.get_by_id(document_id)
 
-    def get_document_by_hash(self, content_hash: str) -> Optional[Document]:
+    def get_document_by_hash(self, content_hash: str) -> Document | None:
         """Get document by content hash."""
         return self.repository.get_by_content_hash(content_hash)
 
@@ -312,7 +309,7 @@ class DocumentService:
         """List all documents for a user with pagination."""
         return self.repository.get_by_user(user_id, skip=skip, limit=limit)
 
-    def update_document(self, document_id: int, **kwargs: str | int) -> Optional[Document]:
+    def update_document(self, document_id: int, **kwargs: str | int) -> Document | None:
         """Update document fields."""
         return self.repository.update(document_id, **kwargs)
 
@@ -469,18 +466,26 @@ class DocumentService:
             True if update was successful, False otherwise
         """
         # Validate status
-        valid_statuses = ['pending', 'parsing', 'chunking', 'embedding', 'indexing', 'ready', 'failed']
+        valid_statuses = [
+            "pending",
+            "parsing",
+            "chunking",
+            "embedding",
+            "indexing",
+            "ready",
+            "failed",
+        ]
         if status not in valid_statuses:
             raise ValueError(f"Invalid status: {status}. Must be one of {valid_statuses}")
 
         # Update document
-        update_data = {'processing_status': status}
+        update_data = {"processing_status": status}
 
         if error_message is not None:
-            update_data['processing_error'] = error_message
+            update_data["processing_error"] = error_message
 
         if chunk_count is not None:
-            update_data['chunk_count'] = chunk_count
+            update_data["chunk_count"] = chunk_count
 
         updated_doc = self.update_document(document_id, **update_data)
 
@@ -655,7 +660,7 @@ class DocumentService:
         placeholder_content = f"# Wikipedia Article: {query}\n\n*Fetching content from Wikipedia...*\n\n---\n*Language: {language}*"
 
         # Create file-like object with placeholder content
-        file_obj = BytesIO(placeholder_content.encode('utf-8'))
+        file_obj = BytesIO(placeholder_content.encode("utf-8"))
 
         # Upload placeholder document
         result = self.upload_document_to_workspace(
@@ -685,7 +690,7 @@ class DocumentService:
                     workspace_id=workspace_id,
                     query=query,
                     status="fetching",
-                    message="Initiating Wikipedia article fetch"
+                    message="Initiating Wikipedia article fetch",
                 )
 
             except Exception as e:
@@ -694,8 +699,10 @@ class DocumentService:
                 self.update_document_status(
                     document_id=result.document.id,
                     status="failed",
-                    error_message=f"Failed to initiate fetch: {str(e)}"
+                    error_message=f"Failed to initiate fetch: {str(e)}",
                 )
-                raise DocumentProcessingError(query, f"Failed to initiate Wikipedia fetch: {str(e)}")
+                raise DocumentProcessingError(
+                    query, f"Failed to initiate Wikipedia fetch: {str(e)}"
+                ) from e
 
         return result

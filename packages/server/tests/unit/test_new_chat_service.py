@@ -1,11 +1,12 @@
 """Unit tests for chat service."""
 
-import pytest
 from unittest.mock import Mock
 
-from shared.models import ChatSession, ChatMessage
+import pytest
+from shared.models import ChatMessage, ChatSession
+
+from src.domains.workspaces.chat.exceptions import EmptyMessageError
 from src.domains.workspaces.chat.service import ChatService
-from src.domains.workspaces.chat.dtos import ChatResponse, ContextChunk
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ def chat_service(mock_session_repository, mock_message_repository, mock_rag_syst
     return ChatService(
         session_repository=mock_session_repository,
         message_repository=mock_message_repository,
-        rag_system=mock_rag_system
+        rag_system=mock_rag_system,
     )
 
 
@@ -46,12 +47,12 @@ class TestChatServiceValidation:
 
     def test_validate_message_empty(self, chat_service: ChatService):
         """Test validation of empty message."""
-        with pytest.raises(Exception):  # EmptyMessageError
+        with pytest.raises(EmptyMessageError):
             chat_service.validate_message("")
 
     def test_validate_message_whitespace(self, chat_service: ChatService):
         """Test validation of whitespace-only message."""
-        with pytest.raises(Exception):  # EmptyMessageError
+        with pytest.raises(EmptyMessageError):
             chat_service.validate_message("   \n\t  ")
 
 
@@ -73,7 +74,9 @@ class TestChatServiceSessions:
             user_id=1, workspace_id=None, title="Test Session", rag_type="vector"
         )
 
-    def test_create_session_with_workspace(self, chat_service: ChatService, mock_session_repository):
+    def test_create_session_with_workspace(
+        self, chat_service: ChatService, mock_session_repository
+    ):
         """Test session creation with workspace association."""
         mock_session = Mock(spec=ChatSession)
         mock_session.id = 1
@@ -88,7 +91,9 @@ class TestChatServiceSessions:
             user_id=1, workspace_id=5, title="Workspace Session", rag_type="vector"
         )
 
-    def test_create_session_with_first_message_title(self, chat_service: ChatService, mock_session_repository):
+    def test_create_session_with_first_message_title(
+        self, chat_service: ChatService, mock_session_repository
+    ):
         """Test session creation with first message used as title."""
         mock_session = Mock(spec=ChatSession)
         mock_session.id = 1
@@ -96,8 +101,7 @@ class TestChatServiceSessions:
         mock_session_repository.create.return_value = mock_session
 
         session = chat_service.create_session(
-            user_id=1,
-            first_message="Hello world, this is a test message"
+            user_id=1, first_message="Hello world, this is a test message"
         )
 
         assert session.title == "Hello world"
@@ -178,7 +182,9 @@ class TestChatServiceSessions:
 class TestChatServiceGetOrCreateSession:
     """Test get_or_create_session functionality."""
 
-    def test_get_or_create_existing_session(self, chat_service: ChatService, mock_session_repository):
+    def test_get_or_create_existing_session(
+        self, chat_service: ChatService, mock_session_repository
+    ):
         """Test returning existing session."""
         mock_session = Mock(spec=ChatSession)
         mock_session.id = 5
@@ -198,7 +204,9 @@ class TestChatServiceGetOrCreateSession:
         mock_session_repository.get_by_id.return_value = None
         mock_session_repository.create.return_value = mock_session
 
-        result = chat_service.get_or_create_session(user_id=1, workspace_id=3, first_message="Hello")
+        result = chat_service.get_or_create_session(
+            user_id=1, workspace_id=3, first_message="Hello"
+        )
 
         assert result == mock_session
         mock_session_repository.get_by_id.assert_called_once_with(None)
@@ -206,7 +214,9 @@ class TestChatServiceGetOrCreateSession:
             user_id=1, workspace_id=3, title="Hello", rag_type="vector"
         )
 
-    def test_get_or_create_with_workspace_association(self, chat_service: ChatService, mock_session_repository):
+    def test_get_or_create_with_workspace_association(
+        self, chat_service: ChatService, mock_session_repository
+    ):
         """Test workspace association in get_or_create."""
         mock_session = Mock(spec=ChatSession)
         mock_session.id = 15
@@ -233,10 +243,7 @@ class TestChatServiceMessages:
         mock_message_repository.create.return_value = mock_message
 
         result = chat_service.create_message(
-            session_id=1,
-            role="user",
-            content="Hello",
-            metadata={"test": "data"}
+            session_id=1, role="user", content="Hello", metadata={"test": "data"}
         )
 
         assert result.id == 1
@@ -275,7 +282,9 @@ class TestChatServiceMessages:
 class TestChatServiceSendMessage:
     """Test sending chat messages."""
 
-    def test_send_message_success(self, chat_service: ChatService, mock_session_repository, mock_message_repository):
+    def test_send_message_success(
+        self, chat_service: ChatService, mock_session_repository, mock_message_repository
+    ):
         """Test successful message sending."""
         # Setup mocks
         mock_session = Mock(spec=ChatSession)
@@ -287,32 +296,34 @@ class TestChatServiceSendMessage:
         mock_message_repository.create.return_value = mock_message
 
         # Mock LLM provider
-        with pytest.raises(Exception):  # Will fail due to missing LLM provider
-            result = chat_service.send_message(
+        with pytest.raises(Exception):  # noqa: B017  # Will fail due to missing LLM provider
+            chat_service.send_message(
                 workspace_id=1,
                 session_id=1,
                 user_id=1,
                 content="Hello",
                 message_type="user",
-                ignore_rag=False
+                ignore_rag=False,
             )
 
     def test_send_message_validation_error(self, chat_service: ChatService):
         """Test sending message with validation error."""
-        with pytest.raises(Exception):  # EmptyMessageError
+        with pytest.raises(EmptyMessageError):
             chat_service.send_message(
-                workspace_id=1,
-                session_id=1,
-                user_id=1,
-                content="",
-                message_type="user"
+                workspace_id=1, session_id=1, user_id=1, content="", message_type="user"
             )
 
 
 class TestChatServiceStreaming:
     """Test streaming chat functionality."""
 
-    def test_stream_chat_response_success(self, chat_service: ChatService, mock_session_repository, mock_message_repository, mock_rag_system):
+    def test_stream_chat_response_success(
+        self,
+        chat_service: ChatService,
+        mock_session_repository,
+        mock_message_repository,
+        mock_rag_system,
+    ):
         """Test successful streaming chat response."""
         # Setup mocks
         mock_session = Mock(spec=ChatSession)
@@ -333,14 +344,16 @@ class TestChatServiceStreaming:
         mock_llm.chat.return_value = "Hello world!"
 
         # Collect streaming events
-        events = list(chat_service.stream_chat_response(
-            user_id=1,
-            message="Hello",
-            llm_provider=mock_llm,
-            session_id=1,
-            rag_type="vector",
-            request_id="req-123"
-        ))
+        events = list(
+            chat_service.stream_chat_response(
+                user_id=1,
+                message="Hello",
+                llm_provider=mock_llm,
+                session_id=1,
+                rag_type="vector",
+                request_id="req-123",
+            )
+        )
 
         # Should have chunk events and a complete event
         assert len(events) >= 2
@@ -363,7 +376,13 @@ class TestChatServiceStreaming:
 class TestChatServiceRAGIntegration:
     """Test RAG integration."""
 
-    def test_process_chat_message_with_rag_context(self, chat_service: ChatService, mock_session_repository, mock_message_repository, mock_rag_system):
+    def test_process_chat_message_with_rag_context(
+        self,
+        chat_service: ChatService,
+        mock_session_repository,
+        mock_message_repository,
+        mock_rag_system,
+    ):
         """Test processing message with RAG context."""
         # Setup mocks
         mock_session = Mock(spec=ChatSession)
@@ -376,8 +395,8 @@ class TestChatServiceRAGIntegration:
         mock_message_repository.get_by_session.return_value = []
 
         # Mock RAG system to return context
-        from shared.types.retrieval import RetrievalResult
         from shared.types.document import Chunk
+        from shared.types.retrieval import RetrievalResult
 
         mock_chunk = Mock(spec=Chunk)
         mock_chunk.text = "Test context"
@@ -399,7 +418,7 @@ class TestChatServiceRAGIntegration:
             llm_provider=mock_llm,
             session_id=1,
             rag_type="vector",
-            ignore_rag=False
+            ignore_rag=False,
         )
 
         assert result.answer == "Response with context"
@@ -407,7 +426,13 @@ class TestChatServiceRAGIntegration:
         assert result.context[0].text == "Test context"
         assert result.no_context_found is False
 
-    def test_process_chat_message_no_rag_context(self, chat_service: ChatService, mock_session_repository, mock_message_repository, mock_rag_system):
+    def test_process_chat_message_no_rag_context(
+        self,
+        chat_service: ChatService,
+        mock_session_repository,
+        mock_message_repository,
+        mock_rag_system,
+    ):
         """Test processing message with no RAG context found."""
         # Setup mocks
         mock_session = Mock(spec=ChatSession)
@@ -420,8 +445,8 @@ class TestChatServiceRAGIntegration:
         mock_message_repository.get_by_session.return_value = []
 
         # Mock RAG system to return low-scoring context (below threshold)
-        from shared.types.retrieval import RetrievalResult
         from shared.types.document import Chunk
+        from shared.types.retrieval import RetrievalResult
 
         mock_chunk = Mock(spec=Chunk)
         mock_chunk.text = "Low relevance context"
@@ -443,7 +468,7 @@ class TestChatServiceRAGIntegration:
             llm_provider=mock_llm,
             session_id=1,
             rag_type="vector",
-            ignore_rag=False
+            ignore_rag=False,
         )
 
         assert result.answer == "Response without context"

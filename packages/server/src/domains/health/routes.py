@@ -23,7 +23,7 @@ def health() -> tuple[Response, int]:
         "status": "healthy",
         "timestamp": "2025-11-24T00:00:00Z",  # Would be dynamic in real implementation
         "version": "1.0.0",
-        "checks": {}
+        "checks": {},
     }
 
     all_healthy = True
@@ -31,59 +31,100 @@ def health() -> tuple[Response, int]:
     # Database health check
     try:
         from src.infrastructure.database import get_db
+
         db = next(get_db())
         db.execute("SELECT 1")  # Simple query to test connectivity
         db.close()
-        health_status["checks"]["database"] = {"status": "healthy", "message": "Database connection OK"}
+        health_status["checks"]["database"] = {
+            "status": "healthy",
+            "message": "Database connection OK",
+        }
     except Exception as e:
-        health_status["checks"]["database"] = {"status": "unhealthy", "message": f"Database error: {str(e)}"}
+        health_status["checks"]["database"] = {
+            "status": "unhealthy",
+            "message": f"Database error: {str(e)}",
+        }
         all_healthy = False
 
     # RAG system health check
     try:
-        if hasattr(current_app, 'rag_system') and current_app.rag_system:
+        if hasattr(current_app, "rag_system") and current_app.rag_system:
             # Try a simple operation to test RAG system
             stats = current_app.rag_system.get_stats()
-            health_status["checks"]["rag_system"] = {"status": "healthy", "message": "RAG system OK", "stats": stats}
+            health_status["checks"]["rag_system"] = {
+                "status": "healthy",
+                "message": "RAG system OK",
+                "stats": stats,
+            }
         else:
-            health_status["checks"]["rag_system"] = {"status": "warning", "message": "RAG system not configured"}
+            health_status["checks"]["rag_system"] = {
+                "status": "warning",
+                "message": "RAG system not configured",
+            }
     except Exception as e:
-        health_status["checks"]["rag_system"] = {"status": "unhealthy", "message": f"RAG system error: {str(e)}"}
+        health_status["checks"]["rag_system"] = {
+            "status": "unhealthy",
+            "message": f"RAG system error: {str(e)}",
+        }
         all_healthy = False
 
     # Message publisher health check
     try:
-        if hasattr(current_app, 'message_publisher') and current_app.message_publisher:
+        if hasattr(current_app, "message_publisher") and current_app.message_publisher:
             # Test message publisher connectivity
-            health_status["checks"]["message_queue"] = {"status": "healthy", "message": "Message queue OK"}
+            health_status["checks"]["message_queue"] = {
+                "status": "healthy",
+                "message": "Message queue OK",
+            }
         else:
-            health_status["checks"]["message_queue"] = {"status": "warning", "message": "Message queue not configured"}
+            health_status["checks"]["message_queue"] = {
+                "status": "warning",
+                "message": "Message queue not configured",
+            }
     except Exception as e:
-        health_status["checks"]["message_queue"] = {"status": "unhealthy", "message": f"Message queue error: {str(e)}"}
+        health_status["checks"]["message_queue"] = {
+            "status": "unhealthy",
+            "message": f"Message queue error: {str(e)}",
+        }
         all_healthy = False
 
     # External services health check
     try:
         from src.context import create_llm
-        llm_provider = create_llm()
+
+        create_llm()
         # Test LLM connectivity with a simple validation
         health_status["checks"]["llm_service"] = {"status": "healthy", "message": "LLM service OK"}
     except Exception as e:
-        health_status["checks"]["llm_service"] = {"status": "unhealthy", "message": f"LLM service error: {str(e)}"}
+        health_status["checks"]["llm_service"] = {
+            "status": "unhealthy",
+            "message": f"LLM service error: {str(e)}",
+        }
         all_healthy = False
 
     # Redis health check (if configured)
     try:
         from src import config
+
         if config.REDIS_URL:
             import redis
+
             redis_client = redis.from_url(config.REDIS_URL)
             redis_client.ping()
-            health_status["checks"]["redis"] = {"status": "healthy", "message": "Redis connection OK"}
+            health_status["checks"]["redis"] = {
+                "status": "healthy",
+                "message": "Redis connection OK",
+            }
         else:
-            health_status["checks"]["redis"] = {"status": "warning", "message": "Redis not configured"}
+            health_status["checks"]["redis"] = {
+                "status": "warning",
+                "message": "Redis not configured",
+            }
     except Exception as e:
-        health_status["checks"]["redis"] = {"status": "unhealthy", "message": f"Redis error: {str(e)}"}
+        health_status["checks"]["redis"] = {
+            "status": "unhealthy",
+            "message": f"Redis error: {str(e)}",
+        }
         all_healthy = False
 
     # Update overall status
@@ -104,6 +145,7 @@ def readiness() -> tuple[Response, int]:
     try:
         # Critical checks: database and basic app functionality
         from src.infrastructure.database import get_db
+
         db = next(get_db())
         db.execute("SELECT 1")
         db.close()
@@ -147,11 +189,13 @@ def metrics() -> tuple[Response, int]:
     # Add request counts and error rates
     if hasattr(current_app, "performance_monitoring"):
         perf_monitor = current_app.performance_monitoring
-        metrics_data.update({
-            "total_requests": perf_monitor.get_request_count(),
-            "error_rate": perf_monitor.get_error_rate(),
-            "avg_response_time": perf_monitor.get_avg_response_time(),
-        })
+        metrics_data.update(
+            {
+                "total_requests": perf_monitor.get_request_count(),
+                "error_rate": perf_monitor.get_error_rate(),
+                "avg_response_time": perf_monitor.get_avg_response_time(),
+            }
+        )
 
     return jsonify(metrics_data), 200
 
@@ -169,16 +213,9 @@ def api_docs() -> tuple[Response, int]:
             "title": "InsightHub API",
             "description": "RAG-powered document analysis and chat platform",
             "version": "1.0.0",
-            "contact": {
-                "name": "InsightHub Team"
-            }
+            "contact": {"name": "InsightHub Team"},
         },
-        "servers": [
-            {
-                "url": "http://localhost:5000",
-                "description": "Development server"
-            }
-        ],
+        "servers": [{"url": "http://localhost:5000", "description": "Development server"}],
         "paths": {
             # Authentication endpoints
             "/api/auth/login": {
@@ -195,11 +232,11 @@ def api_docs() -> tuple[Response, int]:
                                     "required": ["email", "password"],
                                     "properties": {
                                         "email": {"type": "string", "format": "email"},
-                                        "password": {"type": "string", "minLength": 8}
-                                    }
+                                        "password": {"type": "string", "minLength": 8},
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "200": {
@@ -211,14 +248,14 @@ def api_docs() -> tuple[Response, int]:
                                         "properties": {
                                             "access_token": {"type": "string"},
                                             "token_type": {"type": "string"},
-                                            "user": {"$ref": "#/components/schemas/User"}
-                                        }
+                                            "user": {"$ref": "#/components/schemas/User"},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
-                        "401": {"description": "Invalid credentials"}
-                    }
+                        "401": {"description": "Invalid credentials"},
+                    },
                 }
             },
             "/api/auth/signup": {
@@ -237,17 +274,17 @@ def api_docs() -> tuple[Response, int]:
                                         "username": {"type": "string", "minLength": 3},
                                         "email": {"type": "string", "format": "email"},
                                         "password": {"type": "string", "minLength": 8},
-                                        "full_name": {"type": "string"}
-                                    }
+                                        "full_name": {"type": "string"},
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "201": {"description": "User created successfully"},
                         "400": {"description": "Validation error"},
-                        "409": {"description": "User already exists"}
-                    }
+                        "409": {"description": "User already exists"},
+                    },
                 }
             },
             "/api/workspaces": {
@@ -263,12 +300,12 @@ def api_docs() -> tuple[Response, int]:
                                 "application/json": {
                                     "schema": {
                                         "type": "array",
-                                        "items": {"$ref": "#/components/schemas/Workspace"}
+                                        "items": {"$ref": "#/components/schemas/Workspace"},
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 },
                 "post": {
                     "summary": "Create workspace",
@@ -283,13 +320,17 @@ def api_docs() -> tuple[Response, int]:
                                     "type": "object",
                                     "required": ["name"],
                                     "properties": {
-                                        "name": {"type": "string", "minLength": 1, "maxLength": 100},
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100,
+                                        },
                                         "description": {"type": "string"},
-                                        "rag_config": {"$ref": "#/components/schemas/RagConfig"}
-                                    }
+                                        "rag_config": {"$ref": "#/components/schemas/RagConfig"},
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "201": {
@@ -298,10 +339,10 @@ def api_docs() -> tuple[Response, int]:
                                 "application/json": {
                                     "schema": {"$ref": "#/components/schemas/Workspace"}
                                 }
-                            }
+                            },
                         }
-                    }
-                }
+                    },
+                },
             },
             "/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages": {
                 "post": {
@@ -310,8 +351,18 @@ def api_docs() -> tuple[Response, int]:
                     "tags": ["Chat"],
                     "security": [{"bearerAuth": []}],
                     "parameters": [
-                        {"name": "workspaceId", "in": "path", "required": True, "schema": {"type": "integer"}},
-                        {"name": "sessionId", "in": "path", "required": True, "schema": {"type": "integer"}}
+                        {
+                            "name": "workspaceId",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                        },
+                        {
+                            "name": "sessionId",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                        },
                     ],
                     "requestBody": {
                         "required": True,
@@ -322,17 +373,20 @@ def api_docs() -> tuple[Response, int]:
                                     "required": ["content"],
                                     "properties": {
                                         "content": {"type": "string", "maxLength": 10000},
-                                        "message_type": {"type": "string", "enum": ["user", "system"]}
-                                    }
+                                        "message_type": {
+                                            "type": "string",
+                                            "enum": ["user", "system"],
+                                        },
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "200": {"description": "Message sent, response streamed via WebSocket"}
-                    }
+                    },
                 }
-            }
+            },
         },
         "components": {
             "schemas": {
@@ -342,8 +396,8 @@ def api_docs() -> tuple[Response, int]:
                         "id": {"type": "integer"},
                         "username": {"type": "string"},
                         "email": {"type": "string", "format": "email"},
-                        "full_name": {"type": "string"}
-                    }
+                        "full_name": {"type": "string"},
+                    },
                 },
                 "Workspace": {
                     "type": "object",
@@ -351,11 +405,14 @@ def api_docs() -> tuple[Response, int]:
                         "id": {"type": "integer"},
                         "name": {"type": "string"},
                         "description": {"type": "string"},
-                        "status": {"type": "string", "enum": ["provisioning", "ready", "deleting", "failed"]},
+                        "status": {
+                            "type": "string",
+                            "enum": ["provisioning", "ready", "deleting", "failed"],
+                        },
                         "rag_config": {"$ref": "#/components/schemas/RagConfig"},
                         "document_count": {"type": "integer"},
-                        "session_count": {"type": "integer"}
-                    }
+                        "session_count": {"type": "integer"},
+                    },
                 },
                 "RagConfig": {
                     "type": "object",
@@ -364,18 +421,14 @@ def api_docs() -> tuple[Response, int]:
                         "retriever_type": {"type": "string", "enum": ["vector", "graph", "hybrid"]},
                         "chunk_size": {"type": "integer"},
                         "chunk_overlap": {"type": "integer"},
-                        "top_k": {"type": "integer"}
-                    }
-                }
+                        "top_k": {"type": "integer"},
+                    },
+                },
             },
             "securitySchemes": {
-                "bearerAuth": {
-                    "type": "http",
-                    "scheme": "bearer",
-                    "bearerFormat": "JWT"
-                }
-            }
-        }
+                "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+            },
+        },
     }
 
     return jsonify(docs), 200

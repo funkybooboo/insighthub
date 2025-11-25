@@ -1,11 +1,17 @@
 """Unit tests for chat service."""
 
-import pytest
-from unittest.mock import Mock
+import json
+import time
+from collections.abc import Generator
+from datetime import datetime
 
-from shared.models import ChatSession, ChatMessage
+import pytest
+from shared.llm import LlmProvider
+from shared.models import ChatMessage, ChatSession
+from shared.repositories import ChatMessageRepository, ChatSessionRepository
+
+from src.domains.workspaces.chat.exceptions import EmptyMessageError
 from src.domains.workspaces.chat.service import ChatService
-from src.domains.workspaces.chat.dtos import ChatResponse, ContextChunk
 
 
 class DummyLlmProvider(LlmProvider):
@@ -73,7 +79,7 @@ class FakeChatSessionRepository(ChatSessionRepository):
         self.next_id += 1
         return session
 
-    def get_by_id(self, session_id: int) -> Optional[ChatSession]:
+    def get_by_id(self, session_id: int) -> ChatSession | None:
         """Get session by ID."""
         return self.sessions.get(session_id)
 
@@ -82,7 +88,7 @@ class FakeChatSessionRepository(ChatSessionRepository):
         user_sessions = [s for s in self.sessions.values() if s.user_id == user_id]
         return user_sessions[skip : skip + limit]
 
-    def update(self, session_id: int, **kwargs: str | int | None) -> Optional[ChatSession]:
+    def update(self, session_id: int, **kwargs: str | int | None) -> ChatSession | None:
         """Update session fields."""
         session = self.sessions.get(session_id)
         if not session:
@@ -127,7 +133,7 @@ class FakeChatMessageRepository(ChatMessageRepository):
         self.next_id += 1
         return message
 
-    def get_by_id(self, message_id: int) -> Optional[ChatMessage]:
+    def get_by_id(self, message_id: int) -> ChatMessage | None:
         """Get message by ID."""
         return self.messages.get(message_id)
 

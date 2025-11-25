@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings
 
 class Environment(str):
     """Application environment enumeration."""
+
     DEVELOPMENT = "development"
     TESTING = "testing"
     STAGING = "staging"
@@ -18,51 +19,71 @@ class Environment(str):
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
+
     url: str = Field(description="Database connection URL")
 
 
 class RedisConfig(BaseModel):
     """Redis configuration."""
+
     url: Optional[str] = Field(default=None, description="Redis connection URL")
     default_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
 
 
 class LLMConfig(BaseModel):
     """LLM provider configuration."""
+
     provider: str = Field(default="ollama", description="LLM provider to use")
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", description="Ollama API base URL"
+    )
     ollama_llm_model: str = Field(default="llama3.2", description="Ollama LLM model name")
-    ollama_embedding_model: str = Field(default="nomic-embed-text", description="Ollama embedding model name")
+    ollama_embedding_model: str = Field(
+        default="nomic-embed-text", description="Ollama embedding model name"
+    )
     openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
     openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model name")
     anthropic_api_key: Optional[str] = Field(default=None, description="Anthropic API key")
-    anthropic_model: str = Field(default="claude-3-5-sonnet-20241022", description="Anthropic model name")
+    anthropic_model: str = Field(
+        default="claude-3-5-sonnet-20241022", description="Anthropic model name"
+    )
     huggingface_api_key: Optional[str] = Field(default=None, description="HuggingFace API key")
-    huggingface_model: str = Field(default="meta-llama/Llama-3.2-3B-Instruct", description="HuggingFace model name")
+    huggingface_model: str = Field(
+        default="meta-llama/Llama-3.2-3B-Instruct", description="HuggingFace model name"
+    )
 
 
 class SecurityConfig(BaseModel):
     """Security configuration."""
+
     secret_key: str = Field(description="Flask secret key", min_length=32)
     jwt_secret_key: str = Field(description="JWT secret key", min_length=32)
     jwt_expire_minutes: int = Field(default=1440, description="JWT expiration in minutes")
-    cors_origins: List[str] = Field(default=["http://localhost:3000"], description="CORS allowed origins")
+    cors_origins: List[str] = Field(
+        default=["http://localhost:3000"], description="CORS allowed origins"
+    )
 
 
 class WorkerConfig(BaseModel):
     """Worker-specific configuration."""
+
     worker_name: str = Field(default="", description="Name of the worker")
     worker_concurrency: int = Field(default=2, description="Number of concurrent worker threads")
     chunk_size: int = Field(default=1000, description="Document chunk size")
     chunk_overlap: int = Field(default=200, description="Document chunk overlap")
     batch_size: int = Field(default=32, description="Batch processing size")
     openalex_api_key: Optional[str] = Field(default=None, description="OpenAlex API key")
-    semantic_scholar_api_key: Optional[str] = Field(default=None, description="Semantic Scholar API key")
-    arxiv_api_url: str = Field(default="http://export.arxiv.org/api/query", description="ArXiv API URL")
+    semantic_scholar_api_key: Optional[str] = Field(
+        default=None, description="Semantic Scholar API key"
+    )
+    arxiv_api_url: str = Field(
+        default="http://export.arxiv.org/api/query", description="ArXiv API URL"
+    )
 
 
 class StorageConfig(BaseModel):
     """Storage configuration."""
+
     blob_storage_type: str = Field(default="s3", description="Blob storage type")
     file_system_storage_path: str = Field(default="uploads", description="File system storage path")
     s3_endpoint_url: Optional[str] = Field(default=None, description="S3 endpoint URL")
@@ -73,6 +94,7 @@ class StorageConfig(BaseModel):
 
 class VectorStoreConfig(BaseModel):
     """Vector store configuration."""
+
     qdrant_host: str = Field(default="localhost", description="Qdrant host")
     qdrant_port: int = Field(default=6333, description="Qdrant port")
     qdrant_collection_name: str = Field(default="insighthub", description="Qdrant collection name")
@@ -80,6 +102,7 @@ class VectorStoreConfig(BaseModel):
 
 class GraphStoreConfig(BaseModel):
     """Graph store configuration."""
+
     neo4j_url: Optional[str] = Field(default=None, description="Neo4j connection URL")
     neo4j_user: Optional[str] = Field(default=None, description="Neo4j username")
     neo4j_password: Optional[str] = Field(default=None, description="Neo4j password")
@@ -108,26 +131,46 @@ class AppConfig(BaseSettings):
     redis_default_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
 
     # Message Queue
-    rabbitmq_url: str = Field(default="amqp://guest:guest@localhost:5672/", description="RabbitMQ connection URL")
+    rabbitmq_url: str = Field(
+        default="amqp://guest:guest@localhost:5672/", description="RabbitMQ connection URL"
+    )
     rabbitmq_exchange: str = Field(default="insighthub", description="RabbitMQ exchange name")
 
     # LLM
     llm_provider: str = Field(default="ollama", description="LLM provider to use")
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama API base URL")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", description="Ollama API base URL"
+    )
     ollama_llm_model: str = Field(default="llama3.2", description="Ollama LLM model name")
-    ollama_embedding_model: str = Field(default="nomic-embed-text", description="Ollama embedding model name")
+    ollama_embedding_model: str = Field(
+        default="nomic-embed-text", description="Ollama embedding model name"
+    )
     openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
     openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model name")
     anthropic_api_key: Optional[str] = Field(default=None, description="Anthropic API key")
-    anthropic_model: str = Field(default="claude-3-5-sonnet-20241022", description="Anthropic model name")
+    anthropic_model: str = Field(
+        default="claude-3-5-sonnet-20241022", description="Anthropic model name"
+    )
     huggingface_api_key: Optional[str] = Field(default=None, description="HuggingFace API key")
-    huggingface_model: str = Field(default="meta-llama/Llama-3.2-3B-Instruct", description="HuggingFace model name")
+    huggingface_model: str = Field(
+        default="meta-llama/Llama-3.2-3B-Instruct", description="HuggingFace model name"
+    )
 
     # Security (server only)
-    secret_key: str = Field(default="dev-secret-key-32-chars-minimum-replace-in-prod", description="Flask secret key", min_length=32)
-    jwt_secret_key: str = Field(default="dev-jwt-secret-key-32-chars-minimum-replace-in-prod", description="JWT secret key", min_length=32)
+    secret_key: str = Field(
+        default="dev-secret-key-32-chars-minimum-replace-in-prod",
+        description="Flask secret key",
+        min_length=32,
+    )
+    jwt_secret_key: str = Field(
+        default="dev-jwt-secret-key-32-chars-minimum-replace-in-prod",
+        description="JWT secret key",
+        min_length=32,
+    )
     jwt_expire_minutes: int = Field(default=1440, description="JWT expiration in minutes")
-    cors_origins_str: str = Field(default="http://localhost:3000", description="CORS allowed origins (comma-separated)")
+    cors_origins_str: str = Field(
+        default="http://localhost:3000", description="CORS allowed origins (comma-separated)"
+    )
 
     # Worker settings
     worker_name: str = Field(default="", description="Name of the worker")
@@ -140,8 +183,12 @@ class AppConfig(BaseSettings):
 
     # External APIs
     openalex_api_key: Optional[str] = Field(default=None, description="OpenAlex API key")
-    semantic_scholar_api_key: Optional[str] = Field(default=None, description="Semantic Scholar API key")
-    arxiv_api_url: str = Field(default="http://export.arxiv.org/api/query", description="ArXiv API URL")
+    semantic_scholar_api_key: Optional[str] = Field(
+        default=None, description="Semantic Scholar API key"
+    )
+    arxiv_api_url: str = Field(
+        default="http://export.arxiv.org/api/query", description="ArXiv API URL"
+    )
 
     # Storage
     blob_storage_type: str = Field(default="s3", description="Blob storage type")

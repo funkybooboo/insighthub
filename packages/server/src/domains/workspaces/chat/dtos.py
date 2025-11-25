@@ -40,7 +40,9 @@ class ChatResponse:
     documents_count: int
     no_context_found: bool = False
 
-    def to_dict(self) -> dict[str, str | list[dict[str, str | float | dict[str, str]]] | int | bool]:
+    def to_dict(
+        self,
+    ) -> dict[str, str | list[dict[str, str | float | dict[str, str]]] | int | bool]:
         """Convert to dictionary for JSON serialization."""
         return {
             "answer": self.answer,

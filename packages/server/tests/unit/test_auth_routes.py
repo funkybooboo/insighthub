@@ -1,16 +1,16 @@
 """Unit tests for authentication routes."""
 
 import json
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from flask import Flask
 from jwt.exceptions import InvalidTokenError
-
 from shared.models import User
 from shared.repositories import DefaultRagConfigRepository
 
-from src.domains.auth.routes import auth_bp
 from src.domains.auth.exceptions import UserAlreadyExistsError, UserAuthenticationError
+from src.domains.auth.routes import auth_bp
 
 
 @pytest.fixture
@@ -73,8 +73,10 @@ class TestSignupEndpoint:
         """Test successful user signup."""
         mock_app_context.user_service.register_user.return_value = sample_user
 
-        with patch("src.domains.auth.routes.g") as mock_g, \
-             patch("src.domains.auth.routes.create_access_token") as mock_create_token:
+        with (
+            patch("src.domains.auth.routes.g") as mock_g,
+            patch("src.domains.auth.routes.create_access_token") as mock_create_token,
+        ):
 
             mock_g.app_context = mock_app_context
             mock_create_token.return_value = "jwt_token"
@@ -85,8 +87,8 @@ class TestSignupEndpoint:
                     "username": "testuser",
                     "email": "test@example.com",
                     "password": "password123",
-                    "full_name": "Test User"
-                }
+                    "full_name": "Test User",
+                },
             )
 
             assert response.status_code == 201
@@ -101,8 +103,8 @@ class TestSignupEndpoint:
                     "email": "test@example.com",
                     "full_name": "Test User",
                     "created_at": None,
-                    "theme_preference": "dark"
-                }
+                    "theme_preference": "dark",
+                },
             }
 
             assert data == expected_response
@@ -110,14 +112,13 @@ class TestSignupEndpoint:
                 username="testuser",
                 email="test@example.com",
                 password="password123",
-                full_name="Test User"
+                full_name="Test User",
             )
 
     def test_signup_missing_required_fields(self, client):
         """Test signup with missing required fields."""
         response = client.post(
-            "/api/auth/signup",
-            json={"username": "testuser"}  # Missing email and password
+            "/api/auth/signup", json={"username": "testuser"}  # Missing email and password
         )
 
         assert response.status_code == 400
@@ -131,8 +132,8 @@ class TestSignupEndpoint:
             json={
                 "username": "testuser",
                 "email": "test@example.com",
-                "password": "12345"  # Too short
-            }
+                "password": "12345",  # Too short
+            },
         )
 
         assert response.status_code == 400
@@ -141,7 +142,9 @@ class TestSignupEndpoint:
 
     def test_signup_user_already_exists(self, client, mock_app_context):
         """Test signup when user already exists."""
-        mock_app_context.user_service.register_user.side_effect = UserAlreadyExistsError("Username already exists")
+        mock_app_context.user_service.register_user.side_effect = UserAlreadyExistsError(
+            "Username already exists"
+        )
 
         with patch("src.domains.auth.routes.g") as mock_g:
             mock_g.app_context = mock_app_context
@@ -151,8 +154,8 @@ class TestSignupEndpoint:
                 json={
                     "username": "testuser",
                     "email": "test@example.com",
-                    "password": "password123"
-                }
+                    "password": "password123",
+                },
             )
 
             assert response.status_code == 400
@@ -162,9 +165,7 @@ class TestSignupEndpoint:
     def test_signup_invalid_json(self, client):
         """Test signup with invalid JSON."""
         response = client.post(
-            "/api/auth/signup",
-            data="invalid json",
-            content_type="application/json"
+            "/api/auth/signup", data="invalid json", content_type="application/json"
         )
 
         assert response.status_code == 400
@@ -179,18 +180,16 @@ class TestLoginEndpoint:
         """Test successful user login."""
         mock_app_context.user_service.authenticate_user.return_value = sample_user
 
-        with patch("src.domains.auth.routes.g") as mock_g, \
-             patch("src.domains.auth.routes.create_access_token") as mock_create_token:
+        with (
+            patch("src.domains.auth.routes.g") as mock_g,
+            patch("src.domains.auth.routes.create_access_token") as mock_create_token,
+        ):
 
             mock_g.app_context = mock_app_context
             mock_create_token.return_value = "jwt_token"
 
             response = client.post(
-                "/api/auth/login",
-                json={
-                    "username": "testuser",
-                    "password": "password123"
-                }
+                "/api/auth/login", json={"username": "testuser", "password": "password123"}
             )
 
             assert response.status_code == 200
@@ -205,22 +204,18 @@ class TestLoginEndpoint:
                     "email": "test@example.com",
                     "full_name": "Test User",
                     "created_at": None,
-                    "theme_preference": "dark"
-                }
+                    "theme_preference": "dark",
+                },
             }
 
             assert data == expected_response
             mock_app_context.user_service.authenticate_user.assert_called_once_with(
-                username="testuser",
-                password="password123"
+                username="testuser", password="password123"
             )
 
     def test_login_missing_required_fields(self, client):
         """Test login with missing required fields."""
-        response = client.post(
-            "/api/auth/login",
-            json={"username": "testuser"}  # Missing password
-        )
+        response = client.post("/api/auth/login", json={"username": "testuser"})  # Missing password
 
         assert response.status_code == 400
         data = json.loads(response.data)
@@ -228,17 +223,15 @@ class TestLoginEndpoint:
 
     def test_login_invalid_credentials(self, client, mock_app_context):
         """Test login with invalid credentials."""
-        mock_app_context.user_service.authenticate_user.side_effect = UserAuthenticationError("Invalid credentials")
+        mock_app_context.user_service.authenticate_user.side_effect = UserAuthenticationError(
+            "Invalid credentials"
+        )
 
         with patch("src.domains.auth.routes.g") as mock_g:
             mock_g.app_context = mock_app_context
 
             response = client.post(
-                "/api/auth/login",
-                json={
-                    "username": "testuser",
-                    "password": "wrongpassword"
-                }
+                "/api/auth/login", json={"username": "testuser", "password": "wrongpassword"}
             )
 
             assert response.status_code == 401
@@ -248,9 +241,7 @@ class TestLoginEndpoint:
     def test_login_invalid_json(self, client):
         """Test login with invalid JSON."""
         response = client.post(
-            "/api/auth/login",
-            data="invalid json",
-            content_type="application/json"
+            "/api/auth/login", data="invalid json", content_type="application/json"
         )
 
         assert response.status_code == 400
@@ -277,7 +268,7 @@ class TestGetMeEndpoint:
                 "email": "test@example.com",
                 "full_name": "Test User",
                 "created_at": None,
-                "theme_preference": "dark"
+                "theme_preference": "dark",
             }
 
             assert data == expected_response
@@ -311,8 +302,10 @@ class TestChangePasswordEndpoint:
 
     def test_change_password_success(self, client, sample_user):
         """Test successful password change."""
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = sample_user
             mock_app_context = Mock()
@@ -321,10 +314,7 @@ class TestChangePasswordEndpoint:
 
             response = client.post(
                 "/api/auth/change-password",
-                json={
-                    "current_password": "password123",
-                    "new_password": "newpassword123"
-                }
+                json={"current_password": "password123", "new_password": "newpassword123"},
             )
 
             assert response.status_code == 200
@@ -338,7 +328,7 @@ class TestChangePasswordEndpoint:
 
             response = client.post(
                 "/api/auth/change-password",
-                json={"current_password": "password123"}  # Missing new_password
+                json={"current_password": "password123"},  # Missing new_password
             )
 
             assert response.status_code == 400
@@ -356,8 +346,8 @@ class TestChangePasswordEndpoint:
                 "/api/auth/change-password",
                 json={
                     "current_password": "password123",  # Wrong current password
-                    "new_password": "newpassword123"
-                }
+                    "new_password": "newpassword123",
+                },
             )
 
             assert response.status_code == 401
@@ -371,10 +361,7 @@ class TestChangePasswordEndpoint:
 
             response = client.post(
                 "/api/auth/change-password",
-                json={
-                    "current_password": "password123",
-                    "new_password": "12345"  # Too short
-                }
+                json={"current_password": "password123", "new_password": "12345"},  # Too short
             )
 
             assert response.status_code == 400
@@ -398,8 +385,10 @@ class TestUpdateProfileEndpoint:
             updated_at=None,
         )
 
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = sample_user
             mock_app_context.user_service.update_user.return_value = updated_user
@@ -407,10 +396,7 @@ class TestUpdateProfileEndpoint:
 
             response = client.patch(
                 "/api/auth/profile",
-                json={
-                    "full_name": "Updated Name",
-                    "email": "newemail@example.com"
-                }
+                json={"full_name": "Updated Name", "email": "newemail@example.com"},
             )
 
             assert response.status_code == 200
@@ -422,7 +408,7 @@ class TestUpdateProfileEndpoint:
                 "email": "newemail@example.com",
                 "full_name": "Updated Name",
                 "created_at": None,
-                "theme_preference": "dark"
+                "theme_preference": "dark",
             }
 
             assert data == expected_response
@@ -433,8 +419,7 @@ class TestUpdateProfileEndpoint:
             mock_get_current_user.return_value = sample_user
 
             response = client.patch(
-                "/api/auth/profile",
-                json={"email": "invalid-email"}  # Invalid email format
+                "/api/auth/profile", json={"email": "invalid-email"}  # Invalid email format
             )
 
             assert response.status_code == 400
@@ -447,9 +432,7 @@ class TestUpdateProfileEndpoint:
             mock_get_current_user.return_value = Mock()
 
             response = client.patch(
-                "/api/auth/profile",
-                data="invalid json",
-                content_type="application/json"
+                "/api/auth/profile", data="invalid json", content_type="application/json"
             )
 
             assert response.status_code == 400
@@ -473,17 +456,16 @@ class TestUpdatePreferencesEndpoint:
             updated_at=None,
         )
 
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = sample_user
             mock_app_context.user_service.update_user.return_value = updated_user
             mock_g.app_context = mock_app_context
 
-            response = client.patch(
-                "/api/auth/preferences",
-                json={"theme_preference": "light"}
-            )
+            response = client.patch("/api/auth/preferences", json={"theme_preference": "light"})
 
             assert response.status_code == 200
             data = json.loads(response.data)
@@ -494,7 +476,7 @@ class TestUpdatePreferencesEndpoint:
                 "email": "test@example.com",
                 "full_name": "Test User",
                 "created_at": None,
-                "theme_preference": "light"
+                "theme_preference": "light",
             }
 
             assert data == expected_response
@@ -505,8 +487,7 @@ class TestUpdatePreferencesEndpoint:
             mock_get_current_user.return_value = sample_user
 
             response = client.patch(
-                "/api/auth/preferences",
-                json={"theme_preference": "invalid"}  # Invalid theme
+                "/api/auth/preferences", json={"theme_preference": "invalid"}  # Invalid theme
             )
 
             assert response.status_code == 400
@@ -519,8 +500,9 @@ class TestDefaultRagConfigEndpoints:
 
     def test_get_default_rag_config_success(self, client, mock_app_context):
         """Test successful get default RAG config."""
-        from shared.models.default_rag_config import DefaultRagConfig
         from datetime import datetime
+
+        from shared.models.default_rag_config import DefaultRagConfig
 
         config = DefaultRagConfig(
             id=1,
@@ -539,8 +521,10 @@ class TestDefaultRagConfigEndpoints:
 
         mock_app_context.default_rag_config_repository.get_by_user_id.return_value = config
 
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = Mock(id=1)
             mock_g.app_context = mock_app_context
@@ -569,8 +553,10 @@ class TestDefaultRagConfigEndpoints:
         """Test get default RAG config when not found."""
         mock_app_context.default_rag_config_repository.get_by_user_id.return_value = None
 
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = Mock(id=1)
             mock_g.app_context = mock_app_context
@@ -583,8 +569,9 @@ class TestDefaultRagConfigEndpoints:
 
     def test_update_default_rag_config_success(self, client, mock_app_context):
         """Test successful update default RAG config."""
-        from shared.models.default_rag_config import DefaultRagConfig
         from datetime import datetime
+
+        from shared.models.default_rag_config import DefaultRagConfig
 
         config = DefaultRagConfig(
             id=1,
@@ -603,8 +590,10 @@ class TestDefaultRagConfigEndpoints:
 
         mock_app_context.default_rag_config_repository.upsert.return_value = config
 
-        with patch("src.domains.auth.routes.get_current_user") as mock_get_current_user, \
-             patch("src.domains.auth.routes.g") as mock_g:
+        with (
+            patch("src.domains.auth.routes.get_current_user") as mock_get_current_user,
+            patch("src.domains.auth.routes.g") as mock_g,
+        ):
 
             mock_get_current_user.return_value = Mock(id=1)
             mock_g.app_context = mock_app_context
@@ -620,7 +609,7 @@ class TestDefaultRagConfigEndpoints:
                     "top_k": 10,
                     "rerank_enabled": True,
                     "rerank_model": "rerank-model",
-                }
+                },
             )
 
             assert response.status_code == 200
@@ -648,7 +637,7 @@ class TestDefaultRagConfigEndpoints:
 
             response = client.put(
                 "/api/auth/default-rag-config",
-                json={"retriever_type": "invalid"}  # Invalid retriever type
+                json={"retriever_type": "invalid"},  # Invalid retriever type
             )
 
             assert response.status_code == 400
@@ -661,8 +650,7 @@ class TestDefaultRagConfigEndpoints:
             mock_get_current_user.return_value = Mock(id=1)
 
             response = client.put(
-                "/api/auth/default-rag-config",
-                json={"chunk_size": 50}  # Too small
+                "/api/auth/default-rag-config", json={"chunk_size": 50}  # Too small
             )
 
             assert response.status_code == 400

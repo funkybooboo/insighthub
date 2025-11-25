@@ -1,7 +1,6 @@
 """Workspace-scoped document routes."""
 
 from flask import Blueprint, Response, g, jsonify, request
-from werkzeug.datastructures import FileStorage
 
 from src.infrastructure.auth import get_current_user, require_auth
 
@@ -57,9 +56,9 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
 
         # Validate file type
         allowed_types = {
-            'application/pdf': ['.pdf'],
-            'text/plain': ['.txt'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+            "application/pdf": [".pdf"],
+            "text/plain": [".txt"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
         }
 
         if file.mimetype not in allowed_types:
@@ -79,10 +78,7 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
             file_obj=file,
         )
 
-        return jsonify({
-            "message": result.message,
-            "document": result.document
-        }), 201
+        return jsonify({"message": result.message, "document": result.document}), 201
 
     except InvalidFileTypeError as e:
         return jsonify({"error": f"Unsupported file type. {str(e)}"}), 415
@@ -144,14 +140,19 @@ def list_workspace_documents(workspace_id: str) -> tuple[Response, int]:
             user_id=user.id,
             limit=limit,
             offset=offset,
-            status_filter=status_filter
+            status_filter=status_filter,
         )
 
-        return jsonify({
-            "documents": result.documents,
-            "count": result.count,
-            "total": result.total,
-        }), 200
+        return (
+            jsonify(
+                {
+                    "documents": result.documents,
+                    "count": result.count,
+                    "total": result.total,
+                }
+            ),
+            200,
+        )
 
     except ValueError as e:
         return jsonify({"error": f"Invalid workspace ID: {str(e)}"}), 400
@@ -184,9 +185,7 @@ def delete_workspace_document(workspace_id: str, doc_id: int) -> tuple[Response,
         document_service = g.app_context.document_service
         try:
             document_service.delete_workspace_document(
-                document_id=doc_id,
-                workspace_id=int(workspace_id),
-                user_id=user.id
+                document_id=doc_id, workspace_id=int(workspace_id), user_id=user.id
             )
         except DocumentNotFoundError:
             return jsonify({"error": "Document not found"}), 404
@@ -258,16 +257,10 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
         # Fetch Wikipedia article via service
         document_service = g.app_context.document_service
         result = document_service.fetch_wikipedia_article(
-            workspace_id=int(workspace_id),
-            user_id=user.id,
-            query=query,
-            language=language
+            workspace_id=int(workspace_id), user_id=user.id, query=query, language=language
         )
 
-        return jsonify({
-            "message": result.message,
-            "document": result.document
-        }), 200
+        return jsonify({"message": result.message, "document": result.document}), 200
 
     except DocumentProcessingError as e:
         return jsonify({"error": f"Wikipedia fetch failed: {str(e)}"}), 404
@@ -312,9 +305,20 @@ def update_document_status(workspace_id: str, doc_id: int) -> tuple[Response, in
         chunk_count = data.get("chunk_count")
 
         # Validate status
-        valid_statuses = ['pending', 'parsing', 'chunking', 'embedding', 'indexing', 'ready', 'failed']
+        valid_statuses = [
+            "pending",
+            "parsing",
+            "chunking",
+            "embedding",
+            "indexing",
+            "ready",
+            "failed",
+        ]
         if status not in valid_statuses:
-            return jsonify({"error": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"}), 400
+            return (
+                jsonify({"error": f"Invalid status. Must be one of: {', '.join(valid_statuses)}"}),
+                400,
+            )
 
         # Validate that document belongs to workspace
         document_service = g.app_context.document_service

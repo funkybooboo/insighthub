@@ -3,8 +3,9 @@
 from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
-from .sql_chat_message_repository import SqlChatMessageRepository
+
 from .chat_message_repository import ChatMessageRepository
+from .sql_chat_message_repository import SqlChatMessageRepository
 
 
 def create_chat_message_repository(

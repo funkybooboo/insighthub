@@ -68,11 +68,11 @@ async cancelChatMessage(workspaceId: number, sessionId: number): Promise<void>
 
 **Mismatches Found**:
 
-| User Flows Expect                                                  | Client Currently Uses                         | Status            |
-| ------------------------------------------------------------------ | --------------------------------------------- | ----------------- |
-| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` | `/api/chat`                                   | [ ] Wrong          |
+| User Flows Expect                                                  | Client Currently Uses                         | Status                   |
+| ------------------------------------------------------------------ | --------------------------------------------- | ------------------------ |
+| `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages` | `/api/chat`                                   | [ ] Wrong                |
 | `/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/cancel`   | `socketService.cancelMessage()`               | [WARNING] WebSocket only |
-| `/api/workspaces/{workspaceId}/documents/fetch-wikipedia`          | `/api/workspaces/{workspaceId}/rag/wikipedia` | [ ] Wrong          |
+| `/api/workspaces/{workspaceId}/documents/fetch-wikipedia`          | `/api/workspaces/{workspaceId}/rag/wikipedia` | [ ] Wrong                |
 
 ### 4. Missing WebSocket Events
 

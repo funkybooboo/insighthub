@@ -1,27 +1,29 @@
 """Document processing event handlers."""
 
 from flask_socketio import SocketIO
-
-from src.domains.workspaces.documents.service import DocumentService
-from src.domains.workspaces.documents.status import broadcast_document_status
 from shared.logger import create_logger
+
+from src.domains.workspaces.documents.status import broadcast_document_status
 
 logger = create_logger(__name__)
 
 
-def _update_document_status(document_id: int, status: str, error_message: str | None = None, chunk_count: int | None = None) -> None:
+def _update_document_status(
+    document_id: int, status: str, error_message: str | None = None, chunk_count: int | None = None
+) -> None:
     """Update document status in database."""
     try:
         # Get document service from app context
         from flask import g
-        if hasattr(g, 'app_context') and hasattr(g.app_context, 'document_service'):
+
+        if hasattr(g, "app_context") and hasattr(g.app_context, "document_service"):
             document_service = g.app_context.document_service
             # Update processing status
             document_service.update_document_status(
                 document_id=document_id,
                 status=status,
                 error_message=error_message,
-                chunk_count=chunk_count
+                chunk_count=chunk_count,
             )
     except Exception as e:
         logger.warning(f"Failed to update document status in database: {e}")
@@ -165,7 +167,7 @@ def handle_document_indexed(event_data: dict, socketio: SocketIO) -> None:
             "document_id": document_id,
             "workspace_id": workspace_id,
             "status": "ready",
-            "message": f"Document indexed and ready for queries",
+            "message": "Document indexed and ready for queries",
             "filename": event_data.get("filename", ""),
             "user_id": event_data.get("user_id"),
             "chunk_count": chunk_count,
@@ -176,16 +178,18 @@ def handle_document_indexed(event_data: dict, socketio: SocketIO) -> None:
         if workspace_id and event_data.get("user_id"):
             try:
                 from src.context import create_llm
+
                 llm_provider = create_llm()
 
                 # Get chat service from app context
                 from flask import g
-                if hasattr(g, 'app_context') and hasattr(g.app_context, 'chat_service'):
+
+                if hasattr(g, "app_context") and hasattr(g.app_context, "chat_service"):
                     chat_service = g.app_context.chat_service
                     chat_service.retry_pending_rag_queries(
                         workspace_id=int(workspace_id),
                         user_id=int(event_data["user_id"]),
-                        llm_provider=llm_provider
+                        llm_provider=llm_provider,
                     )
             except Exception as retry_error:
                 logger.warning(f"Failed to retry pending RAG queries: {retry_error}")

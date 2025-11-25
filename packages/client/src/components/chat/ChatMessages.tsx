@@ -5,10 +5,10 @@ import { selectActiveWorkspaceId } from '@/store/slices/workspaceSlice';
 import TypingIndicator from './TypingIndicator';
 import { MessageItem } from './MessageItem';
 import {
-  ChatScrollContainer,
-  ScrollToBottomButton,
-  EmptyChatState,
-  ChatError
+    ChatScrollContainer,
+    ScrollToBottomButton,
+    EmptyChatState,
+    ChatError,
 } from './ChatComponents';
 import { useChatScroll } from '../../hooks/useChatScroll';
 import { type Message as MessageType } from '../../types/chat';
@@ -24,14 +24,12 @@ const ChatMessages = ({ messages, error, isBotTyping, onFetchWikipedia }: Props)
     const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
     const isWorkspaceProcessing = useSelector(selectIsWorkspaceProcessing(activeWorkspaceId || -1));
 
-    const { lastMessageRef, scrollContainerRef, showScrollButton, scrollToBottom, handleScroll } = useChatScroll(messages, isBotTyping);
+    const { lastMessageRef, scrollContainerRef, showScrollButton, scrollToBottom, handleScroll } =
+        useChatScroll(messages, isBotTyping);
 
     return (
         <div className="flex-1 relative overflow-hidden">
-            <ChatScrollContainer
-                ref={scrollContainerRef}
-                onScroll={handleScroll}
-            >
+            <ChatScrollContainer ref={scrollContainerRef} onScroll={handleScroll}>
                 <div className="max-w-3xl mx-auto space-y-5">
                     {messages.length === 0 ? (
                         <EmptyChatState />
@@ -57,10 +55,7 @@ const ChatMessages = ({ messages, error, isBotTyping, onFetchWikipedia }: Props)
                 </div>
             </ChatScrollContainer>
 
-            <ScrollToBottomButton
-                onClick={scrollToBottom}
-                visible={showScrollButton}
-            />
+            <ScrollToBottomButton onClick={scrollToBottom} visible={showScrollButton} />
         </div>
     );
 };

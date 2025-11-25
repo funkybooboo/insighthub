@@ -43,16 +43,17 @@ class RequestLoggingMiddleware:
                     user_id = g.current_user.id
 
                 # Get correlation ID if available
-                correlation_id = getattr(g, 'correlation_id', None)
+                correlation_id = getattr(g, "correlation_id", None)
 
                 # Log request start using structured logging
                 from src.infrastructure.logging import log_request_start
+
                 log_request_start(
                     method=request.method,
                     path=request.path,
                     client_ip=client_ip,
                     user_id=user_id,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
 
             except Exception as e:
@@ -66,16 +67,17 @@ class RequestLoggingMiddleware:
                 if hasattr(g, "start_time"):
                     elapsed_time = time.time() - g.start_time
                     # Get correlation ID if available
-                    correlation_id = getattr(g, 'correlation_id', None)
+                    correlation_id = getattr(g, "correlation_id", None)
 
                     # Log request end using structured logging
                     from src.infrastructure.logging import log_request_end
+
                     log_request_end(
                         method=request.method,
                         path=request.path,
                         status_code=response.status_code,
                         response_time_ms=round(elapsed_time * 1000, 2),
-                        correlation_id=correlation_id
+                        correlation_id=correlation_id,
                     )
             except Exception as e:
                 # Don't break the response if logging fails

@@ -1,20 +1,18 @@
 """RAG Config service for managing workspace RAG configurations."""
 
-from typing import Optional
-
 from shared.models.workspace import RagConfig
-from shared.repositories import RagConfigRepository
+from shared.repositories import WorkspaceRepository
 
 
 class RagConfigService:
     """Service for RAG configuration operations."""
 
-    def __init__(self, repository: RagConfigRepository, workspace_service):
+    def __init__(self, repository: WorkspaceRepository, workspace_service) -> None:
         """Initialize the service."""
         self.repository = repository
         self.workspace_service = workspace_service
 
-    def get_rag_config(self, workspace_id: int, user_id: int) -> Optional[RagConfig]:
+    def get_rag_config(self, workspace_id: int, user_id: int) -> RagConfig | None:
         """
         Get RAG configuration for a workspace.
 
@@ -29,9 +27,11 @@ class RagConfigService:
         if not self.workspace_service.validate_workspace_access(workspace_id, user_id):
             return None
 
-        return self.repository.get_by_workspace_id(workspace_id)
+        return self.repository.get_rag_config(workspace_id)
 
-    def create_rag_config(self, workspace_id: int, user_id: int, **config_data) -> RagConfig:
+    def create_rag_config(
+        self, workspace_id: int, user_id: int, **config_data: str | int | bool | None
+    ) -> RagConfig:
         """
         Create RAG configuration for a workspace.
 
@@ -48,13 +48,15 @@ class RagConfigService:
             raise ValueError("No access to workspace")
 
         # Check if config already exists
-        existing = self.repository.get_by_workspace_id(workspace_id)
+        existing = self.repository.get_rag_config(workspace_id)
         if existing:
             raise ValueError("RAG configuration already exists for this workspace")
 
-        return self.repository.create(workspace_id, **config_data)
+        return self.repository.create_rag_config(workspace_id, **config_data)
 
-    def update_rag_config(self, workspace_id: int, user_id: int, **update_data) -> Optional[RagConfig]:
+    def update_rag_config(
+        self, workspace_id: int, user_id: int, **update_data: str | int | bool | None
+    ) -> RagConfig | None:
         """
         Update RAG configuration for a workspace.
 
@@ -74,7 +76,7 @@ class RagConfigService:
         if update_data:
             self._validate_config_data(update_data)
 
-        return self.repository.update(workspace_id, **update_data)
+        return self.repository.update_rag_config(workspace_id, **update_data)
 
     def delete_rag_config(self, workspace_id: int, user_id: int) -> bool:
         """

@@ -1,12 +1,8 @@
 """Integration tests for authentication endpoints with test containers."""
 
 import json
-import time
-from typing import Any
 
-import pytest
 from flask.testing import FlaskClient
-
 from shared.models import User
 
 
@@ -19,13 +15,11 @@ class TestAuthEndpointsIntegration:
             "username": "integration_user",
             "email": "integration@example.com",
             "password": "secure_password123",
-            "full_name": "Integration User"
+            "full_name": "Integration User",
         }
 
         response = client.post(
-            "/api/auth/signup",
-            data=json.dumps(signup_data),
-            content_type="application/json"
+            "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
         )
 
         assert response.status_code == 201
@@ -56,16 +50,12 @@ class TestAuthEndpointsIntegration:
             # Missing required fields
             (
                 {"email": "test@example.com", "password": "password123"},
-                "username, email, and password are required"
+                "username, email, and password are required",
             ),
             # Password too short
             (
-                {
-                    "username": "testuser",
-                    "email": "test@example.com",
-                    "password": "12345"
-                },
-                "Password must be at least 6 characters"
+                {"username": "testuser", "email": "test@example.com", "password": "12345"},
+                "Password must be at least 6 characters",
             ),
             # Invalid JSON
             ("invalid json", "Request body is required"),
@@ -74,15 +64,11 @@ class TestAuthEndpointsIntegration:
         for payload, expected_error in test_cases:
             if isinstance(payload, dict):
                 response = client.post(
-                    "/api/auth/signup",
-                    data=json.dumps(payload),
-                    content_type="application/json"
+                    "/api/auth/signup", data=json.dumps(payload), content_type="application/json"
                 )
             else:
                 response = client.post(
-                    "/api/auth/signup",
-                    data=payload,
-                    content_type="application/json"
+                    "/api/auth/signup", data=payload, content_type="application/json"
                 )
 
             assert response.status_code == 400
@@ -95,13 +81,11 @@ class TestAuthEndpointsIntegration:
         signup_data = {
             "username": test_user.username,  # Duplicate username
             "email": "different@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
         response = client.post(
-            "/api/auth/signup",
-            data=json.dumps(signup_data),
-            content_type="application/json"
+            "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
         )
 
         assert response.status_code == 400
@@ -112,13 +96,11 @@ class TestAuthEndpointsIntegration:
         signup_data = {
             "username": "different_user",
             "email": test_user.email,  # Duplicate email
-            "password": "password123"
+            "password": "password123",
         }
 
         response = client.post(
-            "/api/auth/signup",
-            data=json.dumps(signup_data),
-            content_type="application/json"
+            "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
         )
 
         assert response.status_code == 400
@@ -129,13 +111,11 @@ class TestAuthEndpointsIntegration:
         """Test successful login."""
         login_data = {
             "username": test_user.username,
-            "password": "test_password"  # From test fixture
+            "password": "test_password",  # From test fixture
         }
 
         response = client.post(
-            "/api/auth/login",
-            data=json.dumps(login_data),
-            content_type="application/json"
+            "/api/auth/login", data=json.dumps(login_data), content_type="application/json"
         )
 
         assert response.status_code == 200
@@ -164,16 +144,16 @@ class TestAuthEndpointsIntegration:
 
         for login_data in test_cases:
             response = client.post(
-                "/api/auth/login",
-                data=json.dumps(login_data),
-                content_type="application/json"
+                "/api/auth/login", data=json.dumps(login_data), content_type="application/json"
             )
 
             assert response.status_code == 401
             data = json.loads(response.data)
             assert "error" in data
 
-    def test_get_current_user_authenticated(self, client: FlaskClient, auth_headers: dict[str, str], test_user: User) -> None:
+    def test_get_current_user_authenticated(
+        self, client: FlaskClient, auth_headers: dict[str, str], test_user: User
+    ) -> None:
         """Test getting current user when authenticated."""
         response = client.get("/api/auth/me", headers=auth_headers)
 
@@ -210,25 +190,29 @@ class TestAuthEndpointsIntegration:
         # Check security headers are still present
         assert "X-Frame-Options" in response.headers
 
-    def test_change_password_success(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_change_password_success(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test successful password change."""
         change_data = {
             "current_password": "test_password",
-            "new_password": "new_secure_password123"
+            "new_password": "new_secure_password123",
         }
 
         response = client.post(
             "/api/auth/change-password",
             data=json.dumps(change_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data["message"] == "Password changed successfully"
 
-    def test_change_password_validation_errors(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_change_password_validation_errors(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test password change validation errors."""
         test_cases = [
             # Missing fields
@@ -246,25 +230,24 @@ class TestAuthEndpointsIntegration:
                 "/api/auth/change-password",
                 data=json.dumps(change_data),
                 content_type="application/json",
-                headers=auth_headers
+                headers=auth_headers,
             )
 
             assert response.status_code in [400, 401]
             data = json.loads(response.data)
             assert "error" in data
 
-    def test_update_profile_success(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_update_profile_success(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test successful profile update."""
-        update_data = {
-            "full_name": "Updated Name",
-            "email": "updated@example.com"
-        }
+        update_data = {"full_name": "Updated Name", "email": "updated@example.com"}
 
         response = client.patch(
             "/api/auth/profile",
             data=json.dumps(update_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
@@ -272,7 +255,9 @@ class TestAuthEndpointsIntegration:
         assert data["full_name"] == "Updated Name"
         assert data["email"] == "updated@example.com"
 
-    def test_update_profile_validation_errors(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_update_profile_validation_errors(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test profile update validation errors."""
         # Invalid email
         update_data = {"email": "invalid-email"}
@@ -281,14 +266,16 @@ class TestAuthEndpointsIntegration:
             "/api/auth/profile",
             data=json.dumps(update_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 400
         data = json.loads(response.data)
         assert "Invalid email format" in data["error"]
 
-    def test_update_preferences_success(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_update_preferences_success(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test successful preferences update."""
         update_data = {"theme_preference": "dark"}
 
@@ -296,14 +283,16 @@ class TestAuthEndpointsIntegration:
             "/api/auth/preferences",
             data=json.dumps(update_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data["theme_preference"] == "dark"
 
-    def test_update_preferences_invalid_theme(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_update_preferences_invalid_theme(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test preferences update with invalid theme."""
         update_data = {"theme_preference": "invalid_theme"}
 
@@ -311,14 +300,16 @@ class TestAuthEndpointsIntegration:
             "/api/auth/preferences",
             data=json.dumps(update_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 400
         data = json.loads(response.data)
         assert "theme_preference must be 'light' or 'dark'" in data["error"]
 
-    def test_default_rag_config_workflow(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_default_rag_config_workflow(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test complete default RAG config workflow."""
         # Initially should return 404 (not configured)
         response = client.get("/api/auth/default-rag-config", headers=auth_headers)
@@ -333,14 +324,14 @@ class TestAuthEndpointsIntegration:
             "chunk_overlap": 200,
             "top_k": 8,
             "rerank_enabled": False,
-            "rerank_model": None
+            "rerank_model": None,
         }
 
         response = client.put(
             "/api/auth/default-rag-config",
             data=json.dumps(config_data),
             content_type="application/json",
-            headers=auth_headers
+            headers=auth_headers,
         )
 
         assert response.status_code == 200
@@ -355,7 +346,9 @@ class TestAuthEndpointsIntegration:
         data = json.loads(response.data)
         assert data["embedding_model"] == "nomic-embed-text"
 
-    def test_default_rag_config_validation(self, client: FlaskClient, auth_headers: dict[str, str]) -> None:
+    def test_default_rag_config_validation(
+        self, client: FlaskClient, auth_headers: dict[str, str]
+    ) -> None:
         """Test RAG config validation."""
         invalid_configs = [
             {"retriever_type": "invalid_type"},
@@ -369,7 +362,7 @@ class TestAuthEndpointsIntegration:
                 "/api/auth/default-rag-config",
                 data=json.dumps(config_data),
                 content_type="application/json",
-                headers=auth_headers
+                headers=auth_headers,
             )
 
             assert response.status_code == 400
@@ -382,16 +375,14 @@ class TestAuthEndpointsIntegration:
         signup_data = {
             "username": "ratelimit_test",
             "email": "ratelimit@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
         # Make several requests in quick succession
         responses = []
-        for i in range(10):  # More than the per-minute limit
+        for _i in range(10):  # More than the per-minute limit
             response = client.post(
-                "/api/auth/signup",
-                data=json.dumps(signup_data),
-                content_type="application/json"
+                "/api/auth/signup", data=json.dumps(signup_data), content_type="application/json"
             )
             responses.append(response)
 
@@ -411,9 +402,7 @@ class TestAuthEndpointsIntegration:
         large_data = {"username": "a" * (1024 * 1024)}  # 1MB of data
 
         response = client.post(
-            "/api/auth/signup",
-            data=json.dumps(large_data),
-            content_type="application/json"
+            "/api/auth/signup", data=json.dumps(large_data), content_type="application/json"
         )
 
         # Should be rejected due to size limits
@@ -424,14 +413,14 @@ class TestAuthEndpointsIntegration:
         signup_data = {
             "username": "content_type_test",
             "email": "test@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
         # Test with wrong content type
         response = client.post(
             "/api/auth/signup",
             data=json.dumps(signup_data),
-            content_type="text/plain"  # Wrong content type
+            content_type="text/plain",  # Wrong content type
         )
 
         assert response.status_code == 415
@@ -442,9 +431,7 @@ class TestAuthEndpointsIntegration:
         """Test JSON validation middleware."""
         # Send invalid JSON
         response = client.post(
-            "/api/auth/signup",
-            data='{"invalid": json}',
-            content_type="application/json"
+            "/api/auth/signup", data='{"invalid": json}', content_type="application/json"
         )
 
         assert response.status_code == 400
@@ -454,10 +441,7 @@ class TestAuthEndpointsIntegration:
     def test_path_traversal_protection(self, client: FlaskClient) -> None:
         """Test path traversal protection."""
         # Try to access paths with traversal patterns
-        traversal_paths = [
-            "/api/auth/../../../etc/passwd",
-            "/api/auth/..%2F..%2Fetc%2Fpasswd"
-        ]
+        traversal_paths = ["/api/auth/../../../etc/passwd", "/api/auth/..%2F..%2Fetc%2Fpasswd"]
 
         for path in traversal_paths:
             response = client.get(path)
@@ -505,9 +489,11 @@ class TestAuthEndpointsIntegration:
         response = client.post(
             "/api/auth/login",
             data=json.dumps({"username": "test", "password": "test"}),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         # Should get a response (even if 401), indicating logging middleware processed it
         assert response.status_code in [200, 401]
-        assert "X-Response-Time" in response.headers  # Performance monitoring confirms request was processed
+        assert (
+            "X-Response-Time" in response.headers
+        )  # Performance monitoring confirms request was processed

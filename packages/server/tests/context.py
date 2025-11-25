@@ -1,6 +1,6 @@
 """Test context for dependency injection in tests."""
 
-from shared.database.sql import SqlDatabase, PostgresSqlDatabase
+from shared.database.sql import PostgresSqlDatabase
 from shared.repositories import (
     ChatMessageRepository,
     ChatSessionRepository,
@@ -14,10 +14,9 @@ from shared.repositories import (
 from shared.storage import BlobStorage
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 
+from src.domains.auth.service import UserService
 from src.domains.chat.service import ChatService
 from src.domains.documents.service import DocumentService
-from src.domains.auth.service import UserService
-from src import config
 
 
 class UnitTestContext:
@@ -41,9 +40,15 @@ class UnitTestContext:
 
         # Initialize repositories
         self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
-        self.document_repository: DocumentRepository = create_document_repository("postgres", db_url=db_url)
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository("postgres", db_url=db_url)
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository("postgres", db_url=db_url)
+        self.document_repository: DocumentRepository = create_document_repository(
+            "postgres", db_url=db_url
+        )
+        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(
+            "postgres", db_url=db_url
+        )
+        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(
+            "postgres", db_url=db_url
+        )
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)
@@ -78,9 +83,15 @@ class IntegrationTestContext:
 
         # Initialize repositories
         self.user_repository: UserRepository = create_user_repository("postgres", db_url=db_url)
-        self.document_repository: DocumentRepository = create_document_repository("postgres", db_url=db_url)
-        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository("postgres", db_url=db_url)
-        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository("postgres", db_url=db_url)
+        self.document_repository: DocumentRepository = create_document_repository(
+            "postgres", db_url=db_url
+        )
+        self.chat_session_repository: ChatSessionRepository = create_chat_session_repository(
+            "postgres", db_url=db_url
+        )
+        self.chat_message_repository: ChatMessageRepository = create_chat_message_repository(
+            "postgres", db_url=db_url
+        )
 
         # Initialize services with dependency injection
         self.user_service = UserService(repository=self.user_repository)

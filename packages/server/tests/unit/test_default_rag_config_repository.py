@@ -1,9 +1,9 @@
 """Unit tests for DefaultRagConfigRepository."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import Mock
 
+import pytest
 from shared.models.default_rag_config import DefaultRagConfig
 from shared.repositories.default_rag_config import SqlDefaultRagConfigRepository
 
@@ -78,7 +78,7 @@ class TestSqlDefaultRagConfigRepository:
             FROM default_rag_configs
             WHERE user_id = %s
         """,
-            {"user_id": 1}
+            {"user_id": 1},
         )
 
     def test_get_by_user_id_not_found(self, repository, mock_db):
@@ -151,7 +151,7 @@ class TestSqlDefaultRagConfigRepository:
                 "rerank_model": None,
                 "created_at": sample_config.created_at,
                 "updated_at": sample_config.updated_at,
-            }
+            },
         ]
 
         result = repository.upsert(
@@ -216,8 +216,7 @@ class TestSqlDefaultRagConfigRepository:
 
         assert result is True
         mock_db.execute.assert_called_once_with(
-            "DELETE FROM default_rag_configs WHERE user_id = %s",
-            {"user_id": 1}
+            "DELETE FROM default_rag_configs WHERE user_id = %s", {"user_id": 1}
         )
 
     def test_delete_by_user_id_no_rows(self, repository, mock_db):
@@ -245,8 +244,12 @@ class TestDefaultRagConfigRepositoryInterface:
         ]
 
         for method_name in required_methods:
-            assert hasattr(DefaultRagConfigRepository, method_name), f"Missing method: {method_name}"
+            assert hasattr(
+                DefaultRagConfigRepository, method_name
+            ), f"Missing method: {method_name}"
 
             # Check that methods are abstract
             method = getattr(DefaultRagConfigRepository, method_name)
-            assert hasattr(method, '__isabstractmethod__'), f"Method {method_name} should be abstract"
+            assert hasattr(
+                method, "__isabstractmethod__"
+            ), f"Method {method_name} should be abstract"

@@ -1,7 +1,8 @@
 """Unit tests for rate limiting decorator."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from flask import Flask, g
 
 from src.infrastructure.security.rate_limit_decorator import require_rate_limit
@@ -40,16 +41,15 @@ class TestRateLimitDecorator:
         mock_rate_limiter = Mock()
         mock_rate_limiter._count_requests.return_value = 1  # Under limit
 
-        with app.test_client() as client:
-            with patch.object(g, 'app_context', Mock()) as mock_ctx:
-                mock_ctx.rate_limiter = mock_rate_limiter
+        with app.test_client() as client, patch.object(g, "app_context", Mock()) as mock_ctx:
+            mock_ctx.rate_limiter = mock_rate_limiter
 
-                response = client.get("/test")
-                assert response.status_code == 200
-                assert response.get_data(as_text=True) == "OK"
+            response = client.get("/test")
+            assert response.status_code == 200
+            assert response.get_data(as_text=True) == "OK"
 
-                # Verify rate limiter was called
-                mock_rate_limiter._count_requests.assert_called()
+            # Verify rate limiter was called
+            mock_rate_limiter._count_requests.assert_called()
 
     def test_decorator_rate_limit_exceeded(self, app: Flask) -> None:
         """Test decorator when rate limit is exceeded."""
@@ -57,14 +57,13 @@ class TestRateLimitDecorator:
         mock_rate_limiter = Mock()
         mock_rate_limiter._count_requests.return_value = 5  # Over limit
 
-        with app.test_client() as client:
-            with patch.object(g, 'app_context', Mock()) as mock_ctx:
-                mock_ctx.rate_limiter = mock_rate_limiter
+        with app.test_client() as client, patch.object(g, "app_context", Mock()) as mock_ctx:
+            mock_ctx.rate_limiter = mock_rate_limiter
 
-                response = client.get("/test")
-                assert response.status_code == 429
-                assert "Rate limit exceeded" in response.get_json()["error"]
-                assert response.headers.get("Retry-After") == "60"
+            response = client.get("/test")
+            assert response.status_code == 429
+            assert "Rate limit exceeded" in response.get_json()["error"]
+            assert response.headers.get("Retry-After") == "60"
 
     def test_decorator_health_endpoints_exempt(self, app: Flask) -> None:
         """Test that health endpoints are exempt from rate limiting."""
@@ -72,17 +71,16 @@ class TestRateLimitDecorator:
         mock_rate_limiter = Mock()
         mock_rate_limiter._count_requests.return_value = 10  # Way over limit
 
-        with app.test_client() as client:
-            with patch.object(g, 'app_context', Mock()) as mock_ctx:
-                mock_ctx.rate_limiter = mock_rate_limiter
+        with app.test_client() as client, patch.object(g, "app_context", Mock()) as mock_ctx:
+            mock_ctx.rate_limiter = mock_rate_limiter
 
-                # Health endpoint should not be rate limited
-                response = client.get("/health")
-                assert response.status_code == 200
-                assert response.get_data(as_text=True) == "OK"
+            # Health endpoint should not be rate limited
+            response = client.get("/health")
+            assert response.status_code == 200
+            assert response.get_data(as_text=True) == "OK"
 
-                # Rate limiter should not have been called
-                mock_rate_limiter._count_requests.assert_not_called()
+            # Rate limiter should not have been called
+            mock_rate_limiter._count_requests.assert_not_called()
 
     def test_decorator_exception_handling(self, app: Flask) -> None:
         """Test decorator handles exceptions gracefully."""
@@ -90,11 +88,10 @@ class TestRateLimitDecorator:
         mock_rate_limiter = Mock()
         mock_rate_limiter._count_requests.side_effect = Exception("Test error")
 
-        with app.test_client() as client:
-            with patch.object(g, 'app_context', Mock()) as mock_ctx:
-                mock_ctx.rate_limiter = mock_rate_limiter
+        with app.test_client() as client, patch.object(g, "app_context", Mock()) as mock_ctx:
+            mock_ctx.rate_limiter = mock_rate_limiter
 
-                # Should still work despite rate limiter error
-                response = client.get("/test")
-                assert response.status_code == 200
-                assert response.get_data(as_text=True) == "OK"
+            # Should still work despite rate limiter error
+            response = client.get("/test")
+            assert response.status_code == 200
+            assert response.get_data(as_text=True) == "OK"

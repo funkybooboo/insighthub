@@ -3,8 +3,9 @@
 from typing import Optional
 
 from shared.database.sql.postgres_sql_database import PostgresSqlDatabase
-from .sql_document_repository import SqlDocumentRepository
+
 from .document_repository import DocumentRepository
+from .sql_document_repository import SqlDocumentRepository
 
 
 def create_document_repository(

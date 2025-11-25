@@ -2,7 +2,6 @@
 
 import time
 from collections import defaultdict
-from typing import Optional
 
 from flask import Flask, Request, Response, jsonify, request
 from shared.logger import create_logger
@@ -24,7 +23,7 @@ class RateLimitMiddleware:
         requests_per_minute: int = 60,
         requests_per_hour: int = 1000,
         enabled: bool = True,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
     ):
         """
         Initialize rate limiting middleware.
@@ -47,6 +46,7 @@ class RateLimitMiddleware:
         if redis_url:
             try:
                 import redis
+
                 self.redis_client = redis.from_url(redis_url)
                 # Test connection
                 self.redis_client.ping()

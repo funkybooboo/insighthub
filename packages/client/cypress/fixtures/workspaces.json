@@ -1,0 +1,22 @@
+{
+    "default": {
+        "name": "Research Papers",
+        "description": "Workspace for academic research papers",
+        "ragConfig": {
+            "retriever_type": "vector",
+            "embedding_model": "nomic-embed-text",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "top_k": 8
+        }
+    },
+    "graphWorkspace": {
+        "name": "Graph RAG Workspace",
+        "description": "Testing Graph RAG functionality",
+        "ragConfig": {
+            "retriever_type": "graph",
+            "max_hops": 2,
+            "entity_extraction_model": "ollama"
+        }
+    }
+}

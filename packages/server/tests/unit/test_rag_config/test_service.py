@@ -1,9 +1,10 @@
 """Unit tests for RAG config service."""
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 from shared.models.workspace import RagConfig
+
 from src.domains.workspaces.rag_config.service import RagConfigService
 
 
@@ -31,10 +32,18 @@ class TestRagConfigService:
         workspace_id = 123
         user_id = 456
         expected_config = RagConfig(
-            id=1, workspace_id=workspace_id, embedding_model="nomic-embed-text",
-            embedding_dim=None, retriever_type="vector", chunk_size=1000,
-            chunk_overlap=200, top_k=8, rerank_enabled=False, rerank_model=None,
-            created_at=None, updated_at=None
+            id=1,
+            workspace_id=workspace_id,
+            embedding_model="nomic-embed-text",
+            embedding_dim=None,
+            retriever_type="vector",
+            chunk_size=1000,
+            chunk_overlap=200,
+            top_k=8,
+            rerank_enabled=False,
+            rerank_model=None,
+            created_at=None,
+            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -45,7 +54,9 @@ class TestRagConfigService:
 
         # Assert
         assert result == expected_config
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
         mock_repository.get_by_workspace_id.assert_called_once_with(workspace_id)
 
     def test_get_rag_config_no_access(self, service, mock_workspace_service):
@@ -60,7 +71,9 @@ class TestRagConfigService:
 
         # Assert
         assert result is None
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
 
     def test_create_rag_config_success(self, service, mock_repository, mock_workspace_service):
         """Test creating RAG config successfully."""
@@ -69,10 +82,18 @@ class TestRagConfigService:
         user_id = 456
         config_data = {"embedding_model": "custom-model", "chunk_size": 1500}
         expected_config = RagConfig(
-            id=1, workspace_id=workspace_id, embedding_model="custom-model",
-            embedding_dim=None, retriever_type="vector", chunk_size=1500,
-            chunk_overlap=200, top_k=8, rerank_enabled=False, rerank_model=None,
-            created_at=None, updated_at=None
+            id=1,
+            workspace_id=workspace_id,
+            embedding_model="custom-model",
+            embedding_dim=None,
+            retriever_type="vector",
+            chunk_size=1500,
+            chunk_overlap=200,
+            top_k=8,
+            rerank_enabled=False,
+            rerank_model=None,
+            created_at=None,
+            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -84,20 +105,32 @@ class TestRagConfigService:
 
         # Assert
         assert result == expected_config
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
         mock_repository.get_by_workspace_id.assert_called_once_with(workspace_id)
         mock_repository.create.assert_called_once_with(workspace_id, **config_data)
 
-    def test_create_rag_config_already_exists(self, service, mock_repository, mock_workspace_service):
+    def test_create_rag_config_already_exists(
+        self, service, mock_repository, mock_workspace_service
+    ):
         """Test creating RAG config when it already exists."""
         # Setup
         workspace_id = 123
         user_id = 456
         existing_config = RagConfig(
-            id=1, workspace_id=workspace_id, embedding_model="existing-model",
-            embedding_dim=None, retriever_type="vector", chunk_size=1000,
-            chunk_overlap=200, top_k=8, rerank_enabled=False, rerank_model=None,
-            created_at=None, updated_at=None
+            id=1,
+            workspace_id=workspace_id,
+            embedding_model="existing-model",
+            embedding_dim=None,
+            retriever_type="vector",
+            chunk_size=1000,
+            chunk_overlap=200,
+            top_k=8,
+            rerank_enabled=False,
+            rerank_model=None,
+            created_at=None,
+            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -125,10 +158,18 @@ class TestRagConfigService:
         user_id = 456
         update_data = {"chunk_size": 1200, "top_k": 10}
         updated_config = RagConfig(
-            id=1, workspace_id=workspace_id, embedding_model="nomic-embed-text",
-            embedding_dim=None, retriever_type="vector", chunk_size=1200,
-            chunk_overlap=200, top_k=10, rerank_enabled=False, rerank_model=None,
-            created_at=None, updated_at=None
+            id=1,
+            workspace_id=workspace_id,
+            embedding_model="nomic-embed-text",
+            embedding_dim=None,
+            retriever_type="vector",
+            chunk_size=1200,
+            chunk_overlap=200,
+            top_k=10,
+            rerank_enabled=False,
+            rerank_model=None,
+            created_at=None,
+            updated_at=None,
         )
 
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -139,7 +180,9 @@ class TestRagConfigService:
 
         # Assert
         assert result == updated_config
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
         mock_repository.update.assert_called_once_with(workspace_id, **update_data)
 
     def test_update_rag_config_validation_error(self, service, mock_workspace_service):
@@ -232,7 +275,9 @@ class TestRagConfigService:
 
         # Assert
         assert result is None
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
 
     def test_delete_rag_config_success(self, service, mock_repository, mock_workspace_service):
         """Test deleting RAG config successfully."""
@@ -248,7 +293,9 @@ class TestRagConfigService:
 
         # Assert
         assert result is True
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )
         mock_repository.delete.assert_called_once_with(workspace_id)
 
     def test_delete_rag_config_no_access(self, service, mock_workspace_service):
@@ -263,4 +310,6 @@ class TestRagConfigService:
 
         # Assert
         assert result is False
-        mock_workspace_service.validate_workspace_access.assert_called_once_with(workspace_id, user_id)
+        mock_workspace_service.validate_workspace_access.assert_called_once_with(
+            workspace_id, user_id
+        )

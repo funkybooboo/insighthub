@@ -6,13 +6,16 @@ Produces: document.embedded
 """
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, List
+import json
 
 from shared.config import config
-from shared.workers import BaseWorker
-from shared.logger import create_logger
+from shared.worker.worker import Worker as BaseWorker
+from shared.logger import get_logger
+from shared.database.sql.postgres import PostgresConnection
+from shared.documents.embedding.factory import create_embedding_encoder
 
-logger = create_logger(__name__)
+logger = get_logger(__name__)
 
 # Use unified config
 RABBITMQ_URL = config.rabbitmq_url
@@ -20,6 +23,7 @@ RABBITMQ_EXCHANGE = config.rabbitmq_exchange
 DATABASE_URL = config.database_url
 WORKER_CONCURRENCY = config.worker_concurrency
 EMBEDDING_MODEL = config.ollama_embedding_model
+OLLAMA_BASE_URL = config.ollama_base_url
 BATCH_SIZE = config.batch_size
 
 
@@ -34,54 +38,6 @@ class DocumentEmbeddedEvent:
     metadata: dict[str, Any]
 
 
-class EmbeddingGenerator:
-    """Embedding generation utility."""
-
-    def __init__(self, model_name: str, batch_size: int):
-        """Initialize the embedding generator."""
-        self.model_name = model_name
-        self.batch_size = batch_size
-
-        # TODO: Initialize SentenceTransformer model
-        # self.model = SentenceTransformer(model_name)
-        # self.model.to('cpu')  # or 'cuda' if available
-
-    def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
-        """
-        Generate embeddings for a list of texts.
-
-        Args:
-            texts: List of text strings to embed
-
-        Returns:
-            List of embedding vectors
-        """
-        # TODO: Implement embedding generation
-        # 1. Process texts in batches
-        # 2. Generate embeddings using SentenceTransformer
-        # 3. Handle GPU/CPU selection
-        # 4. Return list of float vectors
-
-        # Placeholder: return mock embeddings
-        import random
-        random.seed(42)  # For deterministic results
-
-        embeddings = []
-        for text in texts:
-            # Generate deterministic embedding based on text hash
-            seed = hash(text) % 10000
-            random.seed(seed)
-            embedding = [random.uniform(-1, 1) for _ in range(384)]  # 384-dim like nomic-embed-text
-            embeddings.append(embedding)
-
-        return embeddings
-
-    def get_dimension(self) -> int:
-        """Get the embedding dimension."""
-        # TODO: Return actual model dimension
-        return 384  # nomic-embed-text dimension
-
-
 class EmbedderWorker(BaseWorker):
     """Document embedder worker."""
 
@@ -89,24 +45,28 @@ class EmbedderWorker(BaseWorker):
         """Initialize the embedder worker."""
         super().__init__(
             worker_name="embedder",
-            rabbitmq_url=config.rabbitmq_url,
-            exchange=config.rabbitmq_exchange,
+            rabbitmq_url=RABBITMQ_URL,
+            exchange=RABBITMQ_EXCHANGE,
             exchange_type="topic",
             consume_routing_key="document.chunked",
             consume_queue="embedder.document.chunked",
-            prefetch_count=config.worker_concurrency,
+            prefetch_count=WORKER_CONCURRENCY,
         )
 
-        # Initialize embedding generator
-        self.embedding_generator = EmbeddingGenerator(config.ollama_embedding_model, config.batch_size)
+        self.embedding_encoder = create_embedding_encoder(
+            encoder_type="ollama",
+            model=EMBEDDING_MODEL,
+            base_url=OLLAMA_BASE_URL,
+        )
+        if not self.embedding_encoder:
+            raise ValueError("Failed to create embedding encoder.")
 
-    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
+        self.db_connection = PostgresConnection(db_url=DATABASE_URL)
+        self.db_connection.connect()
+
+    def process_event(self, event_data: dict[str, Any]) -> None:
         """
         Process document.chunked event to generate embeddings.
-
-        Args:
-            event_data: Event data containing document_id, workspace_id, chunk_ids, etc.
-            message_context: Message context information
         """
         document_id = str(event_data.get("document_id", ""))
         workspace_id = str(event_data.get("workspace_id", ""))
@@ -115,32 +75,29 @@ class EmbedderWorker(BaseWorker):
 
         logger.info(
             "Embedding document chunks",
-            extra={
-                "document_id": document_id,
-                "workspace_id": workspace_id,
-                "chunk_count": len(chunk_ids)
-            }
+            extra={"document_id": document_id, "workspace_id": workspace_id, "chunk_count": len(chunk_ids)}
         )
 
         try:
-            # TODO: Get chunk texts from database
+            self._update_document_status(document_id, "embedding")
+
             chunk_texts = self._get_chunk_texts(chunk_ids)
             if not chunk_texts:
                 raise ValueError(f"No chunk texts found for document {document_id}")
 
-            # Generate embeddings
-            embeddings = self.embedding_generator.generate_embeddings(chunk_texts)
+            embeddings_result = self.embedding_encoder.encode(chunk_texts)
+            if embeddings_result.is_err():
+                raise embeddings_result.unwrap_err()
+            
+            embeddings = embeddings_result.unwrap()
 
-            # TODO: Store embeddings in database
             self._store_embeddings(chunk_ids, embeddings)
 
-            # TODO: Update document status
             self._update_document_status(document_id, "embedded", {
                 "embedding_count": len(embeddings),
-                "embedding_dimension": self.embedding_generator.get_dimension()
+                "embedding_dimension": self.embedding_encoder.get_dimension()
             })
 
-            # Publish document.embedded event
             embedded_event = DocumentEmbeddedEvent(
                 document_id=document_id,
                 workspace_id=workspace_id,
@@ -150,62 +107,76 @@ class EmbedderWorker(BaseWorker):
             )
             self.publish_event(
                 routing_key="document.embedded",
-                event_data=asdict(embedded_event),
-                correlation_id=message_context.get("correlation_id"),
-                message_id=document_id,
+                event=asdict(embedded_event),
             )
 
             logger.info(
                 "Successfully embedded document",
-                extra={
-                    "document_id": document_id,
-                    "embedding_count": len(embeddings)
-                }
+                extra={"document_id": document_id, "embedding_count": len(embeddings)}
             )
 
         except Exception as e:
-            logger.error(
-                "Failed to embed document",
-                extra={
-                    "document_id": document_id,
-                    "error": str(e)
-                }
-            )
-            # TODO: Update document status to failed
+            logger.error("Failed to embed document", extra={"document_id": document_id, "error": str(e)})
             self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
 
     def _get_chunk_texts(self, chunk_ids: list[str]) -> list[str]:
         """Get chunk texts from database."""
-        # TODO: Implement database query
-        # 1. Connect to PostgreSQL
-        # 2. Query document_chunks table for chunk_text
-        # 3. Return list of texts in same order as chunk_ids
-        # 4. Handle missing chunks
-
-        # Placeholder: return mock texts
-        return [f"Chunk text for {chunk_id}" for chunk_id in chunk_ids]
+        logger.info(f"Getting {len(chunk_ids)} chunk texts from database", extra={"chunk_ids": chunk_ids})
+        try:
+            with self.db_connection.get_cursor(as_dict=True) as cursor:
+                cursor.execute("SELECT id, chunk_text FROM document_chunks WHERE id = ANY(%s)", (chunk_ids,))
+                results = cursor.fetchall()
+                
+                # Sort the results to match the order of chunk_ids
+                id_to_text_map = {str(row['id']): row['chunk_text'] for row in results}
+                return [id_to_text_map[chunk_id] for chunk_id in chunk_ids if chunk_id in id_to_text_map]
+        except Exception as e:
+            logger.error("Failed to get chunk texts", extra={"error": str(e)})
+            raise
 
     def _store_embeddings(self, chunk_ids: list[str], embeddings: list[list[float]]) -> None:
         """Store embeddings in database."""
-        # TODO: Implement embedding storage
-        # 1. Connect to PostgreSQL
-        # 2. Update document_chunks table with embeddings
-        # 3. Store as JSONB or binary format
-        # 4. Handle transaction and errors
+        logger.info(f"Storing {len(embeddings)} embeddings in database")
+        try:
+            with self.db_connection.get_cursor() as cursor:
+                from psycopg2.extras import execute_values
+                
+                update_data = [
+                    (chunk_id, json.dumps(embedding))
+                    for chunk_id, embedding in zip(chunk_ids, embeddings)
+                ]
+                
+                query = "UPDATE document_chunks SET embedding = %s WHERE id = %s"
+                
+                # psycopg2 execute_values doesn't work well with UPDATE from values.
+                # A simple loop is fine for now, or a more complex UPDATE FROM VALUES statement.
+                # For simplicity and since the number of chunks per document is not huge, a loop is acceptable.
+                for chunk_id, embedding in zip(chunk_ids, embeddings):
+                    cursor.execute("UPDATE document_chunks SET embedding = %s WHERE id = %s", (json.dumps(embedding), chunk_id))
+                
+                self.db_connection.connection.commit()
+                logger.info(f"Successfully stored {len(embeddings)} embeddings")
 
-        for chunk_id, embedding in zip(chunk_ids, embeddings):
-            # TODO: Store embedding for chunk_id
-            pass
+        except Exception as e:
+            logger.error("Failed to store embeddings", extra={"error": str(e)})
+            if self.db_connection.connection:
+                self.db_connection.connection.rollback()
+            raise
 
     def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
         """Update document processing status."""
-        # TODO: Implement status update
-        # 1. Connect to PostgreSQL
-        # 2. Update processing_status and processing_metadata
-        # 3. Handle connection errors
-        pass
-
+        logger.info("Updating document status", extra={"document_id": document_id, "status": status})
+        try:
+            with self.db_connection.get_cursor() as cursor:
+                query = "UPDATE documents SET processing_status = %s, processing_metadata = %s, updated_at = NOW() WHERE id = %s"
+                cursor.execute(query, (status, json.dumps(metadata) if metadata else None, document_id))
+                self.db_connection.connection.commit()
+        except Exception as e:
+            logger.error("Failed to update document status", extra={"document_id": document_id, "error": str(e)})
+            if self.db_connection.connection:
+                self.db_connection.connection.rollback()
+            raise
 
 def main() -> None:
     """Main entry point."""
@@ -215,7 +186,9 @@ def main() -> None:
     except KeyboardInterrupt:
         logger.info("Stopping embedder worker")
         worker.stop()
-
+    except Exception as e:
+        logger.error(f"Embedder worker failed: {e}")
+        worker.stop()
 
 if __name__ == "__main__":
     main()

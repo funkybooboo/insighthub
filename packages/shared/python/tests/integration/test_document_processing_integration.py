@@ -7,7 +7,6 @@ with storage and end-to-end document workflows.
 
 import io
 
-import pytest
 
 from shared.documents.chunking.sentence_document_chunker import SentenceDocumentChunker
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage

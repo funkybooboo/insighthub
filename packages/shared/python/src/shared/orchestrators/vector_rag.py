@@ -1,15 +1,13 @@
 """Vector RAG orchestrator for indexing and querying documents."""
 
-from typing import List, BinaryIO
-
-from typing import Optional
+from typing import BinaryIO, List, Optional
 
 from shared.cache import Cache
 from shared.database.vector.vector_store import VectorStore
 from shared.documents.chunking.document_chunker import Chunker
 from shared.documents.embedding.vector_embedding_encoder import VectorEmbeddingEncoder
 from shared.documents.parsing.document_parser import DocumentParser
-from shared.types.document import Chunk, Document
+from shared.types.document import Document
 from shared.types.retrieval import RetrievalResult
 
 
@@ -56,7 +54,7 @@ class VectorRAGIndexer:
 
         document = document_result.ok()
         chunks = self.chunker.chunk(document)
-        
+
         chunk_texts = [chunk.text for chunk in chunks]
         embeddings_result = self.embedder.encode(chunk_texts)
         if embeddings_result.is_err():
@@ -128,7 +126,4 @@ class VectorRAG:
 
         search_results = self.vector_store.search(query_embedding, top_k)
 
-        return [
-            RetrievalResult(chunk=chunk, score=score)
-            for chunk, score in search_results
-        ]
+        return [RetrievalResult(chunk=chunk, score=score) for chunk, score in search_results]

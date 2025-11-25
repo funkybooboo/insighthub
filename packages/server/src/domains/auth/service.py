@@ -87,9 +87,7 @@ class UserService:
                     f"Authentication failed: invalid password (username={username}, user_id={user.id})"
                 )
                 raise UserAuthenticationError("Invalid username or password")
-            logger.info(
-                f"User authenticated successfully: user_id={user.id}, username={username}"
-            )
+            logger.info(f"User authenticated successfully: user_id={user.id}, username={username}")
             return user
         else:
             logger.warning(f"Authentication failed: user not found (username={username})")
@@ -116,9 +114,7 @@ class UserService:
         logger.info(f"User registration attempt: username={username}, email={email}")
 
         if self.repository.get_by_username(username):
-            logger.warning(
-                f"Registration failed: username already exists (username={username})"
-            )
+            logger.warning(f"Registration failed: username already exists (username={username})")
             raise UserAlreadyExistsError(f"Username '{username}' already exists")
 
         if self.repository.get_by_email(email):

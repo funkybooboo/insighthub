@@ -8,9 +8,9 @@ from shared.repositories import (
     SqlChatSessionRepository,
 )
 
+from .events import register_socket_handlers
 from .routes import chat_bp
 from .service import ChatService
-from .events import register_socket_handlers
 
 __all__ = [
     "ChatSession",

@@ -1,13 +1,13 @@
 """Integration tests for document endpoints."""
 
-import json
 import io
-from typing import Any
+import json
 
-import pytest
 from flask.testing import FlaskClient
 
-from shared.models import User
+
+class TestDocumentUploadEndpoint:
+    """Tests for POST /api/documents/upload endpoint."""
 
     def test_upload_no_file_returns_400(
         self, client: FlaskClient, auth_headers: dict[str, str]

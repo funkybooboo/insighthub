@@ -1,9 +1,8 @@
 """Integration tests for document processing pipeline."""
 
 import json
-import pytest
-from unittest.mock import Mock, patch
 
+import pytest
 from flask.testing import FlaskClient
 
 
@@ -16,11 +15,9 @@ def test_document_upload_async_processing(client: FlaskClient, auth_token: str):
     # Upload document
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, test_filename)
-        },
+        data={"file": (test_content, test_filename)},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
@@ -38,11 +35,9 @@ def test_document_status_update(client: FlaskClient, auth_token: str):
     test_content = b"Test content"
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, "test.txt")
-        },
+        data={"file": (test_content, "test.txt")},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
@@ -50,16 +45,13 @@ def test_document_status_update(client: FlaskClient, auth_token: str):
     doc_id = doc_data["document"]["id"]
 
     # Update status to processing
-    status_data = {
-        "status": "processing",
-        "chunk_count": 5
-    }
+    status_data = {"status": "processing", "chunk_count": 5}
 
     response = client.patch(
         f"/api/workspaces/1/documents/{doc_id}/status",
         data=json.dumps(status_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 200
@@ -73,11 +65,9 @@ def test_document_status_update_invalid_status(client: FlaskClient, auth_token: 
     test_content = b"Test content"
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, "test.txt")
-        },
+        data={"file": (test_content, "test.txt")},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     doc_data = json.loads(response.data)
@@ -90,7 +80,7 @@ def test_document_status_update_invalid_status(client: FlaskClient, auth_token: 
         f"/api/workspaces/1/documents/{doc_id}/status",
         data=json.dumps(status_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -104,11 +94,9 @@ def test_document_status_update_wrong_workspace(client: FlaskClient, auth_token:
     test_content = b"Test content"
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, "test.txt")
-        },
+        data={"file": (test_content, "test.txt")},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     doc_data = json.loads(response.data)
@@ -121,7 +109,7 @@ def test_document_status_update_wrong_workspace(client: FlaskClient, auth_token:
         f"/api/workspaces/2/documents/{doc_id}/status",
         data=json.dumps(status_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 404
@@ -129,16 +117,13 @@ def test_document_status_update_wrong_workspace(client: FlaskClient, auth_token:
 
 def test_wikipedia_fetch_async_processing(client: FlaskClient, auth_token: str):
     """Test that Wikipedia fetch initiates async processing."""
-    fetch_data = {
-        "query": "Machine Learning",
-        "language": "en"
-    }
+    fetch_data = {"query": "Machine Learning", "language": "en"}
 
     response = client.post(
         "/api/workspaces/1/documents/fetch-wikipedia",
         data=json.dumps(fetch_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 200
@@ -158,7 +143,7 @@ def test_wikipedia_fetch_invalid_query(client: FlaskClient, auth_token: str):
         "/api/workspaces/1/documents/fetch-wikipedia",
         data=json.dumps(fetch_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -168,16 +153,13 @@ def test_wikipedia_fetch_invalid_query(client: FlaskClient, auth_token: str):
 
 def test_wikipedia_fetch_unsupported_language(client: FlaskClient, auth_token: str):
     """Test Wikipedia fetch with unsupported language."""
-    fetch_data = {
-        "query": "Test",
-        "language": "invalid"
-    }
+    fetch_data = {"query": "Test", "language": "invalid"}
 
     response = client.post(
         "/api/workspaces/1/documents/fetch-wikipedia",
         data=json.dumps(fetch_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 400
@@ -191,19 +173,16 @@ def test_document_listing_includes_processing_status(client: FlaskClient, auth_t
     test_content = b"Test document"
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, "status_test.txt")
-        },
+        data={"file": (test_content, "status_test.txt")},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response.status_code == 201
 
     # List documents
     response = client.get(
-        "/api/workspaces/1/documents",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        "/api/workspaces/1/documents", headers={"Authorization": f"Bearer {auth_token}"}
     )
 
     assert response.status_code == 200
@@ -229,11 +208,9 @@ def test_document_duplicate_handling(client: FlaskClient, auth_token: str):
     # Upload first time
     response1 = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, filename)
-        },
+        data={"file": (test_content, filename)},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response1.status_code == 201
@@ -243,11 +220,9 @@ def test_document_duplicate_handling(client: FlaskClient, auth_token: str):
     # Upload second time (should be detected as duplicate)
     response2 = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, filename)
-        },
+        data={"file": (test_content, filename)},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     assert response2.status_code == 201
@@ -256,26 +231,29 @@ def test_document_duplicate_handling(client: FlaskClient, auth_token: str):
     assert data2["document"]["id"] == data1["document"]["id"]  # Same document
 
 
-@pytest.mark.parametrize("status,should_succeed", [
-    ("parsing", True),
-    ("chunking", True),
-    ("embedding", True),
-    ("indexing", True),
-    ("ready", True),
-    ("failed", True),
-    ("invalid", False),
-])
-def test_document_status_validation(client: FlaskClient, auth_token: str, status: str, should_succeed: bool):
+@pytest.mark.parametrize(
+    "status,should_succeed",
+    [
+        ("parsing", True),
+        ("chunking", True),
+        ("embedding", True),
+        ("indexing", True),
+        ("ready", True),
+        ("failed", True),
+        ("invalid", False),
+    ],
+)
+def test_document_status_validation(
+    client: FlaskClient, auth_token: str, status: str, should_succeed: bool
+):
     """Test that document status updates validate status values."""
     # Create a document
     test_content = b"Status test"
     response = client.post(
         "/api/workspaces/1/documents/upload",
-        data={
-            "file": (test_content, "status_test.txt")
-        },
+        data={"file": (test_content, "status_test.txt")},
         content_type="multipart/form-data",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     doc_data = json.loads(response.data)
@@ -288,7 +266,7 @@ def test_document_status_validation(client: FlaskClient, auth_token: str, status
         f"/api/workspaces/1/documents/{doc_id}/status",
         data=json.dumps(status_data),
         content_type="application/json",
-        headers={"Authorization": f"Bearer {auth_token}"}
+        headers={"Authorization": f"Bearer {auth_token}"},
     )
 
     if should_succeed:

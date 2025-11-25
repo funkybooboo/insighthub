@@ -2,17 +2,13 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypedDict, Optional
 
 from shared.logger import create_logger
 from shared.messaging import RabbitMQPublisher
-from shared.models.workspace import RagConfig, Workspace
+from shared.models.workspace import Workspace
 from shared.repositories.workspace import WorkspaceRepository
 
 logger = create_logger(__name__)
-
-
-
 
 
 # Type for update data fields
@@ -89,7 +85,9 @@ class WorkspaceService:
         # For now, mark workspace as ready immediately (synchronous provisioning)
         # TODO: Implement async provisioning with workers
         try:
-            self._repo.update(workspace.id, status="ready", status_message="Workspace provisioned successfully")
+            self._repo.update(
+                workspace.id, status="ready", status_message="Workspace provisioned successfully"
+            )
         except Exception as e:
             print(f"Warning: Failed to update workspace status: {e}")
 
@@ -133,7 +131,7 @@ class WorkspaceService:
         self,
         workspace_id: int | str,
         user_id: int,
-    ) -> Optional[Workspace]:
+    ) -> Workspace | None:
         """
         Get a workspace by ID if user has access.
 
@@ -158,7 +156,7 @@ class WorkspaceService:
         workspace_id: int | str,
         user_id: int,
         **update_data: UpdateValue,
-    ) -> Optional[Workspace]:
+    ) -> Workspace | None:
         """
         Update a workspace.
 
@@ -200,7 +198,9 @@ class WorkspaceService:
 
         # Set workspace status to deleting
         try:
-            self._repo.update(workspace.id, status="deleting", status_message="Workspace deletion in progress")
+            self._repo.update(
+                workspace.id, status="deleting", status_message="Workspace deletion in progress"
+            )
         except Exception as e:
             print(f"Failed to update workspace status to deleting: {e}")
             return False
@@ -221,10 +221,10 @@ class WorkspaceService:
             except Exception as e:
                 print(f"Failed to publish workspace deletion event: {e}")
                 # Reset status if event publishing failed
-                try:
+                from contextlib import suppress
+
+                with suppress(Exception):
                     self._repo.update(workspace.id, status="ready", status_message=None)
-                except Exception:
-                    pass
                 return False
 
         return True
@@ -260,7 +260,7 @@ class WorkspaceService:
         self,
         workspace_id: int | str,
         user_id: int,
-    ) -> Optional[WorkspaceStats]:
+    ) -> WorkspaceStats | None:
         """
         Get statistics for a workspace.
 
@@ -288,8 +288,6 @@ class WorkspaceService:
             total_message_count=0,  # Could add if needed
             last_activity=None,  # Could add if needed
         )
-
-
 
     def validate_workspace_access(
         self,

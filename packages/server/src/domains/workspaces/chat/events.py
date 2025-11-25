@@ -6,13 +6,13 @@ from typing import TypedDict
 
 from flask import current_app
 from flask_socketio import SocketIO, emit, join_room
+from shared.logger import create_logger
 
 from src.infrastructure.database import get_db
 from src.infrastructure.socket.socket_handler import SocketHandler
-from shared.logger import create_logger
-from .dtos import StreamEvent
 
 logger = create_logger(__name__)
+
 
 class ChatMessageData(TypedDict, total=False):
     """TypedDict for chat message request data."""
@@ -38,7 +38,6 @@ class ChatSocketHandler:
         """Initialize the chat socket handler."""
         # Track active request IDs per client
         self._active_requests: dict[str, str] = {}
-
 
     def handle_chat_message(self, data: Mapping[str, object]) -> None:
         """
@@ -108,6 +107,7 @@ class ChatSocketHandler:
 
                 try:
                     from src.infrastructure.auth.jwt_utils import decode_access_token
+
                     token = str(token_raw)
                     payload = decode_access_token(token)
                     user_id = payload.get("user_id")
@@ -131,14 +131,14 @@ class ChatSocketHandler:
                         return
 
                 # Check if RAG context is available before streaming
-                has_rag_context = False
                 if rag_type == "vector" and app_context.rag_system:
                     try:
-                        rag_results = app_context.rag_system.query(user_message, workspace_id=workspace_id, top_k=8)
-                        meaningful_context = [result for result in rag_results if result.score > 0.1]
-                        has_rag_context = len(meaningful_context) > 0
+                        rag_results = app_context.rag_system.query(
+                            user_message, workspace_id=workspace_id, top_k=8
+                        )
+                        [result for result in rag_results if result.score > 0.1]
                     except Exception:
-                        has_rag_context = False
+                        pass
 
                 # Use async chat processing architecture
                 # Publish message to RabbitMQ and expect worker responses via WebSocket
@@ -151,15 +151,14 @@ class ChatSocketHandler:
                     user_id=user.id,
                     content=user_message,
                     message_type="user",
-                    ignore_rag=rag_type != "vector"
+                    ignore_rag=rag_type != "vector",
                 )
 
                 # Emit initial acknowledgment with message_id for tracking
-                emit("chat.response_started", {
-                    "message_id": message_id,
-                    "session_id": session_id,
-                    "request_id": request_id
-                })
+                emit(
+                    "chat.response_started",
+                    {"message_id": message_id, "session_id": session_id, "request_id": request_id},
+                )
 
                 # Note: The actual streaming responses will come from the chat worker
                 # via the event handlers below (handle_chat_response_chunk, etc.)
@@ -191,7 +190,6 @@ class ChatSocketHandler:
                 if db is not None:
                     db.close()
 
-
     def handle_chat_response_chunk(self, data: Mapping[str, object]) -> None:
         """
         Handle chat.response_chunk events from the chat worker.
@@ -210,12 +208,15 @@ class ChatSocketHandler:
         chunk = data.get("chunk", "")
 
         # Emit to the client
-        emit("chat.response_chunk", {
-            "chunk": chunk,
-            "message_id": message_id,
-            "session_id": session_id,
-            "request_id": request_id
-        })
+        emit(
+            "chat.response_chunk",
+            {
+                "chunk": chunk,
+                "message_id": message_id,
+                "session_id": session_id,
+                "request_id": request_id,
+            },
+        )
 
     def handle_chat_response_complete(self, data: Mapping[str, object]) -> None:
         """
@@ -235,12 +236,15 @@ class ChatSocketHandler:
         full_response = data.get("full_response", "")
 
         # Emit to the client
-        emit("chat.response_complete", {
-            "session_id": session_id,
-            "full_response": full_response,
-            "message_id": message_id,
-            "request_id": request_id
-        })
+        emit(
+            "chat.response_complete",
+            {
+                "session_id": session_id,
+                "full_response": full_response,
+                "message_id": message_id,
+                "request_id": request_id,
+            },
+        )
 
     def handle_chat_no_context_found(self, data: Mapping[str, object]) -> None:
         """
@@ -260,12 +264,15 @@ class ChatSocketHandler:
         query = data.get("query", "")
 
         # Emit to the client
-        emit("chat.no_context_found", {
-            "session_id": session_id,
-            "query": query,
-            "message_id": message_id,
-            "request_id": request_id
-        })
+        emit(
+            "chat.no_context_found",
+            {
+                "session_id": session_id,
+                "query": query,
+                "message_id": message_id,
+                "request_id": request_id,
+            },
+        )
 
     def handle_chat_error(self, data: Mapping[str, object]) -> None:
         """
@@ -285,12 +292,15 @@ class ChatSocketHandler:
         error = data.get("error", "Unknown error")
 
         # Emit to the client
-        emit("chat.error", {
-            "session_id": session_id,
-            "error": error,
-            "message_id": message_id,
-            "request_id": request_id
-        })
+        emit(
+            "chat.error",
+            {
+                "session_id": session_id,
+                "error": error,
+                "message_id": message_id,
+                "request_id": request_id,
+            },
+        )
 
     def handle_cancel_message(self, data: Mapping[str, object] | None = None) -> None:
         """
@@ -389,6 +399,7 @@ def register_socket_handlers(socketio: SocketIO) -> None:
 
 # Status-related socket handlers (moved from status/socket_handlers.py)
 
+
 class SubscribeStatusData(TypedDict):
     """TypedDict for subscribe status request data."""
 
@@ -465,6 +476,7 @@ def register_status_socket_handlers(socketio: SocketIO) -> None:
         socketio: Flask-SocketIO instance
     """
     from src.infrastructure.socket.socket_handler import SocketHandler
+
     handler = SocketHandler(socketio)
     handler.register_event("subscribe_status", handle_subscribe_status)
     logger.info("Registered status Socket.IO handlers")

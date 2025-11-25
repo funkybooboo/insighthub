@@ -1,7 +1,6 @@
 """Workspace-scoped chat routes."""
 
 from flask import Blueprint, Response, g, jsonify, request
-from shared.exceptions import ValidationError
 
 from src.infrastructure.auth import get_current_user, require_auth
 
@@ -51,10 +50,7 @@ def create_chat_session(workspace_id: str) -> tuple[Response, int]:
             rag_type="vector",  # Default to vector RAG
         )
 
-        return jsonify({
-            "session_id": session.id,
-            "title": session.title or "New Chat"
-        }), 201
+        return jsonify({"session_id": session.id, "title": session.title or "New Chat"}), 201
 
     except ValueError as e:
         return jsonify({"error": f"Invalid workspace ID: {str(e)}"}), 400
@@ -99,19 +95,23 @@ def list_chat_sessions(workspace_id: str) -> tuple[Response, int]:
 
         # Get sessions via service
         chat_service = g.app_context.chat_service
-        sessions = chat_service.list_workspace_sessions(workspace_id=int(workspace_id), skip=offset, limit=limit)
+        sessions = chat_service.list_workspace_sessions(
+            workspace_id=int(workspace_id), skip=offset, limit=limit
+        )
 
         # Convert to response format
         result = []
         for session in sessions:
             message_count = chat_service.list_session_messages(session.id).__len__()
-            result.append({
-                "session_id": session.id,
-                "title": session.title or "Untitled Chat",
-                "created_at": session.created_at.isoformat(),
-                "updated_at": session.updated_at.isoformat(),
-                "message_count": message_count
-            })
+            result.append(
+                {
+                    "session_id": session.id,
+                    "title": session.title or "Untitled Chat",
+                    "created_at": session.created_at.isoformat(),
+                    "updated_at": session.updated_at.isoformat(),
+                    "message_count": message_count,
+                }
+            )
 
         return jsonify(result), 200
 
@@ -197,14 +197,19 @@ def get_chat_session(workspace_id: str, session_id: str) -> tuple[Response, int]
         # Get message count
         message_count = chat_service.list_session_messages(session.id).__len__()
 
-        return jsonify({
-            "session_id": session.id,
-            "title": session.title or "Untitled Chat",
-            "rag_type": session.rag_type,
-            "created_at": session.created_at.isoformat(),
-            "updated_at": session.updated_at.isoformat(),
-            "message_count": message_count
-        }), 200
+        return (
+            jsonify(
+                {
+                    "session_id": session.id,
+                    "title": session.title or "Untitled Chat",
+                    "rag_type": session.rag_type,
+                    "created_at": session.created_at.isoformat(),
+                    "updated_at": session.updated_at.isoformat(),
+                    "message_count": message_count,
+                }
+            ),
+            200,
+        )
 
     except ValueError as e:
         return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
@@ -276,13 +281,18 @@ def update_chat_session(workspace_id: str, session_id: str) -> tuple[Response, i
                 return jsonify({"error": "Failed to update chat session"}), 500
             session = updated_session
 
-        return jsonify({
-            "session_id": session.id,
-            "title": session.title or "Untitled Chat",
-            "rag_type": session.rag_type,
-            "created_at": session.created_at.isoformat(),
-            "updated_at": session.updated_at.isoformat()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "session_id": session.id,
+                    "title": session.title or "Untitled Chat",
+                    "rag_type": session.rag_type,
+                    "created_at": session.created_at.isoformat(),
+                    "updated_at": session.updated_at.isoformat(),
+                }
+            ),
+            200,
+        )
 
     except ValueError as e:
         return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
@@ -343,7 +353,7 @@ def send_chat_message(workspace_id: str, session_id: str) -> tuple[Response, int
             user_id=user.id,
             content=content,
             message_type=message_type,
-            ignore_rag=ignore_rag
+            ignore_rag=ignore_rag,
         )
 
         return jsonify({"message_id": message_id}), 200
@@ -388,7 +398,7 @@ def cancel_chat_message(workspace_id: str, session_id: str) -> tuple[Response, i
             workspace_id=int(workspace_id),
             session_id=int(session_id),
             user_id=user.id,
-            message_id=message_id
+            message_id=message_id,
         )
 
         return jsonify({"message": "Message cancelled successfully"}), 200

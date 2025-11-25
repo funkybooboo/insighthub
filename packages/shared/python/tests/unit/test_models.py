@@ -7,7 +7,6 @@ correctly handle input data and produce expected output.
 
 from datetime import datetime
 
-import pytest
 
 from shared.models.chat import ChatMessage, ChatSession
 from shared.models.document import Document

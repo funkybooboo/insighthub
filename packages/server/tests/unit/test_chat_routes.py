@@ -1,11 +1,12 @@
 """Unit tests for chat routes."""
 
 import json
-import pytest
 from unittest.mock import Mock, patch
-from flask import Flask
 
+import pytest
+from flask import Flask
 from shared.models import ChatSession
+
 from src.domains.workspaces.chat.routes import chat_bp
 
 
@@ -49,7 +50,11 @@ class TestSendChatMessage:
     """Test cases for sending chat messages."""
 
     def test_send_message_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful message sending."""
         # Setup mocks
@@ -59,7 +64,7 @@ class TestSendChatMessage:
         message_data = {
             "content": "Hello, how are you?",
             "message_type": "user",
-            "ignore_rag": False
+            "ignore_rag": False,
         }
 
         with patch("src.domains.workspaces.chat.routes.g") as mock_g:
@@ -68,7 +73,7 @@ class TestSendChatMessage:
             response = client.post(
                 "/api/workspaces/1/chat/sessions/1/messages",
                 data=json.dumps(message_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 200
@@ -82,7 +87,7 @@ class TestSendChatMessage:
         response = client.post(
             "/api/workspaces/1/chat/sessions/1/messages",
             data=json.dumps(message_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -96,7 +101,7 @@ class TestSendChatMessage:
         response = client.post(
             "/api/workspaces/1/chat/sessions/1/messages",
             data=json.dumps(message_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -111,7 +116,7 @@ class TestSendChatMessage:
         response = client.post(
             "/api/workspaces/1/chat/sessions/1/messages",
             data=json.dumps(message_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -125,7 +130,7 @@ class TestSendChatMessage:
         response = client.post(
             "/api/workspaces/1/chat/sessions/1/messages",
             data=json.dumps(message_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -146,7 +151,7 @@ class TestSendChatMessage:
             response = client.post(
                 "/api/workspaces/1/chat/sessions/1/messages",
                 data=json.dumps(message_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 403
@@ -158,7 +163,11 @@ class TestCancelChatMessage:
     """Test cases for cancelling chat messages."""
 
     def test_cancel_message_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful message cancellation."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -171,7 +180,7 @@ class TestCancelChatMessage:
             response = client.post(
                 "/api/workspaces/1/chat/sessions/1/cancel",
                 data=json.dumps(cancel_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 200
@@ -188,8 +197,7 @@ class TestCancelChatMessage:
             mock_g.app_context = mock_app_context
 
             response = client.post(
-                "/api/workspaces/1/chat/sessions/1/cancel",
-                content_type="application/json"
+                "/api/workspaces/1/chat/sessions/1/cancel", content_type="application/json"
             )
 
             assert response.status_code == 403
@@ -201,7 +209,11 @@ class TestCreateChatSession:
     """Test cases for creating chat sessions."""
 
     def test_create_session_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful session creation."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -219,7 +231,7 @@ class TestCreateChatSession:
             response = client.post(
                 "/api/workspaces/1/chat/sessions",
                 data=json.dumps(session_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 201
@@ -239,7 +251,7 @@ class TestCreateChatSession:
         response = client.post(
             "/api/workspaces/1/chat/sessions",
             data=json.dumps(session_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -251,7 +263,11 @@ class TestListChatSessions:
     """Test cases for listing chat sessions."""
 
     def test_list_sessions_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful session listing."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -284,7 +300,11 @@ class TestDeleteChatSession:
     """Test cases for deleting chat sessions."""
 
     def test_delete_session_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful session deletion."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -300,7 +320,11 @@ class TestDeleteChatSession:
             assert "deleted" in data["message"].lower()
 
     def test_delete_session_not_found(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test deleting non-existent session."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -320,7 +344,11 @@ class TestGetChatSession:
     """Test cases for getting individual chat sessions."""
 
     def test_get_session_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful session retrieval."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -350,7 +378,11 @@ class TestGetChatSession:
             assert data["message_count"] == 0
 
     def test_get_session_not_found(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test getting non-existent session."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -366,7 +398,11 @@ class TestGetChatSession:
             assert "not found" in data["error"].lower()
 
     def test_get_session_wrong_workspace(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test getting session that belongs to different workspace."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -390,7 +426,11 @@ class TestUpdateChatSession:
     """Test cases for updating chat sessions."""
 
     def test_update_session_success(
-        self, client: Flask, mock_app_context: Mock, mock_chat_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_chat_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful session update."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -416,7 +456,7 @@ class TestUpdateChatSession:
             response = client.patch(
                 "/api/workspaces/1/chat/sessions/1",
                 data=json.dumps(update_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 200
@@ -438,7 +478,7 @@ class TestUpdateChatSession:
             response = client.patch(
                 "/api/workspaces/1/chat/sessions/1",
                 data=json.dumps(update_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 400
@@ -460,7 +500,7 @@ class TestUpdateChatSession:
             response = client.patch(
                 "/api/workspaces/1/chat/sessions/1",
                 data=json.dumps(update_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 400

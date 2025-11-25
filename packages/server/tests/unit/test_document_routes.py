@@ -1,12 +1,12 @@
 """Unit tests for document routes."""
 
 import json
-import pytest
-from unittest.mock import Mock, patch
-from flask import Flask
-
-from werkzeug.datastructures import FileStorage
 from io import BytesIO
+from unittest.mock import Mock, patch
+
+import pytest
+from flask import Flask
+from werkzeug.datastructures import FileStorage
 
 from src.domains.workspaces.documents.routes import documents_bp
 
@@ -53,7 +53,11 @@ class TestUploadDocument:
     """Test cases for document upload."""
 
     def test_upload_document_success(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful document upload."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -68,9 +72,7 @@ class TestUploadDocument:
         # Create test file
         test_content = b"This is a test document"
         test_file = FileStorage(
-            stream=BytesIO(test_content),
-            filename="test.txt",
-            content_type="text/plain"
+            stream=BytesIO(test_content), filename="test.txt", content_type="text/plain"
         )
 
         with patch("src.domains.workspaces.documents.routes.g") as mock_g:
@@ -79,7 +81,7 @@ class TestUploadDocument:
             response = client.post(
                 "/api/workspaces/1/documents/upload",
                 data={"file": test_file},
-                content_type="multipart/form-data"
+                content_type="multipart/form-data",
             )
 
             assert response.status_code == 201
@@ -91,8 +93,7 @@ class TestUploadDocument:
     def test_upload_document_no_file(self, client: Flask) -> None:
         """Test upload with no file provided."""
         response = client.post(
-            "/api/workspaces/1/documents/upload",
-            content_type="multipart/form-data"
+            "/api/workspaces/1/documents/upload", content_type="multipart/form-data"
         )
 
         assert response.status_code == 400
@@ -101,16 +102,12 @@ class TestUploadDocument:
 
     def test_upload_document_empty_filename(self, client: Flask) -> None:
         """Test upload with empty filename."""
-        test_file = FileStorage(
-            stream=BytesIO(b"content"),
-            filename="",
-            content_type="text/plain"
-        )
+        test_file = FileStorage(stream=BytesIO(b"content"), filename="", content_type="text/plain")
 
         response = client.post(
             "/api/workspaces/1/documents/upload",
             data={"file": test_file},
-            content_type="multipart/form-data"
+            content_type="multipart/form-data",
         )
 
         assert response.status_code == 400
@@ -124,9 +121,7 @@ class TestUploadDocument:
         mock_workspace_service.validate_workspace_access.return_value = False
 
         test_file = FileStorage(
-            stream=BytesIO(b"content"),
-            filename="test.txt",
-            content_type="text/plain"
+            stream=BytesIO(b"content"), filename="test.txt", content_type="text/plain"
         )
 
         with patch("src.domains.workspaces.documents.routes.g") as mock_g:
@@ -135,7 +130,7 @@ class TestUploadDocument:
             response = client.post(
                 "/api/workspaces/1/documents/upload",
                 data={"file": test_file},
-                content_type="multipart/form-data"
+                content_type="multipart/form-data",
             )
 
             assert response.status_code == 403
@@ -147,7 +142,11 @@ class TestFetchWikipedia:
     """Test cases for Wikipedia article fetching."""
 
     def test_fetch_wikipedia_success(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful Wikipedia fetch."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -158,10 +157,7 @@ class TestFetchWikipedia:
         mock_result.message = "Wikipedia article fetched and added to workspace"
         mock_document_service.fetch_wikipedia_article.return_value = mock_result
 
-        fetch_data = {
-            "query": "Machine Learning",
-            "language": "en"
-        }
+        fetch_data = {"query": "Machine Learning", "language": "en"}
 
         with patch("src.domains.workspaces.documents.routes.g") as mock_g:
             mock_g.app_context = mock_app_context
@@ -169,7 +165,7 @@ class TestFetchWikipedia:
             response = client.post(
                 "/api/workspaces/1/documents/fetch-wikipedia",
                 data=json.dumps(fetch_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 200
@@ -184,7 +180,7 @@ class TestFetchWikipedia:
         response = client.post(
             "/api/workspaces/1/documents/fetch-wikipedia",
             data=json.dumps(fetch_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -198,7 +194,7 @@ class TestFetchWikipedia:
         response = client.post(
             "/api/workspaces/1/documents/fetch-wikipedia",
             data=json.dumps(fetch_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -213,7 +209,7 @@ class TestFetchWikipedia:
         response = client.post(
             "/api/workspaces/1/documents/fetch-wikipedia",
             data=json.dumps(fetch_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -227,7 +223,7 @@ class TestFetchWikipedia:
         response = client.post(
             "/api/workspaces/1/documents/fetch-wikipedia",
             data=json.dumps(fetch_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -239,16 +235,17 @@ class TestUpdateDocumentStatus:
     """Test cases for document status updates."""
 
     def test_update_status_success(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful status update."""
         mock_workspace_service.validate_workspace_access.return_value = True
         mock_document_service.update_document_status.return_value = True
 
-        status_data = {
-            "status": "ready",
-            "chunk_count": 10
-        }
+        status_data = {"status": "ready", "chunk_count": 10}
 
         with patch("src.domains.workspaces.documents.routes.g") as mock_g:
             mock_g.app_context = mock_app_context
@@ -256,7 +253,7 @@ class TestUpdateDocumentStatus:
             response = client.patch(
                 "/api/workspaces/1/documents/1/status",
                 data=json.dumps(status_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 200
@@ -270,7 +267,7 @@ class TestUpdateDocumentStatus:
         response = client.patch(
             "/api/workspaces/1/documents/1/status",
             data=json.dumps(status_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -284,7 +281,7 @@ class TestUpdateDocumentStatus:
         response = client.patch(
             "/api/workspaces/1/documents/1/status",
             data=json.dumps(status_data),
-            content_type="application/json"
+            content_type="application/json",
         )
 
         assert response.status_code == 400
@@ -292,7 +289,11 @@ class TestUpdateDocumentStatus:
         assert "error" in data
 
     def test_update_status_document_not_found(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test status update for non-existent document."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -306,7 +307,7 @@ class TestUpdateDocumentStatus:
             response = client.patch(
                 "/api/workspaces/1/documents/999/status",
                 data=json.dumps(status_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 404
@@ -314,7 +315,11 @@ class TestUpdateDocumentStatus:
             assert "error" in data
 
     def test_update_status_wrong_workspace(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test status update for document in wrong workspace."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -332,7 +337,7 @@ class TestUpdateDocumentStatus:
             response = client.patch(
                 "/api/workspaces/1/documents/1/status",
                 data=json.dumps(status_data),
-                content_type="application/json"
+                content_type="application/json",
             )
 
             assert response.status_code == 404
@@ -344,7 +349,11 @@ class TestListDocuments:
     """Test cases for listing documents."""
 
     def test_list_documents_success(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful document listing."""
         mock_workspace_service.validate_workspace_access.return_value = True
@@ -384,7 +393,11 @@ class TestDeleteDocument:
     """Test cases for document deletion."""
 
     def test_delete_document_success(
-        self, client: Flask, mock_app_context: Mock, mock_document_service: Mock, mock_workspace_service: Mock
+        self,
+        client: Flask,
+        mock_app_context: Mock,
+        mock_document_service: Mock,
+        mock_workspace_service: Mock,
     ) -> None:
         """Test successful document deletion."""
         mock_workspace_service.validate_workspace_access.return_value = True

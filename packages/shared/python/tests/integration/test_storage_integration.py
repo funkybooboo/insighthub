@@ -7,7 +7,6 @@ with complete file lifecycle operations.
 
 import io
 
-import pytest
 
 from shared.storage.in_memory_blob_storage import InMemoryBlobStorage
 

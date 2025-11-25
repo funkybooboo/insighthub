@@ -7,13 +7,17 @@ Produces: document.chunked
 
 import uuid
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, List
+import json
 
 from shared.config import config
-from shared.workers import BaseWorker
-from shared.logger import create_logger
+from shared.worker.worker import Worker as BaseWorker
+from shared.logger import get_logger
+from shared.database.sql.postgres import PostgresConnection
+from shared.documents.chunking.factory import create_chunker
+from shared.types.document import Document
 
-logger = create_logger(__name__)
+logger = get_logger(__name__)
 
 # Use unified config
 RABBITMQ_URL = config.rabbitmq_url
@@ -22,7 +26,7 @@ DATABASE_URL = config.database_url
 WORKER_CONCURRENCY = config.worker_concurrency
 CHUNK_SIZE = config.chunk_size
 CHUNK_OVERLAP = config.chunk_overlap
-CHUNK_STRATEGY = "character"  # Could be added to config if needed
+CHUNK_STRATEGY = "sentence"
 
 
 @dataclass
@@ -34,53 +38,6 @@ class DocumentChunkedEvent:
     chunk_ids: list[str]
     chunk_count: int
     metadata: dict[str, Any]
-
-
-class TextChunker:
-    """Text chunking utility for different strategies."""
-
-    def __init__(self, chunk_size: int, chunk_overlap: int, strategy: str):
-        """Initialize the text chunker."""
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.strategy = strategy
-
-        # TODO: Initialize NLTK if using sentence strategy
-        # if strategy == "sentence":
-        #     import nltk
-        #     # Download punkt tokenizer if needed
-
-    def chunk_text(self, text: str) -> list[str]:
-        """
-        Chunk text based on the configured strategy.
-
-        Args:
-            text: Input text to chunk
-
-        Returns:
-            List of text chunks
-        """
-        # TODO: Implement different chunking strategies
-        # 1. Character-based chunking
-        # 2. Word-based chunking
-        # 3. Sentence-based chunking with NLTK
-
-        # Placeholder: simple character-based chunking
-        chunks = []
-        start = 0
-        text_length = len(text)
-
-        while start < text_length:
-            end = min(start + self.chunk_size, text_length)
-            chunk = text[start:end]
-            chunks.append(chunk)
-
-            # Move start position with overlap
-            start = end - self.chunk_overlap
-            if start >= text_length:
-                break
-
-        return chunks
 
 
 class ChuckerWorker(BaseWorker):
@@ -98,16 +55,16 @@ class ChuckerWorker(BaseWorker):
             prefetch_count=WORKER_CONCURRENCY,
         )
 
-        # Initialize text chunker
-        self.chunker = TextChunker(CHUNK_SIZE, CHUNK_OVERLAP, CHUNK_STRATEGY)
+        self.chunker = create_chunker(CHUNK_STRATEGY, CHUNK_SIZE, CHUNK_OVERLAP)
+        if not self.chunker:
+            raise ValueError(f"Invalid chunker type: {CHUNK_STRATEGY}")
 
-    def process_event(self, event_data: dict[str, Any], message_context: dict[str, Any]) -> None:
+        self.db_connection = PostgresConnection(db_url=DATABASE_URL)
+        self.db_connection.connect()
+
+    def process_event(self, event_data: dict[str, Any]) -> None:
         """
         Process document.parsed event to create chunks.
-
-        Args:
-            event_data: Event data containing document_id, workspace_id, etc.
-            message_context: Message context information
         """
         document_id = str(event_data.get("document_id", ""))
         workspace_id = str(event_data.get("workspace_id", ""))
@@ -118,30 +75,25 @@ class ChuckerWorker(BaseWorker):
             extra={
                 "document_id": document_id,
                 "workspace_id": workspace_id,
-                "chunk_size": self.chunker.chunk_size,
-                "strategy": self.chunker.strategy
+                "chunk_size": CHUNK_SIZE,
+                "strategy": CHUNK_STRATEGY
             }
         )
 
         try:
-            # TODO: Get parsed text from database
+            self._update_document_status(document_id, "chunking")
+            
             text_content = self._get_parsed_text(document_id)
             if not text_content:
                 raise ValueError(f"No parsed text found for document {document_id}")
 
-            # Chunk the text
-            text_chunks = self.chunker.chunk_text(text_content)
+            doc = Document(id=document_id, workspace_id=workspace_id, title="", content=text_content, metadata={})
+            chunks = self.chunker.chunk(doc)
 
-            # TODO: Store chunks in database
-            chunk_ids = self._store_chunks(document_id, text_chunks)
+            chunk_ids = self._store_chunks(document_id, chunks)
 
-            # TODO: Update document status
-            self._update_document_status(document_id, "chunked", {
-                "chunk_count": len(chunk_ids),
-                "total_chunks": len(text_chunks)
-            })
+            self._update_document_status(document_id, "chunked", {"chunk_count": len(chunk_ids)})
 
-            # Publish document.chunked event
             chunked_event = DocumentChunkedEvent(
                 document_id=document_id,
                 workspace_id=workspace_id,
@@ -151,63 +103,77 @@ class ChuckerWorker(BaseWorker):
             )
             self.publish_event(
                 routing_key="document.chunked",
-                event_data=asdict(chunked_event),
-                correlation_id=message_context.get("correlation_id"),
-                message_id=document_id,
+                event=asdict(chunked_event),
             )
 
             logger.info(
                 "Successfully chunked document",
-                extra={
-                    "document_id": document_id,
-                    "chunk_count": len(chunk_ids)
-                }
+                extra={"document_id": document_id, "chunk_count": len(chunk_ids)}
             )
 
         except Exception as e:
             logger.error(
                 "Failed to chunk document",
-                extra={
-                    "document_id": document_id,
-                    "error": str(e)
-                }
+                extra={"document_id": document_id, "error": str(e)}
             )
-            # TODO: Update document status to failed
             self._update_document_status(document_id, "failed", {"error": str(e)})
             raise
 
     def _get_parsed_text(self, document_id: str) -> str | None:
         """Get parsed text from database."""
-        # TODO: Implement database query
-        # 1. Connect to PostgreSQL
-        # 2. Query documents table for parsed_text
-        # 3. Handle connection errors
-        return f"Mock parsed text for document {document_id}"
+        logger.info("Getting parsed text from database", extra={"document_id": document_id})
+        try:
+            with self.db_connection.get_cursor(as_dict=True) as cursor:
+                cursor.execute("SELECT parsed_text FROM documents WHERE id = %s", (document_id,))
+                result = cursor.fetchone()
+                return result["parsed_text"] if result else None
+        except Exception as e:
+            logger.error("Failed to get parsed text", extra={"document_id": document_id, "error": str(e)})
+            raise
 
-    def _store_chunks(self, document_id: str, chunks: list[str]) -> list[str]:
+    def _store_chunks(self, document_id: str, chunks: List[Any]) -> list[str]:
         """Store text chunks in database and return chunk IDs."""
-        # TODO: Implement chunk storage
-        # 1. Connect to PostgreSQL
-        # 2. Insert chunks into document_chunks table
-        # 3. Generate UUIDs for chunk IDs
-        # 4. Handle transaction and errors
+        logger.info(f"Storing {len(chunks)} chunks for document", extra={"document_id": document_id})
+        try:
+            with self.db_connection.get_cursor() as cursor:
+                chunk_data = [
+                    (document_id, i, chunk.text)
+                    for i, chunk in enumerate(chunks)
+                ]
+                
+                # Using execute_many for bulk insert
+                from psycopg2.extras import execute_values
+                
+                query = "INSERT INTO document_chunks (document_id, chunk_index, chunk_text) VALUES %s RETURNING id"
+                
+                # execute_values returns the fetched results
+                results = execute_values(cursor, query, chunk_data, fetch=True)
+                
+                self.db_connection.connection.commit()
+                
+                chunk_ids = [str(row[0]) for row in results]
+                logger.info(f"Successfully stored {len(chunk_ids)} chunks", extra={"document_id": document_id})
+                return chunk_ids
 
-        chunk_ids = []
-        for i, chunk_text in enumerate(chunks):
-            chunk_id = str(uuid.uuid4())
-            chunk_ids.append(chunk_id)
-            # TODO: Insert into database
-
-        return chunk_ids
+        except Exception as e:
+            logger.error("Failed to store chunks", extra={"document_id": document_id, "error": str(e)})
+            if self.db_connection.connection:
+                self.db_connection.connection.rollback()
+            raise
 
     def _update_document_status(self, document_id: str, status: str, metadata: dict[str, Any] | None = None) -> None:
         """Update document processing status."""
-        # TODO: Implement status update
-        # 1. Connect to PostgreSQL
-        # 2. Update processing_status and processing_metadata
-        # 3. Handle connection errors
-        pass
-
+        logger.info("Updating document status", extra={"document_id": document_id, "status": status})
+        try:
+            with self.db_connection.get_cursor() as cursor:
+                query = "UPDATE documents SET processing_status = %s, processing_metadata = %s, updated_at = NOW() WHERE id = %s"
+                cursor.execute(query, (status, json.dumps(metadata) if metadata else None, document_id))
+                self.db_connection.connection.commit()
+        except Exception as e:
+            logger.error("Failed to update document status", extra={"document_id": document_id, "error": str(e)})
+            if self.db_connection.connection:
+                self.db_connection.connection.rollback()
+            raise
 
 def main() -> None:
     """Main entry point."""
@@ -217,7 +183,9 @@ def main() -> None:
     except KeyboardInterrupt:
         logger.info("Stopping chucker worker")
         worker.stop()
-
+    except Exception as e:
+        logger.error(f"Chucker worker failed: {e}")
+        worker.stop()
 
 if __name__ == "__main__":
     main()

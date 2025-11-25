@@ -1,9 +1,8 @@
 """Request correlation ID middleware for tracking requests across services."""
 
 import uuid
-from typing import Optional
 
-from flask import Flask, g, request, Response
+from flask import Flask, Response, g, request
 
 
 class RequestCorrelationMiddleware:
@@ -51,7 +50,7 @@ class RequestCorrelationMiddleware:
         def add_correlation_header(response: Response) -> Response:
             """Add correlation ID to response headers."""
             try:
-                correlation_id = getattr(g, 'correlation_id', None)
+                correlation_id = getattr(g, "correlation_id", None)
                 if correlation_id:
                     response.headers[self.header_name] = correlation_id
             except Exception as e:
@@ -60,6 +59,6 @@ class RequestCorrelationMiddleware:
             return response
 
     @staticmethod
-    def get_correlation_id() -> Optional[str]:
+    def get_correlation_id() -> str | None:
         """Get the current request correlation ID."""
-        return getattr(g, 'correlation_id', None)
+        return getattr(g, "correlation_id", None)
