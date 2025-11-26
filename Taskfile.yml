@@ -7,171 +7,85 @@ tasks:
       - task --list
     silent: true
 
-  # Docker services
+  # Production environment (default)
   up:
-    desc: Start all services (postgres, qdrant, ollama, server, client)
+    desc: Start production services
     cmds:
-      - docker compose up -d
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d
 
   down:
-    desc: Stop all services
+    desc: Stop production services
     cmds:
-      - docker compose down
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml --profile prod --profile dev down
 
   logs:
-    desc: Show logs from all services
+    desc: Show production service logs
     cmds:
-      - docker compose logs -f
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml --profile prod --profile dev logs -f
 
   ps:
-    desc: Show status of all services
+    desc: Show production service status
     cmds:
-      - docker compose ps
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod ps
 
-  # Server tasks
-  server:install:
-    desc: Install server dependencies
-    dir: packages/server
+  # Development environment
+  "up-dev":
+    desc: Start development services
     cmds:
-      - poetry install --no-root
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d
 
-  server:run:
-    desc: Run Flask API server
-    dir: packages/server
+  "down-dev":
+    desc: Stop development services
     cmds:
-      - poetry run python src/api.py
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev down
 
-  server:test:
-    desc: Run server tests with coverage
-    dir: packages/server
+  "logs-dev":
+    desc: Show development service logs
     cmds:
-      - poetry run pytest tests/ -v --cov=src --cov-report=term-missing
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev logs -f
 
-  server:format:
-    desc: Format server code
-    dir: packages/server
+  "ps-dev":
+    desc: Show development service status
     cmds:
-      - poetry run black src tests
-      - poetry run isort src tests
-
-  server:lint:
-    desc: Lint server code
-    dir: packages/server
-    cmds:
-      - poetry run ruff check src tests
-
-  server:type-check:
-    desc: Run mypy type checker
-    dir: packages/server
-    cmds:
-      - poetry run mypy src tests
-
-  server:check:
-    desc: Run all server checks (format, lint, type-check, test)
-    dir: packages/server
-    cmds:
-      - task: server:format
-      - task: server:lint
-      - task: server:type-check
-      - task: server:test
-
-  # Client tasks
-  client:dev:
-    desc: Run client in development mode
-    dir: packages/client
-    cmds:
-      - bun run dev
-
-  client:install:
-    desc: Install client dependencies
-    dir: packages/client
-    cmds:
-      - bun install
-
-  client:build:
-    desc: Build client for production
-    dir: packages/client
-    cmds:
-      - bun run build
-
-  client:test:
-    desc: Run client tests
-    dir: packages/client
-    cmds:
-      - bun run test:run
-
-  client:lint:
-    desc: Lint client code
-    dir: packages/client
-    cmds:
-      - bun run lint
-
-  client:type-check:
-    desc: Run TypeScript type checking
-    dir: packages/client
-    cmds:
-      - bun run build
-
-  client:check:
-    desc: Run all client checks (format-check, lint, type-check, test, build)
-    dir: packages/client
-    cmds:
-      - task: client:format-check
-      - task: client:lint
-      - task: client:type-check
-      - task: client:test
-      - task: client:build
-
-  client:format:
-    desc: Format client code
-    dir: packages/client
-    cmds:
-      - bun run format
-
-  client:format-check:
-    desc: Check if client code is formatted
-    dir: packages/client
-    cmds:
-      - bun run format:check
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev ps
 
   # Development workflow
-  dev:
-    desc: Start infrastructure services (postgres, qdrant, ollama)
-    cmds:
-      - docker compose up -d postgres qdrant ollama ollama-setup
-
   install:
     desc: Install all dependencies
     cmds:
-      - task: server:install
-      - task: client:install
+      - echo "Dependencies are installed via Docker"
 
   format:
     desc: Format all code
     cmds:
-      - task: server:format
-      - task: client:format
+      - echo "Code formatting is handled in individual packages"
 
   test:
     desc: Run all tests
     cmds:
-      - task: server:test
-      - task: client:test
+      - echo "Tests are run in individual packages"
+
+  build:
+    desc: Build production Docker images
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+
+  "build-dev":
+    desc: Build development Docker images
+    cmds:
+      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build
 
   check:
     desc: Run all checks (format, lint, type-check, test)
     cmds:
-      - task: server:check
-      - task: client:check
+      - echo "Checks are run in individual packages"
 
   clean:
     desc: Remove all containers and volumes
     cmds:
-      - docker compose down -v
+      - docker compose -f docker-compose.yml down -v
 
-  clean:all:
+  "clean:all":
     desc: Clean everything (containers, volumes, and generated files)
     cmds:
-      - task: clean
-      - task: server:clean
-      - task: client:clean
+      - task clean

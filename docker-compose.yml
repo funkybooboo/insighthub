@@ -58,7 +58,7 @@ services:
         ollama pull llama3.2:1b
         echo "Pulling nomic-embed-text model..."
         ollama pull nomic-embed-text
-        echo "Models pulled successfully!"
+         echo "Models pulled successfully!"
     networks:
       - insighthub
 
@@ -81,48 +81,70 @@ services:
     networks:
       - insighthub
 
-  server:
+  redis:
     labels:
       project: insighthub
-    build:
-      context: ./packages/server
-      dockerfile: Dockerfile
-    container_name: insighthub-server
+    image: redis:7-alpine
+    container_name: insighthub-redis
     restart: unless-stopped
     ports:
-      - '5000:5000'
-    environment:
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
-      OLLAMA_BASE_URL: http://ollama:11434
-      DEBUG: "true"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - insighthub
 
-  client:
+  rabbitmq:
     labels:
       project: insighthub
-    build:
-      context: ./packages/client
-      dockerfile: Dockerfile
-    container_name: insighthub-client
+    image: rabbitmq:3-management-alpine
+    container_name: insighthub-rabbitmq
     restart: unless-stopped
     ports:
-      - '5173:5173'
+      - '5672:5672'
+      - '15672:15672'
     environment:
-      VITE_API_URL: http://localhost:5000
-    depends_on:
-      - server
+      RABBITMQ_DEFAULT_USER: insighthub
+      RABBITMQ_DEFAULT_PASS: insighthub_dev
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - insighthub
+
+  minio:
+    labels:
+      project: insighthub
+    image: minio/minio:latest
+    container_name: insighthub-minio
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: insighthub
+      MINIO_ROOT_PASSWORD: insighthub_dev_secret
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - insighthub
+
+
 
 volumes:
   postgres_data:
@@ -131,6 +153,12 @@ volumes:
     name: insighthub_ollama_data
   qdrant_data:
     name: insighthub_qdrant_data
+  redis_data:
+    name: insighthub_redis_data
+  rabbitmq_data:
+    name: insighthub_rabbitmq_data
+  minio_data:
+    name: insighthub_minio_data
 
 networks:
   insighthub:

@@ -21,52 +21,33 @@ RUN chown -R app:app /app
 # ============================================================================
 FROM base AS dependencies
 
-# Copy root package.json for workspace configuration
-COPY --chown=app:app package.json ./package.json
+# Copy package files
+COPY --chown=app:app package.json bun.lock ./
 
-# Copy shared TypeScript package to the correct workspace location
-COPY --chown=app:app packages/shared/typescript/ ./packages/shared/typescript/
-
-# Copy client package files to the correct workspace location
-COPY --chown=app:app packages/client/package.json packages/client/bun.lock ./packages/client/
-
-# Copy CLI package.json to satisfy workspace requirements
-COPY --chown=app:app packages/cli/package.json ./packages/cli/
-
-# Build shared TypeScript package first
+# Install dependencies
 USER app
-WORKDIR /app/packages/shared/typescript
-RUN bun install && bun run build
-
-# Install client dependencies from workspace root
-WORKDIR /app
 RUN bun install
-
-# Set working directory to client for subsequent stages
-WORKDIR /app/packages/client
 
 # ============================================================================
 # Development Stage - For local development with hot-reload
 # ============================================================================
 FROM dependencies AS development
 
-# Copy application code (excluding shared-typescript which is already handled)
-COPY --chown=app:app packages/client/.storybook ./.storybook/
-COPY --chown=app:app packages/client/cypress ./cypress/
-COPY --chown=app:app packages/client/src ./src/
-COPY --chown=app:app packages/client/public ./public/
-COPY --chown=app:app packages/client/*.json ./
-COPY --chown=app:app packages/client/*.ts ./
-COPY --chown=app:app packages/client/*.js ./
-COPY --chown=app:app packages/client/*.html ./
-COPY --chown=app:app packages/client/*.conf ./
-COPY --chown=app:app packages/client/*.sh ./
-COPY --chown=app:app packages/client/*.md ./
-COPY --chown=app:app packages/client/.env.example ./
-COPY --chown=app:app packages/client/.dockerignore ./
-COPY --chown=app:app packages/client/.gitignore ./
-COPY --chown=app:app packages/client/.prettierignore ./
-COPY --chown=app:app packages/client/.prettierrc ./
+# Copy application code
+COPY --chown=app:app .storybook ./.storybook/
+COPY --chown=app:app cypress ./cypress/
+COPY --chown=app:app src ./src/
+COPY --chown=app:app public ./public/
+COPY --chown=app:app *.json ./
+COPY --chown=app:app *.ts ./
+COPY --chown=app:app *.js ./
+COPY --chown=app:app *.html ./
+COPY --chown=app:app *.conf ./
+COPY --chown=app:app *.sh ./
+COPY --chown=app:app *.md ./
+COPY --chown=app:app .env.example ./
+COPY --chown=app:app .prettierignore ./
+COPY --chown=app:app .prettierrc ./
 
 # Expose Vite dev server port
 EXPOSE 5173
@@ -89,23 +70,21 @@ CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
 # ============================================================================
 FROM dependencies AS builder
 
-# Copy application code (excluding shared-typescript which is already handled)
-COPY --chown=app:app packages/client/.storybook ./.storybook/
-COPY --chown=app:app packages/client/cypress ./cypress/
-COPY --chown=app:app packages/client/src ./src/
-COPY --chown=app:app packages/client/public ./public/
-COPY --chown=app:app packages/client/*.json ./
-COPY --chown=app:app packages/client/*.ts ./
-COPY --chown=app:app packages/client/*.js ./
-COPY --chown=app:app packages/client/*.html ./
-COPY --chown=app:app packages/client/*.conf ./
-COPY --chown=app:app packages/client/*.sh ./
-COPY --chown=app:app packages/client/*.md ./
-COPY --chown=app:app packages/client/.env.example ./
-COPY --chown=app:app packages/client/.dockerignore ./
-COPY --chown=app:app packages/client/.gitignore ./
-COPY --chown=app:app packages/client/.prettierignore ./
-COPY --chown=app:app packages/client/.prettierrc ./
+# Copy application code
+COPY --chown=app:app .storybook ./.storybook/
+COPY --chown=app:app cypress ./cypress/
+COPY --chown=app:app src ./src/
+COPY --chown=app:app public ./public/
+COPY --chown=app:app *.json ./
+COPY --chown=app:app *.ts ./
+COPY --chown=app:app *.js ./
+COPY --chown=app:app *.html ./
+COPY --chown=app:app *.conf ./
+COPY --chown=app:app *.sh ./
+COPY --chown=app:app *.md ./
+COPY --chown=app:app .env.example ./
+COPY --chown=app:app .prettierignore ./
+COPY --chown=app:app .prettierrc ./
 
 # Switch to app users for build
 USER app
@@ -126,14 +105,14 @@ RUN addgroup -g 101 -S nginx 2>/dev/null || true \
     && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx 2>/dev/null || true
 
 # Copy built assets from builder
-COPY --from=builder --chown=nginx:nginx /app/packages/client/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY --chown=nginx:nginx packages/client/nginx.conf /etc/nginx/nginx.conf
-COPY --chown=nginx:nginx packages/client/default.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx default.conf /etc/nginx/conf.d/default.conf
 
 # Copy and set permissions for entrypoint
-COPY --chown=nginx:nginx --chmod=755 packages/client/docker-entrypoint.sh /usr/local/bin/
+COPY --chown=nginx:nginx --chmod=755 docker-entrypoint.sh /usr/local/bin/
 
 # Create directory for runtime config and ensure nginx can write to it
 RUN mkdir -p /usr/share/nginx/html && chown -R nginx:nginx /usr/share/nginx/html \

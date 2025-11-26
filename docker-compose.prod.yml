@@ -8,13 +8,13 @@ services:
       - prod
     restart: unless-stopped
     build:
-      context: .
-      dockerfile: packages/server/Dockerfile
+      context: packages/server
+      dockerfile: Dockerfile
       target: production
       args:
         - BUILDKIT_INLINE_CACHE=1
     ports:
-      - '5000:8000'
+      - '8000:8000'
     environment:
       # Python
       PYTHONUNBUFFERED: 1
@@ -36,7 +36,8 @@ services:
       OLLAMA_LLM_MODEL: llama3.2:1b
       OLLAMA_EMBEDDING_MODEL: nomic-embed-text
       # Vector Store
-      QDRANT_URL: http://qdrant:6333
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
       QDRANT_COLLECTION_NAME: documents
       # Cache
       REDIS_URL: redis://redis:6379/0
@@ -67,15 +68,15 @@ services:
       - prod
     restart: unless-stopped
     build:
-      context: .
-      dockerfile: packages/client/Dockerfile
+      context: packages/client
+      dockerfile: Dockerfile
       target: production
       args:
         - BUILDKIT_INLINE_CACHE=1
     ports:
       - '3000:80'
     environment:
-      VITE_API_URL: http://localhost:5000
+      VITE_API_URL: http://localhost:8000
       NGINX_PORT: 80
     depends_on:
       server-prod:

@@ -75,10 +75,10 @@ services:
     ports:
       - '3000:80'
     environment:
-      VITE_API_URL: http://localhost:5000
+      VITE_API_URL: http://server-dev:8000
       NGINX_PORT: 80
     depends_on:
-      server-prod:
+      server-dev:
         condition: service_started
     networks:
       - insighthub

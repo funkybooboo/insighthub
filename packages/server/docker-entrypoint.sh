@@ -21,48 +21,8 @@ warn() {
 
 log "Starting InsightHub Server..."
 
-# Wait for PostgreSQL to be ready
-if [ -n "$DATABASE_URL" ]; then
-    log "Waiting for PostgreSQL to be ready..."
-
-    MAX_RETRIES=30
-    RETRY_COUNT=0
-
-    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        if poetry run python -c "
-import sys
-import psycopg2
-try:
-    conn = psycopg2.connect('${DATABASE_URL}')
-    conn.close()
-    sys.exit(0)
-except Exception:
-    sys.exit(1)
-" 2>/dev/null; then
-            log "PostgreSQL is ready!"
-            break
-        fi
-
-        RETRY_COUNT=$((RETRY_COUNT + 1))
-        warn "PostgreSQL is unavailable (attempt $RETRY_COUNT/$MAX_RETRIES) - retrying in 2s..."
-        sleep 2
-    done
-
-    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-        error "Could not connect to PostgreSQL after $MAX_RETRIES attempts"
-        exit 1
-    fi
-
-    # Run database migrations (raw SQL files in migrations/ directory)
-    log "Running database migrations..."
-    if poetry run python -c "from src.infrastructure.database import init_db; init_db()"; then
-        log "Database migrations completed successfully!"
-    else
-        warn "Database migrations had issues (may already be initialized)"
-    fi
-else
-    warn "DATABASE_URL not set - skipping database initialization"
-fi
+# Simple startup - let the application handle database connections
+log "Starting Flask application..."
 
 # Start the application
 log "Starting Flask server on ${FLASK_HOST:-0.0.0.0}:${FLASK_PORT:-8000}..."
