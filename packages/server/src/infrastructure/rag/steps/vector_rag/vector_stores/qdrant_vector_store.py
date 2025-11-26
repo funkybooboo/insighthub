@@ -3,7 +3,7 @@
 from typing import List, Tuple
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types.common import MetadataDict
+from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.document import Chunk
 
 from .qdrant_vector_database import QdrantVectorDatabase
@@ -36,49 +36,38 @@ class QdrantVectorStore(VectorStore):
         """
         self.db = vector_database
 
-    def add(self, chunks: List[Chunk]) -> None:
+    def add(self, vectors: List[List[float]], ids: List[str], payloads: List[MetadataDict]) -> None:
         """
-        Add chunks to the vector store.
-
-        Converts Chunk objects to vectors and metadata, then vector_stores them in
-        the underlying vector database. Each chunk must have an embedding.
+        Add vectors to the vector store.
 
         Args:
-            chunks: List of chunks to add (must have embeddings)
+            vectors: List of vector embeddings
+            ids: List of unique IDs for the vectors
+            payloads: List of metadata payloads for the vectors
 
         Raises:
-            ValueError: If any chunk is missing an embedding
-            VectorStoreError: If adding chunks fails
+            VectorStoreError: If adding vectors fails
         """
-        if not chunks:
-            logger.warning("No chunks to add")
+        if not vectors:
+            logger.warning("No vectors to add")
             return
 
-        # Validate all chunks have vectors (embeddings)
-        missing_vectors = [c.id for c in chunks if c.vector is None]
-        if missing_vectors:
+        # Validate input lengths match
+        if len(vectors) != len(ids) or len(vectors) != len(payloads):
             raise ValueError(
-                f"Chunks missing vectors: {missing_vectors[:5]}"
-                f"{' and more...' if len(missing_vectors) > 5 else ''}"
+                f"Input lengths don't match: vectors={len(vectors)}, ids={len(ids)}, payloads={len(payloads)}"
             )
 
-        # Convert chunks to (id, vector, metadata) tuples
+        # Convert to items format expected by database
         items = []
-        for chunk in chunks:
-            chunk_id = chunk.id
-            vector = chunk.vector  # type: ignore  # Already validated above
-            metadata: MetadataDict = {
-                "document_id": chunk.document_id,
-                "text": chunk.text,
-                **chunk.metadata,  # Include any additional metadata
-            }
-            items.append((chunk_id, vector, metadata))
+        for vector, id_, payload in zip(vectors, ids, payloads):
+            items.append((id_, vector, payload))
 
         # Batch upsert to database
-        logger.info(f"Adding {len(items)} chunks to vector store")
+        logger.info(f"Adding {len(items)} vectors to vector store")
         self.db.upsert_batch(items)
 
-    def search(self, query_embedding: List[float], top_k: int = 5) -> List[Tuple[Chunk, float]]:
+    def search(self, query_embedding: List[float], top_k: int = 5, filters: FilterDict | None = None) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.
 

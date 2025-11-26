@@ -1,6 +1,6 @@
 """Mappers for converting between users models and DTOs."""
 
-from src.infrastructure.database import User
+from src.infrastructure.models import User
 
 
 class UserMapper:

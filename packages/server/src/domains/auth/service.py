@@ -25,9 +25,7 @@ class UserService:
         self, username: str, email: str, password: str, full_name: str | None = None
     ) -> User:
         """Create a new users with password."""
-        return self.repository.create(
-            username=username, email=email, password=password, full_name=full_name
-        )
+        return self.repository.create(User(username, email, password, full_name))
 
     def get_user_by_id(self, user_id: int) -> User | None:
         """Get users by ID."""
@@ -47,17 +45,23 @@ class UserService:
         if user:
             return user
         return self.repository.create(
-            username="demo_user",
-            email="demo@insighthub.local",
-            password="demo_password",
-            full_name="Demo User",
+            User(
+                username="demo_user",
+                email="demo@insighthub.local",
+                password_hash=User.hash_password("demo_password"),
+                full_name="Demo User",
+            )
         )
 
     def list_users(self, skip: int = 0, limit: int = 100) -> list[User]:
         """List all users with pagination."""
-        return self.repository.get_all(skip=skip, limit=limit)
+        return self.repository.list_all(skip=skip, limit=limit)
 
-    def update_user(self, user_id: int, **kwargs: str) -> User | None:
+    def count_users(self) -> int:
+        """Count all users."""
+        return self.repository.count_all()
+
+    def update_user(self, user_id: int, **kwargs) -> User | None:
         """Update users fields."""
         return self.repository.update(user_id, **kwargs)
 

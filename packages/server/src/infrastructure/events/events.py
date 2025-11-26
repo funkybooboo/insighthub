@@ -1,6 +1,6 @@
 """Document status broadcasting functions."""
 
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from flask_socketio import SocketIO, emit
 

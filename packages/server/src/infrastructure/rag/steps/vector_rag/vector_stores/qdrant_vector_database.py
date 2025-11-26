@@ -1,7 +1,6 @@
 """Qdrant vector database implementation."""
 
 import uuid
-from typing import Any
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.types.retrieval import RetrievalResult

@@ -1,6 +1,6 @@
 """Chat message domain exceptions."""
 
-from src.infrastructure.exceptions import NotFoundError, ValidationError
+from src.infrastructure.exceptions import DomainException, NotFoundError, ValidationError
 
 
 class ChatMessageNotFoundError(NotFoundError):
@@ -40,3 +40,22 @@ class InvalidMessageRoleError(ValidationError):
         super().__init__(message)
         self.role = role
         self.valid_roles = valid_roles
+
+
+class LlmProviderError(DomainException):
+    """Raised when an LLM provider operation fails."""
+
+    def __init__(
+        self, message: str, provider: str | None = None, original_error: Exception | None = None
+    ):
+        """
+        Initialize LLM provider error.
+
+        Args:
+            message: The error message
+            provider: The name of the LLM provider (e.g., "ollama", "openai")
+            original_error: The original exception that caused this error
+        """
+        super().__init__(message, code="LLM_PROVIDER_ERROR")
+        self.provider = provider
+        self.original_error = original_error

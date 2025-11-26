@@ -13,6 +13,7 @@ class Workspace:
     name: str
     description: str | None = None
     rag_type: str = "vector"  # "vector" or "graph"
+    status: str = "ready"  # "ready", "provisioning", "deleting", "failed"
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 

@@ -252,7 +252,7 @@ class Logger:
             cls._instances[name] = cls(name, level)
         return cls._instances[name]
 
-    def _log(self, level: int, message: str, extra: dict | None = None) -> None:
+    def _log(self, level: int, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """
         Log a message with a given level and extra context.
 
@@ -260,28 +260,29 @@ class Logger:
             level: The logging level
             message: The message to log
             extra: A dictionary of extra context to include in the log
+            exc_info: Exception info for logging exceptions
         """
-        self._logger.log(level, message, extra=extra)
+        self._logger.log(level, message, extra=extra, exc_info=exc_info)
 
-    def debug(self, message: str, extra: dict | None = None) -> None:
+    def debug(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """Log debug message with optional context."""
-        self._log(logging.DEBUG, message, extra)
+        self._log(logging.DEBUG, message, extra, exc_info)
 
-    def info(self, message: str, extra: dict | None = None) -> None:
+    def info(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """Log info message with optional context."""
-        self._log(logging.INFO, message, extra)
+        self._log(logging.INFO, message, extra, exc_info)
 
-    def warning(self, message: str, extra: dict | None = None) -> None:
+    def warning(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """Log warning message with optional context."""
-        self._log(logging.WARNING, message, extra)
+        self._log(logging.WARNING, message, extra, exc_info)
 
-    def error(self, message: str, extra: dict | None = None) -> None:
+    def error(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """Log error message with optional context."""
-        self._log(logging.ERROR, message, extra)
+        self._log(logging.ERROR, message, extra, exc_info)
 
-    def critical(self, message: str, extra: dict | None = None) -> None:
+    def critical(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
         """Log critical message with optional context."""
-        self._log(logging.CRITICAL, message, extra)
+        self._log(logging.CRITICAL, message, extra, exc_info)
 
     def exception(self, message: str, extra: dict | None = None) -> None:
         """Log exception with traceback and optional context."""

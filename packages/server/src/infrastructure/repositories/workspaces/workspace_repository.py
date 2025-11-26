@@ -17,6 +17,7 @@ class WorkspaceRepository(ABC):
         description: str | None = None,
         rag_type: str = "vector",
         rag_config: dict | None = None,
+        status: str = "ready",
     ) -> Workspace:
         """Create a new workspace."""
         pass

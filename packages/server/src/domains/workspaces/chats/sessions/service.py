@@ -62,6 +62,13 @@ class ChatSessionService:
             return session
         return None
 
+    def get_workspace_session(self, workspace_id: int, session_id: int, user_id: int) -> ChatSession | None:
+        """Get session by ID with workspace and user validation."""
+        session = self.repository.get_by_id(session_id)
+        if session and session.user_id == user_id and session.workspace_id == workspace_id:
+            return session
+        return None
+
     def list_workspace_sessions(self, workspace_id: int, user_id: int, skip: int = 0, limit: int = 50) -> tuple[list[ChatSession], int]:
         """List sessions for a workspace (filtered by users access)."""
         # Get all sessions in workspace and filter by user

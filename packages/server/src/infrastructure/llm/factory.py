@@ -1,10 +1,6 @@
 """Factory for creating LLM provider instances."""
 
-from .claude_llm_provider import ClaudeLlmProvider
-from .huggingface_llm_provider import HuggingFaceLlmProvider
 from .llm_provider import LlmProvider
-from .ollama_llm_provider import OllamaLlmProvider
-from .openai_llm_provider import OpenAiLlmProvider
 
 SUPPORTED_LLM_PROVIDERS = ["ollama", "openai", "claude", "huggingface"]
 
@@ -44,6 +40,7 @@ def create_llm_provider(
         ... )
     """
     if provider_type == "ollama":
+        from .ollama_llm_provider import OllamaLlmProvider
         base_url = kwargs.get("base_url")
         model_name = kwargs.get("model_name")
         if not base_url or not model_name:
@@ -51,6 +48,7 @@ def create_llm_provider(
         return OllamaLlmProvider(base_url=base_url, model_name=model_name)
 
     elif provider_type == "openai":
+        from .openai_llm_provider import OpenAiLlmProvider
         api_key = kwargs.get("api_key")
         model_name = kwargs.get("model_name")
         if not api_key or not model_name:
@@ -58,6 +56,7 @@ def create_llm_provider(
         return OpenAiLlmProvider(api_key=api_key, model_name=model_name)
 
     elif provider_type == "claude":
+        from .claude_llm_provider import ClaudeLlmProvider
         api_key = kwargs.get("api_key")
         model_name = kwargs.get("model_name")
         if not api_key or not model_name:
@@ -65,6 +64,7 @@ def create_llm_provider(
         return ClaudeLlmProvider(api_key=api_key, model_name=model_name)
 
     elif provider_type == "huggingface":
+        from .huggingface_llm_provider import HuggingFaceLlmProvider
         api_key = kwargs.get("api_key")
         model_name = kwargs.get("model_name")
         if not api_key or not model_name:

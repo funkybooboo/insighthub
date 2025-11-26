@@ -1,7 +1,7 @@
 """User repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 
 from src.infrastructure.models import User
 
@@ -32,6 +32,16 @@ class UserRepository(ABC):
     @abstractmethod
     def update(self, user_id: int, **kwargs) -> Optional[User]:
         """Update users."""
+        pass
+
+    @abstractmethod
+    def list_all(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """List all users with pagination."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def count_all(self) -> int:
+        """Count all users."""
         pass
 
     @abstractmethod

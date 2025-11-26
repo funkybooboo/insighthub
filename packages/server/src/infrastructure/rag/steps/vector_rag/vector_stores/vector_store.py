@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
+from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.document import Chunk
 
 
@@ -17,26 +18,29 @@ class VectorStore(ABC):
     """
 
     @abstractmethod
-    def add(self, chunks: List[Chunk]) -> None:
+    def add(self, vectors: List[List[float]], ids: List[str], payloads: List[MetadataDict]) -> None:
         """
-        Add chunks to the vector store.
+        Add vectors to the vector store.
 
         Args:
-            chunks: List of chunks to add
+            vectors: List of vector embeddings
+            ids: List of unique IDs for the vectors
+            payloads: List of metadata payloads for the vectors
 
         Raises:
-            VectorStoreError: If adding chunks fails
+            VectorStoreError: If adding vectors fails
         """
         pass
 
     @abstractmethod
-    def search(self, query_embedding: List[float], top_k: int = 5) -> List[Tuple[Chunk, float]]:
+    def search(self, query_embedding: List[float], top_k: int = 5, filters: FilterDict | None = None) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.
 
         Args:
             query_embedding: The embedding of the query
             top_k: The number of similar chunks to return
+            filters: Optional filters for the search
 
         Returns:
             A list of tuples, where each tuple contains a chunk and its similarity score.

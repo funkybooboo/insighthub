@@ -4,7 +4,6 @@ from flask_socketio import SocketIO
 
 from src.infrastructure.llm import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows import QueryWorkflow
 from src.infrastructure.rag.workflows.factory import WorkflowFactory
 from src.infrastructure.repositories.chat_messages import ChatMessageRepository
 from src.infrastructure.repositories.chat_sessions import ChatSessionRepository

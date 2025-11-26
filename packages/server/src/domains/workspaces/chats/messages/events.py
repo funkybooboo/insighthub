@@ -4,9 +4,8 @@ import uuid
 from collections.abc import Mapping
 from typing import TypedDict
 
-from flask import current_app
+from flask import current_app, g
 from flask_socketio import emit
-
 from src.infrastructure.logger import create_logger
 
 from .exceptions import EmptyMessageError, LlmProviderError
@@ -60,17 +59,9 @@ class ChatSocketHandler:
             - error: Error information {"error": str}
         """
         with current_app.app_context():
-            # Import here to avoid circular dependency
-            from src.infrastructure.context import create_app_context
-
-            db = None
             request_id = str(uuid.uuid4())
 
             try:
-                # Get database session
-                db = next(self._get_db())
-                app_context = create_app_context(db)
-
                 user_message = str(data.get("message", ""))
                 session_id_raw = data.get("session_id")
                 if session_id_raw is not None:
@@ -116,7 +107,7 @@ class ChatSocketHandler:
                     if not user_id:
                         raise ValueError("Invalid token payload")
 
-                    user = app_context.user_service.get_user_by_id(int(user_id))
+                    user = g.app_context.user_service.get_user_by_id(int(user_id))
                     if not user:
                         raise ValueError("User not found")
 
@@ -126,26 +117,29 @@ class ChatSocketHandler:
 
                 # Validate workspace access if workspace_id is provided
                 if workspace_id is not None:
-                    workspace_service = app_context.workspace_service
+                    workspace_service = g.app_context.workspace_service
                     if not workspace_service.validate_workspace_access(workspace_id, user.id):
                         emit("error", {"error": "No access to workspace"})
                         return
 
                 # Check if RAG context is available before streaming
-                if rag_type == "vector" and app_context.rag_system:
+                if rag_type == "vector" and g.app_context.rag_system:
                     try:
-                        rag_results = app_context.rag_system.query(
+                        rag_results = g.app_context.rag_system.query(
                             user_message, workspace_id=workspace_id, top_k=8
                         )
-                        [result for result in rag_results if result.score > 0.1]
-                    except Exception:
-                        pass
+                        # Ensure we have at least some relevant results
+                        relevant_results = [result for result in rag_results if result.score > 0.1]
+                        if not relevant_results:
+                            logger.warning(f"No relevant RAG context found for query: {user_message[:50]}...")
+                    except Exception as e:
+                        logger.warning(f"RAG system check failed: {e}")
 
                 # Use async chats processing architecture
                 logger.info(f"Starting async chats processing for users {user.id}")
 
                 # Send message via chats service
-                message_id = app_context.chat_service.send_message(
+                message_id = g.app_context.chat_service.send_message(
                     workspace_id=workspace_id,
                     session_id=session_id,
                     user_id=user.id,
@@ -193,7 +187,8 @@ class ChatSocketHandler:
 
                 # Don't close singleton database connection
 
-    def handle_chat_response_chunk(self, data: Mapping[str, object]) -> None:
+    @staticmethod
+    def handle_chat_response_chunk(data: Mapping[str, object]) -> None:
         """
         Handle chats.response_chunk events from the chats worker.
 
@@ -221,7 +216,8 @@ class ChatSocketHandler:
             },
         )
 
-    def handle_chat_response_complete(self, data: Mapping[str, object]) -> None:
+    @staticmethod
+    def handle_chat_response_complete(data: Mapping[str, object]) -> None:
         """
         Handle chats.response_complete events from the chats worker.
 
@@ -249,7 +245,8 @@ class ChatSocketHandler:
             },
         )
 
-    def handle_chat_no_context_found(self, data: Mapping[str, object]) -> None:
+    @staticmethod
+    def handle_chat_no_context_found(data: Mapping[str, object]) -> None:
         """
         Handle chats.no_context_found events from the chats worker.
 
@@ -277,7 +274,8 @@ class ChatSocketHandler:
             },
         )
 
-    def handle_chat_error(self, data: Mapping[str, object]) -> None:
+    @staticmethod
+    def handle_chat_error(data: Mapping[str, object]) -> None:
         """
         Handle chats.error events from the chats worker.
 
@@ -320,22 +318,14 @@ class ChatSocketHandler:
             - chat_cancelled: Confirmation that the stream was cancelled
         """
         with current_app.app_context():
-            # Import here to avoid circular dependency
-            from src.infrastructure.context import create_app_context
-
-            db = None
             try:
-                # Get database session
-                db = next(self._get_db())
-                app_context = create_app_context(db)
-
                 # Look up the active request ID for this client
                 client_id = str((data or {}).get("client_id", "")) if data else None
                 request_id = self._active_requests.get(client_id) if client_id else None
 
                 if request_id:
                     # Cancel the streaming request
-                    app_context.chat_service.cancel_stream(request_id)
+                    g.app_context.chat_message_service.cancel_stream(request_id)
                     emit("chat_cancelled", {"status": "cancelled"})
                 else:
                     # No active request to cancel (might have already completed)
@@ -347,12 +337,6 @@ class ChatSocketHandler:
             finally:
                 # Don't close singleton database connection
                 pass
-
-    def _get_db(self):
-        """Get database session."""
-        from src.infrastructure.database import get_db
-
-        return get_db()
 
 
 # Global instance for backwards compatibility

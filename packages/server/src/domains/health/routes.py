@@ -1,419 +1,226 @@
-"""Health check routes."""
+"""Health check routes for system monitoring."""
 
-from flask import Blueprint, Response, current_app, jsonify
+from flask import Blueprint, Response, g, jsonify
 
-from src.infrastructure.database.sql_database import SqlDatabase
-from src.infrastructure.logger import create_logger
+from .mappers import ConnectivityMapper, HealthMapper
 
-logger = create_logger(__name__)
+health_bp = Blueprint("health", __name__, url_prefix="/api/health")
 
-health_bp = Blueprint("health", __name__)
+
+@health_bp.route("", methods=["GET"])
+def get_health() -> tuple[Response, int]:
+    """
+    Get comprehensive health status of the system.
+
+    Returns detailed health information including:
+    - Overall system status
+    - Individual service health checks
+    - System uptime and version
+    - Connectivity status for all dependencies
+
+    Returns:
+        200: {
+            "status": "healthy" | "unhealthy" | "degraded",
+            "timestamp": "ISO timestamp",
+            "version": "string",
+            "uptime": "string",
+            "checks": {
+                "service_name": {
+                    "status": "healthy" | "unhealthy",
+                    "message": "string",
+                    "details": {...},
+                    "timestamp": "ISO timestamp"
+                }
+            }
+        }
+        503: System is unhealthy
+    """
+    try:
+        health_status = g.app_context.health_service.get_health_status()
+
+        # Convert to response dict using mapper
+        response_data = HealthMapper.health_status_to_dict(health_status)
+
+        # Return appropriate HTTP status based on health
+        if health_status.status == "healthy":
+            status_code = 200
+        elif health_status.status == "degraded":
+            status_code = 200  # Still operational but with warnings
+        else:  # unhealthy
+            status_code = 503  # Service Unavailable
+
+        return jsonify(response_data), status_code
+
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "timestamp": "unknown",
+            "version": "unknown",
+            "error": f"Health check failed: {str(e)}"
+        }), 503
+
+
+@health_bp.route("/readiness", methods=["GET"])
+def get_readiness() -> tuple[Response, int]:
+    """
+    Readiness probe for Kubernetes.
+
+    Checks if the application is ready to serve traffic by verifying
+    critical dependencies (database, LLM service).
+
+    Returns:
+        200: {"status": "ready"}
+        503: {"status": "not_ready", "message": "reason"}
+    """
+    try:
+        readiness_status = g.app_context.health_service.get_readiness_status()
+
+        # Convert to response dict using mapper
+        response_data = HealthMapper.readiness_status_to_dict(readiness_status)
+
+        status_code = 200 if readiness_status.status == "ready" else 503
+
+        return jsonify(response_data), status_code
+
+    except Exception as e:
+        return jsonify({
+            "status": "not_ready",
+            "message": f"Readiness check failed: {str(e)}"
+        }), 503
+
+
+@health_bp.route("/liveness", methods=["GET"])
+def get_liveness() -> tuple[Response, int]:
+    """
+    Liveness probe for Kubernetes.
+
+    Basic check to determine if the application is running and responsive.
+    If this fails, the pod should be restarted.
+
+    Returns:
+        200: {"status": "alive"}
+    """
+    try:
+        liveness_status = g.app_context.health_service.get_liveness_status()
+
+        # Convert to response dict using mapper
+        response_data = HealthMapper.liveness_status_to_dict(liveness_status)
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({
+            "status": "dead",
+            "message": f"Liveness check failed: {str(e)}"
+        }), 503
+
+
+@health_bp.route("/connectivity", methods=["GET"])
+def get_connectivity() -> tuple[Response, int]:
+    """
+    Get detailed connectivity report for all system services.
+
+    Tests connectivity to all external dependencies including:
+    - Database (PostgreSQL)
+    - Cache (Redis)
+    - LLM Service (Ollama)
+    - Vector Store (Qdrant)
+    - Blob Storage
+    - RAG System
+
+    Returns:
+        200: {
+            "timestamp": "ISO timestamp",
+            "overall_status": "all_connected" | "partial_failure" | "all_failed",
+            "services": [
+                {
+                    "service_name": "string",
+                    "service_type": "string",
+                    "is_connected": boolean,
+                    "response_time_ms": number,
+                    "error_message": "string" | null,
+                    "additional_info": {...} | null
+                }
+            ],
+            "summary": {
+                "connected": number,
+                "failed": number,
+                "total": number
+            }
+        }
+    """
+    try:
+        connectivity_report = g.app_context.health_service.get_connectivity_report()
+
+        # Convert to response dict using mapper
+        response_data = ConnectivityMapper.connectivity_report_to_dict(connectivity_report)
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        return jsonify({
+            "timestamp": "unknown",
+            "overall_status": "error",
+            "services": [],
+            "error": f"Connectivity check failed: {str(e)}"
+        }), 503
 
 
 @health_bp.route("/heartbeat", methods=["GET"])
-def heartbeat() -> tuple[str, int]:
-    """Simple heartbeat endpoint that returns 200 OK."""
-    return "", 200
-
-
-@health_bp.route("/health", methods=["GET"])
-def health() -> tuple[Response, int]:
+def heartbeat() -> tuple[Response, int]:
     """
-    Comprehensive health check endpoint.
+    Simple heartbeat endpoint for basic health checks.
 
-    Checks database connectivity, external services, and system components.
-    Returns detailed health status for monitoring and debugging.
+    Returns a simple 200 response to indicate the application is running.
+    Used by load balancers, monitoring systems, and basic health checks.
+
+    Returns:
+        200: {"status": "ok", "timestamp": "ISO timestamp"}
     """
-    health_status: dict[str] = {
-        "status": "healthy",
-        "timestamp": "2025-11-24T00:00:00Z",  # Would be dynamic in real implementation
-        "version": "1.0.0",
-        "checks": {},
-    }
+    from datetime import datetime
+    timestamp = datetime.now().isoformat() + "Z"
 
-    all_healthy = True
-
-    # Database health check
-    try:
-        from src.infrastructure.database import get_db
-
-        db: SqlDatabase = next(get_db())
-        db.execute("SELECT 1")  # Simple query to test connectivity
-        # Don't close singleton database connection
-        health_status["checks"]["database"] = {
-            "status": "healthy",
-            "message": "Database connection OK",
-        }
-    except Exception as e:
-        health_status["checks"]["database"] = {
-            "status": "unhealthy",
-            "message": f"Database error: {str(e)}",
-        }
-        all_healthy = False
-
-    # RAG system health check
-    try:
-        if hasattr(current_app, "rag_system") and current_app.rag_system:
-            # Try a simple operation to test RAG system
-            stats = current_app.rag_system.get_stats()
-            health_status["checks"]["rag_system"] = {
-                "status": "healthy",
-                "message": "RAG system OK",
-                "stats": stats,
-            }
-        else:
-            health_status["checks"]["rag_system"] = {
-                "status": "warning",
-                "message": "RAG system not configured",
-            }
-    except Exception as e:
-        health_status["checks"]["rag_system"] = {
-            "status": "unhealthy",
-            "message": f"RAG system error: {str(e)}",
-        }
-        all_healthy = False
-
-    # External services health check
-    try:
-        from src.infrastructure.context import create_llm
-
-        create_llm()
-        # Test LLM connectivity with a simple validation
-        health_status["checks"]["llm_service"] = {"status": "healthy", "message": "LLM service OK"}
-    except Exception as e:
-        health_status["checks"]["llm_service"] = {
-            "status": "unhealthy",
-            "message": f"LLM service error: {str(e)}",
-        }
-        all_healthy = False
-
-    # Redis health check (if configured)
-    try:
-        import redis
-
-        from src.infrastructure import config
-
-        if config.REDIS_URL:
-            redis_client = redis.from_url(config.REDIS_URL)
-            redis_client.ping()
-            health_status["checks"]["redis"] = {
-                "status": "healthy",
-                "message": "Redis connection OK",
-            }
-        else:
-            health_status["checks"]["redis"] = {
-                "status": "warning",
-                "message": "Redis not configured",
-            }
-    except Exception as e:
-        health_status["checks"]["redis"] = {
-            "status": "unhealthy",
-            "message": f"Redis error: {str(e)}",
-        }
-        all_healthy = False
-
-    # Update overall status
-    health_status["status"] = "healthy" if all_healthy else "unhealthy"
-
-    status_code = 200 if all_healthy else 503
-    return jsonify(health_status), status_code
-
-
-@health_bp.route("/ready", methods=["GET"])
-def readiness() -> tuple[Response, int]:
-    """
-    Kubernetes readiness probe endpoint.
-
-    Checks if the application is ready to serve traffic.
-    Focuses on critical dependencies that must be available.
-    """
-    try:
-        # Critical checks: database and basic app functionality
-        from src.infrastructure.database import get_db
-
-        db: SqlDatabase = next(get_db())
-        db.execute("SELECT 1")
-        # Don't close singleton database connection
-
-        return jsonify({"status": "ready"}), 200
-    except Exception:
-        return jsonify({"status": "not ready"}), 503
-
-
-@health_bp.route("/live", methods=["GET"])
-def liveness() -> tuple[Response, int]:
-    """
-    Kubernetes liveness probe endpoint.
-
-    Checks if the application is running and not in a broken state.
-    """
-    # Basic liveness check - if Flask is responding, we're alive
-    return jsonify({"status": "alive"}), 200
+    return jsonify({
+        "status": "ok",
+        "timestamp": timestamp
+    }), 200
 
 
 @health_bp.route("/metrics", methods=["GET"])
-def metrics() -> tuple[Response, int]:
+def get_metrics() -> tuple[Response, int]:
     """
-    Get application metrics and performance statistics.
+    Get application performance metrics.
+
+    Returns basic metrics about system performance and usage.
+    In production, this would be populated with real monitoring data.
 
     Returns:
-    JSON response with metrics
+        200: {
+            "status": "string",
+            "uptime": "string",
+            "active_connections": number,
+            "total_requests": number,
+            "error_rate": number,
+            "avg_response_time": number,
+            "memory_usage": {...},
+            "performance": {...}
+        }
     """
-    metrics_data = {
-        "status": "healthy",
-        "uptime": "unknown",  # Would track actual uptime
-        "memory_usage": "unknown",  # Would track memory stats
-        "active_connections": 0,  # Would track WebSocket connections
-    }
+    try:
+        metrics_data = g.app_context.health_service.get_metrics()
 
-    # Add performance statistics if available
-    if hasattr(current_app, "performance_monitoring"):
-        perf_monitor = current_app.performance_monitoring
-        metrics_data["performance"] = perf_monitor.get_stats()
+        # Convert to response dict using mapper
+        response_data = HealthMapper.metrics_data_to_dict(metrics_data)
 
-    # Add request counts and error rates
-    if hasattr(current_app, "performance_monitoring"):
-        perf_monitor = current_app.performance_monitoring
-        metrics_data.update(
-            {
-                "total_requests": perf_monitor.get_request_count(),
-                "error_rate": perf_monitor.get_error_rate(),
-                "avg_response_time": perf_monitor.get_avg_response_time(),
-            }
-        )
+        return jsonify(response_data), 200
 
-    return jsonify(metrics_data), 200
-
-
-@health_bp.route("/docs", methods=["GET"])
-def api_docs() -> tuple[Response, int]:
-    """
-    Get OpenAPI/Swagger documentation for the API.
-
-    Returns basic API documentation with endpoint descriptions.
-    """
-    docs = {
-        "openapi": "3.0.3",
-        "info": {
-            "title": "InsightHub API",
-            "description": "RAG-powered document analysis and chats platform",
-            "version": "1.0.0",
-            "contact": {"name": "InsightHub Team"},
-        },
-        "servers": [{"url": "http://localhost:5000", "description": "Development server"}],
-        "paths": {
-            # Authentication endpoints
-            "/api/auth/login": {
-                "post": {
-                    "summary": "User login",
-                    "description": "Authenticate users with email/password",
-                    "tags": ["Authentication"],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": ["email", "password"],
-                                    "properties": {
-                                        "email": {"type": "string", "format": "email"},
-                                        "password": {"type": "string", "minLength": 8},
-                                    },
-                                }
-                            }
-                        },
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "Login successful",
-                            "content": {
-                                "application/json": {
-                                    "schema": {
-                                        "type": "object",
-                                        "properties": {
-                                            "access_token": {"type": "string"},
-                                            "token_type": {"type": "string"},
-                                            "users": {"$ref": "#/components/schemas/User"},
-                                        },
-                                    }
-                                }
-                            },
-                        },
-                        "401": {"description": "Invalid credentials"},
-                    },
-                }
-            },
-            "/api/auth/signup": {
-                "post": {
-                    "summary": "User registration",
-                    "description": "Create a new users account",
-                    "tags": ["Authentication"],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": ["username", "email", "password"],
-                                    "properties": {
-                                        "username": {"type": "string", "minLength": 3},
-                                        "email": {"type": "string", "format": "email"},
-                                        "password": {"type": "string", "minLength": 8},
-                                        "full_name": {"type": "string"},
-                                    },
-                                }
-                            }
-                        },
-                    },
-                    "responses": {
-                        "201": {"description": "User created successfully"},
-                        "400": {"description": "Validation error"},
-                        "409": {"description": "User already exists"},
-                    },
-                }
-            },
-            "/api/workspaces": {
-                "get": {
-                    "summary": "List workspaces",
-                    "description": "Get all workspaces for the authenticated users",
-                    "tags": ["Workspaces"],
-                    "security": [{"bearerAuth": []}],
-                    "responses": {
-                        "200": {
-                            "description": "List of workspaces",
-                            "content": {
-                                "application/json": {
-                                    "schema": {
-                                        "type": "array",
-                                        "items": {"$ref": "#/components/schemas/Workspace"},
-                                    }
-                                }
-                            },
-                        }
-                    },
-                },
-                "post": {
-                    "summary": "Create workspace",
-                    "description": "Create a new workspace with RAG configuration",
-                    "tags": ["Workspaces"],
-                    "security": [{"bearerAuth": []}],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": ["name"],
-                                    "properties": {
-                                        "name": {
-                                            "type": "string",
-                                            "minLength": 1,
-                                            "maxLength": 100,
-                                        },
-                                        "description": {"type": "string"},
-                                        "rag_config": {"$ref": "#/components/schemas/RagConfig"},
-                                    },
-                                }
-                            }
-                        },
-                    },
-                    "responses": {
-                        "201": {
-                            "description": "Workspace created",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"$ref": "#/components/schemas/Workspace"}
-                                }
-                            },
-                        }
-                    },
-                },
-            },
-            "/api/workspaces/{workspaceId}/chats/sessions/{sessionId}/messages": {
-                "post": {
-                    "summary": "Send chats message",
-                    "description": "Send a message to a chats session and get AI response",
-                    "tags": ["Chat"],
-                    "security": [{"bearerAuth": []}],
-                    "parameters": [
-                        {
-                            "name": "workspaceId",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "integer"},
-                        },
-                        {
-                            "name": "sessionId",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "integer"},
-                        },
-                    ],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "required": ["content"],
-                                    "properties": {
-                                        "content": {"type": "string", "maxLength": 10000},
-                                        "message_type": {
-                                            "type": "string",
-                                            "enum": ["users", "system"],
-                                        },
-                                    },
-                                }
-                            }
-                        },
-                    },
-                    "responses": {
-                        "200": {"description": "Message sent, response streamed via WebSocket"}
-                    },
-                }
-            },
-        },
-        "components": {
-            "schemas": {
-                "User": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "integer"},
-                        "username": {"type": "string"},
-                        "email": {"type": "string", "format": "email"},
-                        "full_name": {"type": "string"},
-                    },
-                },
-                "Workspace": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "integer"},
-                        "name": {"type": "string"},
-                        "description": {"type": "string"},
-                        "status": {
-                            "type": "string",
-                            "enum": ["provisioning", "ready", "deleting", "failed"],
-                        },
-                        "rag_config": {"$ref": "#/components/schemas/RagConfig"},
-                        "document_count": {"type": "integer"},
-                        "session_count": {"type": "integer"},
-                    },
-                },
-                "RagConfig": {
-                    "type": "object",
-                    "properties": {
-                        "embedding_model": {"type": "string"},
-                        "retriever_type": {"type": "string", "enum": ["vector", "graph", "hybrid"]},
-                        "chunk_size": {"type": "integer"},
-                        "chunk_overlap": {"type": "integer"},
-                        "top_k": {"type": "integer"},
-                    },
-                },
-            },
-            "securitySchemes": {
-                "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
-            },
-        },
-    }
-
-    return jsonify(docs), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "uptime": "unknown",
+            "active_connections": 0,
+            "total_requests": 0,
+            "error_rate": 0.0,
+            "avg_response_time": 0.0,
+            "error": f"Metrics retrieval failed: {str(e)}"
+        }), 503

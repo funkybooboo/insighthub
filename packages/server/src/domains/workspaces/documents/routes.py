@@ -2,6 +2,12 @@
 
 from flask import Blueprint, Response, g, jsonify, request
 
+from .mappers import DocumentMapper
+from src.domains.workspaces.documents.exceptions import (
+    DocumentNotFoundError,
+    DocumentProcessingError,
+    InvalidFileTypeError,
+)
 from src.infrastructure.auth import get_current_user, require_auth
 from src.infrastructure.logger import create_logger
 
@@ -16,18 +22,22 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
     """
     Upload a document to a workspace.
 
+    The document is saved to blob storage and RAG processing begins asynchronously.
+    Use WebSocket or polling to track processing status.
+
     Request: multipart/form-data with 'file' field
     Supported formats: PDF, TXT, DOCX
 
     Returns:
         201: {
-            "message": "Document uploaded successfully",
+            "message": "Document uploaded successfully. Processing and RAG indexing is in progress.",
             "document": {
                 "id": int,
                 "filename": "string",
                 "file_size": int,
                 "mime_type": "string",
                 "chunk_count": int,
+                "processing_status": "pending|parsing|chunking|embedding|indexing|ready|failed",
                 "created_at": "string"
             }
         }
@@ -79,7 +89,13 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
             file_obj=file,
         )
 
-        return jsonify({"message": result.message, "document": result.document}), 201
+        # Convert document to DTO using mapper
+        document_dto = DocumentMapper.document_to_dto(result.document)
+
+        return jsonify({
+            "message": "Document uploaded successfully. Processing and RAG indexing is in progress.",
+            "document": document_dto.to_dict()
+        }), 201
 
     except InvalidFileTypeError as e:
         return jsonify({"error": f"Unsupported file type. {str(e)}"}), 415
@@ -144,10 +160,13 @@ def list_workspace_documents(workspace_id: str) -> tuple[Response, int]:
             status_filter=status_filter,
         )
 
+        # Convert documents to DTOs using mapper
+        document_dtos = DocumentMapper.documents_to_dtos(result.documents)
+
         return (
             jsonify(
                 {
-                    "documents": result.documents,
+                    "documents": [dto.to_dict() for dto in document_dtos],
                     "count": result.count,
                     "total": result.total,
                 }
@@ -205,6 +224,9 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
     """
     Fetch a Wikipedia article and add it to the workspace's document collection.
 
+    The article is fetched, saved to blob storage, and RAG processing begins asynchronously.
+    Use WebSocket or polling to track processing status.
+
     Request Body:
         {
             "query": "Article title or search query",
@@ -213,13 +235,14 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
 
     Returns:
         200: {
-            "message": "Wikipedia article fetched and added to workspace",
+            "message": "Wikipedia article fetched and added successfully. Processing and RAG indexing is in progress.",
             "document": {
                 "id": int,
                 "filename": "string",
                 "file_size": int,
                 "mime_type": "string",
                 "chunk_count": int,
+                "processing_status": "pending|parsing|chunking|embedding|indexing|ready|failed",
                 "created_at": "string"
             }
         }
@@ -261,7 +284,13 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
             workspace_id=int(workspace_id), user_id=user.id, query=query, language=language
         )
 
-        return jsonify({"message": result.message, "document": result.document}), 200
+        # Convert document to DTO using mapper
+        document_dto = DocumentMapper.document_to_dto(result.document)
+
+        return jsonify({
+            "message": "Wikipedia article fetched and added successfully. Processing and RAG indexing is in progress.",
+            "document": document_dto.to_dict()
+        }), 200
 
     except DocumentProcessingError as e:
         return jsonify({"error": f"Wikipedia fetch failed: {str(e)}"}), 404

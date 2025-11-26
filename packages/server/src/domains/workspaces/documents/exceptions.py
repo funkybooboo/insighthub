@@ -44,7 +44,7 @@ class DocumentUploadError(DomainException):
         Args:
             message: Description of upload failure
         """
-        super().__init__(message, status_code=500)
+        super().__init__(message, code="DOCUMENT_UPLOAD_ERROR")
 
 
 class DocumentProcessingError(DomainException):
@@ -59,6 +59,6 @@ class DocumentProcessingError(DomainException):
             reason: Reason for processing failure
         """
         message = f"Failed to process document '{filename}': {reason}"
-        super().__init__(message, status_code=422)
+        super().__init__(message, code="DOCUMENT_PROCESSING_ERROR")
         self.filename = filename
         self.reason = reason

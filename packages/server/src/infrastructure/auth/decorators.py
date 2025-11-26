@@ -3,7 +3,7 @@
 from functools import wraps
 from typing import Callable
 
-from flask import Response, g, jsonify, request
+from flask import g, jsonify, request
 
 from src.infrastructure.auth.token import decode_access_token
 

@@ -2,7 +2,6 @@
 
 import threading
 
-from src.infrastructure.database.postgres_sql_database import PostgresSqlDatabase
 from src.infrastructure.database.sql_database import SqlDatabase
 
 
@@ -25,11 +24,13 @@ def create_database(db_url: str) -> SqlDatabase:
             # Double-check pattern for thread safety
             if db_url not in _database_instances:
                 if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
+                    # Import here to avoid circular import
+                    from src.infrastructure.database.postgres_sql_database import PostgresSqlDatabase
                     _database_instances[db_url] = PostgresSqlDatabase(db_url)
                 elif db_url.startswith("sqlite://"):
-                    # For now, we'll use PostgreSQL implementation as a placeholder
-                    # In a real implementation, this would create a SQLite database
-                    raise NotImplementedError("SQLite database not yet implemented")
+                    # Use SQLite implementation for development
+                    from src.infrastructure.database.sqlite_database import SqliteDatabase
+                    _database_instances[db_url] = SqliteDatabase(db_url)
                 else:
                     raise ValueError(f"Unsupported database URL scheme: {db_url}")
 
@@ -47,7 +48,7 @@ def create_database_from_config() -> SqlDatabase:
     Returns:
         SqlDatabase instance (singleton)
     """
-    from src.infrastructure import config
+    from src import config
 
     db_url = getattr(config, "DATABASE_URL", getattr(config, "database_url", "sqlite:///insighthub.db"))
     return create_database(db_url)

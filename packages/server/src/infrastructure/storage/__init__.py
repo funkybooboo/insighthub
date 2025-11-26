@@ -14,6 +14,8 @@ except ImportError:
 __all__ = [
     "BlobStorage",
     "FileSystemBlobStorage",
-    "S3BlobStorage",
     "S3_AVAILABLE",
 ]
+
+if S3_AVAILABLE:
+    __all__.append("S3BlobStorage")

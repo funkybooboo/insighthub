@@ -174,8 +174,9 @@ class WorkspaceService:
         # Return default config
         return GraphRagConfig(workspace_id=workspace_id)
 
+    @staticmethod
     def _validate_rag_config(
-        self, rag_type: str, config: dict[str, str | int | float | bool]
+            rag_type: str, config: dict[str, str | int | float | bool]
     ) -> None:
         """Validate RAG configuration."""
         if rag_type == "vector":

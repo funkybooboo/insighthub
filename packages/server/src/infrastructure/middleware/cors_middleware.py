@@ -3,7 +3,7 @@
 from flask import Flask
 from flask_cors import CORS
 
-from src.infrastructure import config
+from src import config
 
 
 def setup_cors_middleware(app: Flask) -> None:

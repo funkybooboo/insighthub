@@ -1,7 +1,7 @@
 """SQL implementation of UserRepository."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from src.infrastructure.database import SqlDatabase
 from src.infrastructure.models import User
@@ -113,3 +113,18 @@ class SqlUserRepository(UserRepository):
         query = "DELETE FROM users WHERE id = %s"
         affected_rows = self.db.execute(query, (user_id,))
         return affected_rows > 0
+
+    def list_all(self, skip: int = 0, limit: int = 100) -> List[User]:
+        """List all users with pagination."""
+        query = "SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?"
+        result = self.db.fetch_all(query, (limit, skip))
+        users = []
+        for row in result:
+            users.append(User(**row))
+        return users
+
+    def count_all(self) -> int:
+        """Count all users."""
+        query = "SELECT COUNT(*) as count FROM users"
+        result = self.db.fetch_one(query)
+        return result["count"] if result else 0

@@ -2,11 +2,9 @@
 
 from flask_socketio import SocketIO
 
-from src.infrastructure.config import AppConfig
-from src.infrastructure.events import broadcast_workspace_status
+from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Workspace
-from src.infrastructure.rag.workflows import CreateRagResourcesWorkflow
 from src.infrastructure.rag.workflows.factory import WorkflowFactory
 from src.infrastructure.repositories.workspaces import WorkspaceRepository
 from src.workers.tasks import run_async
@@ -105,7 +103,7 @@ class CreateWorkspaceWorker:
             )
 
         except Exception as e:
-            logger.error(f"Workspace {workspace.id} provisioning failed: {e}", exc_info=True)
+            logger.error(f"Workspace {workspace.id} provisioning failed: {e}")
 
             # Update status to failed
             self._update_status(
@@ -187,7 +185,7 @@ class CreateWorkspaceWorker:
                 "error": error,
             }
 
-            broadcast_workspace_status(status_data, self.socketio)
+            dispatch_event("workspace.status.updated", status_data)
 
         except Exception as e:
             logger.error(f"Failed to update workspace status: {e}")
@@ -195,14 +193,20 @@ class CreateWorkspaceWorker:
     def _cleanup_failed_provisioning(self, workspace: Workspace) -> None:
         """Clean up any partial provisioning resources for failed workspaces.
 
+        Uses the RemoveWorkspaceWorker to ensure consistent cleanup behavior.
+
         Args:
             workspace: The workspace that failed provisioning
         """
         try:
             logger.info(f"Cleaning up failed provisioning for workspace {workspace.id}")
 
-            # TODO: Clean up Qdrant collection if it was created
-            # TODO: Clean up Neo4j database if it was created
+            # Use the RemoveWorkspaceWorker for consistent cleanup
+            from src.workers import get_remove_workspace_worker
+
+            cleanup_worker = get_remove_workspace_worker()
+            # Use the workspace owner's user_id for proper WebSocket notifications
+            cleanup_worker.start_cleanup(workspace, user_id=workspace.user_id)
 
         except Exception as e:
             logger.warning(f"Failed to cleanup workspace {workspace.id}: {e}")

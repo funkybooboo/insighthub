@@ -1,7 +1,5 @@
 """WebSocket handler for real-time communication."""
 
-from typing import Any
-
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from src.infrastructure.logger import create_logger

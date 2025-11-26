@@ -2,10 +2,9 @@
 
 from flask_socketio import SocketIO
 
-from src.infrastructure.events import broadcast_document_status
+from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
-from src.infrastructure.rag.workflows import RemoveDocumentWorkflow
 from src.infrastructure.rag.workflows.factory import WorkflowFactory
 from src.infrastructure.repositories.documents import DocumentRepository
 from src.infrastructure.repositories.workspaces import WorkspaceRepository
@@ -214,7 +213,7 @@ class RemoveDocumentWorker:
                 "error": error,
             }
 
-            broadcast_document_status(status_data, self.socketio)
+            dispatch_event("document.status.updated", status_data)
 
         except Exception as e:
             logger.error(f"Failed to update document status: {e}")

@@ -1,6 +1,6 @@
 """Algorithms routes for listing available RAG algorithms."""
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, Response
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.factory import get_available_chunkers
@@ -17,7 +17,7 @@ algorithms_bp = Blueprint("algorithms", __name__, url_prefix="/api/algorithms")
 
 
 @algorithms_bp.route("/vector", methods=["GET"])
-def get_vector_algorithms() -> tuple[dict, int]:
+def get_vector_algorithms() -> tuple[Response, int]:
     """
     Get available algorithms for Vector RAG.
 
@@ -38,7 +38,7 @@ def get_vector_algorithms() -> tuple[dict, int]:
 
 
 @algorithms_bp.route("/graph", methods=["GET"])
-def get_graph_algorithms() -> tuple[dict, int]:
+def get_graph_algorithms() -> tuple[Response, int]:
     """
     Get available algorithms for Graph RAG.
 

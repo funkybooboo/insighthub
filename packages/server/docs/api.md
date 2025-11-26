@@ -11,7 +11,7 @@ Complete REST API for the InsightHub dual RAG system with Flask 3.0+, featuring 
 task server
 
 # Or directly with Poetry
-poetry run python src/api.py
+poetry run python src/main.py
 
 # Check server health
 curl http://localhost:5000/health

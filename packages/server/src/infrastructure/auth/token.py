@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import jwt
 
-from src.infrastructure import config
+from src import config
 
 
 def create_access_token(user_id: int, expires_delta: timedelta | None = None) -> str:

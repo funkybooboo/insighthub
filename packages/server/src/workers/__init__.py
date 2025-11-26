@@ -25,6 +25,11 @@ from src.workers.create_workspace_worker import (
     get_create_workspace_worker,
     initialize_create_workspace_worker,
 )
+from src.workers.fetch_wikipedia_worker import (
+    FetchWikipediaWorker,
+    get_fetch_wikipedia_worker,
+    initialize_fetch_wikipedia_worker,
+)
 
 __all__ = [
     "AddDocumentWorker",
@@ -33,6 +38,9 @@ __all__ = [
     "ChatQueryWorker",
     "get_chat_query_worker",
     "initialize_chat_query_worker",
+    "FetchWikipediaWorker",
+    "get_fetch_wikipedia_worker",
+    "initialize_fetch_wikipedia_worker",
     "RemoveDocumentWorker",
     "get_remove_document_worker",
     "initialize_remove_document_worker",

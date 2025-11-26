@@ -85,7 +85,7 @@ class HTMLDocumentParser(DocumentParser):
             html_metadata = self._extract_html_metadata(soup, metadata)
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
-            title = self._get_title(metadata, html_metadata)
+            title = self._get_title(metadata, html_metadata) or "Untitled Document"
 
             return Ok(
                 Document(

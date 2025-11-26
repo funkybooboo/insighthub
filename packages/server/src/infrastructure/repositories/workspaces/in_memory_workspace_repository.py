@@ -27,6 +27,7 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
         description: str | None = None,
         rag_type: str = "vector",
         rag_config: dict | None = None,
+        status: str = "ready",
     ) -> Workspace:
         """Create a new workspace."""
         workspace = Workspace(
@@ -35,6 +36,7 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
             name=name,
             description=description,
             rag_type=rag_type,
+            status=status,
         )
         self._workspaces[self._next_id] = workspace
 

@@ -1,5 +1,7 @@
 """Chat message service."""
 
+from flask import g
+
 from src.infrastructure.models import ChatMessage
 from src.infrastructure.repositories.chat_messages import ChatMessageRepository
 
@@ -50,6 +52,52 @@ class ChatMessageService:
 
         return self.repository.create(session_id, role, content.strip(), extra_metadata_str)
 
+    def validate_workspace_and_session_access(self, workspace_id: int, session_id: int, user_id: int) -> bool:
+        """Validate that user has access to the workspace and session.
+
+        Args:
+            workspace_id: Workspace ID to validate
+            session_id: Session ID to validate
+            user_id: User ID performing the validation
+
+        Returns:
+            True if user has access, False otherwise
+        """
+
+        # Validate workspace access
+        workspace_service = g.app_context.workspace_service
+        if not workspace_service.validate_workspace_access(workspace_id, user_id):
+            return False
+
+        # Validate session access and workspace membership
+        session_service = g.app_context.chat_session_service
+        session = session_service.get_workspace_session(workspace_id, session_id, user_id)
+        return session is not None
+
+    def validate_message_access(self, message_id: int, session_id: int, user_id: int) -> bool:
+        """Validate that user has access to the specific message.
+
+        Args:
+            message_id: Message ID to validate
+            session_id: Expected session ID
+            user_id: User ID performing the validation
+
+        Returns:
+            True if user has access to the message, False otherwise
+        """
+        # Get the message
+        message = self.get_message(message_id)
+        if not message:
+            return False
+
+        # Ensure message belongs to the specified session
+        if message.session_id != session_id:
+            return False
+
+        # Validate that user has access to the session
+        session_service = g.app_context.chat_session_service
+        return session_service.validate_session_access(session_id, user_id)
+
     def get_message(self, message_id: int) -> ChatMessage | None:
         """Get message by ID."""
         return self.repository.get_by_id(message_id)
@@ -66,20 +114,3 @@ class ChatMessageService:
     def delete_message(self, message_id: int) -> bool:
         """Delete a message."""
         return self.repository.delete(message_id)
-
-    def validate_message_access(self, message_id: int, user_id: int) -> bool:
-        """Validate that users has access to message through session ownership."""
-        message = self.repository.get_by_id(message_id)
-        if not message:
-            return False
-
-        # Check if users owns the session this message belongs to
-        # This requires access to session service - validation is performed at route level
-        return True
-
-    def get_session_messages_for_user(
-        self, session_id: int, user_id: int, skip: int = 0, limit: int = 50
-    ) -> list[ChatMessage]:
-        """Get messages for a session, validating users access."""
-        # Validation is performed at the route level
-        return self.repository.get_by_session(session_id, skip, limit)

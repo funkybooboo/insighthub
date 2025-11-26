@@ -72,7 +72,7 @@ tasks:
   server:
     desc: Run Flask API server on port 5000
     cmds:
-      - poetry run python src/api.py
+      - poetry run python src/main.py
 
   cli:
     desc: 'Run RAG CLI (usage: task cli -- command args)'

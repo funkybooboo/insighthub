@@ -2,7 +2,7 @@
 
 from flask import Flask, g
 
-from src.infrastructure.context import create_app_context, create_database
+from src.context import get_app_context
 
 
 def setup_context_middleware(app: Flask) -> None:
@@ -20,10 +20,7 @@ def setup_context_middleware(app: Flask) -> None:
     def before_request() -> None:
         """Inject app context before each request."""
         if not hasattr(g, "app_context"):
-            # Create database connection for this request
-            db = create_database()
-            # Create application context with services
-            g.app_context = create_app_context(db)
+            g.app_context = get_app_context()
 
     @app.teardown_appcontext
     def teardown_appcontext(exception: Exception | None = None) -> None:

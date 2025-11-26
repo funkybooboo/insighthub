@@ -2,11 +2,9 @@
 
 from flask_socketio import SocketIO
 
-from src.infrastructure.config import AppConfig
-from src.infrastructure.events import broadcast_workspace_status
+from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Workspace
-from src.infrastructure.rag.workflows import RemoveRagResourcesWorkflow
 from src.infrastructure.rag.workflows.factory import WorkflowFactory
 from src.infrastructure.repositories.documents import DocumentRepository
 from src.infrastructure.repositories.workspaces import WorkspaceRepository
@@ -197,7 +195,7 @@ class RemoveWorkspaceWorker:
         message: str,
         error: str | None = None,
     ) -> None:
-        """Update workspace cleanup status and broadcast to clients.
+        """Update workspace cleanup status in database and broadcast to clients.
 
         Args:
             workspace_id: Workspace ID
@@ -207,6 +205,9 @@ class RemoveWorkspaceWorker:
             error: Error message if failed
         """
         try:
+            # Update status in database
+            self.workspace_repository.update(workspace_id, status=status)
+
             # Broadcast via WebSocket
             status_data = {
                 "workspace_id": workspace_id,
@@ -216,7 +217,7 @@ class RemoveWorkspaceWorker:
                 "error": error,
             }
 
-            broadcast_workspace_status(status_data, self.socketio)
+            dispatch_event("workspace.status.updated", status_data)
 
         except Exception as e:
             logger.error(f"Failed to update workspace status: {e}")

@@ -28,10 +28,10 @@ def list_messages(workspace_id: str, session_id: str) -> tuple[Response, int]:
     skip = int(request.args.get("skip", 0))
     limit = int(request.args.get("limit", 50))
 
-    # Validate session access
-    session_service = g.app_context.chat_session_service
-    if not session_service.validate_session_access(int(session_id), user.id):
-        return jsonify({"error": "No access to session"}), 403
+    # Validate workspace and session access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+        return jsonify({"error": "Access denied"}), 403
 
     messages, total = service.get_session_messages(int(session_id), skip, limit)
     response = MessageListResponse(
@@ -48,11 +48,11 @@ def list_messages(workspace_id: str, session_id: str) -> tuple[Response, int]:
 def create_message(workspace_id: str, session_id: str) -> tuple[Response, int]:
     """Create a new message in a chats session."""
     user = get_current_user()
-    session_service = g.app_context.chat_session_service
 
-    # Validate session access
-    if not session_service.validate_session_access(int(session_id), user.id):
-        return jsonify({"error": "No access to session"}), 403
+    # Validate workspace and session access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+        return jsonify({"error": "Access denied"}), 403
 
     service = g.app_context.chat_message_service
 
@@ -89,11 +89,19 @@ def create_message(workspace_id: str, session_id: str) -> tuple[Response, int]:
 def get_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Response, int]:
     """Get a specific message."""
     user = get_current_user()
-    service = g.app_context.chat_message_service
 
-    message = service.get_message(int(message_id))
-    if not message or message.session_id != int(session_id):
+    # Validate workspace and session access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Validate message access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_message_access(int(message_id), int(session_id), user.id):
         return jsonify({"error": "Message not found"}), 404
+
+    service = g.app_context.chat_message_service
+    message = service.get_message(int(message_id))
 
     response = MessageMapper.message_to_dto(message)
     return jsonify(response.to_dict()), 200
@@ -104,11 +112,16 @@ def get_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Re
 def delete_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Response, int]:
     """Delete a message."""
     user = get_current_user()
-    session_service = g.app_context.chat_session_service
 
-    # Validate session access
-    if not session_service.validate_session_access(int(session_id), user.id):
-        return jsonify({"error": "No access to session"}), 403
+    # Validate workspace and session access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+        return jsonify({"error": "Access denied"}), 403
+
+    # Validate message access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_message_access(int(message_id), int(session_id), user.id):
+        return jsonify({"error": "Message not found"}), 404
 
     service = g.app_context.chat_message_service
     success = service.delete_message(int(message_id))

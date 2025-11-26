@@ -13,8 +13,8 @@ class User:
     username: str
     email: str
     password_hash: str
-    id: int = 0
     full_name: str | None = None
+    id: int = 0
     theme_preference: str = "dark"
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)

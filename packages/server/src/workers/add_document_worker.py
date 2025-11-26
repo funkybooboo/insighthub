@@ -4,7 +4,7 @@ from io import BytesIO
 
 from flask_socketio import SocketIO
 
-from src.infrastructure.events import broadcast_document_status
+from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
 from src.infrastructure.rag.workflows.factory import WorkflowFactory
@@ -92,6 +92,8 @@ class AddDocumentWorker:
 
             # Download document from blob storage
             logger.info(f"Downloading document {document.id} from blob storage")
+            if not document.file_path:
+                raise Exception(f"Document {document.id} has no file_path")
             try:
                 file_content = self.blob_storage.download(document.file_path)
             except Exception as e:
@@ -197,7 +199,7 @@ class AddDocumentWorker:
         error: str | None = None,
         chunk_count: int | None = None,
     ) -> None:
-        """Update document processing status and broadcast to clients.
+        """Update document processing status and dispatch event.
 
         Args:
             document_id: Document ID
@@ -216,8 +218,8 @@ class AddDocumentWorker:
             if chunk_count is not None:
                 self.document_repository.update(document_id, chunk_count=chunk_count)
 
-            # Broadcast via WebSocket
-            status_data = {
+            # Dispatch document status update event
+            event_data = {
                 "document_id": document_id,
                 "user_id": user_id,
                 "workspace_id": workspace_id,
@@ -228,7 +230,7 @@ class AddDocumentWorker:
                 "chunk_count": chunk_count,
             }
 
-            broadcast_document_status(status_data, self.socketio)
+            dispatch_event("document.status.updated", event_data)
 
         except Exception as e:
             logger.error(f"Failed to update document status: {e}")

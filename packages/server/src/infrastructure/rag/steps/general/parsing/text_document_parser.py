@@ -35,8 +35,7 @@ class TextDocumentParser(DocumentParser):
             self._extract_text_metadata(content, metadata)
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
-            title = self._get_title(metadata, content)
-
+            title = self._get_title(metadata, content) or "Untitled Document"
             return Ok(
                 Document(
                     id=doc_id,

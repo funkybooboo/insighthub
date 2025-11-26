@@ -26,7 +26,6 @@ from src.infrastructure.rag.workflows.remove_rag_resources_workflow import (
 )
 from src.infrastructure.rag.workflows.vector_rag import (
     VectorRagAddDocumentWorkflow,
-    VectorRagConsumeWorkflow,
     VectorRagCreateRagResourcesWorkflow,
     VectorRagQueryWorkflow,
     VectorRagRemoveDocumentWorkflow,
@@ -75,7 +74,7 @@ class WorkflowFactory:
             raise ValueError(f"Unsupported RAG type: {rag_type}")
 
     @staticmethod
-    def create_consume_workflow(rag_config: dict) -> ConsumeWorkflow:
+    def create_consume_workflow(rag_config: dict) -> AddDocumentWorkflow:
         """Create a consume workflow based on RAG configuration.
 
         DEPRECATED: Use create_add_document_workflow instead.

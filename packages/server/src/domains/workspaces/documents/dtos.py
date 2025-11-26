@@ -47,7 +47,7 @@ class DocumentResponse:
 class DocumentUploadResult:
     """Result data for document upload operation."""
 
-    document: Document
+    document: Document | None
     text_length: int
     is_duplicate: bool
 

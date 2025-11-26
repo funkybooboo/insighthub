@@ -61,7 +61,7 @@ class PDFDocumentParser(DocumentParser):
             pdf_metadata = self._extract_pdf_metadata(reader, metadata)
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
-            title = self._get_title(metadata, pdf_metadata)
+            title = self._get_title(metadata, pdf_metadata) or "Untitled Document"
 
             return Ok(
                 Document(
