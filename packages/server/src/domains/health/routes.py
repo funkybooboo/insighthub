@@ -3,7 +3,11 @@
 from typing import Any
 
 from flask import Blueprint, Response, current_app, jsonify
-from shared.database.sql.sql_database import SqlDatabase
+
+from src.infrastructure.logger import create_logger
+
+logger = create_logger(__name__)
+from src.infrastructure.database.sql_database import SqlDatabase
 
 health_bp = Blueprint("health", __name__)
 
@@ -22,7 +26,7 @@ def health() -> tuple[Response, int]:
     Checks database connectivity, external services, and system components.
     Returns detailed health status for monitoring and debugging.
     """
-    health_status: dict[str, Any] = {
+    health_status: dict[str] = {
         "status": "healthy",
         "timestamp": "2025-11-24T00:00:00Z",  # Would be dynamic in real implementation
         "version": "1.0.0",
@@ -71,29 +75,9 @@ def health() -> tuple[Response, int]:
         }
         all_healthy = False
 
-    # Message publisher health check
-    try:
-        if hasattr(current_app, "message_publisher") and current_app.message_publisher:
-            # Test message publisher connectivity
-            health_status["checks"]["message_queue"] = {
-                "status": "healthy",
-                "message": "Message queue OK",
-            }
-        else:
-            health_status["checks"]["message_queue"] = {
-                "status": "warning",
-                "message": "Message queue not configured",
-            }
-    except Exception as e:
-        health_status["checks"]["message_queue"] = {
-            "status": "unhealthy",
-            "message": f"Message queue error: {str(e)}",
-        }
-        all_healthy = False
-
     # External services health check
     try:
-        from src.context import create_llm
+        from src.infrastructure.context import create_llm
 
         create_llm()
         # Test LLM connectivity with a simple validation
@@ -109,7 +93,7 @@ def health() -> tuple[Response, int]:
     try:
         import redis
 
-        from src import config
+        from src.infrastructure import config
 
         if config.REDIS_URL:
             redis_client = redis.from_url(config.REDIS_URL)
@@ -214,7 +198,7 @@ def api_docs() -> tuple[Response, int]:
         "openapi": "3.0.3",
         "info": {
             "title": "InsightHub API",
-            "description": "RAG-powered document analysis and chat platform",
+            "description": "RAG-powered document analysis and chats platform",
             "version": "1.0.0",
             "contact": {"name": "InsightHub Team"},
         },
@@ -224,7 +208,7 @@ def api_docs() -> tuple[Response, int]:
             "/api/auth/login": {
                 "post": {
                     "summary": "User login",
-                    "description": "Authenticate user with email/password",
+                    "description": "Authenticate users with email/password",
                     "tags": ["Authentication"],
                     "requestBody": {
                         "required": True,
@@ -251,7 +235,7 @@ def api_docs() -> tuple[Response, int]:
                                         "properties": {
                                             "access_token": {"type": "string"},
                                             "token_type": {"type": "string"},
-                                            "user": {"$ref": "#/components/schemas/User"},
+                                            "users": {"$ref": "#/components/schemas/User"},
                                         },
                                     }
                                 }
@@ -264,7 +248,7 @@ def api_docs() -> tuple[Response, int]:
             "/api/auth/signup": {
                 "post": {
                     "summary": "User registration",
-                    "description": "Create a new user account",
+                    "description": "Create a new users account",
                     "tags": ["Authentication"],
                     "requestBody": {
                         "required": True,
@@ -293,7 +277,7 @@ def api_docs() -> tuple[Response, int]:
             "/api/workspaces": {
                 "get": {
                     "summary": "List workspaces",
-                    "description": "Get all workspaces for the authenticated user",
+                    "description": "Get all workspaces for the authenticated users",
                     "tags": ["Workspaces"],
                     "security": [{"bearerAuth": []}],
                     "responses": {
@@ -347,10 +331,10 @@ def api_docs() -> tuple[Response, int]:
                     },
                 },
             },
-            "/api/workspaces/{workspaceId}/chat/sessions/{sessionId}/messages": {
+            "/api/workspaces/{workspaceId}/chats/sessions/{sessionId}/messages": {
                 "post": {
-                    "summary": "Send chat message",
-                    "description": "Send a message to a chat session and get AI response",
+                    "summary": "Send chats message",
+                    "description": "Send a message to a chats session and get AI response",
                     "tags": ["Chat"],
                     "security": [{"bearerAuth": []}],
                     "parameters": [
@@ -378,7 +362,7 @@ def api_docs() -> tuple[Response, int]:
                                         "content": {"type": "string", "maxLength": 10000},
                                         "message_type": {
                                             "type": "string",
-                                            "enum": ["user", "system"],
+                                            "enum": ["users", "system"],
                                         },
                                     },
                                 }

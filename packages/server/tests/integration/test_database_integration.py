@@ -16,13 +16,13 @@ from shared.repositories import (
 def test_user_document_relationship(
     user_repository: UserRepository, document_repository: DocumentRepository
 ) -> None:
-    """Test creating user and documents."""
-    # Create user
+    """Test creating users and documents."""
+    # Create users
     user = user_repository.create(
         username="testuser_rel", email="test_rel@example.com", password="password123"
     )
 
-    # Create documents for user
+    # Create documents for users
     doc1 = document_repository.create(
         user_id=user.id,
         filename="doc1.pdf",
@@ -51,8 +51,8 @@ def test_user_document_relationship(
 def test_cascade_delete_user_documents(
     user_repository: UserRepository, document_repository: DocumentRepository
 ) -> None:
-    """Test that deleting a user cascades to their documents."""
-    # Create user and document
+    """Test that deleting a users cascades to their documents."""
+    # Create users and document
     user = user_repository.create(
         username="testuser_cascade", email="test_cascade@example.com", password="password123"
     )
@@ -66,7 +66,7 @@ def test_cascade_delete_user_documents(
     )
     doc_id = doc.id
 
-    # Delete user
+    # Delete users
     user_repository.delete(user.id)
 
     # Verify document is also deleted (cascade)
@@ -79,15 +79,15 @@ def test_chat_session_message_relationship(
     chat_session_repository: ChatSessionRepository,
     chat_message_repository: ChatMessageRepository,
 ) -> None:
-    """Test the relationship between chat sessions and messages."""
-    # Create user and session
+    """Test the relationship between chats sessions and messages."""
+    # Create users and session
     user = user_repository.create(
         username="testuser_chat", email="test_chat@example.com", password="password123"
     )
     session = chat_session_repository.create(user_id=user.id, title="Test Chat", rag_type="vector")
 
     # Create messages
-    msg1 = chat_message_repository.create(session_id=session.id, role="user", content="Hello")
+    msg1 = chat_message_repository.create(session_id=session.id, role="users", content="Hello")
     msg2 = chat_message_repository.create(
         session_id=session.id, role="assistant", content="Hi there!"
     )
@@ -106,12 +106,12 @@ def test_cascade_delete_session_messages(
     chat_message_repository: ChatMessageRepository,
 ) -> None:
     """Test that deleting a session cascades to its messages."""
-    # Create user, session, and message
+    # Create users, session, and message
     user = user_repository.create(
         username="testuser_session", email="test_session@example.com", password="password123"
     )
     session = chat_session_repository.create(user_id=user.id)
-    msg = chat_message_repository.create(session_id=session.id, role="user", content="Test")
+    msg = chat_message_repository.create(session_id=session.id, role="users", content="Test")
     msg_id = msg.id
 
     # Delete session
@@ -124,12 +124,12 @@ def test_cascade_delete_session_messages(
 
 def test_unique_constraints(user_repository: UserRepository, db: PostgresDatabase) -> None:
     """Test that unique constraints are enforced."""
-    # Create first user
+    # Create first users
     user_repository.create(
         username="unique_testuser", email="unique_test@example.com", password="password123"
     )
 
-    # Try to create user with same username
+    # Try to create users with same username
     with pytest.raises(psycopg2.errors.UniqueViolation):
         user_repository.create(
             username="unique_testuser", email="other@example.com", password="password123"
@@ -140,7 +140,7 @@ def test_document_content_hash_index(
     user_repository: UserRepository, document_repository: DocumentRepository
 ) -> None:
     """Test that content_hash is indexed for fast lookups."""
-    # Create user
+    # Create users
     user = user_repository.create(
         username="testuser_hash", email="test_hash@example.com", password="password123"
     )
@@ -184,12 +184,12 @@ def test_pagination(user_repository: UserRepository) -> None:
 
 def test_timestamp_auto_update(user_repository: UserRepository) -> None:
     """Test that updated_at is automatically updated."""
-    # Create user
+    # Create users
     user = user_repository.create(
         username="testuser_timestamp", email="test_timestamp@example.com", password="password123"
     )
 
-    # Update user
+    # Update users
     time.sleep(0.1)  # Small delay to ensure timestamp difference
     updated_user = user_repository.update(user.id, full_name="New Name")
 

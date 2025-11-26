@@ -87,7 +87,7 @@
 
 # @pytest.fixture(scope="function")
 # def user_repository(test_context: UnitTestContext) -> UserRepository:
-#     """Get user repository from test context."""
+#     """Get users repository from test context."""
 #     return test_context.user_repository
 
 
@@ -99,13 +99,13 @@
 
 # @pytest.fixture(scope="function")
 # def chat_session_repository(test_context: UnitTestContext) -> ChatSessionRepository:
-#     """Get chat session repository from test context."""
+#     """Get chats session repository from test context."""
 #     return test_context.chat_session_repository
 
 
 # @pytest.fixture(scope="function")
 # def chat_message_repository(test_context: UnitTestContext) -> ChatMessageRepository:
-#     """Get chat message repository from test context."""
+#     """Get chats message repository from test context."""
 #     return test_context.chat_message_repository
 
 

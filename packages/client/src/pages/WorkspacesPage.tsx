@@ -73,7 +73,7 @@ export default function WorkspacesPage() {
         loadWorkspaces();
     }, [loadWorkspaces]);
 
-    // Load user's default RAG config when modal opens
+    // Load users's default RAG config when modal opens
     // and set it as the initial config for the workspace creation form
     useEffect(() => {
         if (showCreateModal) {

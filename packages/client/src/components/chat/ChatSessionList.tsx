@@ -93,7 +93,7 @@ const ChatSessionList: React.FC = () => {
                     onClick={handleNewChat}
                     disabled={!activeWorkspaceId}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
-                    title={!activeWorkspaceId ? 'Select a workspace first' : 'Create new chat'}
+                    title={!activeWorkspaceId ? 'Select a workspace first' : 'Create new chats'}
                 >
                     <FaPlus className="w-5 h-5" />
                     New Chat

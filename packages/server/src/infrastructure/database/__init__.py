@@ -1,57 +1,15 @@
-"""Database infrastructure for InsightHub server."""
+"""Database infrastructure - minimal stubs."""
 
-from collections.abc import Generator
-from pathlib import Path
+from .sql_database import SqlDatabase, PostgresSqlDatabase
 
-import psycopg2
-import psycopg2.extras
-from shared.database.sql import PostgresSqlDatabase, SqlDatabase
-
-from src import config
-
-# Global database instance (lazy initialized)
-_db: PostgresSqlDatabase | None = None
+__all__ = ["SqlDatabase", "PostgresSqlDatabase"]
 
 
-def get_db() -> Generator[SqlDatabase, None, None]:
-    """Get a database connection."""
-    global _db
-    if _db is None:
-        _db = PostgresSqlDatabase(config.DATABASE_URL)
-    yield _db
-
-
-def init_db(db_url: str | None = None) -> None:
-    """Initialize the database by running migration SQL files."""
-    url = db_url or config.DATABASE_URL
-    migrations_dir = (
-        Path(__file__).parent.parent.parent.parent.parent.parent / "infra" / "migrations"
-    )
-
-    # Get all migration files sorted by name
-    migration_files = sorted(migrations_dir.glob("*.sql"))
-
-    conn = psycopg2.connect(url)
+def get_db():
+    """Get database connection - stub for now."""
+    from src.infrastructure.context import create_database
+    db = create_database()
     try:
-        with conn.cursor() as cur:
-            # Enable pgvector extension
-            cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-            for migration_file in migration_files:
-                sql = migration_file.read_text()
-                cur.execute(sql)
-        conn.commit()
+        yield db
     finally:
-        conn.close()
-
-
-def run_sql(sql: str, db_url: str | None = None) -> None:
-    """Run arbitrary SQL against the database."""
-    url = db_url or config.DATABASE_URL
-
-    conn = psycopg2.connect(url)
-    try:
-        with conn.cursor() as cur:
-            cur.execute(sql)
-        conn.commit()
-    finally:
-        conn.close()
+        db.close()

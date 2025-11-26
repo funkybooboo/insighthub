@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory and user
+# Create app directory and users
 RUN groupadd -r app && useradd -r -g app -m app
 WORKDIR /app
 RUN chown -R app:app /app
@@ -78,7 +78,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Set environment for development
 ENV NODE_ENV=development
 
-# Use non-root user
+# Use non-root users
 USER app
 
 # Default command for development (Vite with hot-reload)
@@ -107,7 +107,7 @@ COPY --chown=app:app packages/client/.gitignore ./
 COPY --chown=app:app packages/client/.prettierignore ./
 COPY --chown=app:app packages/client/.prettierrc ./
 
-# Switch to app user for build
+# Switch to app users for build
 USER app
 
 # Build the application
@@ -121,7 +121,7 @@ FROM nginx:1.27-alpine AS production
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Create nginx user and group if they don't exist
+# Create nginx users and group if they don't exist
 RUN addgroup -g 101 -S nginx 2>/dev/null || true \
     && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx 2>/dev/null || true
 
@@ -158,7 +158,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 # Set environment
 ENV NGINX_PORT=80
 
-# Use non-root user
+# Use non-root users
 USER nginx
 
 # Use entrypoint script

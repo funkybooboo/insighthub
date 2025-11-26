@@ -1,337 +1,218 @@
-"""Workspace domain service for managing workspaces and RAG configurations."""
+"""Workspace service for business logic."""
 
-from dataclasses import dataclass
-from datetime import datetime
-
-from shared.logger import create_logger
-from shared.logger.logger import Logger
-from shared.messaging import RabbitMQPublisher
-from shared.models.workspace import Workspace
-from shared.repositories.workspace import WorkspaceRepository
-from shared.types.rag import VectorRagConfig, GraphRagConfig
-
-from .vector_rag_config_service import VectorRagConfigService
-from .graph_rag_config_service import GraphRagConfigService
-
-logger: Logger = create_logger(__name__)
-
-
-# Type for update data fields
-UpdateValue = str | int | bool | None
-
-
-@dataclass
-class WorkspaceStats:
-    """Statistics for a workspace."""
-
-    workspace_id: int
-    document_count: int
-    total_document_size: int
-    chunk_count: int
-    chat_session_count: int
-    total_message_count: int
-    last_activity: datetime | None
+from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
+from src.infrastructure.repositories.workspaces import WorkspaceRepository
 
 
 class WorkspaceService:
-    """Service for workspace operations."""
+    """Service for workspace-related business logic."""
 
-    def __init__(
-        self,
-        workspace_repo: WorkspaceRepository,
-        vector_rag_config_service: VectorRagConfigService,
-        graph_rag_config_service: GraphRagConfigService,
-        message_publisher: RabbitMQPublisher | None = None,
-    ):
-        self._repo = workspace_repo
-        self._vector_rag_config_service = vector_rag_config_service
-        self._graph_rag_config_service = graph_rag_config_service
-        self._message_publisher = message_publisher
+    def __init__(self, repository: WorkspaceRepository):
+        """Initialize service with repository."""
+        self.repository = repository
 
     def create_workspace(
         self,
-        name: str,
         user_id: int,
+        name: str,
         description: str | None = None,
         rag_type: str = "vector",
-        rag_config: dict | None = None,
+        rag_config: dict[str, str | int | float | bool] | None = None,
     ) -> Workspace:
-        """
-        Create a new workspace with RAG configuration.
+        """Create a new workspace with optional RAG configuration."""
+        # Validate inputs
+        if not name or not name.strip():
+            raise ValueError("Workspace name cannot be empty")
 
-        Args:
-            name: Workspace name
-            user_id: Owner user ID
-            description: Optional description
-            rag_type: Type of RAG system ('vector' or 'graph')
-            rag_config: Optional RAG configuration (uses defaults if not provided)
+        if len(name.strip()) > 255:
+            raise ValueError("Workspace name too long (max 255 characters)")
 
-        Returns:
-            Created workspace
-        """
-        # Create workspace with provisioning status
-        workspace = self._repo.create(
-            user_id=user_id,
-            name=name,
-            description=description,
-            rag_type=rag_type,
-        )
+        if description and len(description) > 1000:
+            raise ValueError("Workspace description too long (max 1000 characters)")
 
-        # Create appropriate RAG config for the workspace
-        if rag_type == "vector":
-            vector_config = self._create_vector_rag_config(workspace.id, user_id, rag_config)
-            workspace.vector_rag_config_id = vector_config.id
-        elif rag_type == "graph":
-            graph_config = self._create_graph_rag_config(workspace.id, user_id, rag_config)
-            workspace.graph_rag_config_id = graph_config.id
-        else:
-            raise ValueError(f"Invalid rag_type: {rag_type}. Must be 'vector' or 'graph'.")
+        if rag_type not in ["vector", "graph"]:
+            raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
-        # Update workspace with config ID
-        self._repo.update(workspace.id, **{
-            "vector_rag_config_id": workspace.vector_rag_config_id,
-            "graph_rag_config_id": workspace.graph_rag_config_id,
-        })
+        # Validate RAG config if provided
+        if rag_config:
+            self._validate_rag_config(rag_type, rag_config)
 
+        # TODO: Launch WorkspaceProvisionWorker
+        # Worker should:
+        # 1. Create workspace in database with status='provisioning'
+        # 2. Create Qdrant collection (if vector RAG) or Neo4j database (if graph RAG)
+        # 3. Initialize default RAG configs
+        # 4. Set up permissions/quotas
+        # 5. Update status to 'ready'
+        # 6. Broadcast status updates via WebSocket
+        #
+        # Example implementation:
+        #    workspace = self.repository.create(user_id, name.strip(), description, rag_type, rag_config, status='provisioning')
+        #    from src.workers import get_workspace_provision_worker
+        #    provision_worker = get_workspace_provision_worker()
+        #    provision_worker.start_provisioning(workspace, user_id)
+        #    return workspace  # Returns immediately with status='provisioning'
+        #
+        # For now, creating workspace synchronously:
+        return self.repository.create(user_id, name.strip(), description, rag_type, rag_config)
+
+    def get_workspace(self, workspace_id: int) -> Workspace | None:
+        """Get workspace by ID."""
+        workspace = self.repository.get_by_id(workspace_id)
         return workspace
 
-    def _create_vector_rag_config(self, workspace_id: int, user_id: int, config_data: dict | None = None) -> VectorRagConfig:
-        """Create vector RAG config for workspace."""
-        # Use provided config data or defaults
-        config_params = config_data or {}
-        return self._vector_rag_config_service.create_vector_rag_config(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            **config_params
-        )
-
-    def _create_graph_rag_config(self, workspace_id: int, user_id: int, config_data: dict | None = None) -> GraphRagConfig:
-        """Create graph RAG config for workspace."""
-        # Use provided config data or defaults
-        config_params = config_data or {}
-        return self._graph_rag_config_service.create_graph_rag_config(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            **config_params
-        )
-
-        # For now, mark workspace as ready immediately (synchronous provisioning)
-        # TODO: Implement async provisioning with workers
-        try:
-            self._repo.update(
-                workspace.id, status="ready", status_message="Workspace provisioned successfully"
-            )
-        except Exception as e:
-            print(f"Warning: Failed to update workspace status: {e}")
-
-        # Publish workspace provision requested event for future async processing
-        if self._message_publisher:
-            try:
-                event_data = {
-                    "workspace_id": workspace.id,
-                    "user_id": user_id,
-                    "name": workspace.name,
-                    "rag_config": rag_config or {},
-                }
-                self._message_publisher.publish(
-                    routing_key="workspace.provision_requested",
-                    message=event_data,
-                )
-            except Exception as e:
-                # Log error but don't fail workspace creation
-                print(f"Warning: Failed to publish workspace provision event: {e}")
-
-        return workspace
-
-    def list_workspaces(
-        self,
-        user_id: int,
-        include_inactive: bool = False,
-    ) -> list[Workspace]:
-        """
-        List workspaces for a user.
-
-        Args:
-            user_id: User ID
-            include_inactive: Include inactive workspaces
-
-        Returns:
-            List of workspaces
-        """
-        return self._repo.get_by_user(user_id, include_inactive)
-
-    def get_workspace(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-    ) -> Workspace | None:
-        """
-        Get a workspace by ID if user has access.
-
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-
-        Returns:
-            Workspace if found and accessible, None otherwise
-        """
-        ws_id = int(workspace_id) if isinstance(workspace_id, str) else workspace_id
-        workspace = self._repo.get_by_id(ws_id)
-        if workspace is None:
-            return None
-        # Check user access
-        if workspace.user_id != user_id:
-            return None
-        return workspace
+    def list_user_workspaces(self, user_id: int) -> list[Workspace]:
+        """List all workspaces for a users."""
+        return self.repository.get_by_user(user_id)
 
     def update_workspace(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-        **update_data: UpdateValue,
+        self, workspace_id: int, name: str | None = None, description: str | None = None
     ) -> Workspace | None:
-        """
-        Update a workspace.
+        """Update workspace."""
+        # Validate inputs
+        if name is not None:
+            if not name.strip():
+                raise ValueError("Workspace name cannot be empty")
+            if len(name.strip()) > 255:
+                raise ValueError("Workspace name too long (max 255 characters)")
 
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-            **update_data: Fields to update
+        if description is not None and len(description) > 1000:
+            raise ValueError("Workspace description too long (max 1000 characters)")
 
-        Returns:
-            Updated workspace or None if not found
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
+        updates = {}
+        if name is not None:
+            updates["name"] = name.strip()
+        if description is not None:
+            updates["description"] = description
+
+        return self.repository.update(workspace_id, **updates)
+
+    def delete_workspace(self, workspace_id: int) -> bool:
+        """Delete workspace."""
+
+        # TODO: Launch WorkspaceCleanupWorker
+        # Worker should:
+        # 1. Update workspace status to 'deleting'
+        # 2. Delete all documents in workspace (calls DocumentCleanupWorker for each)
+        # 3. Delete Qdrant collection (if vector RAG) or Neo4j database (if graph RAG)
+        # 4. Remove permissions/quotas
+        # 5. Delete workspace from database
+        # 6. Broadcast completion status via WebSocket
+        #
+        # Example implementation:
+        #    workspace = self.repository.get_by_id(workspace_id)
+        #    if not workspace:
+        #        return False
+        #    self.repository.update(workspace_id, status='deleting')
+        #    from src.workers import get_workspace_cleanup_worker
+        #    cleanup_worker = get_workspace_cleanup_worker()
+        #    cleanup_worker.start_cleanup(workspace, user_id)
+        #    return True  # Returns immediately, deletion happens in background
+        #
+        # For now, deleting workspace synchronously:
+        return self.repository.delete(workspace_id)
+
+    def get_rag_config(self, workspace_id: int) -> RagConfig | None:
+        """Get RAG configuration for a workspace."""
+        workspace = self.repository.get_by_id(workspace_id)
         if not workspace:
             return None
 
-        return self._repo.update(workspace.id, **update_data)
+        # Check if we have a stored config
+        stored_config = self.repository.get_rag_config(workspace_id)
+        if stored_config:
+            return stored_config
 
-    def delete_workspace(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-    ) -> bool:
-        """
-        Initiate async deletion of a workspace.
+        # Return default config based on workspace rag_type
+        if workspace.rag_type == "vector":
+            config: dict[str, str | int | float | bool] = {
+                "embedding_algorithm": "ollama",
+                "chunking_algorithm": "sentence",
+                "rerank_algorithm": "none",
+                "chunk_size": 1000,
+                "chunk_overlap": 200,
+                "top_k": 5,
+            }
+        elif workspace.rag_type == "graph":
+            config: dict[str, str | int | float | bool] = {
+                "entity_extraction_algorithm": "spacy",
+                "relationship_extraction_algorithm": "dependency-parsing",
+                "clustering_algorithm": "leiden",
+            }
+        else:
+            config = {}
 
-        Sets workspace status to 'deleting' and publishes deletion event.
-        The actual deletion will be handled by workers asynchronously.
-
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-
-        Returns:
-            True if deletion initiated, False if not found or access denied
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
-        if not workspace:
-            return False
-
-        # Set workspace status to deleting
-        try:
-            self._repo.update(
-                workspace.id, status="deleting", status_message="Workspace deletion in progress"
-            )
-        except Exception as e:
-            print(f"Failed to update workspace status to deleting: {e}")
-            return False
-
-        # Publish workspace deletion requested event
-        if self._message_publisher:
-            try:
-                event_data = {
-                    "workspace_id": workspace.id,
-                    "user_id": user_id,
-                    "name": workspace.name,
-                }
-                self._message_publisher.publish(
-                    routing_key="workspace.deletion_requested",
-                    message=event_data,
-                )
-                print(f"Published workspace deletion event for workspace {workspace.id}")
-            except Exception as e:
-                print(f"Failed to publish workspace deletion event: {e}")
-                # Continue with deletion even if event publishing failed
-                # The workspace status remains "deleting" and will be cleaned up by workers
-
-        return True
-
-    def update_workspace_status(
-        self,
-        workspace_id: int | str,
-        status: str,
-        status_message: str | None = None,
-    ) -> bool:
-        """
-        Update workspace status.
-
-        Args:
-            workspace_id: Workspace ID
-            status: New status (provisioning, ready, deleting, failed)
-            status_message: Optional status message
-
-        Returns:
-            True if update was successful, False otherwise
-        """
-        try:
-            update_data = {"status": status}
-            if status_message is not None:
-                update_data["status_message"] = status_message
-
-            return self._repo.update(int(workspace_id), **update_data)
-        except Exception as e:
-            print(f"Warning: Failed to update workspace {workspace_id} status: {e}")
-            return False
-
-    def get_workspace_stats(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-    ) -> WorkspaceStats | None:
-        """
-        Get statistics for a workspace.
-
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID for access check
-
-        Returns:
-            WorkspaceStats or None if workspace not found
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
-        if not workspace:
-            return None
-
-        ws_id = int(workspace_id) if isinstance(workspace_id, str) else workspace_id
-        document_count = self._repo.get_document_count(ws_id)
-        session_count = self._repo.get_session_count(ws_id)
-
-        return WorkspaceStats(
-            workspace_id=ws_id,
-            document_count=document_count,
-            total_document_size=0,  # Could add if needed
-            chunk_count=0,  # Could add if needed
-            chat_session_count=session_count,
-            total_message_count=0,  # Could add if needed
-            last_activity=None,  # Could add if needed
+        return RagConfig(
+            workspace_id=workspace_id,
+            rag_type=workspace.rag_type,
+            config=config,
         )
 
-    def validate_workspace_access(
-        self,
-        workspace_id: int | str,
-        user_id: int,
-    ) -> bool:
-        """
-        Validate that a user has access to a workspace.
+    def get_vector_rag_config(self, workspace_id: int) -> VectorRagConfig | None:
+        """Get vector RAG configuration for a workspace."""
+        workspace = self.repository.get_by_id(workspace_id)
+        if not workspace or workspace.rag_type != "vector":
+            return None
 
-        Args:
-            workspace_id: Workspace ID
-            user_id: User ID
+        # Check if we have a stored config
+        stored_config = self.repository.get_vector_rag_config(workspace_id)
+        if stored_config:
+            return stored_config
 
-        Returns:
-            True if user has access, False otherwise
-        """
-        workspace = self.get_workspace(workspace_id, user_id)
-        return workspace is not None
+        # Return default config
+        return VectorRagConfig(workspace_id=workspace_id)
+
+    def get_graph_rag_config(self, workspace_id: int) -> GraphRagConfig | None:
+        """Get graph RAG configuration for a workspace."""
+        workspace = self.repository.get_by_id(workspace_id)
+        if not workspace or workspace.rag_type != "graph":
+            return None
+
+        # Check if we have a stored config
+        stored_config = self.repository.get_graph_rag_config(workspace_id)
+        if stored_config:
+            return stored_config
+
+        # Return default config
+        return GraphRagConfig(workspace_id=workspace_id)
+
+    def _validate_rag_config(self, rag_type: str, config: dict[str, str | int | float | bool]) -> None:
+        """Validate RAG configuration."""
+        if rag_type == "vector":
+            required_fields = ["embedding_algorithm", "chunking_algorithm", "rerank_algorithm", "chunk_size", "chunk_overlap", "top_k"]
+            for field in required_fields:
+                if field not in config:
+                    raise ValueError(f"Missing required field '{field}' for vector RAG config")
+
+            # Validate types
+            if not isinstance(config["chunk_size"], int) or config["chunk_size"] <= 0:
+                raise ValueError("chunk_size must be a positive integer")
+
+            if not isinstance(config["chunk_overlap"], int) or config["chunk_overlap"] < 0:
+                raise ValueError("chunk_overlap must be a non-negative integer")
+
+            if not isinstance(config["top_k"], int) or config["top_k"] <= 0:
+                raise ValueError("top_k must be a positive integer")
+
+        elif rag_type == "graph":
+            required_fields = ["entity_extraction_algorithm", "relationship_extraction_algorithm", "clustering_algorithm"]
+            for field in required_fields:
+                if field not in config:
+                    raise ValueError(f"Missing required field '{field}' for graph RAG config")
+
+        # Validate string fields are not empty
+        for key, value in config.items():
+            if isinstance(value, str) and not value.strip():
+                raise ValueError(f"Field '{key}' cannot be empty")
+
+    def validate_workspace_access(self, workspace_id: int, user_id: int) -> bool:
+        """Validate that users has access to workspace."""
+        workspace = self.repository.get_by_id(workspace_id)
+        return workspace is not None and workspace.user_id == user_id
+
+    def get_user_workspace(self, workspace_id: int, user_id: int) -> Workspace | None:
+        """Get workspace by ID for specific users."""
+        workspace = self.repository.get_by_id(workspace_id)
+        if workspace and workspace.user_id == user_id:
+            return workspace
+        return None

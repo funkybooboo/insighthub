@@ -27,7 +27,7 @@ interface WorkspaceStatusUpdate {
 /**
  * Hook to subscribe to real-time status updates via WebSocket.
  *
- * Automatically subscribes when user is authenticated and updates Redux store
+ * Automatically subscribes when users is authenticated and updates Redux store
  * when status updates are received.
  */
 export function useStatusUpdates() {

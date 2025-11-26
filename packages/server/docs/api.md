@@ -37,7 +37,7 @@ Register a new user account.
 **Request**:
 ```json
 {
-  "email": "user@example.com",
+  "email": "users@example.com",
   "password": "securepassword123",
   "full_name": "John Doe" // Optional
 }
@@ -48,7 +48,7 @@ Register a new user account.
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "email": "users@example.com",
     "full_name": "John Doe",
     "created_at": "2025-11-24T10:30:00Z"
   },
@@ -67,7 +67,7 @@ Authenticate user and receive JWT token.
 **Request**:
 ```json
 {
-  "email": "user@example.com",
+  "email": "users@example.com",
   "password": "securepassword123"
 }
 ```
@@ -77,7 +77,7 @@ Authenticate user and receive JWT token.
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "email": "users@example.com",
     "full_name": "John Doe"
   },
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -116,7 +116,7 @@ Get current user profile information.
 {
   "user": {
     "id": 1,
-    "email": "user@example.com",
+    "email": "users@example.com",
     "full_name": "John Doe",
     "theme_preference": "dark",
     "created_at": "2025-11-24T10:30:00Z"
@@ -413,7 +413,7 @@ Get message history for a chat session.
     {
       "id": "msg_456",
       "session_id": "session_123",
-      "role": "user",
+      "role": "users",
       "content": "What is RAG?",
       "created_at": "2025-11-24T10:30:00Z"
     },
@@ -538,7 +538,7 @@ socket.on('document_status', (data) => {
       // Show progress bar
       break;
     case 'ready':
-      // Enable chat functionality
+      // Enable chats functionality
       break;
     case 'failed':
       // Show error message
@@ -561,7 +561,7 @@ FLASK_PORT=5000
 SECRET_KEY=your-secret-key-here
 
 # Database Configuration
-DATABASE_URL=postgresql://user:password@localhost:5432/insighthub
+DATABASE_URL=postgresql://users:password@localhost:5432/insighthub
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379/0
@@ -632,10 +632,10 @@ CORS(app, resources={
 API endpoints implement rate limiting:
 
 ```python
-# Rate limit: 100 requests per minute per user
+# Rate limit: 100 requests per minute per users
 @app.before_request
 def rate_limit():
-    # Check user request rate
+    # Check users request rate
     if rate_exceeded:
         return jsonify({
             "error": {

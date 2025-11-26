@@ -1,27 +1,27 @@
 """User domain exceptions."""
 
-from shared.exceptions import AlreadyExistsError, NotFoundError, ValidationError
+from src.infrastructure.exceptions import AlreadyExistsError, NotFoundError, ValidationError
 
 
 class UserNotFoundError(NotFoundError):
-    """Raised when a user is not found."""
+    """Raised when a users is not found."""
 
     def __init__(self, identifier: str | int):
         """
-        Initialize user not found error.
+        Initialize users not found error.
 
         Args:
-            identifier: The user ID, username, or email that was not found
+            identifier: The users ID, username, or email that was not found
         """
         super().__init__("User", identifier)
 
 
 class UserAlreadyExistsError(AlreadyExistsError):
-    """Raised when attempting to create a user that already exists."""
+    """Raised when attempting to create a users that already exists."""
 
     def __init__(self, identifier: str):
         """
-        Initialize user already exists error.
+        Initialize users already exists error.
 
         Args:
             identifier: The username or email that already exists
@@ -60,11 +60,11 @@ class InvalidUsernameError(ValidationError):
 
 
 class UserAuthenticationError(ValidationError):
-    """Raised when user authentication fails."""
+    """Raised when users authentication fails."""
 
     def __init__(self, message: str = "Authentication failed"):
         """
-        Initialize user authentication error.
+        Initialize users authentication error.
 
         Args:
             message: The error message

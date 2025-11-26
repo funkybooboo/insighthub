@@ -3,8 +3,9 @@
 from flask import Blueprint, Response, g, jsonify, request
 
 from src.infrastructure.auth import get_current_user, require_auth
+from src.infrastructure.logger import create_logger
 
-from .exceptions import DocumentNotFoundError, DocumentProcessingError, InvalidFileTypeError
+logger = create_logger(__name__)
 
 documents_bp = Blueprint("documents", __name__, url_prefix="/api/workspaces")
 

@@ -47,7 +47,7 @@ export const InChatContext: Story = {
     parameters: {
         docs: {
             description: {
-                story: 'Typing indicator shown in a chat conversation context.',
+                story: 'Typing indicator shown in a chats conversation context.',
             },
         },
     },

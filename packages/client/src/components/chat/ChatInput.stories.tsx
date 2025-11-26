@@ -46,7 +46,7 @@ export const InChatContext: Story = {
     render: () => (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div className="flex flex-col h-full">
-                {/* Mock chat messages area */}
+                {/* Mock chats messages area */}
                 <div className="flex-1 p-4 space-y-4">
                     <div className="max-w-3xl mx-auto">
                         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">

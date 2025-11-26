@@ -60,24 +60,24 @@ class TestInputSanitizer:
 
     def test_validate_email_valid(self) -> None:
         """Test valid email validation."""
-        assert InputSanitizer.validate_email("user@example.com") is True
+        assert InputSanitizer.validate_email("users@example.com") is True
         assert InputSanitizer.validate_email("test.email+tag@domain.co.uk") is True
-        assert InputSanitizer.validate_email("user@localhost") is True
+        assert InputSanitizer.validate_email("users@localhost") is True
 
     def test_validate_email_invalid(self) -> None:
         """Test invalid email validation."""
         assert InputSanitizer.validate_email("") is False
         assert InputSanitizer.validate_email("invalid") is False
-        assert InputSanitizer.validate_email("user@") is False
+        assert InputSanitizer.validate_email("users@") is False
         assert InputSanitizer.validate_email("@domain.com") is False
-        assert InputSanitizer.validate_email("user@domain") is False
+        assert InputSanitizer.validate_email("users@domain") is False
         assert InputSanitizer.validate_email("a" * 255 + "@example.com") is False  # Too long
 
     def test_validate_username_valid(self) -> None:
         """Test valid username validation."""
         assert InputSanitizer.validate_username("user123") is True
         assert InputSanitizer.validate_username("test_user") is True
-        assert InputSanitizer.validate_username("user-name") is True
+        assert InputSanitizer.validate_username("users-name") is True
         assert InputSanitizer.validate_username("a1") is True
 
     def test_validate_username_invalid(self) -> None:
@@ -85,9 +85,9 @@ class TestInputSanitizer:
         assert InputSanitizer.validate_username("") is False
         assert InputSanitizer.validate_username("a") is False  # Too short
         assert InputSanitizer.validate_username("a" * 51) is False  # Too long
-        assert InputSanitizer.validate_username("user@domain") is False  # Invalid chars
-        assert InputSanitizer.validate_username("user name") is False  # Spaces
-        assert InputSanitizer.validate_username("user.name") is False  # Dots
+        assert InputSanitizer.validate_username("users@domain") is False  # Invalid chars
+        assert InputSanitizer.validate_username("users name") is False  # Spaces
+        assert InputSanitizer.validate_username("users.name") is False  # Dots
 
     def test_validate_password_strength_strong(self) -> None:
         """Test strong password validation."""

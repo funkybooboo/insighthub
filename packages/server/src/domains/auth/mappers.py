@@ -1,10 +1,10 @@
-"""Mappers for converting between user models and DTOs."""
+"""Mappers for converting between users models and DTOs."""
 
-from shared.models import User
+from src.infrastructure.database import User
 
 
 class UserMapper:
-    """Handles conversions between user domain models and DTOs."""
+    """Handles conversions between users domain models and DTOs."""
 
     @staticmethod
     def user_to_dict(user: User) -> dict[str, str | int]:
@@ -15,7 +15,7 @@ class UserMapper:
             user: User model instance
 
         Returns:
-            Dictionary representation of the user
+            Dictionary representation of the users
         """
         return {
             "id": user.id,

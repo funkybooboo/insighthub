@@ -253,7 +253,7 @@ describe('ChatBot', () => {
     });
 
     describe('Socket Event Handling', () => {
-        it('handles chat completion', async () => {
+        it('handles chats completion', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
 
@@ -277,7 +277,7 @@ describe('ChatBot', () => {
             expect(screen.queryByTestId('typing-indicator')).not.toBeInTheDocument();
         });
 
-        it('handles chat cancellation', async () => {
+        it('handles chats cancellation', async () => {
             const mockSocket = vi.mocked(socketService);
             renderWithProviders(<ChatBot />);
 

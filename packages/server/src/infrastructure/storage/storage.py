@@ -1,0 +1,79 @@
+"""Storage infrastructure for file operations."""
+
+from abc import ABC, abstractmethod
+from typing import BinaryIO, Any
+
+
+class BlobStorage(ABC):
+    """Abstract base class for blob storage operations."""
+
+    @abstractmethod
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+        """
+        Upload data to storage.
+
+        Args:
+            key: Unique identifier for the blob
+            data: Binary data to store
+            content_type: MIME type of the data
+
+        Returns:
+            str: URL or path to access the uploaded blob
+        """
+        pass
+
+    @abstractmethod
+    def download(self, key: str) -> bytes:
+        """
+        Download data from storage.
+
+        Args:
+            key: Unique identifier for the blob
+
+        Returns:
+            bytes: Binary data from storage
+
+        Raises:
+            FileNotFoundError: If blob doesn't exist
+        """
+        pass
+
+    @abstractmethod
+    def delete(self, key: str) -> bool:
+        """
+        Delete a blob from storage.
+
+        Args:
+            key: Unique identifier for the blob
+
+        Returns:
+            bool: True if deleted successfully, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def exists(self, key: str) -> bool:
+        """
+        Check if a blob exists in storage.
+
+        Args:
+            key: Unique identifier for the blob
+
+        Returns:
+            bool: True if blob exists, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    def get_url(self, key: str, expires_in: int = 3600) -> str:
+        """
+        Get a signed URL for accessing the blob.
+
+        Args:
+            key: Unique identifier for the blob
+            expires_in: URL expiration time in seconds
+
+        Returns:
+            str: Signed URL for blob access
+        """
+        pass

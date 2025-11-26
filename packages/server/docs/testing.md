@@ -67,7 +67,7 @@ import pytest
 from tests.unit.conftest import *  # Gets unit test fixtures
 
 def test_create_user(test_context):
-    """Test creating a user with in-memory implementations."""
+    """Test creating a users with in-memory implementations."""
     # test_context uses SQLite in-memory + InMemoryBlobStorage
     user = test_context.user_service.create_user(
         username="test_user",
@@ -89,7 +89,7 @@ from tests.conftest import *  # Gets integration test fixtures
 
 @pytest.mark.integration
 def test_create_user_with_real_database(test_context):
-    """Test creating a user with real PostgreSQL."""
+    """Test creating a users with real PostgreSQL."""
     # test_context uses PostgreSQL testcontainer + MinIO testcontainer
     user = test_context.user_service.create_user(
         username="test_user",
@@ -270,12 +270,16 @@ class TestMyComponentIntegration:
 
 ## Test Configuration
 
-Tests automatically load `.env.test` (see `src/config.py`):
+Tests automatically load `.env.test` (see `src/infrastructure/config.py`):
 
 ```python
-# config.py
+# src/infrastructure/config.py
 if os.getenv("PYTEST_CURRENT_TEST"):
+    # Running in pytest - load test configuration
     load_dotenv(".env.test", override=True)
+else:
+    # Development/production - load main configuration
+    load_dotenv(".env", override=True)
 ```
 
 **`.env.test` Configuration**:

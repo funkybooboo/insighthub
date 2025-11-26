@@ -1,1 +1,0 @@
-"""Chucker worker package."""

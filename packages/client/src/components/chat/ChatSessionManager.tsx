@@ -14,7 +14,7 @@ export const ChatSessionManager = ({ workspaceId }: ChatSessionManagerProps) => 
             await apiService.getChatSessions(workspaceId);
             // Note: backendSessions state removed as it's not used
         } catch (err: unknown) {
-            console.error('Error loading chat sessions:', err);
+            console.error('Error loading chats sessions:', err);
             // Note: error state removed as it's not used
         }
     }, [workspaceId]);

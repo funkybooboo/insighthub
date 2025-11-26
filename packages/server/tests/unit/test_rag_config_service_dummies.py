@@ -47,7 +47,7 @@ class FakeWorkspaceRepository:
         return self.workspaces.get(workspace_id)
 
     def get_by_user(self, user_id: int, include_inactive: bool = False) -> list[Workspace]:
-        """Get all workspaces for a user."""
+        """Get all workspaces for a users."""
         result = []
         for ws in self.workspaces.values():
             if ws.user_id == user_id and (include_inactive or ws.is_active):
@@ -208,13 +208,13 @@ class TestRagConfigServiceGet:
     def test_get_rag_config_returns_none_when_no_access(
         self, service: RagConfigService, fake_repository: FakeWorkspaceRepository
     ) -> None:
-        """Test getting RAG config when user has no access."""
+        """Test getting RAG config when users has no access."""
         # Setup
         workspace = fake_repository.create(user_id=1, name="test workspace")
         fake_repository.create_rag_config(workspace_id=workspace.id)
 
         # Execute
-        result = service.get_rag_config(workspace.id, user_id=999)  # Different user
+        result = service.get_rag_config(workspace.id, user_id=999)  # Different users
 
         # Assert
         assert result is None
@@ -262,7 +262,7 @@ class TestRagConfigServiceCreate:
     def test_create_rag_config_raises_error_when_no_access(
         self, service: RagConfigService, fake_repository: FakeWorkspaceRepository
     ) -> None:
-        """Test creating RAG config when user has no access."""
+        """Test creating RAG config when users has no access."""
         # Setup
         workspace = fake_repository.create(user_id=1, name="test workspace")
 
@@ -295,7 +295,7 @@ class TestRagConfigServiceUpdate:
     def test_update_rag_config_returns_none_when_no_access(
         self, service: RagConfigService, fake_repository: FakeWorkspaceRepository
     ) -> None:
-        """Test updating RAG config when user has no access."""
+        """Test updating RAG config when users has no access."""
         # Setup
         workspace = fake_repository.create(user_id=1, name="test workspace")
         fake_repository.create_rag_config(workspace_id=workspace.id)
@@ -341,7 +341,7 @@ class TestRagConfigServiceDelete:
     def test_delete_rag_config_returns_false_when_no_access(
         self, service: RagConfigService, fake_repository: FakeWorkspaceRepository
     ) -> None:
-        """Test deleting RAG config when user has no access."""
+        """Test deleting RAG config when users has no access."""
         # Setup
         workspace = fake_repository.create(user_id=1, name="test workspace")
         fake_repository.create_rag_config(workspace_id=workspace.id)

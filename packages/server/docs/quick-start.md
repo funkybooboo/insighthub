@@ -225,7 +225,7 @@ FLASK_ENV=development
 SECRET_KEY=your-secret-key-here
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/insighthub
+DATABASE_URL=postgresql://users:password@localhost:5432/insighthub
 
 # Redis
 REDIS_URL=redis://localhost:6379/0

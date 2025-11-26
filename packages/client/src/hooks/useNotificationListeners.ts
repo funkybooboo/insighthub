@@ -189,7 +189,7 @@ export const useNotificationListeners = () => {
             socketService.off('wikipedia_fetch_status', handleWikipediaFetchStatus);
             socketService.off('chat_complete', handleChatComplete);
             socketService.off('error', handleError);
-            socketService.off('chat.no_context_found', handleNoContextFound);
+            socketService.off('chats.no_context_found', handleNoContextFound);
             socketService.off('connected', handleConnected);
             socketService.off('disconnect', handleDisconnected);
         };

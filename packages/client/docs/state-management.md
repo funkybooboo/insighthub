@@ -104,7 +104,7 @@ logoutUser()
 #### Selectors
 
 ```typescript
-// Select current user
+// Select current users
 const user = useAppSelector((state) => state.auth.user);
 
 // Select auth status
@@ -247,7 +247,7 @@ function ChatComponent() {
   const isTyping = useAppSelector(state => state.chat.isTyping);
 
   const handleSendMessage = (content: string) => {
-    // Add user message
+    // Add users message
     dispatch(addMessage({
       id: generateId(),
       sessionId: currentSessionId,
@@ -372,7 +372,7 @@ const user = useAppSelector(selectUser);
 ```typescript
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
-export const fetchMessages = createAsyncThunk('chat/fetchMessages', async (sessionId: string) => {
+export const fetchMessages = createAsyncThunk('chats/fetchMessages', async (sessionId: string) => {
     const response = await api.getMessages(sessionId);
     return response.data;
 });

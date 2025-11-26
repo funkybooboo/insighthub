@@ -1,0 +1,76 @@
+"""Factory for creating embedding encoder instances."""
+
+from enum import Enum
+from typing import Optional
+
+from .ollama_vector_embedder import OllamaVectorEmbeddingEncoder
+from .vector_embedder import VectorEmbeddingEncoder
+
+
+class EmbeddingEncoderType(Enum):
+    """Enum for embedding encoder implementation types."""
+
+    OLLAMA = "ollama"
+
+
+class EmbedderFactory:
+    """Factory class for creating embedders."""
+
+    @staticmethod
+    def create_embedder(embedder_type: str, **kwargs) -> Optional[VectorEmbeddingEncoder]:
+        """Create an embedder instance. Alias for create_embedder_from_config."""
+        base_url = kwargs.get("base_url", "http://localhost:11434")
+        timeout = kwargs.get("timeout", 30)
+        return create_embedder_from_config(embedder_type, base_url, timeout)
+
+
+AVAILABLE_EMBEDDERS = {
+    "nomic-embed-text": {
+        "label": "Nomic Embed Text",
+        "description": "Nomic AI embedding model (274M params)",
+    },
+    "all-MiniLM-L6-v2": {
+        "label": "MiniLM",
+        "description": "Sentence-BERT embedding model",
+    },
+    "mxbai-embed-large": {
+        "label": "MxBai Embed Large",
+        "description": "Large multilingual embedding model",
+    },
+}
+
+
+def get_available_embedders() -> list[dict[str, str]]:
+    """Get list of available embedding algorithms."""
+    return [
+        {
+            "value": key,
+            "label": info["label"],
+            "description": info["description"],
+        }
+        for key, info in AVAILABLE_EMBEDDERS.items()
+    ]
+
+
+def create_embedder_from_config(
+    embedding_algorithm: str,
+    base_url: str,
+    timeout: int = 30,
+) -> Optional[VectorEmbeddingEncoder]:
+    """
+    Create an embedding encoder instance based on algorithm configuration.
+
+    Args:
+        embedding_algorithm: Algorithm/model type ("nomic-embed-text", "all-MiniLM-L6-v2", etc.)
+        base_url: Ollama server URL
+        timeout: Request timeout in seconds (default 30)
+
+    Returns:
+        VectorEmbeddingEncoder if creation succeeds, None if algorithm unknown
+    """
+    # All embedding algorithms currently use Ollama infrastructure
+    return OllamaVectorEmbeddingEncoder(
+        model=embedding_algorithm,
+        base_url=base_url,
+        timeout=timeout,
+    )

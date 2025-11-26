@@ -308,7 +308,7 @@ Each domain follows the same structure:
 POST /api/auth/login          # User login
 POST /api/auth/signup         # User registration
 POST /api/auth/logout         # User logout
-GET  /api/auth/me            # Get current user
+GET  /api/auth/me            # Get current users
 PATCH /api/auth/profile       # Update profile
 PATCH /api/auth/preferences   # Update preferences
 POST /api/auth/change-password # Change password
@@ -341,8 +341,8 @@ POST /api/workspaces/{id}/documents/fetch-wikipedia # Fetch Wikipedia
 ### Chat Endpoints
 
 ```bash
-POST /api/workspaces/{id}/chat/sessions/{session_id}/messages # Send message
-POST /api/workspaces/{id}/chat/sessions/{session_id}/cancel   # Cancel message
+POST /api/workspaces/{id}/chats/sessions/{session_id}/messages # Send message
+POST /api/workspaces/{id}/chats/sessions/{session_id}/cancel   # Cancel message
 ```
 
 ### WebSocket Events
@@ -364,7 +364,7 @@ POST /api/workspaces/{id}/chat/sessions/{session_id}/cancel   # Cancel message
 ### Vector RAG Implementation
 
 ```python
-from src.infrastructure.rag.factory import create_rag
+from src.rag import create_rag
 
 # Create Vector RAG instance
 rag = create_rag(

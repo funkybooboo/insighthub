@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { chatStorage } from './chatStorage';
-import type { ChatSession } from '@/types/chat';
+import type { ChatSession } from '@/types/chats';
 import '../test/setup';
 
 describe('chatStorage', () => {
@@ -57,7 +57,7 @@ describe('chatStorage', () => {
 
             expect(sessions).toEqual([]);
             expect(consoleSpy).toHaveBeenCalledWith(
-                'Error loading chat sessions:',
+                'Error loading chats sessions:',
                 expect.any(Error)
             );
 

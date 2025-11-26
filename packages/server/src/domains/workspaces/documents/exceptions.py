@@ -1,6 +1,6 @@
 """Document domain exceptions."""
 
-from shared.exceptions import DomainException, NotFoundError, ValidationError
+from src.infrastructure.exceptions import DomainException, NotFoundError, ValidationError
 
 
 class DocumentNotFoundError(NotFoundError):

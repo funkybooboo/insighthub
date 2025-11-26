@@ -191,7 +191,7 @@ bun run cypress --spec "cypress/e2e/02-workspace-management.cy.ts"
 # Run only document tests
 bun run cypress --spec "cypress/e2e/03-document-management.cy.ts"
 
-# Run only chat tests
+# Run only chats tests
 bun run cypress --spec "cypress/e2e/04-chat-interaction.cy.ts"
 
 # Run only settings tests

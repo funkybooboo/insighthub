@@ -97,7 +97,7 @@ class TestChatMapper:
 
     @pytest.fixture
     def sample_session(self) -> ChatSession:
-        """Provide a sample chat session."""
+        """Provide a sample chats session."""
         return ChatSession(
             id=1,
             user_id=100,
@@ -109,11 +109,11 @@ class TestChatMapper:
 
     @pytest.fixture
     def sample_message(self) -> ChatMessage:
-        """Provide a sample chat message."""
+        """Provide a sample chats message."""
         return ChatMessage(
             id=1,
             session_id=10,
-            role="user",
+            role="users",
             content="Hello, world!",
             extra_metadata=None,
             created_at=datetime(2024, 1, 1, 12, 0, 0),
@@ -221,7 +221,7 @@ class TestChatMapper:
         assert len(dtos) == 2
         assert dtos[0].id == 1
         assert dtos[1].id == 2
-        assert dtos[0].role == "user"
+        assert dtos[0].role == "users"
         assert dtos[1].role == "assistant"
 
 
@@ -230,7 +230,7 @@ class TestUserMapper:
 
     @pytest.fixture
     def sample_user(self) -> User:
-        """Provide a sample user."""
+        """Provide a sample users."""
         user = User(
             username="testuser",
             email="test@example.com",
@@ -252,7 +252,7 @@ class TestUserMapper:
         assert result["created_at"] == sample_user.created_at.isoformat()
 
     def test_user_to_dict_with_none_full_name(self) -> None:
-        """Test mapping user with None full_name."""
+        """Test mapping users with None full_name."""
         user = User(
             username="testuser",
             email="test@example.com",
@@ -355,7 +355,7 @@ class TestMapperEdgeCases:
         message = ChatMessage(
             id=1,
             session_id=1,
-            role="user",
+            role="users",
             content="Test",
             extra_metadata=json.dumps(metadata_with_special_chars),
             created_at=datetime(2024, 1, 1),
@@ -390,7 +390,7 @@ class TestMapperEdgeCases:
         message = ChatMessage(
             id=1,
             session_id=1,
-            role="user",
+            role="users",
             content="Test",
             extra_metadata="invalid json {",
             created_at=datetime(2024, 1, 1),

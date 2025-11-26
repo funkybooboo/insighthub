@@ -78,7 +78,7 @@ const chatSlice = createSlice({
                 session.messages.push(action.payload.message);
                 session.updatedAt = Date.now();
 
-                // Auto-generate title from first user message
+                // Auto-generate title from first users message
                 if (session.title === 'New Chat' && action.payload.message.role === 'user') {
                     session.title = generateSessionTitle(action.payload.message.content);
                 }

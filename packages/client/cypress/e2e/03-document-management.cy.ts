@@ -367,9 +367,9 @@ describe('Document Management', () => {
 
     describe('Document Upload from RAG Enhancement Prompt', () => {
         it('should allow document upload when no context found', () => {
-            // This test would require triggering a chat message that returns no context
+            // This test would require triggering a chats message that returns no context
             // Then testing the upload flow from the enhancement prompt
-            cy.log('Test requires chat integration with no context scenario');
+            cy.log('Test requires chats integration with no context scenario');
         });
     });
 

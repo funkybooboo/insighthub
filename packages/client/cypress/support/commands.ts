@@ -2,7 +2,7 @@
 
 /**
  * Login command
- * Logs in a user with the provided credentials
+ * Logs in a users with the provided credentials
  */
 Cypress.Commands.add(
     'login',
@@ -26,10 +26,10 @@ Cypress.Commands.add(
 
 /**
  * Logout command
- * Logs out the current user
+ * Logs out the current users
  */
 Cypress.Commands.add('logout', () => {
-    // Find and click logout button (usually in user menu)
+    // Find and click logout button (usually in users menu)
     cy.findByRole('button', { name: /logout|sign out/i }).click();
 
     // Wait for redirect to login page
@@ -44,7 +44,7 @@ Cypress.Commands.add('logout', () => {
 
 /**
  * Signup command
- * Creates a new user account
+ * Creates a new users account
  */
 Cypress.Commands.add('signup', (username, email, password, fullName = '') => {
     cy.visit('/signup');
@@ -130,17 +130,17 @@ Cypress.Commands.add('uploadDocument', (filePath, _workspaceId) => {
 });
 
 /**
- * Send chat message command
- * Sends a message in the chat interface
+ * Send chats message command
+ * Sends a message in the chats interface
  */
 Cypress.Commands.add('sendChatMessage', (message) => {
-    // Find chat input and type message
+    // Find chats input and type message
     cy.findByPlaceholderText(/type.*message|enter.*message/i).type(message);
 
     // Click send button or press Enter
     cy.findByRole('button', { name: /send/i }).click();
 
-    // Wait for the message to appear in the chat
+    // Wait for the message to appear in the chats
     cy.contains(message).should('be.visible');
 });
 

@@ -21,7 +21,7 @@ describe('Vector RAG End-to-End Flow', () => {
     });
 
     describe('Setup: Authentication and Workspace Creation', () => {
-        it('should create a new user account for testing', () => {
+        it('should create a new users account for testing', () => {
             const timestamp = Date.now();
             const testUser = {
                 username: `vectorrag${timestamp}`,
@@ -247,7 +247,7 @@ describe('Vector RAG End-to-End Flow', () => {
 
     describe('Vector RAG Query and Retrieval', () => {
         beforeEach(() => {
-            // Ensure we're on the chat page
+            // Ensure we're on the chats page
             cy.findByRole('button', { name: /chat|messages/i }).click();
         });
 
@@ -357,7 +357,7 @@ describe('Vector RAG End-to-End Flow', () => {
             cy.sendChatMessage('Give me an example');
             cy.get('[data-testid="bot-message"]', { timeout: 120000 }).last().should('exist');
 
-            // Should have 3 user messages and 3 bot responses
+            // Should have 3 users messages and 3 bot responses
             cy.get('[data-testid="user-message"]').should('have.length', 3);
             cy.get('[data-testid="bot-message"]').should('have.length', 3);
         });

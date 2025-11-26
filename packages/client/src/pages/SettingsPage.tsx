@@ -96,7 +96,7 @@ const SettingsPage: React.FC = () => {
             setSaveSuccess(true);
             setIsEditing(false);
         } else {
-            // Error handled by slice, just ensure editing mode stays for user to correct
+            // Error handled by slice, just ensure editing mode stays for users to correct
             setIsEditing(true);
         }
     };

@@ -4,7 +4,12 @@ from unittest.mock import patch
 
 import pytest
 
-from src.config import validate_config
+from src.infrastructure.config import config
+
+
+def validate_config():
+    """Standalone validate_config function for backward compatibility."""
+    config.validate_config()
 
 
 class TestConfigurationValidation:

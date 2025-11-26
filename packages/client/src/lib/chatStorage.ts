@@ -1,5 +1,5 @@
 /**
- * LocalStorage utilities for chat session persistence
+ * LocalStorage utilities for chats session persistence
  */
 
 import type { ChatSession } from '@/types/chat';
@@ -8,7 +8,7 @@ const STORAGE_KEY = 'insighthub_chat_sessions';
 
 export const chatStorage = {
     /**
-     * Load all chat sessions from localStorage
+     * Load all chats sessions from localStorage
      */
     loadSessions(): ChatSession[] {
         try {
@@ -16,30 +16,30 @@ export const chatStorage = {
             if (!stored) return [];
             return JSON.parse(stored) as ChatSession[];
         } catch (error) {
-            console.error('Error loading chat sessions:', error);
+            console.error('Error loading chats sessions:', error);
             return [];
         }
     },
 
     /**
-     * Save all chat sessions to localStorage
+     * Save all chats sessions to localStorage
      */
     saveSessions(sessions: ChatSession[]): void {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
         } catch (error) {
-            console.error('Error saving chat sessions:', error);
+            console.error('Error saving chats sessions:', error);
         }
     },
 
     /**
-     * Clear all chat sessions from localStorage
+     * Clear all chats sessions from localStorage
      */
     clearSessions(): void {
         try {
             localStorage.removeItem(STORAGE_KEY);
         } catch (error) {
-            console.error('Error clearing chat sessions:', error);
+            console.error('Error clearing chats sessions:', error);
         }
     },
 };

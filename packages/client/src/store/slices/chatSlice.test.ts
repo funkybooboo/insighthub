@@ -13,7 +13,7 @@ import chatReducer, {
     setLoading,
     clearAllSessions,
 } from './chatSlice';
-import type { ChatSession, Message, ChatState } from '@/types/chat';
+import type { ChatSession, Message, ChatState } from '@/types/chats';
 import { chatStorage } from '@/lib/chatStorage';
 
 // Mock chatStorage
@@ -177,7 +177,7 @@ describe('chatSlice', () => {
             expect(chatStorage.saveSessions).toHaveBeenCalled();
         });
 
-        it('should auto-generate title from first user message', () => {
+        it('should auto-generate title from first users message', () => {
             const initialState: ChatState = {
                 sessions: [mockSession],
                 activeSessionId: 'session-1',

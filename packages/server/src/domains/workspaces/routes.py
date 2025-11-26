@@ -1,350 +1,245 @@
-"""Workspace API endpoints for InsightHub."""
+"""Workspaces routes for managing workspaces and their resources."""
 
-from typing import TypedDict
+from flask import Blueprint, jsonify, request, g
 
-from flask import Blueprint, Response, g, jsonify, request
-from shared.models import User
-from shared.models.workspace import Workspace
+from src.infrastructure.auth import get_current_user_id
+from src.infrastructure.logger import create_logger
 
-from src.domains.workspaces.service import WorkspaceService
-from src.infrastructure.auth import get_current_user, require_auth
+logger = create_logger(__name__)
 
-workspace_bp = Blueprint("workspaces", __name__, url_prefix="/api/workspaces")
+workspaces_bp = Blueprint("workspaces", __name__, url_prefix="/api/workspaces")
 
 
-def get_workspace_service() -> WorkspaceService:
-    """Get workspace service from app context."""
-    return g.app_context.workspace_service
+@workspaces_bp.route("", methods=["GET"])
+def list_workspaces() -> tuple[list, int]:
+    """List all workspaces for the current users."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    workspaces = service.list_user_workspaces(user_id)
+
+    return jsonify([
+        {
+            "id": w.id,
+            "name": w.name,
+            "description": w.description,
+            "rag_type": w.rag_type,
+            "created_at": w.created_at.isoformat(),
+            "updated_at": w.updated_at.isoformat(),
+        }
+        for w in workspaces
+    ]), 200
 
 
-class WorkspaceDict(TypedDict, total=False):
-    """TypedDict for workspace response."""
+@workspaces_bp.route("", methods=["POST"])
+def create_workspace() -> tuple[dict, int]:
+    """
+    Create a new workspace with optional RAG configuration.
 
-    id: int
-    name: str
-    description: str | None
-    user_id: int
-    is_active: bool
-    status: str
-    status_message: str | None
-    created_at: str
-    updated_at: str
-    document_count: int
-    session_count: int
-    rag_config: dict
+    Request Body:
+        {
+            "name": "Workspace Name",
+            "description": "Optional description",
+            "rag_type": "vector" | "graph",
+            "rag_config": {
+                // RAG configuration object (optional)
+                // For vector: {embedding_algorithm, chunking_algorithm, rerank_algorithm, ...}
+                // For graph: {entity_extraction_algorithm, relationship_extraction_algorithm, ...}
+            }
+        }
 
+    Returns:
+        201: {
+            "id": int,
+            "name": string,
+            "description": string,
+            "rag_type": string,
+            "created_at": string,
+            "updated_at": string
+        }
+    """
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+    data = request.get_json() or {}
 
-def workspace_to_dict(workspace: Workspace, include_rag_config: bool = False) -> WorkspaceDict:
-    """Convert workspace model to dict for JSON response."""
-    result = {
+    # Extract RAG config if provided
+    rag_config_data = data.get("rag_config")
+    rag_type = data.get("rag_type", "vector")
+
+    try:
+        workspace = service.create_workspace(
+            user_id=user_id,
+            name=data.get("name", "New Workspace"),
+            description=data.get("description"),
+            rag_type=rag_type,
+            rag_config=rag_config_data,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify({
         "id": workspace.id,
         "name": workspace.name,
         "description": workspace.description,
-        "user_id": workspace.user_id,
-        "is_active": workspace.is_active,
-        "status": workspace.status,
-        "status_message": workspace.status_message,
+        "rag_type": workspace.rag_type,
         "created_at": workspace.created_at.isoformat(),
         "updated_at": workspace.updated_at.isoformat(),
-    }
-
-    if include_rag_config:
-        service = get_workspace_service()
-        rag_config = service._repo.get_rag_config(workspace.id)
-        if rag_config:
-            result["rag_config"] = {
-                "id": rag_config.id,
-                "embedding_model": rag_config.embedding_model,
-                "embedding_dim": rag_config.embedding_dim,
-                "retriever_type": rag_config.retriever_type,
-                "chunk_size": rag_config.chunk_size,
-                "chunk_overlap": rag_config.chunk_overlap,
-                "top_k": rag_config.top_k,
-                "rerank_enabled": rag_config.rerank_enabled,
-                "rerank_model": rag_config.rerank_model,
-            }
-
-    return result
+    }), 201
 
 
-@workspace_bp.route("", methods=["POST"])
-@require_auth
-def create_workspace() -> tuple[Response, int]:
-    """
-    Create a new workspace with RAG configuration.
+@workspaces_bp.route("/<int:workspace_id>", methods=["GET"])
+def get_workspace(workspace_id: int) -> tuple[dict, int]:
+    """Get a specific workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
 
-    Request Body:
-    {
-        "name": "My Research Workspace",
-        "description": "For academic papers on AI",
-        "rag_type": "vector",
-        "rag_config": {
-            "embedding_algorithm": "nomic-embed-text",
+    workspace = service.get_user_workspace(workspace_id, user_id)
+    if not workspace:
+        return jsonify({"error": "Workspace not found"}), 404
+
+    return jsonify({
+        "id": workspace.id,
+        "name": workspace.name,
+        "description": workspace.description,
+        "rag_type": workspace.rag_type,
+        "created_at": workspace.created_at.isoformat(),
+        "updated_at": workspace.updated_at.isoformat(),
+    }), 200
+
+
+@workspaces_bp.route("/<int:workspace_id>", methods=["PATCH"])
+def update_workspace(workspace_id: int) -> tuple[dict, int]:
+    """Update a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    data = request.get_json() or {}
+
+    try:
+        workspace = service.update_workspace(
+            workspace_id=workspace_id,
+            name=data.get("name"),
+            description=data.get("description"),
+        )
+
+        if not workspace:
+            return jsonify({"error": "Workspace not found"}), 404
+
+        return jsonify({
+            "id": workspace.id,
+            "name": workspace.name,
+            "description": workspace.description,
+            "rag_type": workspace.rag_type,
+            "created_at": workspace.created_at.isoformat(),
+            "updated_at": workspace.updated_at.isoformat(),
+        }), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@workspaces_bp.route("/<int:workspace_id>", methods=["DELETE"])
+def delete_workspace(workspace_id: int) -> tuple[dict, int]:
+    """Delete a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    success = service.delete_workspace(workspace_id)
+
+    if not success:
+        return jsonify({"error": "Workspace not found"}), 404
+
+    return jsonify({"message": "Workspace deleted successfully"}), 200
+
+
+# RAG Config endpoints
+@workspaces_bp.route("/<int:workspace_id>/rag-config", methods=["GET"])
+def get_rag_config(workspace_id: int) -> tuple[dict, int]:
+    """Get RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    config = service.get_rag_config(workspace_id)
+
+    if not config:
+        return jsonify({"error": "Workspace not found"}), 404
+
+    return jsonify({
+        "workspace_id": config.workspace_id,
+        "rag_type": config.rag_type,
+        "config": config.config,
+    }), 200
+
+
+# RAG Config is immutable - set only during workspace creation
+
+
+# Vector RAG Config endpoints (read-only)
+@workspaces_bp.route("/<int:workspace_id>/vector-rag-config", methods=["GET"])
+def get_vector_rag_config(workspace_id: int) -> tuple[dict, int]:
+    """Get vector RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    config = service.get_vector_rag_config(workspace_id)
+    if not config:
+        return jsonify({
+            "embedding_algorithm": "ollama",
             "chunking_algorithm": "sentence",
+            "rerank_algorithm": "none",
             "chunk_size": 1000,
             "chunk_overlap": 200,
-            "top_k": 8
-        }
-    }
-    """
-    try:
-        data = request.get_json()
+            "top_k": 5,
+        }), 200
 
-        # Validate required fields
-        if not data or not data.get("name"):
-            return jsonify({"error": "Workspace name is required"}), 400
-
-        name = data["name"].strip()
-        description = data.get("description", "").strip() or None
-        rag_type = data.get("rag_type", "vector")
-        rag_config = data.get("rag_config")
-
-        if len(name) < 1 or len(name) > 100:
-            return jsonify({"error": "Workspace name must be 1-100 characters"}), 400
-
-        # Validate rag_type
-        if rag_type not in ["vector", "graph"]:
-            return jsonify({"error": "rag_type must be 'vector' or 'graph'"}), 400
-
-        # Basic validation for rag_config if provided
-        if rag_config:
-            if rag_type == "vector":
-                chunk_size = rag_config.get("chunk_size", 1000)
-                if not (100 <= chunk_size <= 5000):
-                    return jsonify({"error": "chunk_size must be between 100 and 5000"}), 400
-                chunk_overlap = rag_config.get("chunk_overlap", 200)
-                if not (0 <= chunk_overlap <= 1000):
-                    return jsonify({"error": "chunk_overlap must be between 0 and 1000"}), 400
-                top_k = rag_config.get("top_k", 8)
-                if not (1 <= top_k <= 50):
-                    return jsonify({"error": "top_k must be between 1 and 50"}), 400
-            elif rag_type == "graph":
-                max_hops = rag_config.get("max_hops", 2)
-                if not (1 <= max_hops <= 10):
-                    return jsonify({"error": "max_hops must be between 1 and 10"}), 400
-
-        user = get_current_user()
-        workspace = g.app_context.workspace_service.create_workspace(
-            name=name,
-            user_id=user.id,
-            description=description,
-            rag_type=rag_type,
-            rag_config=rag_config,
-        )
-
-        user: User = get_current_user()
-        user_id = user.id
-
-        service = get_workspace_service()
-        workspace = service.create_workspace(
-            name=name,
-            user_id=user_id,
-            description=description,
-            rag_config=rag_config,
-        )
-
-        return jsonify(workspace_to_dict(workspace, include_rag_config=True)), 201
-
-    except ValueError as e:
-        # Invalid input validation
-        return jsonify({"error": f"Invalid input: {str(e)}"}), 400
-    except PermissionError as e:
-        # Authorization issues
-        return jsonify({"error": f"Access denied: {str(e)}"}), 403
-    except Exception as e:
-        # Catch-all for unexpected errors
-        print(f"Unexpected error creating workspace: {e}")
-        return jsonify({"error": "Failed to create workspace"}), 500
+    return jsonify({
+        "embedding_algorithm": config.embedding_algorithm,
+        "chunking_algorithm": config.chunking_algorithm,
+        "rerank_algorithm": config.rerank_algorithm,
+        "chunk_size": config.chunk_size,
+        "chunk_overlap": config.chunk_overlap,
+        "top_k": config.top_k,
+    }), 200
 
 
-@workspace_bp.route("", methods=["GET"])
-@require_auth
-def list_workspaces() -> tuple[Response, int]:
-    """
-    List all workspaces for the authenticated user.
+# Graph RAG Config endpoints (read-only)
+@workspaces_bp.route("/<int:workspace_id>/graph-rag-config", methods=["GET"])
+def get_graph_rag_config(workspace_id: int) -> tuple[dict, int]:
+    """Get graph RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
 
-    Query Parameters:
-    - include_inactive: boolean (default: false)
-    """
-    try:
-        user: User = get_current_user()
-        user_id = user.id
-        include_inactive = request.args.get("include_inactive", "false").lower() == "true"
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
 
-        service = get_workspace_service()
-        workspaces = service.list_workspaces(user_id, include_inactive)
+    config = service.get_graph_rag_config(workspace_id)
+    if not config:
+        return jsonify({
+            "entity_extraction_algorithm": "spacy",
+            "relationship_extraction_algorithm": "dependency-parsing",
+            "clustering_algorithm": "leiden",
+        }), 200
 
-        # Get stats for each workspace
-        result = []
-        for ws in workspaces:
-            ws_dict = workspace_to_dict(ws, include_rag_config=True)
-            stats = service.get_workspace_stats(ws.id, user_id)
-            if stats:
-                ws_dict["document_count"] = stats.document_count
-                ws_dict["session_count"] = stats.chat_session_count
-            result.append(ws_dict)
-
-        return jsonify(result), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to list workspaces: {str(e)}"}), 500
+    return jsonify({
+        "entity_extraction_algorithm": config.entity_extraction_algorithm,
+        "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
+        "clustering_algorithm": config.clustering_algorithm,
+    }), 200
 
 
-@workspace_bp.route("/<workspace_id>", methods=["GET"])
-@require_auth
-def get_workspace(workspace_id: str) -> tuple[Response, int]:
-    """
-    Get a specific workspace by ID.
-    """
-    try:
-        user: User = get_current_user()
-        user_id = user.id
-
-        service = get_workspace_service()
-        workspace = service.get_workspace(workspace_id, user_id)
-
-        if not workspace:
-            return jsonify({"error": "Workspace not found"}), 404
-
-        ws_dict = workspace_to_dict(workspace, include_rag_config=True)
-
-        # Include stats
-        stats = service.get_workspace_stats(workspace_id, user_id)
-        if stats:
-            ws_dict["document_count"] = stats.document_count
-            ws_dict["session_count"] = stats.chat_session_count
-
-        return jsonify(ws_dict), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to get workspace: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>", methods=["PUT", "PATCH"])
-@require_auth
-def update_workspace(workspace_id: str) -> tuple[Response, int]:
-    """
-    Update a workspace.
-
-    Request Body:
-    {
-        "name": "Updated Name",
-        "description": "Updated description",
-        "is_active": true
-    }
-    """
-    try:
-        data = request.get_json()
-        user: User = get_current_user()
-        user_id = user.id
-
-        # Build update dict with only provided fields
-        update_data = {}
-
-        if "name" in data:
-            name = data["name"].strip()
-            if len(name) < 1 or len(name) > 100:
-                return jsonify({"error": "Workspace name must be 1-100 characters"}), 400
-            update_data["name"] = name
-
-        if "description" in data:
-            description = data["description"].strip() if data["description"] else None
-            update_data["description"] = description
-
-        if "is_active" in data:
-            if not isinstance(data["is_active"], bool):
-                return jsonify({"error": "is_active must be a boolean"}), 400
-            update_data["is_active"] = data["is_active"]
-
-        if not update_data:
-            return jsonify({"error": "No valid fields to update"}), 400
-
-        service = get_workspace_service()
-        workspace = service.update_workspace(workspace_id, user_id, **update_data)
-
-        if not workspace:
-            return jsonify({"error": "Workspace not found"}), 404
-
-        return jsonify(workspace_to_dict(workspace)), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to update workspace: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>", methods=["DELETE"])
-@require_auth
-def delete_workspace(workspace_id: str) -> tuple[Response, int]:
-    """
-    Delete a workspace and all its data (cascades to documents, chats, etc.).
-    """
-    try:
-        user: User = get_current_user()
-        user_id = user.id
-
-        service = get_workspace_service()
-        success = service.delete_workspace(workspace_id, user_id)
-
-        if not success:
-            return jsonify({"error": "Workspace not found"}), 404
-
-        return jsonify({"message": "Workspace deleted successfully"}), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to delete workspace: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>/stats", methods=["GET"])
-@require_auth
-def get_workspace_stats(workspace_id: str) -> tuple[Response, int]:
-    """
-    Get statistics for a workspace.
-    """
-    try:
-        user: User = get_current_user()
-        user_id = user.id
-
-        service = get_workspace_service()
-        stats = service.get_workspace_stats(workspace_id, user_id)
-
-        if not stats:
-            return jsonify({"error": "Workspace not found"}), 404
-
-        return (
-            jsonify(
-                {
-                    "workspace_id": stats.workspace_id,
-                    "document_count": stats.document_count,
-                    "total_document_size": stats.total_document_size,
-                    "chunk_count": stats.chunk_count,
-                    "chat_session_count": stats.chat_session_count,
-                    "total_message_count": stats.total_message_count,
-                    "last_activity": (
-                        stats.last_activity.isoformat() if stats.last_activity else None
-                    ),
-                }
-            ),
-            200,
-        )
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to get workspace stats: {str(e)}"}), 500
-
-
-@workspace_bp.route("/<workspace_id>/validate-access", methods=["GET"])
-@require_auth
-def validate_workspace_access(workspace_id: str) -> tuple[Response, int]:
-    """
-    Validate that the current user has access to a workspace.
-    Useful for client-side permission checks.
-    """
-    try:
-        user: User = get_current_user()
-        user_id = user.id
-
-        service = get_workspace_service()
-        has_access = service.validate_workspace_access(workspace_id, user_id)
-
-        return jsonify({"has_access": has_access, "workspace_id": workspace_id}), 200
-
-    except Exception as e:
-        return jsonify({"error": f"Failed to validate access: {str(e)}"}), 500

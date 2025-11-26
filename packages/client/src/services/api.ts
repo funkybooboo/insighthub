@@ -12,10 +12,17 @@ import type {
     UpdateRagConfigRequest,
     VectorRagConfig,
     GraphRagConfig,
-    ChatRequest,
-} from '@insighthub/shared-typescript';
+} from '../types/workspace';
+import type { Context } from '../types/chat';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Chat request interface
+export interface ChatRequest {
+    message: string;
+    session_id?: number;
+    rag_type?: string;
+}
 
 // Client-specific request types
 export interface ClientChatRequest extends ChatRequest {
@@ -166,7 +173,7 @@ class ApiService {
     }
 
     /**
-     * Send a chat message to a specific workspace and session
+     * Send a chats message to a specific workspace and session
      */
     async sendChatMessage(
         workspaceId: number,
@@ -183,7 +190,7 @@ class ApiService {
     }
 
     /**
-     * Cancel a chat message streaming
+     * Cancel a chats message streaming
      */
     async cancelChatMessage(
         workspaceId: number,
@@ -218,7 +225,7 @@ class ApiService {
     }
 
     /**
-     * Sign up a new user
+     * Sign up a new users
      */
     async signup(request: SignupRequest): Promise<AuthResponse> {
         const { data } = await this.client.post<AuthResponse>('/api/auth/signup', request);
@@ -226,7 +233,7 @@ class ApiService {
     }
 
     /**
-     * Login a user
+     * Login a users
      */
     async login(request: LoginRequest): Promise<AuthResponse> {
         const { data } = await this.client.post<AuthResponse>('/api/auth/login', request);
@@ -234,7 +241,7 @@ class ApiService {
     }
 
     /**
-     * Logout the current user
+     * Logout the current users
      */
     async logout(): Promise<{ message: string }> {
         const { data } = await this.client.post<{ message: string }>('/api/auth/logout');
@@ -242,7 +249,7 @@ class ApiService {
     }
 
     /**
-     * Get current user information
+     * Get current users information
      */
     async getCurrentUser(): Promise<UserResponse> {
         const { data } = await this.client.get<UserResponse>('/api/auth/me');
@@ -250,7 +257,7 @@ class ApiService {
     }
 
     /**
-     * Update user preferences
+     * Update users preferences
      */
     async updatePreferences(request: UpdatePreferencesRequest): Promise<UserResponse> {
         const { data } = await this.client.patch<UserResponse>('/api/auth/preferences', request);
@@ -258,7 +265,7 @@ class ApiService {
     }
 
     /**
-     * Update user profile
+     * Update users profile
      */
     async updateProfile(request: { full_name?: string; email?: string }): Promise<UserResponse> {
         const { data } = await this.client.patch<UserResponse>('/api/auth/profile', request);
@@ -266,7 +273,7 @@ class ApiService {
     }
 
     /**
-     * Change user password
+     * Change users password
      */
     async changePassword(request: {
         current_password: string;
@@ -462,7 +469,7 @@ class ApiService {
     }
 
     /**
-     * Get user's default RAG config
+     * Get users's default RAG config
      */
     async getDefaultRagConfig(): Promise<DefaultRagConfig | null> {
         try {
@@ -480,7 +487,7 @@ class ApiService {
     }
 
     /**
-     * Save user's default RAG config
+     * Save users's default RAG config
      */
     async saveDefaultRagConfig(config: DefaultRagConfig): Promise<DefaultRagConfig> {
         const { data } = await this.client.put<DefaultRagConfig>(
@@ -502,7 +509,7 @@ class ApiService {
     }
 
     /**
-     * Create a new chat session for a workspace
+     * Create a new chats session for a workspace
      */
     async createChatSession(
         workspaceId: number,
@@ -516,7 +523,7 @@ class ApiService {
     }
 
     /**
-     * Get all chat sessions for a workspace
+     * Get all chats sessions for a workspace
      */
     async getChatSessions(workspaceId: number): Promise<
         Array<{
@@ -540,7 +547,7 @@ class ApiService {
     }
 
     /**
-     * Delete a chat session from a workspace
+     * Delete a chats session from a workspace
      */
     async deleteChatSession(workspaceId: number, sessionId: number): Promise<{ message: string }> {
         const { data } = await this.client.delete<{ message: string }>(

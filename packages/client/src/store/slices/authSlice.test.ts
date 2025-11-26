@@ -51,7 +51,7 @@ describe('authSlice', () => {
     });
 
     describe('setCredentials', () => {
-        it('should set user and token', () => {
+        it('should set users and token', () => {
             const user: User = {
                 id: 1,
                 username: 'testuser',
@@ -104,7 +104,7 @@ describe('authSlice', () => {
             expect(localStorage.getItem('token')).toBe(newToken);
         });
 
-        it('should handle user with null full_name', () => {
+        it('should handle users with null full_name', () => {
             const user: User = {
                 id: 1,
                 username: 'testuser',
@@ -120,7 +120,7 @@ describe('authSlice', () => {
     });
 
     describe('logout', () => {
-        it('should clear user and token', () => {
+        it('should clear users and token', () => {
             const initialState = {
                 user: {
                     id: 1,
@@ -204,7 +204,7 @@ describe('authSlice', () => {
     });
 
     describe('setUser', () => {
-        it('should update user information', () => {
+        it('should update users information', () => {
             const user: User = {
                 id: 1,
                 username: 'testuser',
@@ -218,7 +218,7 @@ describe('authSlice', () => {
             expect(state.user).toEqual(user);
         });
 
-        it('should update existing user', () => {
+        it('should update existing users', () => {
             const initialState = {
                 user: {
                     id: 1,

@@ -40,7 +40,7 @@ const ChatBot = () => {
     const [showRAGPrompt, setShowRAGPrompt] = useState(false);
     const currentBotMessageId = useRef<string | null>(null);
     const currentBotMessage = useRef<string>('');
-    const lastUserQuery = useRef<string>(''); // To store the last user query for retries
+    const lastUserQuery = useRef<string>(''); // To store the last users query for retries
 
     // Get active session
     const activeSession = sessions.find((s) => s.id === activeSessionId);
@@ -72,7 +72,7 @@ const ChatBot = () => {
                     // Set as active
                     dispatch(setActiveSession(newSessionId));
                 } catch (error) {
-                    console.error('Error creating initial chat session:', error);
+                    console.error('Error creating initial chats session:', error);
                     // Fallback to local session if backend fails
                     const newSessionId = `session-${Date.now()}`;
                     dispatch(createSession({ id: newSessionId }));
@@ -91,7 +91,7 @@ const ChatBot = () => {
         if (!activeWorkspaceId) return;
         const loadDocuments = async () => {
             try {
-                // We don't need to await this to block chat, just ensure it's triggered
+                // We don't need to await this to block chats, just ensure it's triggered
                 apiService.listDocuments(activeWorkspaceId);
             } catch (error) {
                 console.error('Error loading documents on mount:', error);
@@ -111,10 +111,10 @@ const ChatBot = () => {
             try {
                 setError('');
 
-                // Store last user query for potential RAG enhancement
+                // Store last users query for potential RAG enhancement
                 lastUserQuery.current = prompt;
 
-                // Add user message to session
+                // Add users message to session
                 const userMessage: Message = {
                     id: `msg-${Date.now()}`,
                     content: prompt,
@@ -174,7 +174,7 @@ const ChatBot = () => {
 
                 setError(errorMessage);
 
-                // Add error message to chat
+                // Add error message to chats
                 dispatch(
                     addMessageToSession({
                         sessionId: activeSessionId,
@@ -202,7 +202,7 @@ const ChatBot = () => {
 
         // Set up event listeners
         socketService.onConnected(() => {
-            console.log('Connected to chat server');
+            console.log('Connected to chats server');
         });
 
         socketService.onChatResponseChunk((data) => {
@@ -279,7 +279,7 @@ const ChatBot = () => {
         socketService.onChatCancelled(() => {
             if (!activeSessionId) return;
 
-            console.log('Chat stream cancelled by user');
+            console.log('Chat stream cancelled by users');
 
             // Reset current message buffer
             currentBotMessage.current = '';
@@ -296,7 +296,7 @@ const ChatBot = () => {
 
             setError(errorMessage);
 
-            // Add error message to chat if we were in the middle of a response
+            // Add error message to chats if we were in the middle of a response
             if (currentBotMessageId.current) {
                 dispatch(
                     addMessageToSession({
@@ -318,11 +318,11 @@ const ChatBot = () => {
         });
 
         socketService.onDisconnected(() => {
-            console.log('Disconnected from chat server');
+            console.log('Disconnected from chats server');
         });
 
         // Listen for no context found event to show RAG enhancement prompt
-        socketService.on('chat.no_context_found', (data: { session_id: number; query: string }) => {
+        socketService.on('chats.no_context_found', (data: { session_id: number; query: string }) => {
             if (!activeSessionId) return;
             console.log('No context found for query:', data.query);
             setShowRAGPrompt(true);
@@ -363,7 +363,7 @@ const ChatBot = () => {
             const errorMessage = 'Failed to cancel message. It may still be processing.';
             setError(errorMessage);
 
-            // Add error message to chat
+            // Add error message to chats
             if (activeSessionId) {
                 dispatch(
                     addMessageToSession({

@@ -48,7 +48,7 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         return self.workspaces.get(workspace_id)
 
     def get_by_user(self, user_id: int, include_inactive: bool = False) -> list[Workspace]:
-        """Get all workspaces for a user."""
+        """Get all workspaces for a users."""
         result = []
         for ws in self.workspaces.values():
             if ws.user_id == user_id and (include_inactive or ws.is_active):
@@ -281,7 +281,7 @@ class TestWorkspaceServiceList:
         assert workspaces == []
 
     def test_list_workspaces_returns_user_workspaces(self, service: WorkspaceService) -> None:
-        """list_workspaces returns workspaces for user."""
+        """list_workspaces returns workspaces for users."""
         service.create_workspace(name="WS1", user_id=1)
         service.create_workspace(name="WS2", user_id=1)
         service.create_workspace(name="Other User WS", user_id=2)
@@ -337,7 +337,7 @@ class TestWorkspaceServiceGet:
         assert workspace is None
 
     def test_get_workspace_returns_none_for_wrong_user(self, service: WorkspaceService) -> None:
-        """get_workspace returns None when user doesn't own workspace."""
+        """get_workspace returns None when users doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
         workspace = service.get_workspace(workspace_id=created.id, user_id=2)
@@ -383,7 +383,7 @@ class TestWorkspaceServiceUpdate:
         assert result is None
 
     def test_update_workspace_returns_none_for_wrong_user(self, service: WorkspaceService) -> None:
-        """update_workspace returns None when user doesn't own workspace."""
+        """update_workspace returns None when users doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
         result = service.update_workspace(
@@ -424,7 +424,7 @@ class TestWorkspaceServiceDelete:
         assert result is False
 
     def test_delete_workspace_returns_false_for_wrong_user(self, service: WorkspaceService) -> None:
-        """delete_workspace returns False when user doesn't own workspace."""
+        """delete_workspace returns False when users doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
         result = service.delete_workspace(workspace_id=created.id, user_id=2)
@@ -503,7 +503,7 @@ class TestWorkspaceServiceStats:
     def test_get_workspace_stats_returns_none_for_wrong_user(
         self, service: WorkspaceService
     ) -> None:
-        """get_workspace_stats returns None when user doesn't own workspace."""
+        """get_workspace_stats returns None when users doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
         stats = service.get_workspace_stats(workspace_id=created.id, user_id=2)
@@ -533,7 +533,7 @@ class TestWorkspaceServiceValidateAccess:
     def test_validate_workspace_access_returns_false_for_wrong_user(
         self, service: WorkspaceService
     ) -> None:
-        """validate_workspace_access returns False when user doesn't own workspace."""
+        """validate_workspace_access returns False when users doesn't own workspace."""
         created = service.create_workspace(name="Test", user_id=1)
 
         result = service.validate_workspace_access(workspace_id=created.id, user_id=2)

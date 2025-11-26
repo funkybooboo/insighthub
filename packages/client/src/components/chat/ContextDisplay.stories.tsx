@@ -116,7 +116,7 @@ export const MultipleContexts: Story = {
                 metadata: { source: 'rag-guide.pdf', page: 3 },
             },
             {
-                text: "The retrieval step typically uses vector similarity search to find the most relevant chunks based on semantic similarity to the user's query.",
+                text: "The retrieval step typically uses vector similarity search to find the most relevant chunks based on semantic similarity to the users's query.",
                 score: 0.88,
                 metadata: { source: 'vector-search.pdf', page: 7 },
             },

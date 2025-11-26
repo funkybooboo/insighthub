@@ -386,7 +386,7 @@ export const ExpensiveComponent = React.memo(({ data }) => {
 });
 
 // Lazy loaded component
-const ChatBot = React.lazy(() => import('./components/chat/ChatBot'));
+const ChatBot = React.lazy(() => import('./components/chats/ChatBot'));
 
 function App() {
   return (
@@ -513,14 +513,14 @@ components/
 Use barrel exports for cleaner imports:
 
 ```typescript
-// components/chat/index.ts
+// components/chats/index.ts
 export { ChatBot } from './ChatBot';
 export { ChatMessages } from './ChatMessages';
 export { ChatInput } from './ChatInput';
 export { ChatSidebar } from './ChatSidebar';
 
 // Usage
-import { ChatBot, ChatMessages } from '@/components/chat';
+import { ChatBot, ChatMessages } from '@/components/chats';
 ```
 
 ## Modern React Patterns
@@ -530,7 +530,7 @@ import { ChatBot, ChatMessages } from '@/components/chat';
 Encapsulate component logic in custom hooks:
 
 ```typescript
-// Custom hook for chat functionality
+// Custom hook for chats functionality
 export const useChat = (sessionId: string) => {
     const [messages, setMessages] = useState([]);
     const [isTyping, setIsTyping] = useState(false);

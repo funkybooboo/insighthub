@@ -36,7 +36,7 @@ def auth_token() -> str:
 
 @pytest.fixture
 def test_user():
-    """Mock test user for testing."""
+    """Mock test users for testing."""
     return {"id": 1, "username": "testuser", "email": "test@example.com", "full_name": "Test User"}
 
 
@@ -78,7 +78,7 @@ def mock_app_context():
 
 @pytest.fixture
 def sample_user():
-    """Sample user data for testing."""
+    """Sample users data for testing."""
     return Mock(id=1, username="testuser", email="test@example.com", full_name="Test User")
 
 

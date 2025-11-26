@@ -1,5 +1,5 @@
 /**
- * Socket.IO service for real-time chat streaming.
+ * Socket.IO service for real-time chats streaming.
  */
 
 import { io, Socket } from 'socket.io-client';
@@ -127,7 +127,7 @@ class SocketService {
     }
 
     /**
-     * Send a chat message
+     * Send a chats message
      */
     sendMessage(data: ChatMessageData): void {
         if (!this.socket) {
@@ -142,7 +142,7 @@ class SocketService {
     }
 
     /**
-     * Cancel the current chat message
+     * Cancel the current chats message
      */
     cancelMessage(): void {
         if (!this.socket) {
@@ -155,7 +155,7 @@ class SocketService {
     }
 
     /**
-     * Listen for chat chunk events
+     * Listen for chats chunk events
      */
     onChatChunk(callback: ChatChunkCallback): void {
         if (!this.socket) {
@@ -165,17 +165,17 @@ class SocketService {
     }
 
     /**
-     * Listen for chat response chunk events
+     * Listen for chats response chunk events
      */
     onChatResponseChunk(callback: ChatResponseChunkCallback): void {
         if (!this.socket) {
             throw new Error('Socket not connected. Call connect() first.');
         }
-        this.socket.on('chat.response_chunk', callback);
+        this.socket.on('chats.response_chunk', callback);
     }
 
     /**
-     * Listen for chat complete events
+     * Listen for chats complete events
      */
     onChatComplete(callback: ChatCompleteCallback): void {
         if (!this.socket) {
@@ -185,7 +185,7 @@ class SocketService {
     }
 
     /**
-     * Listen for chat cancelled events
+     * Listen for chats cancelled events
      */
     onChatCancelled(callback: ChatCancelledCallback): void {
         if (!this.socket) {
@@ -225,7 +225,7 @@ class SocketService {
     }
 
     /**
-     * Subscribe to status updates for a user
+     * Subscribe to status updates for a users
      */
     subscribeToStatus(userId: number): void {
         if (!this.socket) {
@@ -265,13 +265,13 @@ class SocketService {
     }
 
     /**
-     * Listen for chat no context found events
+     * Listen for chats no context found events
      */
     onChatNoContextFound(callback: ChatNoContextFoundCallback): void {
         if (!this.socket) {
             throw new Error('Socket not connected. Call connect() first.');
         }
-        this.socket.on('chat.no_context_found', callback);
+        this.socket.on('chats.no_context_found', callback);
     }
 
     /**

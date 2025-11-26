@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass
 class SignupRequest:
-    """Request DTO for user signup."""
+    """Request DTO for users signup."""
 
     username: str
     email: str
@@ -15,7 +15,7 @@ class SignupRequest:
 
 @dataclass
 class LoginRequest:
-    """Request DTO for user login."""
+    """Request DTO for users login."""
 
     username: str
     password: str
@@ -31,7 +31,7 @@ class AuthResponse:
 
 @dataclass
 class UserResponse:
-    """Response DTO for user information."""
+    """Response DTO for users information."""
 
     id: int
     username: str

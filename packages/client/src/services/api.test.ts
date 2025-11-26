@@ -246,7 +246,7 @@ describe('ApiService', () => {
     });
 
     describe('authentication', () => {
-        it('should signup a new user', async () => {
+        it('should signup a new users', async () => {
             const request = {
                 username: 'newuser',
                 email: 'newuser@example.com',
@@ -260,7 +260,7 @@ describe('ApiService', () => {
             expect(response.user.email).toBe('newuser@example.com');
         });
 
-        it('should login a user', async () => {
+        it('should login a users', async () => {
             const request = {
                 username: 'testuser',
                 password: 'password123',
@@ -271,18 +271,18 @@ describe('ApiService', () => {
             expect(response.user.username).toBe('testuser');
         });
 
-        it('should logout a user', async () => {
+        it('should logout a users', async () => {
             const response = await apiService.logout();
             expect(response.message).toBe('Logged out successfully');
         });
 
-        it('should get current user', async () => {
+        it('should get current users', async () => {
             const user = await apiService.getCurrentUser();
             expect(user.username).toBe('testuser');
             expect(user.theme_preference).toBe('dark');
         });
 
-        it('should update user preferences', async () => {
+        it('should update users preferences', async () => {
             const request = { theme_preference: 'light' as const };
             const user = await apiService.updatePreferences(request);
             expect(user.theme_preference).toBe('light');
@@ -392,8 +392,8 @@ describe('ApiService', () => {
         });
     });
 
-    describe('chat functionality', () => {
-        it('should send chat message', async () => {
+    describe('chats functionality', () => {
+        it('should send chats message', async () => {
             server.use(
                 http.post(
                     `${API_BASE_URL}/api/workspaces/1/chat/sessions/123/messages`,
@@ -413,8 +413,8 @@ describe('ApiService', () => {
         });
     });
 
-    describe('user profile', () => {
-        it('should update user profile', async () => {
+    describe('users profile', () => {
+        it('should update users profile', async () => {
             const updatedUser = {
                 id: 1,
                 username: 'testuser',
@@ -517,8 +517,8 @@ describe('ApiService', () => {
         });
     });
 
-    describe('chat functionality', () => {
-        it('should send chat message', async () => {
+    describe('chats functionality', () => {
+        it('should send chats message', async () => {
             // Use direct mocking to avoid MSW timeout issues
             const mockPost = vi.fn().mockResolvedValue({
                 data: { message_id: 'msg-123' },
@@ -527,13 +527,13 @@ describe('ApiService', () => {
 
             const result = await apiService.sendChatMessage(1, 1, 'Hello world');
             expect(result.message_id).toBe('msg-123');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/messages', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/1/messages', {
                 content: 'Hello world',
                 message_type: 'user',
             });
         });
 
-        it('should cancel chat message', async () => {
+        it('should cancel chats message', async () => {
             // Use direct mocking to avoid MSW timeout issues
             const mockPost = vi.fn().mockResolvedValue({
                 data: { message: 'Message cancelled' },
@@ -542,12 +542,12 @@ describe('ApiService', () => {
 
             const result = await apiService.cancelChatMessage(1, 1, 'msg-123');
             expect(result.message).toBe('Message cancelled');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/cancel', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/1/cancel', {
                 message_id: 'msg-123',
             });
         });
 
-        it('should create chat session', async () => {
+        it('should create chats session', async () => {
             const mockPost = vi.fn().mockResolvedValue({
                 data: { session_id: 123, title: 'New Chat' },
             });
@@ -556,12 +556,12 @@ describe('ApiService', () => {
             const result = await apiService.createChatSession(1, 'Test Chat');
             expect(result.session_id).toBe(123);
             expect(result.title).toBe('New Chat');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions', {
                 title: 'Test Chat',
             });
         });
 
-        it('should get chat sessions', async () => {
+        it('should get chats sessions', async () => {
             const mockSessions = [
                 {
                     session_id: 1,
@@ -578,10 +578,10 @@ describe('ApiService', () => {
 
             const result = await apiService.getChatSessions(1);
             expect(result).toEqual(mockSessions);
-            expect(mockGet).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions');
+            expect(mockGet).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions');
         });
 
-        it('should delete chat session', async () => {
+        it('should delete chats session', async () => {
             const mockDelete = vi.fn().mockResolvedValue({
                 data: { message: 'Session deleted' },
             });
@@ -589,7 +589,7 @@ describe('ApiService', () => {
 
             const result = await apiService.deleteChatSession(1, 123);
             expect(result.message).toBe('Session deleted');
-            expect(mockDelete).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/123');
+            expect(mockDelete).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/123');
         });
     });
 

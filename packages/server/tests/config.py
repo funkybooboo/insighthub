@@ -71,7 +71,7 @@ class TestDataConfig:
 
     __test__ = False  # Tell pytest this is not a test class
 
-    # Sample user data
+    # Sample users data
     SAMPLE_USERNAME: str = "test_user"
     SAMPLE_EMAIL: str = "test@example.com"
     SAMPLE_FULL_NAME: str = "Test User"
@@ -80,7 +80,7 @@ class TestDataConfig:
     SAMPLE_DOCUMENT_NAME: str = "test_document.pdf"
     SAMPLE_TEXT_CONTENT: bytes = b"This is a test document.\nWith multiple lines."
 
-    # Sample chat data
+    # Sample chats data
     SAMPLE_CHAT_TITLE: str = "Test Chat Session"
     SAMPLE_CHAT_MESSAGE: str = "Hello, this is a test message"
 

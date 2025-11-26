@@ -1,17 +1,13 @@
-"""Middleware infrastructure module."""
+"""Flask middleware for request/response processing."""
 
-from .logging import RequestLoggingMiddleware
-from .monitoring import PerformanceMonitoringMiddleware
-from .rate_limiting import RateLimitMiddleware
-from .request_correlation import RequestCorrelationMiddleware
-from .security import SecurityHeadersMiddleware
-from .validation import RequestValidationMiddleware
+from .context_middleware import setup_context_middleware
+from .cors_middleware import setup_cors_middleware
+from .error_handler import setup_error_handlers
+from .logging_middleware import setup_logging_middleware
 
 __all__ = [
-    "RequestLoggingMiddleware",
-    "RateLimitMiddleware",
-    "RequestCorrelationMiddleware",
-    "SecurityHeadersMiddleware",
-    "RequestValidationMiddleware",
-    "PerformanceMonitoringMiddleware",
+    "setup_context_middleware",
+    "setup_cors_middleware",
+    "setup_error_handlers",
+    "setup_logging_middleware",
 ]

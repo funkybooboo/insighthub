@@ -7,36 +7,27 @@ This document explains how configuration works in the InsightHub server applicat
 ### File Structure
 
 ```
-infra/config/.env.local.example    # Development template (committed to git)
-infra/config/.env.prod.example      # Production template (committed to git)
-infra/config/.env.development       # Development config (gitignored) - Used by both server and workers
-infra/config/.env.local             # Personal overrides (gitignored)
-infra/config/.env.test              # Test config (gitignored)
-```
+packages/server/
+├── .env              # Main config (gitignored)
+├── .env.example      # Config template (committed to git)
+└── .env.test         # Test config (gitignored)
 ```
 
 ### Setup Instructions
 
 1. **Development Setup**:
      ```bash
-     cp infra/config/.env.local.example infra/config/.env.development
-     # Edit infra/config/.env.development with your development settings
+     cp .env.example .env
+     # Edit .env with your development settings
      ```
 
-2. **Local-Only Setup** (No external services):
+2. **Test Setup**:
      ```bash
-     cp infra/config/.env.local.example infra/config/.env.local
-     # Edit infra/config/.env.local with your local-only settings
-     # Uses local file storage, local Ollama, local Qdrant, etc.
+     # .env.test is already configured for testing
+     # Edit if you need different test settings
      ```
 
-3. **Test Setup**:
-    ```bash
-    # .env.test is already configured for testing
-    # Edit if you need different test settings
-    ```
-
-4. **Production**:
+3. **Production**:
     - DO NOT use .env files in production
     - Set environment variables directly via:
       - Docker environment variables
@@ -57,7 +48,7 @@ The `src/config.py` module uses Pydantic Settings for type-safe configuration lo
 
 **Configuration Sources** (in priority order):
 1. **Environment Variables** - Highest priority (production)
-2. **`.env.local`** - Local development overrides
+2. **`.env.test`** - Test environment (when PYTEST_CURRENT_TEST is set)
 3. **`.env`** - Standard development config
 4. **Field Defaults** - Built-in defaults (lowest priority)
 
@@ -191,7 +182,7 @@ S3_BUCKET_NAME=documents
 PostgreSQL connection string:
 
 ```bash
-DATABASE_URL=postgresql://user:password@host:port/database
+DATABASE_URL=postgresql://users:password@host:port/database
 ```
 
 **Examples**:

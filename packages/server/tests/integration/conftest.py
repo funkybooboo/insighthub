@@ -88,8 +88,8 @@ def client(app: Flask) -> FlaskClient:
 
 @pytest.fixture(scope="function")
 def auth_token(client: FlaskClient) -> str:
-    """Create a test user and return a valid JWT token."""
-    # Create a test user
+    """Create a test users and return a valid JWT token."""
+    # Create a test users
     signup_data = {
         "username": "testuser",
         "email": "testuser@example.com",
@@ -115,7 +115,7 @@ def auth_token(client: FlaskClient) -> str:
 
 @pytest.fixture(scope="function")
 def test_workspace(client: FlaskClient, auth_token: str) -> dict[str, str]:
-    """Create a test workspace for the authenticated user."""
+    """Create a test workspace for the authenticated users."""
     workspace_data = {
         "name": "Test Workspace",
         "description": "Workspace for integration testing",
@@ -152,7 +152,7 @@ def db(postgres_url: str) -> Generator[PostgresSqlDatabase, None, None]:
 
 @pytest.fixture(scope="function")
 def user_repository(db: PostgresSqlDatabase) -> SqlUserRepository:
-    """Create a user repository for integration tests."""
+    """Create a users repository for integration tests."""
     from shared.repositories import SqlUserRepository
 
     return SqlUserRepository(db)
@@ -168,7 +168,7 @@ def document_repository(db: PostgresSqlDatabase) -> SqlDocumentRepository:
 
 @pytest.fixture(scope="function")
 def chat_session_repository(db: PostgresSqlDatabase) -> SqlChatSessionRepository:
-    """Create a chat session repository for integration tests."""
+    """Create a chats session repository for integration tests."""
     from shared.repositories import SqlChatSessionRepository
 
     return SqlChatSessionRepository(db)
@@ -176,7 +176,7 @@ def chat_session_repository(db: PostgresSqlDatabase) -> SqlChatSessionRepository
 
 @pytest.fixture(scope="function")
 def chat_message_repository(db: PostgresSqlDatabase) -> SqlChatMessageRepository:
-    """Create a chat message repository for integration tests."""
+    """Create a chats message repository for integration tests."""
     from shared.repositories import SqlChatMessageRepository
 
     return SqlChatMessageRepository(db)

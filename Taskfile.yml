@@ -7,625 +7,171 @@ tasks:
       - task --list
     silent: true
 
-  # --------------------------------------------------------------------------
-  # Start services
-  # --------------------------------------------------------------------------
+  # Docker services
   up:
-    desc: Start production (infrastructure + server + client)
+    desc: Start all services (postgres, qdrant, ollama, server, client)
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d
-      - cmd: 'echo "Production services started:"'
-        silent: true
-      - cmd: 'echo "  - Server (prod): http://localhost:5000"'
-        silent: true
-      - cmd: 'echo "  - Client (prod): http://localhost:3000"'
-        silent: true
-
-  up-dev:
-    desc: Start development (infrastructure + server + client)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d
-      - cmd: 'echo "Development services started:"'
-        silent: true
-      - cmd: 'echo "  - Server (dev): http://localhost:5000"'
-        silent: true
-      - cmd: 'echo "  - Client (dev): http://localhost:3000"'
-        silent: true
-      - cmd: 'echo "  - MinIO Console: http://localhost:9001"'
-        silent: true
-      - cmd: 'echo "  - PostgreSQL: localhost:5432"'
-        silent: true
-      - cmd: 'echo "  - MinIO: http://localhost:9001 (console)"'
-        silent: true
-      - cmd: 'echo "  - Ollama: http://localhost:11434"'
-        silent: true
-      - cmd: 'echo "  - Qdrant: http://localhost:6334 (UI)"'
-        silent: true
-      - cmd: 'echo "  - Redis: localhost:6379"'
-        silent: true
-      - cmd: 'echo "  - RabbitMQ: http://localhost:15672 (management)"'
-        silent: true
-
-  up-elk:
-    desc: Start ELK stack services
-    cmds:
-      - docker compose -f docker-compose.elk.yml up -d
-      - cmd: 'echo "ELK stack started:"'
-        silent: true
-      - cmd: 'echo "  - Elasticsearch: http://localhost:9200"'
-        silent: true
-      - cmd: 'echo "  - Kibana: http://localhost:5601"'
-        silent: true
-
-  migrate:
-    desc: Run database migrations
-    cmds:
-      - python infra/migrations/migrate.py
-
-  migrate:status:
-    desc: Show migration status
-    cmds:
-      - python infra/migrations/migrate.py --status
-
-  up-infra:
-    desc: Start infrastructure services only (Postgres, MinIO, Ollama, Qdrant, Redis, RabbitMQ)
-    cmds:
-      - docker compose -f docker-compose.yml up -d postgres minio ollama qdrant redis rabbitmq
-      - cmd: 'echo "Waiting for Ollama to be healthy..."'
-        silent: true
-      - docker compose -f docker-compose.yml up ollama-setup
-      - cmd: 'echo "Infrastructure services started."'
-        silent: true
-      - cmd: 'echo "  - PostgreSQL: localhost:5432"'
-        silent: true
-      - cmd: 'echo "  - MinIO: http://localhost:9001 (console)"'
-        silent: true
-      - cmd: 'echo "  - Ollama: http://localhost:11434"'
-        silent: true
-      - cmd: 'echo "  - Qdrant: http://localhost:6334 (UI)"'
-        silent: true
-      - cmd: 'echo "  - Redis: localhost:6379"'
-        silent: true
-      - cmd: 'echo "  - RabbitMQ: http://localhost:15672 (management)"'
-        silent: true
-
-  up-workers-dev:
-    desc: Start development workers (requires up-dev or up-infra)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile workers up -d
-      - cmd: 'echo "Development worker processes started:"'
-        silent: true
-      - cmd: 'echo "  - Ingestion worker (document parsing)"'
-        silent: true
-      - cmd: 'echo "  - Embeddings worker (vector generation)"'
-        silent: true
-      - cmd: 'echo "  - Graph worker (entity extraction)"'
-        silent: true
-      - cmd: 'echo "  - Enrichment worker (external knowledge)"'
-        silent: true
-      - cmd: 'echo "  - Query worker (context preparation)"'
-        silent: true
-      - cmd: 'echo "  - Retriever worker (internet data)"'
-        silent: true
-
-  up-workers:
-    desc: Start production workers (requires up or up-infra)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile workers up -d
-      - cmd: 'echo "Production worker processes started:"'
-        silent: true
-      - cmd: 'echo "  - Ingestion worker (document parsing)"'
-        silent: true
-      - cmd: 'echo "  - Embeddings worker (vector generation)"'
-        silent: true
-      - cmd: 'echo "  - Graph worker (entity extraction)"'
-        silent: true
-      - cmd: 'echo "  - Enrichment worker (external knowledge)"'
-        silent: true
-      - cmd: 'echo "  - Query worker (context preparation)"'
-        silent: true
-      - cmd: 'echo "  - Retriever worker (internet data)"'
-        silent: true
-
-  up-full:
-    desc: Start everything in development (infrastructure + dev + workers)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev --profile workers up -d
-      - cmd: 'echo "Full development stack started:"'
-        silent: true
-      - cmd: 'echo "  - Server (dev): http://localhost:5000"'
-        silent: true
-      - cmd: 'echo "  - Client (dev): http://localhost:3000"'
-        silent: true
-      - cmd: 'echo "  - All 6 workers running"'
-        silent: true
+      - docker compose up -d
 
   down:
     desc: Stop all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers down
+      - docker compose down
 
-  # --------------------------------------------------------------------------
-  # Restart services
-  # --------------------------------------------------------------------------
-  restart:
-    desc: Restart production services
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml restart
-
-  restart-dev:
-    desc: Restart development services
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml restart
-
-  # --------------------------------------------------------------------------
-  # Show status
-  # --------------------------------------------------------------------------
-  ps:
-    desc: Show status of all services
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers ps
-
-  # --------------------------------------------------------------------------
-  # Build images
-  # --------------------------------------------------------------------------
-  build:
-    desc: Build all production images
-    cmds:
-      - cmd: echo "Building shared Python package..."
-        silent: true
-      - task: shared:build
-      - cmd: echo "Building Docker images..."
-        silent: true
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod --profile workers build
-
-  build-dev:
-    desc: Build all development images
-    cmds:
-      - cmd: echo "Building shared Python package..."
-        silent: true
-      - task: shared:build
-      - cmd: echo "Building Docker images..."
-        silent: true
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev --profile workers build
-
-  build-server:
-    desc: Build server production image
-    cmds:
-      - cmd: echo "Building shared Python package..."
-        silent: true
-      - task: shared:build
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod build server-prod
-
-  build-server-dev:
-    desc: Build server development image
-    cmds:
-      - cmd: echo "Building shared Python package..."
-        silent: true
-      - task: shared:build
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev build server-dev
-
-  build-client:
-    desc: Build client production image
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod build client-prod
-
-  build-client-dev:
-    desc: Build client development image
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev build client-dev
-
-  clean:
-    desc: Remove all containers, images, and volumes
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers down -v --rmi all
-      - task: server:clean
-      - task: client:clean
-
-  # --------------------------------------------------------------------------
-  # Logs
-  # --------------------------------------------------------------------------
   logs:
     desc: Show logs from all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml -f docker-compose.elk.yml --profile prod --profile dev --profile workers logs -f
+      - docker compose logs -f
 
-  logs-server:
-    desc: Show server logs (production)
+  ps:
+    desc: Show status of all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f server-prod
+      - docker compose ps
 
-  logs-server-dev:
-    desc: Show server logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f server-dev
-
-  logs-client:
-    desc: Show client logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f client-prod
-
-  logs-client-dev:
-    desc: Show client logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f client-dev
-
-  logs-elk:
-    desc: Show ELK logs
-    cmds:
-      - docker compose -f docker-compose.elk.yml logs -f
-
-  logs-ollama:
-    desc: Show Ollama logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f ollama
-
-  logs-postgres:
-    desc: Show Postgres logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f postgres
-
-  logs-minio:
-    desc: Show MinIO logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f minio
-
-  logs-qdrant:
-    desc: Show Qdrant logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f qdrant
-
-  logs-redis:
-    desc: Show Redis logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f redis
-
-  logs-rabbitmq:
-    desc: Show RabbitMQ logs
-    cmds:
-      - docker compose -f docker-compose.yml logs -f rabbitmq
-
-  logs-workers-dev:
-    desc: Show all development worker logs
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chat-dev worker-chucker-dev worker-connector-dev worker-deletion-dev worker-embedder-dev worker-enricher-dev worker-indexer-dev worker-parser-dev worker-provisioner-dev worker-wikipedia-dev
-
-  logs-workers:
-    desc: Show all production worker logs
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chat-prod worker-chucker-prod worker-connector-prod worker-deletion-prod worker-embedder-prod worker-enricher-prod worker-indexer-prod worker-parser-prod
-
-  logs-worker-chat-dev:
-    desc: Show chat worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chat-dev
-
-  logs-worker-chat-prod:
-    desc: Show chat worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chat-prod
-
-  logs-worker-chucker-dev:
-    desc: Show chucker worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-chucker-dev
-
-  logs-worker-chucker-prod:
-    desc: Show chucker worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-chucker-prod
-
-  logs-worker-connector-dev:
-    desc: Show connector worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-connector-dev
-
-  logs-worker-connector-prod:
-    desc: Show connector worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-connector-prod
-
-  logs-worker-deletion-dev:
-    desc: Show deletion worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-deletion-dev
-
-  logs-worker-deletion-prod:
-    desc: Show deletion worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-deletion-prod
-
-  logs-worker-embedder-dev:
-    desc: Show embedder worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-embedder-dev
-
-  logs-worker-embedder-prod:
-    desc: Show embedder worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-embedder-prod
-
-  logs-worker-enricher-dev:
-    desc: Show enricher worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-enricher-dev
-
-  logs-worker-enricher-prod:
-    desc: Show enricher worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-enricher-prod
-
-  logs-worker-indexer-dev:
-    desc: Show indexer worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-indexer-dev
-
-  logs-worker-indexer-prod:
-    desc: Show indexer worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-indexer-prod
-
-  logs-worker-parser-dev:
-    desc: Show parser worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-parser-dev
-
-  logs-worker-parser-prod:
-    desc: Show parser worker logs (production)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f worker-parser-prod
-
-  logs-worker-provisioner-dev:
-    desc: Show provisioner worker logs (development)
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-provisioner-dev
-
-  logs-worker-wikipedia-dev:
-    desc: Show wikipedia worker logs (development)
-    cmds:
-       - docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f worker-wikipedia-dev
-
-  # --------------------------------------------------------------------------
-  # Dev shortcuts
-  # --------------------------------------------------------------------------
-  dev-server:
-    desc: Run server in development mode
-    cmds:
-      - task: server:server
-
-  dev-client:
-    desc: Run client in development mode
-    cmds:
-      - task: client:dev
-
-   # --------------------------------------------------------------------------
-   # Subdirectory tasks
-   # --------------------------------------------------------------------------
-  shared:*:
-    desc: Run shared tasks (use task shared:<task-name>)
-    dir: packages/shared/python
-    cmds:
-      - task {{index .MATCH 0}}
-
-  server:*:
-    desc: Run server tasks (use task server:<task-name>)
+  # Server tasks
+  server:install:
+    desc: Install server dependencies
     dir: packages/server
     cmds:
-      - task {{index .MATCH 0}}
+      - poetry install --no-root
 
-  client:*:
-    desc: Run client tasks (use task client:<task-name>)
+  server:run:
+    desc: Run Flask API server
+    dir: packages/server
+    cmds:
+      - poetry run python src/api.py
+
+  server:test:
+    desc: Run server tests with coverage
+    dir: packages/server
+    cmds:
+      - poetry run pytest tests/ -v --cov=src --cov-report=term-missing
+
+  server:format:
+    desc: Format server code
+    dir: packages/server
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+
+  server:lint:
+    desc: Lint server code
+    dir: packages/server
+    cmds:
+      - poetry run ruff check src tests
+
+  server:type-check:
+    desc: Run mypy type checker
+    dir: packages/server
+    cmds:
+      - poetry run mypy src tests
+
+  server:check:
+    desc: Run all server checks (format, lint, type-check, test)
+    dir: packages/server
+    cmds:
+      - task: server:format
+      - task: server:lint
+      - task: server:type-check
+      - task: server:test
+
+  # Client tasks
+  client:dev:
+    desc: Run client in development mode
     dir: packages/client
     cmds:
-      - task {{index .MATCH 0}}
+      - bun run dev
 
-  cli:*:
-    desc: Run CLI tasks (use task cli:<task-name>)
-    dir: packages/cli
+  client:install:
+    desc: Install client dependencies
+    dir: packages/client
     cmds:
-      - task {{index .MATCH 0}}
+      - bun install
 
-  workers:*:
-    desc: Run worker tasks (use task workers:<worker-name>:<task-name>)
+  client:build:
+    desc: Build client for production
+    dir: packages/client
     cmds:
-      - |
-        WORKER_TASK="{{index .MATCH 0}}"
-        WORKER=$(echo "$WORKER_TASK" | cut -d: -f1)
-        TASK=$(echo "$WORKER_TASK" | cut -d: -f2)
-        cd "packages/workers/$WORKER" && task "$TASK"
+      - bun run build
 
-  shared:typescript:*:
-    desc: Run shared TypeScript tasks (use task shared:typescript:<task-name>)
-    dir: packages/shared/typescript
+  client:test:
+    desc: Run client tests
+    dir: packages/client
     cmds:
-      - npm run {{index .MATCH 1}}
+      - bun run test:run
 
-  check:
-    desc: Run all checks for shared, server, client, and workers
+  client:lint:
+    desc: Lint client code
+    dir: packages/client
     cmds:
-      - cmd: echo "Running shared checks..."
-        silent: true
-      - task: shared:check
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running server checks..."
-        silent: true
-      - task: server:check
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running client checks..."
-        silent: true
-      - task: client:check
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running worker checks..."
-        silent: true
-      - task: workers:chat:check
-      - task: workers:chucker:check
-      - task: workers:connector:check
-      - task: workers:deletion:check
-      - task: workers:embedder:check
-      - task: workers:enricher:check
-      - task: workers:indexer:check
-      - task: workers:parser:check
-      - task: workers:provisioner:check
-      - task: workers:wikipedia:check
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "All checks passed!"
-        silent: true
+      - bun run lint
 
-  test:
-    desc: Run all tests across the project
+  client:type-check:
+    desc: Run TypeScript type checking
+    dir: packages/client
     cmds:
-      - cmd: echo "Running server tests..."
-        silent: true
-      - task: server:test
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running client tests..."
-        silent: true
+      - bun run build
+
+  client:check:
+    desc: Run all client checks (format-check, lint, type-check, test, build)
+    dir: packages/client
+    cmds:
+      - task: client:format-check
+      - task: client:lint
+      - task: client:type-check
       - task: client:test
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running shared tests..."
-        silent: true
-      - task: shared:test
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running worker tests..."
-        silent: true
-      - task: workers:chat:test
-      - task: workers:chucker:test
-      - task: workers:connector:test
-      - task: workers:deletion:test
-      - task: workers:embedder:test
-      - task: workers:enricher:test
-      - task: workers:indexer:test
-      - task: workers:parser:test
-      - task: workers:provisioner:test
-      - task: workers:wikipedia:test
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "All tests completed!"
-        silent: true
+      - task: client:build
+
+  client:format:
+    desc: Format client code
+    dir: packages/client
+    cmds:
+      - bun run format
+
+  client:format-check:
+    desc: Check if client code is formatted
+    dir: packages/client
+    cmds:
+      - bun run format:check
+
+  # Development workflow
+  dev:
+    desc: Start infrastructure services (postgres, qdrant, ollama)
+    cmds:
+      - docker compose up -d postgres qdrant ollama ollama-setup
+
+  install:
+    desc: Install all dependencies
+    cmds:
+      - task: server:install
+      - task: client:install
 
   format:
-    desc: Format code across all packages
+    desc: Format all code
     cmds:
-      - cmd: echo "Formatting server code..."
-        silent: true
       - task: server:format
-      - cmd: echo "Formatting client code..."
-        silent: true
       - task: client:format
-      - cmd: echo "Formatting CLI code..."
-        silent: true
-      - task: cli:format
-      - cmd: echo "Formatting shared TypeScript code..."
-        silent: true
-      - task: shared:typescript:format
-      - cmd: echo "Code formatting complete!"
-        silent: true
 
-  shared:python:rebuild:
-     desc: Rebuild shared Python package and reinstall in server and workers
-     cmds:
-       - cmd: echo "Building shared Python package..."
-         silent: true
-       - task: shared:build
-       - cmd: echo "Reinstalling shared package in server..."
-         silent: true
-       - cd packages/server && poetry remove insighthub-shared || true
-       - cd packages/server && poetry add ../shared/python/dist/insighthub_shared-*.whl
-       - cmd: echo "Reinstalling shared package in workers..."
-         silent: true
-       - cd packages/workers/embedder && poetry remove insighthub-shared || true
-       - cd packages/workers/embedder && poetry add ../../shared/python/dist/insighthub_shared-*.whl
-       - cd packages/workers/indexer && poetry remove insighthub-shared || true
-       - cd packages/workers/indexer && poetry add ../../shared/python/dist/insighthub_shared-*.whl
-       - cd packages/workers/enricher && poetry remove insighthub-shared || true
-       - cd packages/workers/enricher && poetry add ../../shared/python/dist/insighthub_shared-*.whl
-       - cd packages/workers/connector && poetry remove insighthub-shared || true
-       - cd packages/workers/connector && poetry add ../../shared/python/dist/insighthub_shared-*.whl
-
-  shared:typescript:build:
-    desc: Build shared TypeScript package
+  test:
+    desc: Run all tests
     cmds:
-      - cd packages/shared/typescript && npm run build
+      - task: server:test
+      - task: client:test
 
-  shared:typescript:rebuild:
-    desc: Rebuild shared TypeScript package and reinstall in CLI and client
+  check:
+    desc: Run all checks (format, lint, type-check, test)
     cmds:
-      - cmd: echo "Building shared TypeScript package..."
-        silent: true
-      - task: shared:typescript:build
-      - cmd: echo "Reinstalling in CLI..."
-        silent: true
-      - cd packages/cli && bun install
-      - cmd: echo "Reinstalling in client..."
-        silent: true
-      - cd packages/client && npm install
+      - task: server:check
+      - task: client:check
 
-  # --------------------------------------------------------------------------
-  # Security tasks (root level)
-  # --------------------------------------------------------------------------
-  audit:
-    desc: Run dependency audits for client and server
+  clean:
+    desc: Remove all containers and volumes
     cmds:
-      - cmd: echo "Running server audit..."
-        silent: true
-      - task: server:audit
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running client audit..."
-        silent: true
-      - task: client:audit
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Audit complete!"
-        silent: true
+      - docker compose down -v
 
-  scan:
-    desc: Run code scans for client and server
+  clean:all:
+    desc: Clean everything (containers, volumes, and generated files)
     cmds:
-      - cmd: echo "Running server scan..."
-        silent: true
-      - task: server:scan
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Running client scan..."
-        silent: true
-      - task: client:scan
-      - cmd: echo ""
-        silent: true
-      - cmd: echo "Scan complete!"
-        silent: true
-
-  security:
-    desc: Run full security checks (audit + scan + Docker image scans)
-    cmds:
-      - cmd: echo "Running audits..."
-        silent: true
-      - task: audit
-      - cmd: echo "Running code scans..."
-        silent: true
-      - task: scan
-      - cmd: echo "Building Docker images before scanning..."
-        silent: true
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml build client-prod client-dev server-prod server-dev
-      - cmd: echo "Scanning Docker images..."
-        silent: true
-      - cmd: |
-          IMAGES=("client-prod" "client-dev" "server-prod" "server-dev")
-          for IMAGE in "${IMAGES[@]}"; do
-            if docker image inspect insighthub-$IMAGE > /dev/null 2>&1; then
-              echo "Scanning image: insighthub-$IMAGE"
-              # Scan with Trivy and output JSON for CI/CD
-              trivy image insighthub-$IMAGE --ignore-unfixed --format json --output trivy-$IMAGE.json
-            else
-              echo "Image insighthub-$IMAGE does not exist, skipping..."
-            fi
-          done
-      - cmd: echo "Full security check complete!"
-        silent: true
+      - task: clean
+      - task: server:clean
+      - task: client:clean

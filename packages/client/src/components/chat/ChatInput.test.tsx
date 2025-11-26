@@ -55,7 +55,7 @@ describe('ChatInput', () => {
     });
 
     describe('Input Validation', () => {
-        it('should enable submit button when user types text', async () => {
+        it('should enable submit button when users types text', async () => {
             const { getByRole } = render(
                 <ChatInput onSubmit={mockOnSubmit} onCancel={mockOnCancel} isTyping={false} />
             );
@@ -96,7 +96,7 @@ describe('ChatInput', () => {
     });
 
     describe('User Interactions', () => {
-        it('should submit message when user clicks send button', async () => {
+        it('should submit message when users clicks send button', async () => {
             const { getByRole } = render(
                 <ChatInput onSubmit={mockOnSubmit} onCancel={mockOnCancel} isTyping={false} />
             );
@@ -110,7 +110,7 @@ describe('ChatInput', () => {
             expect(mockOnSubmit).toHaveBeenCalledWith({ prompt: 'Test message' });
         });
 
-        it('should submit message when user presses Enter', async () => {
+        it('should submit message when users presses Enter', async () => {
             const { getByRole } = render(
                 <ChatInput onSubmit={mockOnSubmit} onCancel={mockOnCancel} isTyping={false} />
             );
@@ -133,7 +133,7 @@ describe('ChatInput', () => {
             expect(mockOnSubmit).not.toHaveBeenCalled();
         });
 
-        it('should submit message when user presses Enter', async () => {
+        it('should submit message when users presses Enter', async () => {
             const { getByRole } = render(
                 <ChatInput onSubmit={mockOnSubmit} onCancel={mockOnCancel} isTyping={false} />
             );

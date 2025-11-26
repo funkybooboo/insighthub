@@ -12,7 +12,7 @@ describe('Authentication', () => {
                 // Verify we're on the main page
                 cy.url().should('match', /\/$|\/workspaces/);
 
-                // Verify user menu is visible
+                // Verify users menu is visible
                 cy.findByText(users.testUser.username).should('be.visible');
             });
         });
@@ -65,7 +65,7 @@ describe('Authentication', () => {
             // Verify we're on the main page
             cy.url().should('match', /\/$|\/workspaces/);
 
-            // Verify user menu is visible
+            // Verify users menu is visible
             cy.findByText(newUser.username).should('be.visible');
         });
 
@@ -146,18 +146,18 @@ describe('Authentication', () => {
             });
         });
 
-        it('should display user profile information', () => {
+        it('should display users profile information', () => {
             cy.fixture('users').then((users) => {
                 // Navigate to settings/profile page
                 cy.findByRole('button', { name: /settings|profile/i }).click();
 
-                // Verify user information is displayed
+                // Verify users information is displayed
                 cy.findByText(users.testUser.username).should('be.visible');
                 cy.findByText(users.testUser.email).should('be.visible');
             });
         });
 
-        it('should apply user theme preference', () => {
+        it('should apply users theme preference', () => {
             // Check if theme is applied
             cy.get('html').should('have.class', /dark|light/);
         });

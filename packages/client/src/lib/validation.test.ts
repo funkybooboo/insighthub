@@ -80,7 +80,7 @@ describe('validation utilities', () => {
     describe('validateEmail', () => {
         it('should accept valid emails', () => {
             expect(validateEmail('test@example.com').valid).toBe(true);
-            expect(validateEmail('user.name+tag@example.co.uk').valid).toBe(true);
+            expect(validateEmail('users.name+tag@example.co.uk').valid).toBe(true);
         });
 
         it('should reject empty emails', () => {
@@ -122,7 +122,7 @@ describe('validation utilities', () => {
         });
 
         it('should reject usernames with special characters', () => {
-            const result = validateUsername('test@user');
+            const result = validateUsername('test@users');
             expect(result.valid).toBe(false);
             expect(result.error).toContain('letters, numbers, hyphens, and underscores');
         });

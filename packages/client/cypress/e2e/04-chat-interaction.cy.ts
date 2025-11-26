@@ -7,7 +7,7 @@ describe('Chat Interaction', () => {
             cy.login(users.testUser.username, users.testUser.password);
         });
 
-        // Create a workspace and upload a document for chat testing
+        // Create a workspace and upload a document for chats testing
         cy.fixture('workspaces').then((workspaces) => {
             const timestamp = Date.now();
             workspaceName = `Chat Test ${timestamp}`;
@@ -46,16 +46,16 @@ describe('Chat Interaction', () => {
     });
 
     describe('Chat Session Management', () => {
-        it('should create a new chat session', () => {
-            // Click new chat button
+        it('should create a new chats session', () => {
+            // Click new chats button
             cy.findByRole('button', { name: /new.*chat|create.*chat/i }).click();
 
-            // Should show empty chat interface
+            // Should show empty chats interface
             cy.get('[data-testid="chat-messages"]').should('be.empty');
         });
 
-        it('should display list of chat sessions', () => {
-            // Create multiple chat sessions
+        it('should display list of chats sessions', () => {
+            // Create multiple chats sessions
             cy.findByRole('button', { name: /new.*chat/i }).click();
             cy.sendChatMessage('First session message');
 
@@ -66,7 +66,7 @@ describe('Chat Interaction', () => {
             cy.get('[data-testid="chat-session-item"]').should('have.length.gte', 2);
         });
 
-        it('should switch between chat sessions', () => {
+        it('should switch between chats sessions', () => {
             // Create two sessions with different messages
             cy.findByRole('button', { name: /new.*chat/i }).click();
             const message1 = 'Message in first session';
@@ -77,22 +77,22 @@ describe('Chat Interaction', () => {
             cy.sendChatMessage(message2);
 
             // Click on first session
-            cy.contains(message1).parent('[data-testid="chat-session-item"]').click();
+            cy.contains(message1).parent('[data-testid="chats-session-item"]').click();
 
             // Should show first session messages
             cy.get('[data-testid="chat-messages"]').should('contain.text', message1);
             cy.get('[data-testid="chat-messages"]').should('not.contain.text', message2);
         });
 
-        it('should delete a chat session', () => {
-            // Create a chat session
+        it('should delete a chats session', () => {
+            // Create a chats session
             cy.findByRole('button', { name: /new.*chat/i }).click();
             const testMessage = 'Message to delete';
             cy.sendChatMessage(testMessage);
 
             // Delete the session
             cy.contains(testMessage)
-                .parent('[data-testid="chat-session-item"]')
+                .parent('[data-testid="chats-session-item"]')
                 .within(() => {
                     cy.findByRole('button', { name: /delete|remove/i }).click();
                 });
@@ -164,7 +164,7 @@ describe('Chat Interaction', () => {
                 .type(message)
                 .type('{enter}');
 
-            // Message should appear in chat
+            // Message should appear in chats
             cy.get('[data-testid="chat-messages"]').should('contain.text', message);
         });
 
@@ -330,7 +330,7 @@ describe('Chat Interaction', () => {
     });
 
     describe('Chat Message Display', () => {
-        it('should display user messages with correct styling', () => {
+        it('should display users messages with correct styling', () => {
             const userMessage = 'This is my message';
             cy.sendChatMessage(userMessage);
 
@@ -380,7 +380,7 @@ describe('Chat Interaction', () => {
         });
 
         it('should auto-scroll to latest message', () => {
-            // Send multiple messages to fill the chat
+            // Send multiple messages to fill the chats
             for (let i = 0; i < 5; i++) {
                 cy.sendChatMessage(`Message ${i + 1}`);
                 cy.wait(1000);
@@ -401,10 +401,10 @@ describe('Chat Interaction', () => {
     });
 
     describe('Chat Error Handling', () => {
-        it('should show error message when chat fails', () => {
-            // This would require mocking a chat failure
+        it('should show error message when chats fails', () => {
+            // This would require mocking a chats failure
             // Implementation depends on how you simulate errors
-            cy.log('Test requires mock setup for chat failure');
+            cy.log('Test requires mock setup for chats failure');
         });
 
         it('should allow retry after error', () => {
@@ -419,7 +419,7 @@ describe('Chat Interaction', () => {
     });
 
     describe('Chat Session Persistence', () => {
-        it('should persist chat history in local state', () => {
+        it('should persist chats history in local state', () => {
             const message = 'Persistent message';
             cy.sendChatMessage(message);
 
@@ -504,7 +504,7 @@ describe('Chat Interaction', () => {
                         );
                     });
 
-                // Test chat
+                // Test chats
                 cy.sendChatMessage('Test Graph RAG');
                 cy.get('[data-testid="bot-message"]', { timeout: 60000 }).should('exist');
             });

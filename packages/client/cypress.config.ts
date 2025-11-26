@@ -29,7 +29,7 @@ export default defineConfig({
         // API configuration
         apiUrl: 'http://localhost:8000/api',
 
-        // Test user credentials
+        // Test users credentials
         testUsername: 'testuser',
         testPassword: 'TestPassword123!',
         testEmail: 'testuser@example.com',

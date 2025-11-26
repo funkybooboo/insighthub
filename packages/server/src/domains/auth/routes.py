@@ -4,9 +4,9 @@ from flask import Blueprint, Response, g, jsonify, request
 from jwt.exceptions import InvalidTokenError
 
 from src.infrastructure.auth import create_access_token, get_current_user
-from src.infrastructure.security.rate_limit_decorator import require_rate_limit
+from src.infrastructure.logger import create_logger
 
-from .exceptions import UserAlreadyExistsError, UserAuthenticationError
+logger = create_logger(__name__)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -14,7 +14,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 @auth_bp.route("/signup", methods=["POST"])
 def signup() -> tuple[Response, int]:
     """
-    Register a new user.
+    Register a new users.
 
     Request Body:
         {
@@ -28,7 +28,7 @@ def signup() -> tuple[Response, int]:
         201: {
             "access_token": "string",
             "token_type": "bearer",
-            "user": {
+            "users": {
                 "id": int,
                 "username": "string",
                 "email": "string",
@@ -36,7 +36,7 @@ def signup() -> tuple[Response, int]:
                 "created_at": "string"
             }
         }
-        400: {"error": "string"} - Validation error or user already exists
+        400: {"error": "string"} - Validation error or users already exists
     """
     data = request.get_json()
     if not data:
@@ -91,7 +91,7 @@ def signup() -> tuple[Response, int]:
                 {
                     "access_token": token,
                     "token_type": "bearer",
-                    "user": {
+                    "users": {
                         "id": user.id,
                         "username": user.username,
                         "email": user.email,
@@ -111,7 +111,7 @@ def signup() -> tuple[Response, int]:
 @require_rate_limit(max_requests=5, window_seconds=300)  # 5 attempts per 5 minutes
 def login() -> tuple[Response, int]:
     """
-    Authenticate a user and return a JWT token.
+    Authenticate a users and return a JWT token.
 
     Request Body:
         {
@@ -123,7 +123,7 @@ def login() -> tuple[Response, int]:
         200: {
             "access_token": "string",
             "token_type": "bearer",
-            "user": {
+            "users": {
                 "id": int,
                 "username": "string",
                 "email": "string",
@@ -161,7 +161,7 @@ def login() -> tuple[Response, int]:
                 {
                     "access_token": token,
                     "token_type": "bearer",
-                    "user": {
+                    "users": {
                         "id": user.id,
                         "username": user.username,
                         "email": user.email,
@@ -190,7 +190,7 @@ def login() -> tuple[Response, int]:
 @auth_bp.route("/me", methods=["GET"])
 def get_me() -> tuple[Response, int]:
     """
-    Get the current authenticated user's information.
+    Get the current authenticated users's information.
 
     Headers:
         Authorization: Bearer <token>
@@ -241,7 +241,7 @@ def logout() -> tuple[Response, int]:
 @auth_bp.route("/change-password", methods=["POST"])
 def change_password() -> tuple[Response, int]:
     """
-    Change user password.
+    Change users password.
 
     Headers:
         Authorization: Bearer <token>
@@ -328,7 +328,7 @@ def change_password() -> tuple[Response, int]:
 @auth_bp.route("/profile", methods=["PATCH"])
 def update_profile() -> tuple[Response, int]:
     """
-    Update user profile.
+    Update users profile.
 
     Headers:
         Authorization: Bearer <token>
@@ -365,7 +365,7 @@ def update_profile() -> tuple[Response, int]:
         if email and "@" not in email:
             return jsonify({"error": "Invalid email format"}), 400
 
-        # Update user
+        # Update users
         updated_user = g.app_context.user_service.update_user(
             user.id, full_name=full_name, email=email
         )
@@ -394,7 +394,7 @@ def update_profile() -> tuple[Response, int]:
 @auth_bp.route("/preferences", methods=["PATCH"])
 def update_preferences() -> tuple[Response, int]:
     """
-    Update user preferences.
+    Update users preferences.
 
     Headers:
         Authorization: Bearer <token>
@@ -458,7 +458,7 @@ def update_preferences() -> tuple[Response, int]:
 @auth_bp.route("/default-rag-config", methods=["GET"])
 def get_default_rag_config() -> tuple[Response, int]:
     """
-    Get user's default RAG configuration.
+    Get users's default RAG configuration.
 
     Headers:
         Authorization: Bearer <token>
@@ -467,14 +467,19 @@ def get_default_rag_config() -> tuple[Response, int]:
         200: {
             "id": int,
             "user_id": int,
-            "embedding_model": "string",
-            "embedding_dim": int | null,
-            "retriever_type": "string",
-            "chunk_size": int,
-            "chunk_overlap": int,
-            "top_k": int,
-            "rerank_enabled": bool,
-            "rerank_model": "string" | null
+            "vector_config": {
+                "embedding_algorithm": "string",
+                "chunking_algorithm": "string",
+                "rerank_algorithm": "string",
+                "chunk_size": int,
+                "chunk_overlap": int,
+                "top_k": int
+            },
+            "graph_config": {
+                "entity_extraction_algorithm": "string",
+                "relationship_extraction_algorithm": "string",
+                "clustering_algorithm": "string"
+            }
         }
         404: {"error": "Default RAG configuration not found"}
         401: {"error": "string"} - Invalid or missing token
@@ -491,14 +496,19 @@ def get_default_rag_config() -> tuple[Response, int]:
                 {
                     "id": config.id,
                     "user_id": config.user_id,
-                    "embedding_model": config.embedding_model,
-                    "embedding_dim": config.embedding_dim,
-                    "retriever_type": config.retriever_type,
-                    "chunk_size": config.chunk_size,
-                    "chunk_overlap": config.chunk_overlap,
-                    "top_k": config.top_k,
-                    "rerank_enabled": config.rerank_enabled,
-                    "rerank_model": config.rerank_model,
+                    "vector_config": {
+                        "embedding_algorithm": config.vector_config.embedding_algorithm,
+                        "chunking_algorithm": config.vector_config.chunking_algorithm,
+                        "rerank_algorithm": config.vector_config.rerank_algorithm,
+                        "chunk_size": config.vector_config.chunk_size,
+                        "chunk_overlap": config.vector_config.chunk_overlap,
+                        "top_k": config.vector_config.top_k,
+                    },
+                    "graph_config": {
+                        "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
+                        "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
+                        "clustering_algorithm": config.graph_config.clustering_algorithm,
+                    },
                 }
             ),
             200,
@@ -510,35 +520,34 @@ def get_default_rag_config() -> tuple[Response, int]:
 @auth_bp.route("/default-rag-config", methods=["PUT"])
 def update_default_rag_config() -> tuple[Response, int]:
     """
-    Create or update user's default RAG configuration.
+    Create or update users's default RAG configuration.
 
     Headers:
         Authorization: Bearer <token>
 
     Request Body:
         {
-            "embedding_model": "string",
-            "embedding_dim": int | null,
-            "retriever_type": "string",
-            "chunk_size": int,
-            "chunk_overlap": int,
-            "top_k": int,
-            "rerank_enabled": bool,
-            "rerank_model": "string" | null
+            "vector_config": {
+                "embedding_algorithm": "string",
+                "chunking_algorithm": "string",
+                "rerank_algorithm": "string",
+                "chunk_size": int,
+                "chunk_overlap": int,
+                "top_k": int
+            },
+            "graph_config": {
+                "entity_extraction_algorithm": "string",
+                "relationship_extraction_algorithm": "string",
+                "clustering_algorithm": "string"
+            }
         }
 
     Returns:
         200: {
             "id": int,
             "user_id": int,
-            "embedding_model": "string",
-            "embedding_dim": int | null,
-            "retriever_type": "string",
-            "chunk_size": int,
-            "chunk_overlap": int,
-            "top_k": int,
-            "rerank_enabled": bool,
-            "rerank_model": "string" | null
+            "vector_config": {...},
+            "graph_config": {...}
         }
         400: {"error": "string"} - Invalid request
         401: {"error": "string"} - Invalid or missing token
@@ -550,40 +559,11 @@ def update_default_rag_config() -> tuple[Response, int]:
         if not data:
             return jsonify({"error": "Request body is required"}), 400
 
-        # Extract and validate fields
-        embedding_model = data.get("embedding_model", "nomic-embed-text")
-        embedding_dim = data.get("embedding_dim")
-        retriever_type = data.get("retriever_type", "vector")
-        chunk_size = data.get("chunk_size", 1000)
-        chunk_overlap = data.get("chunk_overlap", 200)
-        top_k = data.get("top_k", 8)
-        rerank_enabled = data.get("rerank_enabled", False)
-        rerank_model = data.get("rerank_model")
-
-        # Validation
-        if retriever_type not in ["vector", "graph", "hybrid"]:
-            return jsonify({"error": "retriever_type must be 'vector', 'graph', or 'hybrid'"}), 400
-
-        if not (100 <= chunk_size <= 5000):
-            return jsonify({"error": "chunk_size must be between 100 and 5000"}), 400
-
-        if not (0 <= chunk_overlap <= 1000):
-            return jsonify({"error": "chunk_overlap must be between 0 and 1000"}), 400
-
-        if not (1 <= top_k <= 50):
-            return jsonify({"error": "top_k must be between 1 and 50"}), 400
-
-        # Upsert configuration
-        config = g.app_context.default_rag_config_repository.upsert(
+        # Use the service instead of calling repository directly
+        config = g.app_context.default_rag_config_service.create_or_update_config(
             user_id=user.id,
-            embedding_model=embedding_model,
-            embedding_dim=embedding_dim,
-            retriever_type=retriever_type,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            top_k=top_k,
-            rerank_enabled=rerank_enabled,
-            rerank_model=rerank_model,
+            vector_config=data.get("vector_config"),
+            graph_config=data.get("graph_config"),
         )
 
         return (
@@ -591,14 +571,19 @@ def update_default_rag_config() -> tuple[Response, int]:
                 {
                     "id": config.id,
                     "user_id": config.user_id,
-                    "embedding_model": config.embedding_model,
-                    "embedding_dim": config.embedding_dim,
-                    "retriever_type": config.retriever_type,
-                    "chunk_size": config.chunk_size,
-                    "chunk_overlap": config.chunk_overlap,
-                    "top_k": config.top_k,
-                    "rerank_enabled": config.rerank_enabled,
-                    "rerank_model": config.rerank_model,
+                    "vector_config": {
+                        "embedding_algorithm": config.vector_config.embedding_algorithm,
+                        "chunking_algorithm": config.vector_config.chunking_algorithm,
+                        "rerank_algorithm": config.vector_config.rerank_algorithm,
+                        "chunk_size": config.vector_config.chunk_size,
+                        "chunk_overlap": config.vector_config.chunk_overlap,
+                        "top_k": config.vector_config.top_k,
+                    },
+                    "graph_config": {
+                        "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
+                        "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
+                        "clustering_algorithm": config.graph_config.clustering_algorithm,
+                    },
                 }
             ),
             200,

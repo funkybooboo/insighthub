@@ -1,8 +1,8 @@
 """User service implementation."""
 
-from shared.logger import create_logger
-from shared.models import User
-from shared.repositories import UserRepository
+from src.infrastructure.logger import create_logger
+from src.infrastructure.models import User
+from src.infrastructure.repositories.users import UserRepository
 
 from .exceptions import UserAlreadyExistsError, UserAuthenticationError
 
@@ -10,7 +10,7 @@ logger = create_logger(__name__)
 
 
 class UserService:
-    """Service for user-related business logic."""
+    """Service for users-related business logic."""
 
     def __init__(self, repository: UserRepository):
         """
@@ -24,25 +24,25 @@ class UserService:
     def create_user(
         self, username: str, email: str, password: str, full_name: str | None = None
     ) -> User:
-        """Create a new user with password."""
+        """Create a new users with password."""
         return self.repository.create(
             username=username, email=email, password=password, full_name=full_name
         )
 
     def get_user_by_id(self, user_id: int) -> User | None:
-        """Get user by ID."""
+        """Get users by ID."""
         return self.repository.get_by_id(user_id)
 
     def get_user_by_username(self, username: str) -> User | None:
-        """Get user by username."""
+        """Get users by username."""
         return self.repository.get_by_username(username)
 
     def get_user_by_email(self, email: str) -> User | None:
-        """Get user by email."""
+        """Get users by email."""
         return self.repository.get_by_email(email)
 
     def get_or_create_default_user(self) -> User:
-        """Get or create a default user for demo purposes."""
+        """Get or create a default users for demo purposes."""
         user = self.repository.get_by_username("demo_user")
         if user:
             return user
@@ -58,23 +58,23 @@ class UserService:
         return self.repository.get_all(skip=skip, limit=limit)
 
     def update_user(self, user_id: int, **kwargs: str) -> User | None:
-        """Update user fields."""
+        """Update users fields."""
         return self.repository.update(user_id, **kwargs)
 
     def delete_user(self, user_id: int) -> bool:
-        """Delete user by ID."""
+        """Delete users by ID."""
         return self.repository.delete(user_id)
 
     def authenticate_user(self, username: str, password: str) -> User:
         """
-        Authenticate a user with username and password.
+        Authenticate a users with username and password.
 
         Args:
             username: The username
             password: The plain text password
 
         Returns:
-            User: The authenticated user
+            User: The authenticated users
 
         Raises:
             UserAuthenticationError: If authentication fails
@@ -90,14 +90,14 @@ class UserService:
             logger.info(f"User authenticated successfully: user_id={user.id}, username={username}")
             return user
         else:
-            logger.warning(f"Authentication failed: user not found (username={username})")
+            logger.warning(f"Authentication failed: users not found (username={username})")
             raise UserAuthenticationError("Invalid username or password")
 
     def register_user(
         self, username: str, email: str, password: str, full_name: str | None = None
     ) -> User:
         """
-        Register a new user.
+        Register a new users.
 
         Args:
             username: The username
@@ -106,7 +106,7 @@ class UserService:
             full_name: Optional full name
 
         Returns:
-            User: The newly created user
+            User: The newly created users
 
         Raises:
             UserAlreadyExistsError: If username or email already exists

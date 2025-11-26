@@ -84,7 +84,7 @@ Use React Testing Library for component tests. Focus on user interactions and be
 ```typescript
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import userEvent from '@testing-library/users-event';
 import { Provider } from 'react-redux';
 import MyComponent from './MyComponent';
 
@@ -99,7 +99,7 @@ describe('MyComponent', () => {
         expect(screen.getByText('Hello')).toBeInTheDocument();
     });
 
-    it('should handle user interactions', async () => {
+    it('should handle users interactions', async () => {
         render(<MyComponent />);
 
         const button = screen.getByRole('button');
@@ -328,7 +328,7 @@ function createTestStore(preloadedState = {}) {
     });
 }
 
-it('should display user info from Redux', () => {
+it('should display users info from Redux', () => {
     const store = createTestStore({
         auth: {
             user: { username: 'testuser' },

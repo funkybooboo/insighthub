@@ -48,7 +48,7 @@ const meta: Meta<typeof MockChatMessages> = {
     argTypes: {
         messages: {
             control: 'object',
-            description: 'Array of chat messages',
+            description: 'Array of chats messages',
         },
         error: {
             control: 'text',
@@ -73,7 +73,7 @@ export const Empty: Story = {
     parameters: {
         docs: {
             description: {
-                story: 'Empty chat messages display showing the welcome message.',
+                story: 'Empty chats messages display showing the welcome message.',
             },
         },
     },
@@ -88,7 +88,7 @@ export const WithConversation: Story = {
     parameters: {
         docs: {
             description: {
-                story: 'Chat messages with user and assistant conversation, including context display.',
+                story: 'Chat messages with users and assistant conversation, including context display.',
             },
         },
     },
@@ -221,7 +221,7 @@ export const ErrorStates: Story = {
     parameters: {
         docs: {
             description: {
-                story: 'Shows how errors are displayed in the chat interface.',
+                story: 'Shows how errors are displayed in the chats interface.',
             },
         },
     },
@@ -272,7 +272,7 @@ export const WithMessages: Story = {
     parameters: {
         docs: {
             description: {
-                story: 'Chat messages with user and assistant conversation, including context display.',
+                story: 'Chat messages with users and assistant conversation, including context display.',
             },
         },
     },

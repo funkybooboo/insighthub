@@ -43,7 +43,7 @@ describe('Settings Management', () => {
             });
         });
 
-        it('should display current user information', () => {
+        it('should display current users information', () => {
             cy.fixture('users').then((users) => {
                 cy.contains(users.testUser.username).should('be.visible');
                 cy.contains(users.testUser.email).should('be.visible');

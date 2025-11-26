@@ -9,7 +9,7 @@ from src.domains.auth.service import UserService
 
 
 class FakeUserRepository(UserRepository):
-    """Fake user repository for testing."""
+    """Fake users repository for testing."""
 
     def __init__(self) -> None:
         """Initialize with in-memory storage."""
@@ -19,7 +19,7 @@ class FakeUserRepository(UserRepository):
     def create(
         self, username: str, email: str, password: str, full_name: str | None = None
     ) -> User:
-        """Create a new user."""
+        """Create a new users."""
         user = User(
             id=self.next_id,
             username=username,
@@ -33,18 +33,18 @@ class FakeUserRepository(UserRepository):
         return user
 
     def get_by_id(self, user_id: int) -> User | None:
-        """Get user by ID."""
+        """Get users by ID."""
         return self.users.get(user_id)
 
     def get_by_username(self, username: str) -> User | None:
-        """Get user by username."""
+        """Get users by username."""
         for user in self.users.values():
             if user.username == username:
                 return user
         return None
 
     def get_by_email(self, email: str) -> User | None:
-        """Get user by email."""
+        """Get users by email."""
         for user in self.users.values():
             if user.email == email:
                 return user
@@ -56,7 +56,7 @@ class FakeUserRepository(UserRepository):
         return all_users[skip : skip + limit]
 
     def update(self, user_id: int, **kwargs: str) -> User | None:
-        """Update user fields."""
+        """Update users fields."""
         user = self.users.get(user_id)
         if not user:
             return None
@@ -68,7 +68,7 @@ class FakeUserRepository(UserRepository):
         return user
 
     def delete(self, user_id: int) -> bool:
-        """Delete user by ID."""
+        """Delete users by ID."""
         if user_id in self.users:
             del self.users[user_id]
             return True
@@ -88,10 +88,10 @@ def service(fake_repository: FakeUserRepository) -> UserService:
 
 
 class TestUserServiceCreate:
-    """Tests for user creation."""
+    """Tests for users creation."""
 
     def test_create_user_success(self, service: UserService) -> None:
-        """Test creating a new user."""
+        """Test creating a new users."""
         user = service.create_user(
             username="testuser",
             email="test@example.com",
@@ -106,7 +106,7 @@ class TestUserServiceCreate:
         assert user.check_password("password123")
 
     def test_create_user_without_full_name(self, service: UserService) -> None:
-        """Test creating a user without full name."""
+        """Test creating a users without full name."""
         user = service.create_user(
             username="testuser", email="test@example.com", password="password123"
         )
@@ -119,7 +119,7 @@ class TestUserServiceGet:
     """Tests for retrieving users."""
 
     def test_get_user_by_id(self, service: UserService) -> None:
-        """Test getting user by ID."""
+        """Test getting users by ID."""
         created = service.create_user("testuser", "test@example.com", "password123")
         user = service.get_user_by_id(created.id)
 
@@ -128,12 +128,12 @@ class TestUserServiceGet:
         assert user.username == "testuser"
 
     def test_get_user_by_id_not_found(self, service: UserService) -> None:
-        """Test getting non-existent user by ID."""
+        """Test getting non-existent users by ID."""
         user = service.get_user_by_id(999)
         assert user is None
 
     def test_get_user_by_username(self, service: UserService) -> None:
-        """Test getting user by username."""
+        """Test getting users by username."""
         service.create_user("testuser", "test@example.com", "password123")
         user = service.get_user_by_username("testuser")
 
@@ -141,12 +141,12 @@ class TestUserServiceGet:
         assert user.username == "testuser"
 
     def test_get_user_by_username_not_found(self, service: UserService) -> None:
-        """Test getting non-existent user by username."""
+        """Test getting non-existent users by username."""
         user = service.get_user_by_username("nonexistent")
         assert user is None
 
     def test_get_user_by_email(self, service: UserService) -> None:
-        """Test getting user by email."""
+        """Test getting users by email."""
         service.create_user("testuser", "test@example.com", "password123")
         user = service.get_user_by_email("test@example.com")
 
@@ -154,7 +154,7 @@ class TestUserServiceGet:
         assert user.email == "test@example.com"
 
     def test_get_user_by_email_not_found(self, service: UserService) -> None:
-        """Test getting non-existent user by email."""
+        """Test getting non-existent users by email."""
         user = service.get_user_by_email("nonexistent@example.com")
         assert user is None
 
@@ -179,7 +179,7 @@ class TestUserServiceList:
     def test_list_users_pagination(self, service: UserService) -> None:
         """Test pagination."""
         for i in range(5):
-            service.create_user(f"user{i}", f"user{i}@example.com", "password123")
+            service.create_user(f"users{i}", f"users{i}@example.com", "password123")
 
         users_page1 = service.list_users(skip=0, limit=2)
         users_page2 = service.list_users(skip=2, limit=2)
@@ -193,7 +193,7 @@ class TestUserServiceUpdate:
     """Tests for updating users."""
 
     def test_update_user_success(self, service: UserService) -> None:
-        """Test updating user fields."""
+        """Test updating users fields."""
         user = service.create_user("testuser", "test@example.com", "password123")
         updated = service.update_user(user.id, full_name="Updated Name")
 
@@ -201,7 +201,7 @@ class TestUserServiceUpdate:
         assert updated.full_name == "Updated Name"
 
     def test_update_user_not_found(self, service: UserService) -> None:
-        """Test updating non-existent user."""
+        """Test updating non-existent users."""
         result = service.update_user(999, full_name="Updated Name")
         assert result is None
 
@@ -210,7 +210,7 @@ class TestUserServiceDelete:
     """Tests for deleting users."""
 
     def test_delete_user_success(self, service: UserService) -> None:
-        """Test deleting a user."""
+        """Test deleting a users."""
         user = service.create_user("testuser", "test@example.com", "password123")
         result = service.delete_user(user.id)
 
@@ -218,13 +218,13 @@ class TestUserServiceDelete:
         assert service.get_user_by_id(user.id) is None
 
     def test_delete_user_not_found(self, service: UserService) -> None:
-        """Test deleting non-existent user."""
+        """Test deleting non-existent users."""
         result = service.delete_user(999)
         assert result is False
 
 
 class TestUserServiceAuthentication:
-    """Tests for user authentication."""
+    """Tests for users authentication."""
 
     def test_authenticate_user_success(self, service: UserService) -> None:
         """Test successful authentication."""
@@ -241,13 +241,13 @@ class TestUserServiceAuthentication:
             service.authenticate_user("testuser", "wrongpassword")
 
     def test_authenticate_user_not_found(self, service: UserService) -> None:
-        """Test authentication for non-existent user."""
+        """Test authentication for non-existent users."""
         with pytest.raises(UserAuthenticationError, match="Invalid username or password"):
             service.authenticate_user("nonexistent", "password123")
 
 
 class TestUserServiceRegistration:
-    """Tests for user registration."""
+    """Tests for users registration."""
 
     def test_register_user_success(self, service: UserService) -> None:
         """Test successful registration."""
@@ -273,10 +273,10 @@ class TestUserServiceRegistration:
 
 
 class TestUserServiceDefaultUser:
-    """Tests for default user creation."""
+    """Tests for default users creation."""
 
     def test_get_or_create_default_user_creates_new(self, service: UserService) -> None:
-        """Test creating default user when it doesn't exist."""
+        """Test creating default users when it doesn't exist."""
         user = service.get_or_create_default_user()
 
         assert user.username == "demo_user"
@@ -284,7 +284,7 @@ class TestUserServiceDefaultUser:
         assert user.full_name == "Demo User"
 
     def test_get_or_create_default_user_returns_existing(self, service: UserService) -> None:
-        """Test getting existing default user."""
+        """Test getting existing default users."""
         user1 = service.get_or_create_default_user()
         user2 = service.get_or_create_default_user()
 
