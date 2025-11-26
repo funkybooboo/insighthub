@@ -9,12 +9,7 @@ import '../test/setup';
 
 describe('chatStorage', () => {
     beforeEach(() => {
-        localStorage.clear();
         vi.clearAllMocks();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
     });
 
     describe('loadSessions', () => {

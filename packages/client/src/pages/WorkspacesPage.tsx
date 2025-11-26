@@ -10,7 +10,7 @@ import {
     selectUserSettingsLoading,
 } from '../store/slices/userSettingsSlice';
 import type { WorkspaceStatus } from '../store/slices/statusSlice';
-import { type Workspace as BaseWorkspace, type CreateRagConfigRequest } from '../types/workspace';
+import { type Workspace as BaseWorkspace } from '../types/workspace';
 import apiService from '../services/api';
 import RagConfigForm from '../components/workspace/RagConfigForm'; // Import the new component
 

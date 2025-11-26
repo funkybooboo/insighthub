@@ -14,13 +14,19 @@ import RagConfigForm from '../components/workspace/RagConfigForm';
 import ProfileSettings from '../components/settings/ProfileSettings';
 import PasswordChangeForm from '../components/settings/PasswordChangeForm';
 import ThemePreferences from '../components/settings/ThemePreferences';
+import Modal from '../components/shared/Modal';
 import {
     type CreateRagConfigRequest,
     type VectorRagConfig,
     type GraphRagConfig,
 } from '../types/workspace';
 
-const SettingsPage: React.FC = () => {
+interface SettingsPageProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
     const dispatch = useDispatch<AppDispatch>();
     const { user } = useSelector((state: RootState) => state.auth);
     const defaultRagConfig = useSelector(selectDefaultRagConfig);
@@ -34,8 +40,10 @@ const SettingsPage: React.FC = () => {
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     useEffect(() => {
-        dispatch(fetchDefaultRagConfig());
-    }, [dispatch]);
+        if (isOpen) {
+            dispatch(fetchDefaultRagConfig());
+        }
+    }, [isOpen, dispatch]);
 
     useEffect(() => {
         if (defaultRagConfig) {
@@ -113,84 +121,89 @@ const SettingsPage: React.FC = () => {
         dispatch(clearUserSettingsError());
     };
 
+    const handleClose = () => {
+        handleCancel();
+        onClose();
+    };
+
     return (
-        <div className="container mx-auto p-4 max-w-2xl">
-            <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">
-                User Settings
-            </h1>
+        <Modal show={isOpen} onClose={handleClose} title="User Settings">
+            <div className="space-y-6">
+                <section>
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Profile Information
+                    </h2>
+                    <ProfileSettings user={user} />
+                </section>
 
-            <section className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    Profile Information
-                </h2>
-                <ProfileSettings user={user} />
-            </section>
+                <section>
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Change Password
+                    </h2>
+                    <PasswordChangeForm />
+                </section>
 
-            <section className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    Change Password
-                </h2>
-                <PasswordChangeForm />
-            </section>
+                <section>
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Theme Preferences
+                    </h2>
+                    <ThemePreferences />
+                </section>
 
-            <section className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    Theme Preferences
-                </h2>
-                <ThemePreferences />
-            </section>
+                <section>
+                    <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
+                        Default RAG Configuration
+                    </h2>
+                    {isLoading && (
+                        <p className="text-gray-600 dark:text-gray-400">
+                            Loading RAG configuration...
+                        </p>
+                    )}
+                    {error && <p className="text-red-500 mb-4">Error: {error}</p>}
 
-            <section className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
-                <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
-                    Default RAG Configuration
-                </h2>
-                {isLoading && (
-                    <p className="text-gray-600 dark:text-gray-400">Loading RAG configuration...</p>
-                )}
-                {error && <p className="text-red-500 mb-4">Error: {error}</p>}
+                    {!isLoading && (
+                        <>
+                            <RagConfigForm
+                                initialConfig={defaultRagConfig || {}}
+                                onConfigChange={handleConfigChange}
+                                readOnly={!isEditing}
+                            />
 
-                {!isLoading && (
-                    <>
-                        <RagConfigForm
-                            initialConfig={defaultRagConfig || {}}
-                            onConfigChange={handleConfigChange}
-                            readOnly={!isEditing}
-                        />
-
-                        <div className="mt-6 flex justify-end space-x-3">
-                            {isEditing && (
+                            <div className="mt-6 flex justify-end space-x-3">
+                                {isEditing && (
+                                    <button
+                                        onClick={handleCancel}
+                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
                                 <button
-                                    onClick={handleCancel}
-                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    onClick={handleSave}
+                                    className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                                        isEditing
+                                            ? 'bg-indigo-600 hover:bg-indigo-700'
+                                            : 'bg-gray-600 hover:bg-gray-700'
+                                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                                    disabled={isLoading}
                                 >
-                                    Cancel
+                                    {isLoading
+                                        ? 'Saving...'
+                                        : isEditing
+                                          ? 'Save Changes'
+                                          : 'Edit Configuration'}
                                 </button>
+                            </div>
+                            {saveSuccess && (
+                                <p className="mt-3 text-sm text-green-600 text-right">
+                                    Configuration saved successfully!
+                                </p>
                             )}
-                            <button
-                                onClick={handleSave}
-                                className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                                    isEditing
-                                        ? 'bg-indigo-600 hover:bg-indigo-700'
-                                        : 'bg-gray-600 hover:bg-gray-700'
-                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
-                                disabled={isLoading}
-                            >
-                                {isLoading
-                                    ? 'Saving...'
-                                    : isEditing
-                                      ? 'Save Changes'
-                                      : 'Edit Configuration'}
-                            </button>
-                        </div>
-                        {saveSuccess && (
-                            <p className="mt-3 text-sm text-green-600 text-right">
-                                Configuration saved successfully!
-                            </p>
-                        )}
-                    </>
-                )}
-            </section>
-        </div>
+                        </>
+                    )}
+                </section>
+            </div>
+        </Modal>
     );
 };
 

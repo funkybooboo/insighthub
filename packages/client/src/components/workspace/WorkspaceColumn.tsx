@@ -24,6 +24,8 @@ import RagConfigForm from './RagConfigForm';
 import { type RagConfig, type CreateRagConfigRequest } from '@/types/workspace';
 import { selectIsWorkspaceDeleting } from '@/store/slices/statusSlice';
 
+import Modal from '@/components/shared/Modal';
+
 const WorkspaceColumn: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
     const workspaces = useSelector(selectWorkspaces);
@@ -244,110 +246,109 @@ const WorkspaceColumn: React.FC = () => {
             )}
 
             {/* Create Workspace Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                            Create New Workspace
-                        </h2>
-                        <form onSubmit={handleCreateWorkspace}>
-                            {validationError && (
-                                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg text-sm">
-                                    {validationError}
-                                </div>
-                            )}
-
-                            {/* Basic Info */}
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Workspace Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newWorkspaceName}
-                                    onChange={(e) => {
-                                        setNewWorkspaceName(e.target.value);
-                                        setValidationError(null);
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                    placeholder="e.g., Research Papers"
-                                    maxLength={100}
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Description (optional)
-                                </label>
-                                <textarea
-                                    value={newWorkspaceDescription}
-                                    onChange={(e) => {
-                                        setNewWorkspaceDescription(e.target.value);
-                                        setValidationError(null);
-                                    }}
-                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
-                                    placeholder="What is this workspace for?"
-                                    maxLength={500}
-                                    rows={2}
-                                />
-                            </div>
-
-                            {/* RAG Configuration */}
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    RAG Configuration
-                                </span>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
-                                    Configure retrieval settings for this workspace.
-                                </p>
-
-                                {loadingDefaultRagConfig && (
-                                    <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
-                                        <LoadingSpinner size="sm" />
-                                        Loading default configuration...
-                                    </div>
-                                )}
-
-                                {!loadingDefaultRagConfig && (
-                                    <div className="mt-4">
-                                        <RagConfigForm
-                                            initialConfig={defaultRagConfig || {}}
-                                            onConfigChange={handleRagConfigChange}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Info about provisioning */}
-                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <p className="text-sm text-blue-700 dark:text-blue-300">
-                                    Creating a workspace will set up the required RAG
-                                    infrastructure. This may take a moment.
-                                </p>
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                    disabled={isCreating}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isCreating || !newWorkspaceName.trim()}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isCreating ? 'Creating...' : 'Create Workspace'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                show={showCreateModal}
+                onClose={handleCloseModal}
+                title="Create New Workspace"
+                footer={
+                    <div className="flex justify-end gap-2 mt-6">
+                        <button
+                            type="button"
+                            onClick={handleCloseModal}
+                            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            disabled={isCreating}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            form="create-workspace-form"
+                            disabled={isCreating || !newWorkspaceName.trim()}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isCreating ? 'Creating...' : 'Create Workspace'}
+                        </button>
                     </div>
-                </div>
-            )}
+                }
+            >
+                <form id="create-workspace-form" onSubmit={handleCreateWorkspace}>
+                    {validationError && (
+                        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded-lg text-sm">
+                            {validationError}
+                        </div>
+                    )}
+
+                    {/* Basic Info */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Workspace Name
+                        </label>
+                        <input
+                            type="text"
+                            value={newWorkspaceName}
+                            onChange={(e) => {
+                                setNewWorkspaceName(e.target.value);
+                                setValidationError(null);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                            placeholder="e.g., Research Papers"
+                            maxLength={100}
+                            required
+                            autoFocus
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Description (optional)
+                        </label>
+                        <textarea
+                            value={newWorkspaceDescription}
+                            onChange={(e) => {
+                                setNewWorkspaceDescription(e.target.value);
+                                setValidationError(null);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                            placeholder="What is this workspace for?"
+                            maxLength={500}
+                            rows={2}
+                        />
+                    </div>
+
+                    {/* RAG Configuration */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            RAG Configuration
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
+                            Configure retrieval settings for this workspace.
+                        </p>
+
+                        {loadingDefaultRagConfig && (
+                            <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
+                                <LoadingSpinner size="sm" />
+                                Loading default configuration...
+                            </div>
+                        )}
+
+                        {!loadingDefaultRagConfig && (
+                            <div className="mt-4">
+                                <RagConfigForm
+                                    initialConfig={defaultRagConfig || {}}
+                                    onConfigChange={handleRagConfigChange}
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Info about provisioning */}
+                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                            Creating a workspace will set up the required RAG infrastructure. This
+                            may take a moment.
+                        </p>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

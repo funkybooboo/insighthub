@@ -7,7 +7,6 @@ describe('themeSlice', () => {
     let store: ReturnType<typeof configureStore>;
 
     beforeEach(() => {
-        localStorage.clear();
         vi.clearAllMocks();
         store = configureStore({
             reducer: {

@@ -10,6 +10,7 @@ interface LayoutProps {
     chatColumn: ReactNode;
     documentColumn: ReactNode;
     headerContent?: ReactNode;
+    openSettings: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -18,6 +19,7 @@ const Layout: React.FC<LayoutProps> = ({
     chatColumn,
     documentColumn,
     headerContent,
+    openSettings,
 }) => {
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -49,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({
                     <div className="flex-1">{headerContent}</div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => navigate('/settings')}
+                            onClick={openSettings}
                             className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
                         >
                             Settings

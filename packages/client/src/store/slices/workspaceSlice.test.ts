@@ -40,14 +40,6 @@ describe('workspaceSlice', () => {
         error: null,
     };
 
-    beforeEach(() => {
-        localStorage.clear();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
-    });
-
     describe('initial state', () => {
         it('should return the initial state with no active workspace', () => {
             const state = workspaceReducer(undefined, { type: 'unknown' });

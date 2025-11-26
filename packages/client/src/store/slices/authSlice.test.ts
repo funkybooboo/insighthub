@@ -7,13 +7,6 @@ import authReducer, { setCredentials, logout, setLoading, setUser, type User } f
 import '../../test/setup';
 
 describe('authSlice', () => {
-    beforeEach(() => {
-        localStorage.clear();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
-    });
 
     describe('initial state', () => {
         it('should have correct initial state when no token in localStorage', () => {

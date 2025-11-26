@@ -27,12 +27,7 @@ vi.mock('@/lib/chatStorage', () => ({
 
 describe('chatSlice', () => {
     beforeEach(() => {
-        localStorage.clear();
         vi.clearAllMocks();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
     });
 
     describe('initial state', () => {

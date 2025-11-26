@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import LoginForm from './components/auth/LoginForm';
 import SignupForm from './components/auth/SignupForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -26,6 +26,7 @@ function AppContent() {
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
     const { theme } = useSelector((state: RootState) => state.theme);
     const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Subscribe to real-time status updates when authenticated
     useStatusUpdates();
@@ -47,6 +48,24 @@ function AppContent() {
         }
     }, [user?.theme_preference, dispatch]);
 
+    const layout = (chatColumn: React.ReactNode) => (
+        <Layout
+            workspaceColumn={<WorkspaceColumn />}
+            chatSessionColumn={<ChatSessionList />}
+            chatColumn={chatColumn}
+            documentColumn={
+                activeWorkspaceId ? (
+                    <DocumentManager workspaceId={activeWorkspaceId} />
+                ) : (
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                        Select a workspace to manage documents
+                    </div>
+                )
+            }
+            openSettings={() => setIsSettingsOpen(true)}
+        />
+    );
+
     return (
         <>
             <BrowserRouter>
@@ -60,92 +79,23 @@ function AppContent() {
                         element={isAuthenticated ? <Navigate to="/" replace /> : <SignupForm />}
                     />
                     <Route
-                        path="/settings"
-                        element={
-                            <ProtectedRoute>
-                                <Layout
-                                    workspaceColumn={<WorkspaceColumn />}
-                                    chatSessionColumn={<ChatSessionList />}
-                                    chatColumn={<SettingsPage />}
-                                    documentColumn={
-                                        activeWorkspaceId ? (
-                                            <DocumentManager workspaceId={activeWorkspaceId} />
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                                Select a workspace to manage documents
-                                            </div>
-                                        )
-                                    }
-                                />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
                         path="/workspaces"
-                        element={
-                            <ProtectedRoute>
-                                <Layout
-                                    workspaceColumn={<WorkspaceColumn />}
-                                    chatSessionColumn={<ChatSessionList />}
-                                    chatColumn={<WorkspacesPage />}
-                                    documentColumn={
-                                        activeWorkspaceId ? (
-                                            <DocumentManager workspaceId={activeWorkspaceId} />
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                                Select a workspace to manage documents
-                                            </div>
-                                        )
-                                    }
-                                />
-                            </ProtectedRoute>
-                        }
+                        element={<ProtectedRoute>{layout(<WorkspacesPage />)}</ProtectedRoute>}
                     />
                     <Route
                         path="/workspaces/:workspaceId"
-                        element={
-                            <ProtectedRoute>
-                                <Layout
-                                    workspaceColumn={<WorkspaceColumn />}
-                                    chatSessionColumn={<ChatSessionList />}
-                                    chatColumn={<WorkspaceDetailPage />}
-                                    documentColumn={
-                                        activeWorkspaceId ? (
-                                            <DocumentManager workspaceId={activeWorkspaceId} />
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                                Select a workspace to manage documents
-                                            </div>
-                                        )
-                                    }
-                                />
-                            </ProtectedRoute>
-                        }
+                        element={<ProtectedRoute>{layout(<WorkspaceDetailPage />)}</ProtectedRoute>}
                     />
                     <Route
                         path="/"
-                        element={
-                            <ProtectedRoute>
-                                <Layout
-                                    workspaceColumn={<WorkspaceColumn />}
-                                    chatSessionColumn={<ChatSessionList />}
-                                    chatColumn={<ChatBot />}
-                                    documentColumn={
-                                        activeWorkspaceId ? (
-                                            <DocumentManager workspaceId={activeWorkspaceId} />
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                                Select a workspace to manage documents
-                                            </div>
-                                        )
-                                    }
-                                />
-                            </ProtectedRoute>
-                        }
+                        element={<ProtectedRoute>{layout(<ChatBot />)}</ProtectedRoute>}
                     />
                 </Routes>
             </BrowserRouter>
             <NotificationContainer />
+            {isAuthenticated && (
+                <SettingsPage isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+            )}
         </>
     );
 }

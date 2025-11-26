@@ -5,6 +5,7 @@ from jwt.exceptions import InvalidTokenError
 
 from src.domains.auth.exceptions import UserAlreadyExistsError, UserAuthenticationError
 from src.infrastructure.auth import create_access_token, get_current_user
+from src.infrastructure.auth.decorators import require_auth
 from src.infrastructure.logger import create_logger
 from src.infrastructure.security import (
     InputSanitizer,
@@ -270,6 +271,7 @@ def login() -> tuple[Response, int]:
 
 
 @auth_bp.route("/me", methods=["GET"])
+@require_auth
 def get_me() -> tuple[Response, int]:
     """
     Get the current authenticated users's information.
@@ -317,6 +319,7 @@ def get_me() -> tuple[Response, int]:
 
 @auth_bp.route("/profile", methods=["PATCH"])
 @require_rate_limit(max_requests=10, window_seconds=300)  # 10 updates per 5 minutes
+@require_auth
 def update_profile() -> tuple[Response, int]:
     """
     Update user profile.
@@ -410,13 +413,18 @@ def update_profile() -> tuple[Response, int]:
 
 
 @auth_bp.route("/default-rag-config", methods=["GET"])
+@require_auth
 def get_default_rag_config() -> tuple[Response, int]:
     """
     Get the current user's default RAG configuration.
 
+    Headers:
+        Authorization: Bearer <token>
+
     Returns:
         200: VectorRagConfig | GraphRagConfig
         404: {"error": "No default RAG config found"}
+        401: {"error": "Unauthorized"}
         500: {"error": "Server error"}
     """
     try:
@@ -425,12 +433,9 @@ def get_default_rag_config() -> tuple[Response, int]:
         # Get default config from service
         config = g.app_context.default_rag_config_service.get_user_config(user.id)
 
-        if not config:
-            return jsonify({"error": "No default RAG config found for user"}), 404
-
         # Convert to the format expected by client (VectorRagConfig or GraphRagConfig)
         # For now, return vector config as default
-        if config.vector_config:
+        if config and config.vector_config:
             vector_config = config.vector_config
             response_data = {
                 "embedding_algorithm": vector_config.get("embedding_algorithm", "nomic-embed-text"),
@@ -442,7 +447,8 @@ def get_default_rag_config() -> tuple[Response, int]:
             }
             return jsonify(response_data), 200
         else:
-            # Return default vector config
+            # Return default vector config if user has no saved config
+            logger.info(f"Returning default RAG config for user {user.id} (no custom config found)")
             return (
                 jsonify(
                     {
@@ -457,11 +463,16 @@ def get_default_rag_config() -> tuple[Response, int]:
                 200,
             )
 
+    except InvalidTokenError as e:
+        logger.warning(f"Invalid token for default RAG config: {str(e)}")
+        return jsonify({"error": "Invalid or expired token"}), 401
     except Exception as e:
+        logger.error(f"Error getting default RAG config: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to get default RAG config: {str(e)}"}), 500
 
 
 @auth_bp.route("/default-rag-config", methods=["PUT"])
+@require_auth
 def save_default_rag_config() -> tuple[Response, int]:
     """
     Save the current user's default RAG configuration.
@@ -506,11 +517,16 @@ def save_default_rag_config() -> tuple[Response, int]:
 
         return jsonify(response_data), 200
 
+    except InvalidTokenError as e:
+        logger.warning(f"Invalid token for saving default RAG config: {str(e)}")
+        return jsonify({"error": "Invalid or expired token"}), 401
     except Exception as e:
+        logger.error(f"Error saving default RAG config: {str(e)}", exc_info=True)
         return jsonify({"error": f"Failed to save default RAG config: {str(e)}"}), 500
 
 
 @auth_bp.route("/preferences", methods=["PATCH"])
+@require_auth
 def update_preferences() -> tuple[Response, int]:
     """
     Update users preferences.
@@ -576,6 +592,7 @@ def update_preferences() -> tuple[Response, int]:
 
 @auth_bp.route("/logout", methods=["POST"])
 @require_rate_limit(max_requests=10, window_seconds=300)  # 10 logouts per 5 minutes
+@require_auth
 def logout() -> tuple[Response, int]:
     """
     Logout the current user.
@@ -611,6 +628,7 @@ def logout() -> tuple[Response, int]:
 
 @auth_bp.route("/change-password", methods=["POST"])
 @require_rate_limit(max_requests=3, window_seconds=3600)  # 3 password changes per hour
+@require_auth
 def change_password() -> tuple[Response, int]:
     """
     Change the current user's password.
@@ -688,6 +706,7 @@ def change_password() -> tuple[Response, int]:
 
 
 @auth_bp.route("/users", methods=["GET"])
+@require_auth
 def list_users() -> tuple[Response, int]:
     """
     List all users with pagination.

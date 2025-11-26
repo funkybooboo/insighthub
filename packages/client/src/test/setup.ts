@@ -66,58 +66,19 @@ global.CustomEvent = jsdomWindow.CustomEvent;
 global.MouseEvent = jsdomWindow.MouseEvent;
 global.KeyboardEvent = jsdomWindow.KeyboardEvent;
 
-// Debug
-console.log('Document setup complete:', {
-    document: typeof global.document,
-    body: !!global.document?.body,
-    window: typeof global.window,
-});
-
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach, vi, beforeAll, afterAll } from 'vitest';
+import { server } from './msw-server';
 
-// MSW setup removed - using direct mocking instead
-
-// Mock localStorage using Storage API
-const localStorageMock = (() => {
-    const store: Record<string, string> = {};
-
-    return {
-        get length(): number {
-            return Object.keys(store).length;
-        },
-
-        clear(): void {
-            Object.keys(store).forEach((key) => delete store[key]);
-        },
-
-        getItem(key: string): string | null {
-            return store[key] ?? null;
-        },
-
-        key(index: number): string | null {
-            return Object.keys(store)[index] ?? null;
-        },
-
-        removeItem(key: string): void {
-            delete store[key];
-        },
-
-        setItem(key: string, value: string): void {
-            store[key] = String(value);
-        },
-    };
-})();
-
-// Assign to global
-(global as unknown as { localStorage: typeof localStorageMock }).localStorage = localStorageMock;
-(globalThis as unknown as { localStorage: typeof localStorageMock }).localStorage =
-    localStorageMock;
+// MSW setup
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterAll(() => server.close());
+afterEach(() => server.resetHandlers());
 
 // Reset localStorage before each test
 beforeEach(() => {
-    localStorageMock.clear();
+    localStorage.clear();
 });
 
 // Clean up after each test

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
 import { apiService } from './api';
 import '../test/setup';
 import type {
@@ -9,6 +8,7 @@ import type {
     CreateWorkspaceRequest,
     UpdateWorkspaceRequest,
 } from '../types/workspace';
+import { server } from '../test/msw-server';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -33,130 +33,6 @@ const mockRagConfig: RagConfig = {
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
 };
-
-const server = setupServer(
-    http.get(`${API_BASE_URL}/health`, () => {
-        return HttpResponse.json({ status: 'ok' });
-    }),
-
-    http.get(`${API_BASE_URL}/api/workspaces`, () => {
-        return HttpResponse.json([mockWorkspace]);
-    }),
-
-    http.get(`${API_BASE_URL}/api/workspaces/:id`, ({ params }) => {
-        return HttpResponse.json({ ...mockWorkspace, id: Number(params.id) });
-    }),
-
-    http.post(`${API_BASE_URL}/api/workspaces`, async ({ request }) => {
-        const body = (await request.json()) as CreateWorkspaceRequest;
-        return HttpResponse.json({
-            ...mockWorkspace,
-            id: 2,
-            name: body.name,
-            description: body.description,
-        });
-    }),
-
-    http.patch(`${API_BASE_URL}/api/workspaces/:id`, async ({ request, params }) => {
-        const body = (await request.json()) as UpdateWorkspaceRequest;
-        return HttpResponse.json({
-            ...mockWorkspace,
-            id: Number(params.id),
-            ...body,
-        });
-    }),
-
-    http.delete(`${API_BASE_URL}/api/workspaces/:id`, () => {
-        return HttpResponse.json({ message: 'Workspace deleted successfully' });
-    }),
-
-    http.get(`${API_BASE_URL}/api/workspaces/:id/rag-config`, ({ params }) => {
-        return HttpResponse.json({ ...mockRagConfig, workspace_id: Number(params.id) });
-    }),
-
-    http.post(`${API_BASE_URL}/api/workspaces/:id/rag-config`, async ({ request, params }) => {
-        const body = await request.json();
-        return HttpResponse.json({
-            ...mockRagConfig,
-            id: 2,
-            workspace_id: Number(params.id),
-            ...body,
-        });
-    }),
-
-    http.patch(`${API_BASE_URL}/api/workspaces/:id/rag-config`, async ({ request, params }) => {
-        const body = await request.json();
-        return HttpResponse.json({
-            ...mockRagConfig,
-            workspace_id: Number(params.id),
-            ...body,
-        });
-    }),
-
-    http.post(`${API_BASE_URL}/api/auth/signup`, async ({ request }) => {
-        const body = (await request.json()) as {
-            username: string;
-            email: string;
-            full_name?: string;
-        };
-        return HttpResponse.json({
-            access_token: 'mock-token',
-            token_type: 'Bearer',
-            user: {
-                id: 1,
-                username: body.username,
-                email: body.email,
-                full_name: body.full_name || null,
-                created_at: '2025-01-01T00:00:00Z',
-            },
-        });
-    }),
-
-    http.post(`${API_BASE_URL}/api/auth/login`, () => {
-        return HttpResponse.json({
-            access_token: 'mock-token',
-            token_type: 'Bearer',
-            user: {
-                id: 1,
-                username: 'testuser',
-                email: 'test@example.com',
-                full_name: 'Test User',
-                created_at: '2025-01-01T00:00:00Z',
-            },
-        });
-    }),
-
-    http.post(`${API_BASE_URL}/api/auth/logout`, () => {
-        return HttpResponse.json({ message: 'Logged out successfully' });
-    }),
-
-    http.get(`${API_BASE_URL}/api/auth/me`, () => {
-        return HttpResponse.json({
-            id: 1,
-            username: 'testuser',
-            email: 'test@example.com',
-            full_name: 'Test User',
-            created_at: '2025-01-01T00:00:00Z',
-            theme_preference: 'dark',
-        });
-    }),
-
-    http.patch(`${API_BASE_URL}/api/auth/preferences`, async ({ request }) => {
-        const body = (await request.json()) as { theme_preference: string };
-        return HttpResponse.json({
-            id: 1,
-            username: 'testuser',
-            email: 'test@example.com',
-            full_name: 'Test User',
-            created_at: '2025-01-01T00:00:00Z',
-            theme_preference: body.theme_preference,
-        });
-    })
-);
-
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterAll(() => server.close());
-afterEach(() => server.resetHandlers());
 
 beforeEach(() => {
     localStorage.clear();
@@ -519,46 +395,55 @@ describe('ApiService', () => {
 
     describe('chats functionality', () => {
         it('should send chats message', async () => {
-            // Use direct mocking to avoid MSW timeout issues
-            const mockPost = vi.fn().mockResolvedValue({
-                data: { message_id: 'msg-123' },
-            });
-            (apiService as { client: { post: typeof mockPost } }).client.post = mockPost;
+            server.use(
+                http.post(
+                    `${API_BASE_URL}/api/workspaces/1/chat/sessions/123/messages`,
+                    async ({ request }) => {
+                        const body = await request.json();
+                        expect(body).toEqual({
+                            content: 'Hello',
+                            message_type: 'user',
+                        });
+                        return HttpResponse.json({ message_id: 'msg-123' });
+                    }
+                )
+            );
 
-            const result = await apiService.sendChatMessage(1, 1, 'Hello world');
+            const result = await apiService.sendChatMessage(1, 123, 'Hello');
             expect(result.message_id).toBe('msg-123');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/messages', {
-                content: 'Hello world',
-                message_type: 'user',
-            });
         });
 
         it('should cancel chats message', async () => {
-            // Use direct mocking to avoid MSW timeout issues
-            const mockPost = vi.fn().mockResolvedValue({
-                data: { message: 'Message cancelled' },
-            });
-            (apiService as { client: { post: typeof mockPost } }).client.post = mockPost;
+            server.use(
+                http.post(
+                    `${API_BASE_URL}/api/workspaces/1/chat/sessions/1/cancel`,
+                    async ({ request }) => {
+                        const body = await request.json();
+                        expect(body).toEqual({ message_id: 'msg-123' });
+                        return HttpResponse.json({ message: 'Message cancelled' });
+                    }
+                )
+            );
 
             const result = await apiService.cancelChatMessage(1, 1, 'msg-123');
             expect(result.message).toBe('Message cancelled');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/cancel', {
-                message_id: 'msg-123',
-            });
         });
 
         it('should create chats session', async () => {
-            const mockPost = vi.fn().mockResolvedValue({
-                data: { session_id: 123, title: 'New Chat' },
-            });
-            (apiService as { client: { post: typeof mockPost } }).client.post = mockPost;
+            server.use(
+                http.post(
+                    `${API_BASE_URL}/api/workspaces/1/chat/sessions`,
+                    async ({ request }) => {
+                        const body = await request.json();
+                        expect(body).toEqual({ title: 'Test Chat' });
+                        return HttpResponse.json({ session_id: 123, title: 'New Chat' });
+                    }
+                )
+            );
 
             const result = await apiService.createChatSession(1, 'Test Chat');
             expect(result.session_id).toBe(123);
             expect(result.title).toBe('New Chat');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions', {
-                title: 'Test Chat',
-            });
         });
 
         it('should get chats sessions', async () => {
@@ -571,41 +456,51 @@ describe('ApiService', () => {
                     message_count: 5,
                 },
             ];
-            const mockGet = vi.fn().mockResolvedValue({
-                data: mockSessions,
-            });
-            (apiService as { client: { get: typeof mockGet } }).client.get = mockGet;
+            server.use(
+                http.get(`${API_BASE_URL}/api/workspaces/1/chat/sessions`, () => {
+                    return HttpResponse.json(mockSessions);
+                })
+            );
 
             const result = await apiService.getChatSessions(1);
             expect(result).toEqual(mockSessions);
-            expect(mockGet).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions');
         });
 
         it('should delete chats session', async () => {
-            const mockDelete = vi.fn().mockResolvedValue({
-                data: { message: 'Session deleted' },
-            });
-            (apiService as { client: { delete: typeof mockDelete } }).client.delete = mockDelete;
+            server.use(
+                http.delete(
+                    `${API_BASE_URL}/api/workspaces/1/chat/sessions/123`,
+                    () => {
+                        return HttpResponse.json({ message: 'Session deleted' });
+                    }
+                )
+            );
 
             const result = await apiService.deleteChatSession(1, 123);
             expect(result.message).toBe('Session deleted');
-            expect(mockDelete).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/123');
         });
     });
 
     describe('Wikipedia integration', () => {
         it('should fetch Wikipedia article', async () => {
-            // Use direct mocking to avoid MSW timeout issues
-            const mockPost = vi.fn().mockResolvedValue({
-                data: { message: 'Wikipedia article fetched successfully' },
-            });
-            (apiService as { client: { post: typeof mockPost } }).client.post = mockPost;
+            server.use(
+                http.post(
+                    `${API_BASE_URL}/api/workspaces/1/documents/fetch-wikipedia`,
+                    async ({ request }) => {
+                        const body = await request.json();
+                        expect(body).toEqual({ query: 'machine learning' });
+                        return HttpResponse.json({
+                            message: 'Wikipedia article fetched successfully',
+                        });
+                    }
+                )
+            );
 
-            const result = await apiService.fetchWikipediaArticle(1, 'machine learning');
+            const result = await apiService.fetchWikipediaArticle(
+                1,
+                'machine learning'
+            );
             expect(result.message).toBe('Wikipedia article fetched successfully');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/documents/fetch-wikipedia', {
-                query: 'machine learning',
-            });
         });
     });
 });

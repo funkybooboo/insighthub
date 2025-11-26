@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { render, act, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Provider } from 'react-redux';
@@ -135,19 +138,6 @@ vi.mock('../../services/socket', () => ({
     },
 }));
 
-vi.mock('../../services/api', () => ({
-    default: {
-        sendChatMessage: vi.fn().mockResolvedValue({}),
-        cancelChatMessage: vi.fn().mockResolvedValue({}),
-        listDocuments: vi.fn().mockResolvedValue([]),
-        createChatSession: vi.fn().mockResolvedValue({
-            session_id: 1,
-            title: 'New Chat',
-        }),
-        fetchWikipediaArticle: vi.fn().mockResolvedValue({}),
-    },
-}));
-
 const createMockStore = (initialState = {}) => {
     return configureStore({
         reducer: {
@@ -200,19 +190,6 @@ const renderWithProviders = (component: React.ReactElement, store = createMockSt
 };
 
 describe('ChatBot', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        // Reset API service mocks to default resolved values
-        vi.mocked(apiService.sendChatMessage).mockResolvedValue({});
-        vi.mocked(apiService.cancelChatMessage).mockResolvedValue({});
-        vi.mocked(apiService.listDocuments).mockResolvedValue([]);
-        vi.mocked(apiService.createChatSession).mockResolvedValue({
-            session_id: 1,
-            title: 'New Chat',
-        });
-        vi.mocked(apiService.fetchWikipediaArticle).mockResolvedValue({});
-    });
-
     describe('Basic Rendering', () => {
         it('renders without crashing', () => {
             expect(() => renderWithProviders(<ChatBot />)).not.toThrow();
@@ -221,27 +198,27 @@ describe('ChatBot', () => {
 
     describe('Socket Connection', () => {
         it('connects to socket on mount', () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             renderWithProviders(<ChatBot />);
             expect(mockSocket.connect).toHaveBeenCalled();
         });
 
         it('disconnects from socket on unmount', () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             const { unmount } = renderWithProviders(<ChatBot />);
             unmount();
             expect(mockSocket.disconnect).toHaveBeenCalled();
         });
 
         it('removes all listeners on unmount', () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             const { unmount } = renderWithProviders(<ChatBot />);
             unmount();
             expect(mockSocket.removeAllListeners).toHaveBeenCalled();
         });
 
         it('sets up socket event listeners', () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             renderWithProviders(<ChatBot />);
             expect(mockSocket.onConnected).toHaveBeenCalled();
             expect(mockSocket.onChatResponseChunk).toHaveBeenCalled();
@@ -254,7 +231,7 @@ describe('ChatBot', () => {
 
     describe('Socket Event Handling', () => {
         it('handles chats completion', async () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             renderWithProviders(<ChatBot />);
 
             await waitFor(() => {
@@ -263,10 +240,10 @@ describe('ChatBot', () => {
             });
 
             await act(async () => {
-                const chunkCallback = mockSocket.onChatResponseChunk.mock.calls[0][0];
+                const chunkCallback = (mockSocket.onChatResponseChunk as vi.Mock).mock.calls[0][0];
                 chunkCallback({ chunk: 'Hello', message_id: 'msg-123' });
 
-                const completeCallback = mockSocket.onChatComplete.mock.calls[0][0];
+                const completeCallback = (mockSocket.onChatComplete as vi.Mock).mock.calls[0][0];
                 completeCallback({
                     session_id: 1,
                     full_response: 'Hello world',
@@ -278,7 +255,7 @@ describe('ChatBot', () => {
         });
 
         it('handles chats cancellation', async () => {
-            const mockSocket = vi.mocked(socketService);
+            const mockSocket = socketService as vi.Mocked<typeof socketService>;
             renderWithProviders(<ChatBot />);
 
             await waitFor(() => {
@@ -286,7 +263,7 @@ describe('ChatBot', () => {
             });
 
             await act(async () => {
-                const cancelCallback = mockSocket.onChatCancelled.mock.calls[0][0];
+                const cancelCallback = (mockSocket.onChatCancelled as vi.Mock).mock.calls[0][0];
                 cancelCallback();
             });
 
@@ -296,8 +273,8 @@ describe('ChatBot', () => {
 
     describe('Document Loading', () => {
         it('loads documents on mount', () => {
-            const mockApi = vi.mocked(apiService);
-            mockApi.listDocuments.mockResolvedValue({ documents: [] });
+            const mockApi = apiService as vi.Mocked<typeof apiService>;
+            (mockApi.listDocuments as vi.Mock).mockResolvedValue({ documents: [] });
 
             renderWithProviders(<ChatBot />);
 
@@ -305,8 +282,8 @@ describe('ChatBot', () => {
         });
 
         it('handles document loading errors gracefully', () => {
-            const mockApi = vi.mocked(apiService);
-            mockApi.listDocuments.mockRejectedValue(new Error('Load failed'));
+            const mockApi = apiService as vi.Mocked<typeof apiService>;
+            (mockApi.listDocuments as vi.Mock).mockRejectedValue(new Error('Load failed'));
 
             expect(() => renderWithProviders(<ChatBot />)).not.toThrow();
         });
@@ -314,8 +291,8 @@ describe('ChatBot', () => {
 
     describe('Session Management', () => {
         it('creates initial session when none exists', async () => {
-            const mockApi = vi.mocked(apiService);
-            mockApi.createChatSession.mockResolvedValue({
+            const mockApi = apiService as vi.Mocked<typeof apiService>;
+            (mockApi.createChatSession as vi.Mock).mockResolvedValue({
                 session_id: 1,
                 title: 'New Chat',
             });
@@ -336,8 +313,8 @@ describe('ChatBot', () => {
         });
 
         it('handles session creation errors with fallback', async () => {
-            const mockApi = vi.mocked(apiService);
-            mockApi.createChatSession.mockRejectedValue(new Error('Create failed'));
+            const mockApi = apiService as vi.Mocked<typeof apiService>;
+            (mockApi.createChatSession as vi.Mock).mockRejectedValue(new Error('Create failed'));
 
             const store = createMockStore({
                 chat: {
