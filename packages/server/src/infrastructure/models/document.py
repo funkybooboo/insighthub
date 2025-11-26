@@ -26,4 +26,6 @@ class Document:
     parsed_text: str | None = None  # Extracted text content
 
     def __repr__(self) -> str:
-        return f"<Document(id={self.id}, filename={self.filename}, workspace_id={self.workspace_id})>"
+        return (
+            f"<Document(id={self.id}, filename={self.filename}, workspace_id={self.workspace_id})>"
+        )

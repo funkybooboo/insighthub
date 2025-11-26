@@ -10,7 +10,14 @@ class WorkspaceRepository(ABC):
     """Interface for Workspace repository operations."""
 
     @abstractmethod
-    def create(self, user_id: int, name: str, description: str | None = None, rag_type: str = "vector", rag_config: dict | None = None) -> Workspace:
+    def create(
+        self,
+        user_id: int,
+        name: str,
+        description: str | None = None,
+        rag_type: str = "vector",
+        rag_config: dict | None = None,
+    ) -> Workspace:
         """Create a new workspace."""
         pass
 

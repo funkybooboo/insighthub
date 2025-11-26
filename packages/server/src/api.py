@@ -4,15 +4,16 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-from src.infrastructure import config
-from src.infrastructure.logger import create_logger
-from src.infrastructure.sockets.handler import SocketHandler
 from src.domains.algorithms.routes import algorithms_bp
 from src.domains.auth.routes import auth_bp
-from src.domains.workspaces.chat.routes import chat_bp
-from src.domains.workspaces.documents.routes import documents_bp
 from src.domains.health.routes import health_bp
+from src.domains.workspaces.chats.messages.routes import messages_bp
+from src.domains.workspaces.chats.sessions.routes import sessions_bp
+from src.domains.workspaces.documents.routes import documents_bp
 from src.domains.workspaces.routes import workspaces_bp
+from src.infrastructure.config import config
+from src.infrastructure.logger import create_logger
+from src.infrastructure.sockets.handler import SocketHandler
 
 logger = create_logger(__name__)
 
@@ -41,7 +42,8 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(workspaces_bp)
     app.register_blueprint(documents_bp)
-    app.register_blueprint(chat_bp)
+    app.register_blueprint(messages_bp)
+    app.register_blueprint(sessions_bp)
 
     @app.route("/")
     def index() -> dict[str, str]:

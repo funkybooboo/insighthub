@@ -1,12 +1,11 @@
 """S3-compatible blob storage implementation using MinIO."""
 
-import os
 from typing import Optional
-from urllib.parse import urljoin
 
 try:
     from minio import Minio
     from minio.error import S3Error
+
     MINIO_AVAILABLE = True
 except ImportError:
     MINIO_AVAILABLE = False

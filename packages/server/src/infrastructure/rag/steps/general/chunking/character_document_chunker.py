@@ -53,7 +53,7 @@ class CharacterDocumentChunker(Chunker):
                     "overlap": self.overlap,
                     "start_char": start,
                     "end_char": end,
-                }
+                },
             )
 
             chunks.append(chunk)

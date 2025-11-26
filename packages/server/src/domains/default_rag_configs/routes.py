@@ -2,9 +2,11 @@
 
 from flask import Blueprint, Response, g, jsonify, request
 
-from src.infrastructure.auth import require_auth, get_current_user
+from src.infrastructure.auth import get_current_user, require_auth
 
-default_rag_configs_bp = Blueprint("default_rag_configs", __name__, url_prefix="/api/default-rag-configs")
+default_rag_configs_bp = Blueprint(
+    "default_rag_configs", __name__, url_prefix="/api/default-rag-configs"
+)
 
 
 @default_rag_configs_bp.route("", methods=["GET"])
@@ -45,25 +47,30 @@ def get_default_config() -> tuple[Response, int]:
         if not config:
             return jsonify({"error": "No default RAG config found for users"}), 404
 
-        return jsonify({
-            "id": config.id,
-            "user_id": config.user_id,
-            "vector_config": {
-                "embedding_algorithm": config.vector_config.embedding_algorithm,
-                "chunking_algorithm": config.vector_config.chunking_algorithm,
-                "rerank_algorithm": config.vector_config.rerank_algorithm,
-                "chunk_size": config.vector_config.chunk_size,
-                "chunk_overlap": config.vector_config.chunk_overlap,
-                "top_k": config.vector_config.top_k,
-            },
-            "graph_config": {
-                "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
-                "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
-                "clustering_algorithm": config.graph_config.clustering_algorithm,
-            },
-            "created_at": config.created_at.isoformat(),
-            "updated_at": config.updated_at.isoformat(),
-        }), 200
+        return (
+            jsonify(
+                {
+                    "id": config.id,
+                    "user_id": config.user_id,
+                    "vector_config": {
+                        "embedding_algorithm": config.vector_config.embedding_algorithm,
+                        "chunking_algorithm": config.vector_config.chunking_algorithm,
+                        "rerank_algorithm": config.vector_config.rerank_algorithm,
+                        "chunk_size": config.vector_config.chunk_size,
+                        "chunk_overlap": config.vector_config.chunk_overlap,
+                        "top_k": config.vector_config.top_k,
+                    },
+                    "graph_config": {
+                        "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
+                        "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
+                        "clustering_algorithm": config.graph_config.clustering_algorithm,
+                    },
+                    "created_at": config.created_at.isoformat(),
+                    "updated_at": config.updated_at.isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         return jsonify({"error": f"Failed to get default RAG config: {str(e)}"}), 500
@@ -121,25 +128,30 @@ def create_or_update_config() -> tuple[Response, int]:
 
         status_code = 201 if request.method == "POST" else 200
 
-        return jsonify({
-            "id": config.id,
-            "user_id": config.user_id,
-            "vector_config": {
-                "embedding_algorithm": config.vector_config.embedding_algorithm,
-                "chunking_algorithm": config.vector_config.chunking_algorithm,
-                "rerank_algorithm": config.vector_config.rerank_algorithm,
-                "chunk_size": config.vector_config.chunk_size,
-                "chunk_overlap": config.vector_config.chunk_overlap,
-                "top_k": config.vector_config.top_k,
-            },
-            "graph_config": {
-                "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
-                "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
-                "clustering_algorithm": config.graph_config.clustering_algorithm,
-            },
-            "created_at": config.created_at.isoformat(),
-            "updated_at": config.updated_at.isoformat(),
-        }), status_code
+        return (
+            jsonify(
+                {
+                    "id": config.id,
+                    "user_id": config.user_id,
+                    "vector_config": {
+                        "embedding_algorithm": config.vector_config.embedding_algorithm,
+                        "chunking_algorithm": config.vector_config.chunking_algorithm,
+                        "rerank_algorithm": config.vector_config.rerank_algorithm,
+                        "chunk_size": config.vector_config.chunk_size,
+                        "chunk_overlap": config.vector_config.chunk_overlap,
+                        "top_k": config.vector_config.top_k,
+                    },
+                    "graph_config": {
+                        "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
+                        "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
+                        "clustering_algorithm": config.graph_config.clustering_algorithm,
+                    },
+                    "created_at": config.created_at.isoformat(),
+                    "updated_at": config.updated_at.isoformat(),
+                }
+            ),
+            status_code,
+        )
 
     except Exception as e:
         return jsonify({"error": f"Failed to save default RAG config: {str(e)}"}), 500

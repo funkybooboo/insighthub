@@ -83,9 +83,7 @@ class DocumentProcessor:
                 raise Exception(f"Failed to download document: {e}") from e
 
             # Execute the consume workflow
-            logger.info(
-                f"Executing consume workflow for document {document.id}"
-            )
+            logger.info(f"Executing consume workflow for document {document.id}")
             result = self.consume_workflow.execute(
                 raw_document=BytesIO(file_content),
                 document_id=str(document.id),
@@ -238,7 +236,5 @@ def initialize_document_processor(
         The initialized document processor
     """
     global _document_processor
-    _document_processor = DocumentProcessor(
-        repository, blob_storage, socketio, consume_workflow
-    )
+    _document_processor = DocumentProcessor(repository, blob_storage, socketio, consume_workflow)
     return _document_processor

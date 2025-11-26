@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
+
 from .workspace_repository import WorkspaceRepository
 
 
@@ -19,7 +20,14 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
         self.rag_configs: dict[int, RagConfig] = {}
         self._next_id = 1
 
-    def create(self, user_id: int, name: str, description: str | None = None, rag_type: str = "vector", rag_config: dict | None = None) -> Workspace:
+    def create(
+        self,
+        user_id: int,
+        name: str,
+        description: str | None = None,
+        rag_type: str = "vector",
+        rag_config: dict | None = None,
+    ) -> Workspace:
         """Create a new workspace."""
         workspace = Workspace(
             id=self._next_id,
@@ -33,16 +41,10 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
         # Store RAG config if provided
         if rag_config:
             if rag_type == "vector":
-                vector_config = VectorRagConfig(
-                    workspace_id=self._next_id,
-                    **rag_config
-                )
+                vector_config = VectorRagConfig(workspace_id=self._next_id, **rag_config)
                 self.vector_rag_configs[self._next_id] = vector_config
             elif rag_type == "graph":
-                graph_config = GraphRagConfig(
-                    workspace_id=self._next_id,
-                    **rag_config
-                )
+                graph_config = GraphRagConfig(workspace_id=self._next_id, **rag_config)
                 self.graph_rag_configs[self._next_id] = graph_config
 
             # Also store in generic rag_configs for backward compatibility

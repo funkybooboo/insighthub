@@ -10,12 +10,9 @@ This workflow will orchestrate the full Graph RAG document ingestion process:
 from typing import BinaryIO
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows.consume_workflow import (
-    ConsumeWorkflow,
-)
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflowError
+from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow, ConsumeWorkflowError
 from src.infrastructure.types.common import MetadataDict
-from src.infrastructure.types.result import Err, Ok, Result
+from src.infrastructure.types.result import Err, Result
 
 logger = create_logger(__name__)
 

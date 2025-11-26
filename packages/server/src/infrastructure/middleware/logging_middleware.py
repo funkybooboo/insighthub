@@ -1,6 +1,7 @@
 """Middleware for request/response logging."""
 
 import time
+
 from flask import Flask, g, request
 
 from src.infrastructure.logger import create_logger
@@ -17,6 +18,7 @@ def setup_logging_middleware(app: Flask) -> None:
     Args:
         app: Flask application instance
     """
+
     @app.before_request
     def log_request_start() -> None:
         """Log request start and record start time."""

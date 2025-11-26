@@ -1,8 +1,9 @@
 """Document processing event handlers."""
 
 from flask_socketio import SocketIO
-from src.infrastructure.logger import create_logger
+
 from src.infrastructure.events.events import broadcast_document_status
+from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
 

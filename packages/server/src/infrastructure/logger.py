@@ -1,6 +1,6 @@
 """Logger wrapper providing a clean API for services and server."""
 
-from src.infrastructure.logger import create_logger
+import logging
 import re
 import sys
 from enum import Enum
@@ -150,7 +150,7 @@ class SecretsFilter(logging.Filter):
             text = pattern.sub(replacement, text)
         return text
 
-    def _redact_secrets_from_dict(self, data: dict[Any]) -> dict[Any]:
+    def _redact_secrets_from_dict(self, data: dict[Any, Any]) -> dict[Any, Any]:
         """
         Recursively redact sensitive information from a dictionary.
 
@@ -160,7 +160,7 @@ class SecretsFilter(logging.Filter):
         Returns:
             Dictionary with secrets redacted
         """
-        redacted_data: dict[Any] = {}
+        redacted_data: dict[Any, Any] = {}
         for key, value in data.items():
             redacted_key = self._redact_secrets_from_str(key)
             redacted_value: Any

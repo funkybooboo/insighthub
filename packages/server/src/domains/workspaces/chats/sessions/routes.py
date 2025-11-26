@@ -5,13 +5,14 @@ from flask import Blueprint, Response, g, jsonify, request
 from src.infrastructure.auth import get_current_user, require_auth
 from src.infrastructure.logger import create_logger
 
-from .dtos import CreateSessionRequest, SessionListResponse, SessionResponse, UpdateSessionRequest
+from .dtos import CreateSessionRequest, SessionListResponse, UpdateSessionRequest
 from .mappers import SessionMapper
-from src.infrastructure.models import ChatSession
 
 logger = create_logger(__name__)
 
-sessions_bp = Blueprint("chat_sessions", __name__, url_prefix="/api/workspaces/<workspace_id>/chats/sessions")
+sessions_bp = Blueprint(
+    "chat_sessions", __name__, url_prefix="/api/workspaces/<workspace_id>/chats/sessions"
+)
 
 
 @sessions_bp.route("", methods=["GET"])

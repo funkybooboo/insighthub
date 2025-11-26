@@ -3,6 +3,7 @@
 from typing import Optional
 
 from src.infrastructure.models import Document
+
 from .document_repository import DocumentRepository
 
 
@@ -63,12 +64,16 @@ class InMemoryDocumentRepository(DocumentRepository):
         # Note: This is a simplified implementation since we don't have user_id in Document model
         # In a real implementation, we'd need to join with workspace table
         user_documents = [doc for doc in self._documents.values()]
-        return user_documents[skip:skip + limit]
+        return user_documents[skip : skip + limit]
 
-    def get_by_workspace(self, workspace_id: int, limit: int = 50, offset: int = 0) -> list[Document]:
+    def get_by_workspace(
+        self, workspace_id: int, limit: int = 50, offset: int = 0
+    ) -> list[Document]:
         """Get documents for a workspace."""
-        workspace_documents = [doc for doc in self._documents.values() if doc.workspace_id == workspace_id]
-        return workspace_documents[offset:offset + limit]
+        workspace_documents = [
+            doc for doc in self._documents.values() if doc.workspace_id == workspace_id
+        ]
+        return workspace_documents[offset : offset + limit]
 
     def update(self, document_id: int, **kwargs) -> Optional[Document]:
         """Update document fields."""
@@ -104,9 +109,13 @@ class InMemoryDocumentRepository(DocumentRepository):
 
     def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
         """Count documents in workspace with optional status filter."""
-        workspace_documents = [doc for doc in self._documents.values() if doc.workspace_id == workspace_id]
+        workspace_documents = [
+            doc for doc in self._documents.values() if doc.workspace_id == workspace_id
+        ]
         if status_filter:
-            workspace_documents = [doc for doc in workspace_documents if doc.processing_status == status_filter]
+            workspace_documents = [
+                doc for doc in workspace_documents if doc.processing_status == status_filter
+            ]
         return len(workspace_documents)
 
     def delete(self, document_id: int) -> bool:

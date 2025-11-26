@@ -3,7 +3,7 @@
 from functools import wraps
 from typing import Any, Callable
 
-from flask import jsonify, request, Response
+from flask import Response
 
 
 def require_rate_limit(
@@ -23,6 +23,7 @@ def require_rate_limit(
     Returns:
         Decorated function
     """
+
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def decorated_function(*args: Any, **kwargs: Any) -> Response | Any:

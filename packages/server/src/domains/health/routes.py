@@ -1,13 +1,11 @@
 """Health check routes."""
 
-from typing import Any
-
 from flask import Blueprint, Response, current_app, jsonify
 
+from src.infrastructure.database.sql_database import SqlDatabase
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
-from src.infrastructure.database.sql_database import SqlDatabase
 
 health_bp = Blueprint("health", __name__)
 

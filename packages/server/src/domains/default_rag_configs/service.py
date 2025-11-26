@@ -2,7 +2,11 @@
 
 from typing import Optional
 
-from src.infrastructure.models import DefaultRagConfig, DefaultVectorRagConfig, DefaultGraphRagConfig
+from src.infrastructure.models import (
+    DefaultGraphRagConfig,
+    DefaultRagConfig,
+    DefaultVectorRagConfig,
+)
 from src.infrastructure.repositories.default_rag_configs import DefaultRagConfigRepository
 
 

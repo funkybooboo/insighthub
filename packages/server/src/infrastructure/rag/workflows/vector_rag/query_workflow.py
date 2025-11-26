@@ -8,15 +8,10 @@ This workflow orchestrates the full Vector RAG query process:
 """
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import (
-    VectorEmbeddingEncoder,
-)
+from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
 from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_store import VectorStore
-from src.infrastructure.rag.workflows.query_workflow import (
-    QueryWorkflow,
-)
-from src.infrastructure.rag.workflows.query_workflow import QueryWorkflowError
+from src.infrastructure.rag.workflows.query_workflow import QueryWorkflow, QueryWorkflowError
 from src.infrastructure.types.common import FilterDict
 from src.infrastructure.types.rag import ChunkData
 
@@ -74,22 +69,14 @@ class VectorRagQueryWorkflow(QueryWorkflow):
         try:
             query_embeddings = self.embedder.embed([query_text])
             if not query_embeddings:
-                raise QueryWorkflowError(
-                    "Embedder returned empty results", step="embed"
-                )
+                raise QueryWorkflowError("Embedder returned empty results", step="embed")
             query_vector = query_embeddings[0]
-            logger.info(
-                f"[QueryWorkflow] Generated query embedding (dim={len(query_vector)})"
-            )
+            logger.info(f"[QueryWorkflow] Generated query embedding (dim={len(query_vector)})")
         except Exception as e:
-            raise QueryWorkflowError(
-                f"Failed to embed query: {e}", step="embed"
-            ) from e
+            raise QueryWorkflowError(f"Failed to embed query: {e}", step="embed") from e
 
         # Step 2: Search vector store
-        logger.info(
-            f"[QueryWorkflow] Searching vector store (top_k={top_k}, filters={filters})"
-        )
+        logger.info(f"[QueryWorkflow] Searching vector store (top_k={top_k}, filters={filters})")
         try:
             # Adjust top_k for reranking if reranker is present
             search_k = top_k * 3 if self.reranker else top_k
@@ -101,9 +88,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
             )
             logger.info(f"[QueryWorkflow] Found {len(results)} results from vector store")
         except Exception as e:
-            raise QueryWorkflowError(
-                f"Failed to search vector store: {e}", step="search"
-            ) from e
+            raise QueryWorkflowError(f"Failed to search vector store: {e}", step="search") from e
 
         # Step 3: Rerank results (if reranker provided)
         if self.reranker and results:
@@ -116,9 +101,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
                 )
                 logger.info(f"[QueryWorkflow] Reranked to {len(results)} results")
             except Exception as e:
-                logger.warning(
-                    f"[QueryWorkflow] Reranking failed, using original results: {e}"
-                )
+                logger.warning(f"[QueryWorkflow] Reranking failed, using original results: {e}")
                 results = results[:top_k]
         else:
             results = results[:top_k]
@@ -136,7 +119,5 @@ class VectorRagQueryWorkflow(QueryWorkflow):
                 )
             )
 
-        logger.info(
-            f"[QueryWorkflow] Returning {len(chunk_data)} chunks for query"
-        )
+        logger.info(f"[QueryWorkflow] Returning {len(chunk_data)} chunks for query")
         return chunk_data

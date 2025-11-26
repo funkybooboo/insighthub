@@ -2,8 +2,8 @@
 
 from typing import List, Tuple
 
-from src.infrastructure.types.result import Ok
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
+from src.infrastructure.types.result import Ok
 
 
 class DummyReranker(Reranker):
@@ -14,10 +14,7 @@ class DummyReranker(Reranker):
     """
 
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Ok[List[Tuple[str, float]]]:
         """Return texts and scores unchanged."""
         return Ok(list(zip(texts, scores)))

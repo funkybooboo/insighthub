@@ -35,7 +35,9 @@ class ChatMessageService:
         """Get message by ID."""
         return self.repository.get_by_id(message_id)
 
-    def get_session_messages(self, session_id: int, skip: int = 0, limit: int = 50) -> list[ChatMessage]:
+    def get_session_messages(
+        self, session_id: int, skip: int = 0, limit: int = 50
+    ) -> list[ChatMessage]:
         """Get messages for a session."""
         return self.repository.get_by_session(session_id, skip, limit)
 
@@ -54,7 +56,9 @@ class ChatMessageService:
         # TODO: Implement proper cross-service validation
         return True
 
-    def get_session_messages_for_user(self, session_id: int, user_id: int, skip: int = 0, limit: int = 50) -> list[ChatMessage]:
+    def get_session_messages_for_user(
+        self, session_id: int, user_id: int, skip: int = 0, limit: int = 50
+    ) -> list[ChatMessage]:
         """Get messages for a session, validating users access."""
         # TODO: Validate that users owns the session
         return self.repository.get_by_session(session_id, skip, limit)

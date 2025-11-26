@@ -2,7 +2,10 @@
 
 from typing import BinaryIO, Optional
 
-from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser, ParsingError
+from src.infrastructure.rag.steps.general.parsing.document_parser import (
+    DocumentParser,
+    ParsingError,
+)
 from src.infrastructure.rag.steps.general.parsing.docx_document_parser import DocxDocumentParser
 from src.infrastructure.rag.steps.general.parsing.html_document_parser import HTMLDocumentParser
 from src.infrastructure.rag.steps.general.parsing.pdf_document_parser import PDFDocumentParser

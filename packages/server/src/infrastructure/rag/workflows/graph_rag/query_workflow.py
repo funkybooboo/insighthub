@@ -8,10 +8,7 @@ This workflow will orchestrate the full Graph RAG query process:
 """
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows.query_workflow import (
-    QueryWorkflow,
-)
-from src.infrastructure.rag.workflows.query_workflow import QueryWorkflowError
+from src.infrastructure.rag.workflows.query_workflow import QueryWorkflow, QueryWorkflowError
 from src.infrastructure.types.common import FilterDict
 from src.infrastructure.types.rag import ChunkData
 

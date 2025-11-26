@@ -3,7 +3,7 @@
 from functools import wraps
 from typing import Any, Callable
 
-from flask import g, jsonify, request, Response
+from flask import Response, g, jsonify, request
 
 from src.infrastructure.auth.token import decode_access_token
 
@@ -17,6 +17,7 @@ def require_auth(f: Callable[..., Any]) -> Callable[..., Any]:
 
     Returns 401 if no token or invalid token.
     """
+
     @wraps(f)
     def decorated_function(*args: Any, **kwargs: Any) -> Response | Any:
         auth_header = request.headers.get("Authorization")

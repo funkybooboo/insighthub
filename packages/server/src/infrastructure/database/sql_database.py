@@ -1,6 +1,7 @@
 """SQL Database abstraction."""
 
 from typing import Any, Optional
+
 import psycopg2
 import psycopg2.extras
 
@@ -12,7 +13,9 @@ class SqlDatabase:
         """Execute a query and return rows affected."""
         raise NotImplementedError
 
-    def fetch_one(self, query: str, params: tuple[Any, ...] | None = None) -> Optional[dict[str, Any]]:
+    def fetch_one(
+        self, query: str, params: tuple[Any, ...] | None = None
+    ) -> Optional[dict[str, Any]]:
         """Fetch one row as a dictionary."""
         raise NotImplementedError
 
@@ -45,7 +48,9 @@ class PostgresSqlDatabase(SqlDatabase):
             cursor.execute(query, params)
             return cursor.rowcount if cursor.rowcount else 0
 
-    def fetch_one(self, query: str, params: tuple[Any, ...] | None = None) -> Optional[dict[str, Any]]:
+    def fetch_one(
+        self, query: str, params: tuple[Any, ...] | None = None
+    ) -> Optional[dict[str, Any]]:
         """Fetch one row as a dictionary."""
         with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute(query, params)

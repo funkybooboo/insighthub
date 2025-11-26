@@ -52,8 +52,7 @@ def create_reranker(reranker_type: str, **kwargs) -> Reranker:
     else:
         available = ["none", "cross-encoder", "bm25", "rrf"]
         raise ValueError(
-            f"Unknown reranker type: {reranker_type}. "
-            f"Available types: {', '.join(available)}"
+            f"Unknown reranker type: {reranker_type}. " f"Available types: {', '.join(available)}"
         )
 
 
@@ -68,21 +67,21 @@ def get_available_rerankers() -> list[dict[str, str]]:
         {
             "value": "none",
             "label": "No Reranking",
-            "description": "Return results as-is from vector search"
+            "description": "Return results as-is from vector search",
         },
         {
             "value": "cross-encoder",
             "label": "Cross Encoder",
-            "description": "Rerank using cross-encoder model for better relevance"
+            "description": "Rerank using cross-encoder model for better relevance",
         },
         {
             "value": "bm25",
             "label": "BM25",
-            "description": "Rerank using BM25 algorithm for keyword-based relevance"
+            "description": "Rerank using BM25 algorithm for keyword-based relevance",
         },
         {
             "value": "rrf",
             "label": "Reciprocal Rank Fusion",
-            "description": "Combine multiple rankings using RRF algorithm"
-        }
+            "description": "Combine multiple rankings using RRF algorithm",
+        },
     ]

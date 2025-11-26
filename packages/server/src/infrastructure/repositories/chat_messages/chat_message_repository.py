@@ -1,7 +1,6 @@
 """Chat message repository interface."""
 
 from abc import ABC, abstractmethod
-
 from typing import Optional
 
 from src.infrastructure.models import ChatMessage

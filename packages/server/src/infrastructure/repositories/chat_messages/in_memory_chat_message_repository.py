@@ -3,6 +3,7 @@
 from typing import Optional
 
 from src.infrastructure.models import ChatMessage
+
 from .chat_message_repository import ChatMessageRepository
 
 
@@ -42,7 +43,7 @@ class InMemoryChatMessageRepository(ChatMessageRepository):
         session_messages = [msg for msg in self._messages.values() if msg.session_id == session_id]
         # Sort by creation time (oldest first for conversations)
         session_messages.sort(key=lambda msg: msg.created_at)
-        return session_messages[skip:skip + limit]
+        return session_messages[skip : skip + limit]
 
     def delete(self, message_id: int) -> bool:
         """Delete message by ID."""

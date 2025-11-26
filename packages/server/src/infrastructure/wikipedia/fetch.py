@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from urllib.parse import quote
 
 import requests
@@ -103,11 +103,13 @@ class WikipediaFetcher:
 
             results = []
             for title, description, url in zip(titles, descriptions, urls):
-                results.append({
-                    "title": title,
-                    "description": description,
-                    "url": url,
-                })
+                results.append(
+                    {
+                        "title": title,
+                        "description": description,
+                        "url": url,
+                    }
+                )
 
             return Ok(results)
 
@@ -152,9 +154,7 @@ class WikipediaFetcher:
         logger.info(f"Found best match: '{best_title}' for query '{title_or_query}'")
         return self._fetch_by_title(best_title, language)
 
-    def _fetch_by_title(
-        self, title: str, language: str = "en"
-    ) -> Result[WikipediaArticle, str]:
+    def _fetch_by_title(self, title: str, language: str = "en") -> Result[WikipediaArticle, str]:
         """Fetch article directly by title."""
         try:
             # URL encode the title
@@ -233,7 +233,7 @@ class WikipediaFetcher:
 
             # Find the main content
             content_div = soup.find("div", {"id": "mw-content-text"})
-            if not content_div or not hasattr(content_div, 'find_all'):
+            if not content_div or not hasattr(content_div, "find_all"):
                 return "Content parsing failed"
 
             # Remove unwanted elements
@@ -245,7 +245,7 @@ class WikipediaFetcher:
 
             for element in content_div.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li"]):  # type: ignore
                 text = element.get_text().strip()
-                if text and hasattr(element, 'name') and element.name:  # type: ignore
+                if text and hasattr(element, "name") and element.name:  # type: ignore
                     # Convert headers to markdown
                     if element.name.startswith("h"):  # type: ignore
                         level = int(element.name[1])  # type: ignore

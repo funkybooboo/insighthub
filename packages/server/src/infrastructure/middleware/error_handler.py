@@ -1,6 +1,6 @@
 """Error handling middleware."""
 
-from flask import Flask, jsonify, Response
+from flask import Flask, Response, jsonify
 
 from src.infrastructure.exceptions import (
     AlreadyExistsError,
@@ -20,6 +20,7 @@ def setup_error_handlers(app: Flask) -> None:
     Args:
         app: Flask application instance
     """
+
     @app.errorhandler(NotFoundError)
     def handle_not_found(error: NotFoundError) -> tuple[Response, int]:
         """Handle resource not found errors."""

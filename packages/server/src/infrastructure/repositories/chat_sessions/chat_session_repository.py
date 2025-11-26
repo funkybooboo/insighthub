@@ -31,7 +31,9 @@ class ChatSessionRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_workspace(self, workspace_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def get_by_workspace(
+        self, workspace_id: int, skip: int = 0, limit: int = 50
+    ) -> list[ChatSession]:
         """Get sessions by workspace ID with pagination."""
         pass
 

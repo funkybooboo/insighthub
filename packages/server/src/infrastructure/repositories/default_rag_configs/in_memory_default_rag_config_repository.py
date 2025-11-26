@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from src.infrastructure.models import DefaultRagConfig
+
 from .default_rag_config_repository import DefaultRagConfigRepository
 
 

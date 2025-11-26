@@ -31,7 +31,7 @@ class SemanticDocumentChunker(Chunker):
             List of chunks
         """
         # Simple sentence splitting for now
-        sentences = document.content.split('. ')
+        sentences = document.content.split(". ")
         chunks = []
         start_idx = 0
         chunk_id = 0
@@ -42,10 +42,10 @@ class SemanticDocumentChunker(Chunker):
 
             # Extract chunk sentences
             chunk_sentences = sentences[start_idx:end_idx]
-            chunk_text = '. '.join(chunk_sentences)
+            chunk_text = ". ".join(chunk_sentences)
 
-            if chunk_text and not chunk_text.endswith('.'):
-                chunk_text += '.'
+            if chunk_text and not chunk_text.endswith("."):
+                chunk_text += "."
 
             # Create chunk
             chunk = Chunk(
@@ -58,7 +58,7 @@ class SemanticDocumentChunker(Chunker):
                     "overlap": self.overlap,
                     "start_sentence": start_idx,
                     "end_sentence": end_idx,
-                }
+                },
             )
 
             chunks.append(chunk)
@@ -84,7 +84,7 @@ class SemanticDocumentChunker(Chunker):
             Estimated number of chunks
         """
         # Simple sentence splitting for estimation
-        sentences = document.content.split('. ')
+        sentences = document.content.split(". ")
         if not sentences:
             return 0
 

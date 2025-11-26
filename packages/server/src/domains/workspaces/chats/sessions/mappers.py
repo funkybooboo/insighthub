@@ -1,7 +1,8 @@
 """Mappers for chats session models and DTOs."""
 
-from .dtos import SessionResponse
 from src.infrastructure.models import ChatSession
+
+from .dtos import SessionResponse
 
 
 class SessionMapper:

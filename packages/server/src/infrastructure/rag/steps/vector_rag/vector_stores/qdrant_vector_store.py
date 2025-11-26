@@ -1,8 +1,8 @@
 """Qdrant implementation of VectorStore interface (adapter pattern)."""
 
-from src.infrastructure.logger import create_logger
 from typing import List, Tuple
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Chunk
 
@@ -78,9 +78,7 @@ class QdrantVectorStore(VectorStore):
         logger.info(f"Adding {len(items)} chunks to vector store")
         self.db.upsert_batch(items)
 
-    def search(
-        self, query_embedding: List[float], top_k: int = 5
-    ) -> List[Tuple[Chunk, float]]:
+    def search(self, query_embedding: List[float], top_k: int = 5) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.
 
@@ -107,9 +105,7 @@ class QdrantVectorStore(VectorStore):
 
             # Remove our internal fields to get original metadata
             original_metadata = {
-                k: v
-                for k, v in metadata.items()
-                if k not in ("document_id", "text")
+                k: v for k, v in metadata.items() if k not in ("document_id", "text")
             }
 
             # Reconstruct chunk (using types.document.Chunk)

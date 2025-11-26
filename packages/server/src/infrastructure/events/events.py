@@ -3,6 +3,7 @@
 from typing import Any, TypedDict
 
 from flask_socketio import SocketIO, emit
+
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)

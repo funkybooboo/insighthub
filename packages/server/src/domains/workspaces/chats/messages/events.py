@@ -352,6 +352,7 @@ class ChatSocketHandler:
     def _get_db(self):
         """Get database session."""
         from src.infrastructure.database import get_db
+
         return get_db()
 
 

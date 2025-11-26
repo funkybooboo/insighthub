@@ -5,12 +5,16 @@ from flask import Blueprint, Response, g, jsonify, request
 from src.infrastructure.auth import get_current_user, require_auth
 from src.infrastructure.logger import create_logger
 
-from .dtos import CreateMessageRequest, MessageListResponse, MessageResponse
+from .dtos import CreateMessageRequest, MessageListResponse
 from .mappers import MessageMapper
 
 logger = create_logger(__name__)
 
-messages_bp = Blueprint("chat_messages", __name__, url_prefix="/api/workspaces/<workspace_id>/chats/sessions/<session_id>/messages")
+messages_bp = Blueprint(
+    "chat_messages",
+    __name__,
+    url_prefix="/api/workspaces/<workspace_id>/chats/sessions/<session_id>/messages",
+)
 
 
 @messages_bp.route("", methods=["GET"])

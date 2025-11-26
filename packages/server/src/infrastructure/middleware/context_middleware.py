@@ -15,6 +15,7 @@ def setup_context_middleware(app: Flask) -> None:
     Args:
         app: Flask application instance
     """
+
     @app.before_request
     def before_request() -> None:
         """Inject app context before each request."""

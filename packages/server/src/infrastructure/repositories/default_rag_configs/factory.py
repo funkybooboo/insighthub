@@ -1,7 +1,7 @@
 """Factory for creating default RAG config repository instances."""
 
-from .in_memory_default_rag_config_repository import InMemoryDefaultRagConfigRepository
 from .default_rag_config_repository import DefaultRagConfigRepository
+from .in_memory_default_rag_config_repository import InMemoryDefaultRagConfigRepository
 
 
 def create_default_rag_config_repository(repo_type: str = "memory") -> DefaultRagConfigRepository:

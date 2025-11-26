@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from src.infrastructure.models import ChatSession
+
 from .chat_session_repository import ChatSessionRepository
 
 
@@ -41,12 +42,14 @@ class InMemoryChatSessionRepository(ChatSessionRepository):
     def get_by_user(self, user_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
         """Get sessions by users ID with pagination."""
         user_sessions = [s for s in self._sessions.values() if s.user_id == user_id]
-        return user_sessions[skip:skip + limit]
+        return user_sessions[skip : skip + limit]
 
-    def get_by_workspace(self, workspace_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def get_by_workspace(
+        self, workspace_id: int, skip: int = 0, limit: int = 50
+    ) -> list[ChatSession]:
         """Get sessions by workspace ID with pagination."""
         workspace_sessions = [s for s in self._sessions.values() if s.workspace_id == workspace_id]
-        return workspace_sessions[skip:skip + limit]
+        return workspace_sessions[skip : skip + limit]
 
     def update(self, session_id: int, **kwargs) -> Optional[ChatSession]:
         """Update session fields."""

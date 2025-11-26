@@ -9,9 +9,7 @@ from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
 from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
-from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import (
-    VectorStoreFactory,
-)
+from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
 from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow
 from src.infrastructure.rag.workflows.graph_rag import (
     GraphRagConsumeWorkflow,
@@ -100,17 +98,13 @@ class WorkflowFactory:
         chunker_type = config.get("chunker_type", "sentence")
         chunker_config = config.get("chunker_config", {})
         chunker = ChunkerFactory.create_chunker(chunker_type, **chunker_config)
-        logger.debug(
-            f"Created chunker: {chunker_type} with config {chunker_config}"
-        )
+        logger.debug(f"Created chunker: {chunker_type} with config {chunker_config}")
 
         # Create embedder
         embedder_type = config.get("embedder_type", "ollama")
         embedder_config = config.get("embedder_config", {})
         embedder = EmbedderFactory.create_embedder(embedder_type, **embedder_config)
-        logger.debug(
-            f"Created embedder: {embedder_type} with config {embedder_config}"
-        )
+        logger.debug(f"Created embedder: {embedder_type} with config {embedder_config}")
 
         # Create vector store
         vector_store_type = config.get("vector_store_type", "qdrant")
@@ -118,9 +112,7 @@ class WorkflowFactory:
         vector_store = VectorStoreFactory.create_vector_store(
             vector_store_type, **vector_store_config
         )
-        logger.debug(
-            f"Created vector store: {vector_store_type} with config {vector_store_config}"
-        )
+        logger.debug(f"Created vector store: {vector_store_type} with config {vector_store_config}")
 
         # Wire together into workflow
         workflow = VectorRagConsumeWorkflow(
@@ -155,9 +147,7 @@ class WorkflowFactory:
         if config.get("enable_reranking", False):
             reranker_type = config.get("reranker_type", "dummy")
             reranker_config = config.get("reranker_config", {})
-            reranker = RerankerFactory.create_reranker(
-                reranker_type, **reranker_config
-            )
+            reranker = RerankerFactory.create_reranker(reranker_type, **reranker_config)
             logger.debug(f"Created reranker: {reranker_type}")
 
         # Wire together into workflow

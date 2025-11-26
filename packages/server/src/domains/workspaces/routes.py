@@ -1,6 +1,6 @@
 """Workspaces routes for managing workspaces and their resources."""
 
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, g, jsonify, request
 
 from src.infrastructure.auth import get_current_user_id
 from src.infrastructure.logger import create_logger
@@ -18,17 +18,22 @@ def list_workspaces() -> tuple[list, int]:
 
     workspaces = service.list_user_workspaces(user_id)
 
-    return jsonify([
-        {
-            "id": w.id,
-            "name": w.name,
-            "description": w.description,
-            "rag_type": w.rag_type,
-            "created_at": w.created_at.isoformat(),
-            "updated_at": w.updated_at.isoformat(),
-        }
-        for w in workspaces
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": w.id,
+                    "name": w.name,
+                    "description": w.description,
+                    "rag_type": w.rag_type,
+                    "created_at": w.created_at.isoformat(),
+                    "updated_at": w.updated_at.isoformat(),
+                }
+                for w in workspaces
+            ]
+        ),
+        200,
+    )
 
 
 @workspaces_bp.route("", methods=["POST"])
@@ -77,14 +82,19 @@ def create_workspace() -> tuple[dict, int]:
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    return jsonify({
-        "id": workspace.id,
-        "name": workspace.name,
-        "description": workspace.description,
-        "rag_type": workspace.rag_type,
-        "created_at": workspace.created_at.isoformat(),
-        "updated_at": workspace.updated_at.isoformat(),
-    }), 201
+    return (
+        jsonify(
+            {
+                "id": workspace.id,
+                "name": workspace.name,
+                "description": workspace.description,
+                "rag_type": workspace.rag_type,
+                "created_at": workspace.created_at.isoformat(),
+                "updated_at": workspace.updated_at.isoformat(),
+            }
+        ),
+        201,
+    )
 
 
 @workspaces_bp.route("/<int:workspace_id>", methods=["GET"])
@@ -97,14 +107,19 @@ def get_workspace(workspace_id: int) -> tuple[dict, int]:
     if not workspace:
         return jsonify({"error": "Workspace not found"}), 404
 
-    return jsonify({
-        "id": workspace.id,
-        "name": workspace.name,
-        "description": workspace.description,
-        "rag_type": workspace.rag_type,
-        "created_at": workspace.created_at.isoformat(),
-        "updated_at": workspace.updated_at.isoformat(),
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": workspace.id,
+                "name": workspace.name,
+                "description": workspace.description,
+                "rag_type": workspace.rag_type,
+                "created_at": workspace.created_at.isoformat(),
+                "updated_at": workspace.updated_at.isoformat(),
+            }
+        ),
+        200,
+    )
 
 
 @workspaces_bp.route("/<int:workspace_id>", methods=["PATCH"])
@@ -129,14 +144,19 @@ def update_workspace(workspace_id: int) -> tuple[dict, int]:
         if not workspace:
             return jsonify({"error": "Workspace not found"}), 404
 
-        return jsonify({
-            "id": workspace.id,
-            "name": workspace.name,
-            "description": workspace.description,
-            "rag_type": workspace.rag_type,
-            "created_at": workspace.created_at.isoformat(),
-            "updated_at": workspace.updated_at.isoformat(),
-        }), 200
+        return (
+            jsonify(
+                {
+                    "id": workspace.id,
+                    "name": workspace.name,
+                    "description": workspace.description,
+                    "rag_type": workspace.rag_type,
+                    "created_at": workspace.created_at.isoformat(),
+                    "updated_at": workspace.updated_at.isoformat(),
+                }
+            ),
+            200,
+        )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
@@ -175,11 +195,16 @@ def get_rag_config(workspace_id: int) -> tuple[dict, int]:
     if not config:
         return jsonify({"error": "Workspace not found"}), 404
 
-    return jsonify({
-        "workspace_id": config.workspace_id,
-        "rag_type": config.rag_type,
-        "config": config.config,
-    }), 200
+    return (
+        jsonify(
+            {
+                "workspace_id": config.workspace_id,
+                "rag_type": config.rag_type,
+                "config": config.config,
+            }
+        ),
+        200,
+    )
 
 
 # RAG Config is immutable - set only during workspace creation
@@ -198,23 +223,33 @@ def get_vector_rag_config(workspace_id: int) -> tuple[dict, int]:
 
     config = service.get_vector_rag_config(workspace_id)
     if not config:
-        return jsonify({
-            "embedding_algorithm": "ollama",
-            "chunking_algorithm": "sentence",
-            "rerank_algorithm": "none",
-            "chunk_size": 1000,
-            "chunk_overlap": 200,
-            "top_k": 5,
-        }), 200
+        return (
+            jsonify(
+                {
+                    "embedding_algorithm": "ollama",
+                    "chunking_algorithm": "sentence",
+                    "rerank_algorithm": "none",
+                    "chunk_size": 1000,
+                    "chunk_overlap": 200,
+                    "top_k": 5,
+                }
+            ),
+            200,
+        )
 
-    return jsonify({
-        "embedding_algorithm": config.embedding_algorithm,
-        "chunking_algorithm": config.chunking_algorithm,
-        "rerank_algorithm": config.rerank_algorithm,
-        "chunk_size": config.chunk_size,
-        "chunk_overlap": config.chunk_overlap,
-        "top_k": config.top_k,
-    }), 200
+    return (
+        jsonify(
+            {
+                "embedding_algorithm": config.embedding_algorithm,
+                "chunking_algorithm": config.chunking_algorithm,
+                "rerank_algorithm": config.rerank_algorithm,
+                "chunk_size": config.chunk_size,
+                "chunk_overlap": config.chunk_overlap,
+                "top_k": config.top_k,
+            }
+        ),
+        200,
+    )
 
 
 # Graph RAG Config endpoints (read-only)
@@ -230,16 +265,24 @@ def get_graph_rag_config(workspace_id: int) -> tuple[dict, int]:
 
     config = service.get_graph_rag_config(workspace_id)
     if not config:
-        return jsonify({
-            "entity_extraction_algorithm": "spacy",
-            "relationship_extraction_algorithm": "dependency-parsing",
-            "clustering_algorithm": "leiden",
-        }), 200
+        return (
+            jsonify(
+                {
+                    "entity_extraction_algorithm": "spacy",
+                    "relationship_extraction_algorithm": "dependency-parsing",
+                    "clustering_algorithm": "leiden",
+                }
+            ),
+            200,
+        )
 
-    return jsonify({
-        "entity_extraction_algorithm": config.entity_extraction_algorithm,
-        "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
-        "clustering_algorithm": config.clustering_algorithm,
-    }), 200
-
-
+    return (
+        jsonify(
+            {
+                "entity_extraction_algorithm": config.entity_extraction_algorithm,
+                "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
+                "clustering_algorithm": config.clustering_algorithm,
+            }
+        ),
+        200,
+    )

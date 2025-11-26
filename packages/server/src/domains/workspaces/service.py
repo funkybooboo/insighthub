@@ -176,10 +176,19 @@ class WorkspaceService:
         # Return default config
         return GraphRagConfig(workspace_id=workspace_id)
 
-    def _validate_rag_config(self, rag_type: str, config: dict[str, str | int | float | bool]) -> None:
+    def _validate_rag_config(
+        self, rag_type: str, config: dict[str, str | int | float | bool]
+    ) -> None:
         """Validate RAG configuration."""
         if rag_type == "vector":
-            required_fields = ["embedding_algorithm", "chunking_algorithm", "rerank_algorithm", "chunk_size", "chunk_overlap", "top_k"]
+            required_fields = [
+                "embedding_algorithm",
+                "chunking_algorithm",
+                "rerank_algorithm",
+                "chunk_size",
+                "chunk_overlap",
+                "top_k",
+            ]
             for field in required_fields:
                 if field not in config:
                     raise ValueError(f"Missing required field '{field}' for vector RAG config")
@@ -195,7 +204,11 @@ class WorkspaceService:
                 raise ValueError("top_k must be a positive integer")
 
         elif rag_type == "graph":
-            required_fields = ["entity_extraction_algorithm", "relationship_extraction_algorithm", "clustering_algorithm"]
+            required_fields = [
+                "entity_extraction_algorithm",
+                "relationship_extraction_algorithm",
+                "clustering_algorithm",
+            ]
             for field in required_fields:
                 if field not in config:
                     raise ValueError(f"Missing required field '{field}' for graph RAG config")

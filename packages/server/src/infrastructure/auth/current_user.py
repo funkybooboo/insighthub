@@ -1,8 +1,6 @@
 """Get current users from Flask context."""
 
-from flask import g
-from flask import request
-
+from flask import g, request
 
 from src.infrastructure.models import User
 

@@ -1,7 +1,6 @@
 """Storage infrastructure for file operations."""
 
 from abc import ABC, abstractmethod
-from typing import BinaryIO, Any
 
 
 class BlobStorage(ABC):

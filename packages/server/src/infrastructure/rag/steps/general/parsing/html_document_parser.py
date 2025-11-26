@@ -4,7 +4,10 @@ import re
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
-from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser, ParsingError
+from src.infrastructure.rag.steps.general.parsing.document_parser import (
+    DocumentParser,
+    ParsingError,
+)
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
 from src.infrastructure.types.result import Err, Ok, Result

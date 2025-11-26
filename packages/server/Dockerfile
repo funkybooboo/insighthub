@@ -5,6 +5,11 @@
 # ============================================================================
 FROM python:3.11-slim AS base
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create app user and group
 RUN groupadd -r app && useradd -r -g app -m app
 WORKDIR /app
@@ -15,12 +20,16 @@ RUN chown -R app:app /app
 # ============================================================================
 FROM base AS dependencies
 
+# Install Poetry
+USER root
+RUN pip install poetry
+
 # Copy dependency files
 COPY --chown=app:app pyproject.toml poetry.lock ./
 
-# Install main dependencies using pip
+# Install all dependencies (including ML dependencies)
 USER app
-RUN pip install --user flask flask-cors flask-socketio sqlalchemy psycopg2-binary requests python-jwt bcrypt pypdf werkzeug python-json-logger redis
+RUN poetry install --only=main
 
 # ============================================================================
 # Development Stage - For local development with hot-reload
@@ -48,23 +57,23 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Set environment variables for development
 ENV FLASK_ENV=development
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Use entrypoint script
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Default command for development
-CMD ["poetry", "run", "python", "src/api.py"]
+CMD ["python", "--version"]
 
 # ============================================================================
 # Production Stage - Final runtime image
 # ============================================================================
 FROM base AS production
-# Force rebuild
 
 # Copy installed dependencies from dependencies stage
-COPY --from=dependencies --chown=app:app /home/app/.local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=dependencies --chown=app:app /home/app/.local/bin /usr/local/bin
+COPY --from=dependencies --chown=app:app /home/app/.cache/pypoetry /home/app/.cache/pypoetry
+COPY --from=dependencies --chown=app:app /home/app/.local /home/app/.local
 
 # Copy application code
 COPY --chown=app:app src/ ./src/
@@ -88,6 +97,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+ENV PATH="/home/app/.local/bin:$PATH"
 
-# Run the application directly
-CMD ["poetry", "run", "python", "src/api.py"]
+# Run the actual Flask application
+CMD ["python", "-m", "src.api"]

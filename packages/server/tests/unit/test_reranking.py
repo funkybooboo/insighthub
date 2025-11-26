@@ -81,7 +81,11 @@ class TestReranking:
     def test_cross_encoder_reranker(self):
         """Test CrossEncoderReranker (skipped if dependencies not available)."""
         reranker = CrossEncoderReranker()
-        texts = ["Python is a programming language", "Java is also a programming language", "Cats are animals"]
+        texts = [
+            "Python is a programming language",
+            "Java is also a programming language",
+            "Cats are animals",
+        ]
         scores = [0.8, 0.7, 0.3]
 
         result = reranker.rerank("programming language", texts, scores)

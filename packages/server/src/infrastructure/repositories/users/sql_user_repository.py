@@ -5,6 +5,7 @@ from typing import Optional
 
 from src.infrastructure.database.sql import SqlDatabase
 from src.infrastructure.models import User
+
 from .user_repository import UserRepository
 
 
@@ -55,8 +56,15 @@ class SqlUserRepository(UserRepository):
         """
         user_id = self.db.execute(
             query,
-            (user.username, user.email, user.password_hash, user.full_name,
-             user.created_at, user.updated_at, user.theme_preference)
+            (
+                user.username,
+                user.email,
+                user.password_hash,
+                user.full_name,
+                user.created_at,
+                user.updated_at,
+                user.theme_preference,
+            ),
         ).lastrowid
 
         user.id = user_id
@@ -83,10 +91,18 @@ class SqlUserRepository(UserRepository):
                 updated_at = ?, theme_preference = ?
             WHERE id = ?
         """
-        self.db.execute(query, (
-            user.username, user.email, user.password_hash, user.full_name,
-            user.updated_at, user.theme_preference, user_id
-        ))
+        self.db.execute(
+            query,
+            (
+                user.username,
+                user.email,
+                user.password_hash,
+                user.full_name,
+                user.updated_at,
+                user.theme_preference,
+                user_id,
+            ),
+        )
 
         return user
 

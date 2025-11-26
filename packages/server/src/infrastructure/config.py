@@ -131,7 +131,6 @@ class AppConfig(BaseSettings):
     redis_url: Optional[str] = Field(default=None, description="Redis connection URL")
     redis_default_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
 
-
     # LLM
     llm_provider: str = Field(default="ollama", description="LLM provider to use")
     ollama_base_url: str = Field(
@@ -308,6 +307,7 @@ def load_config(env_file_path: Optional[str] = None) -> AppConfig:
                        automatically loads .env.local for development or .env.test for tests.
     """
     import os
+
     from dotenv import load_dotenv
 
     if env_file_path:

@@ -1,11 +1,14 @@
 """Factory for creating users repository instances."""
 
 from src.infrastructure.database.sql import SqlDatabase
+
 from .sql_user_repository import SqlUserRepository
 from .user_repository import UserRepository
 
 
-def create_user_repository(db_type: str = "sqlite", db_url: str = "sqlite:///insighthub.db") -> UserRepository:
+def create_user_repository(
+    db_type: str = "sqlite", db_url: str = "sqlite:///insighthub.db"
+) -> UserRepository:
     """Create a users repository instance based on configuration.
 
     Args:

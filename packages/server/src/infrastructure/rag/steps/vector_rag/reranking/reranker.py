@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
-from src.infrastructure.types.result import Result, Ok, Err
+from src.infrastructure.types.result import Err, Ok, Result
 
 
 class Reranker(ABC):
@@ -16,10 +16,7 @@ class Reranker(ABC):
 
     @abstractmethod
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """
         Rerank texts based on relevance to the query.
@@ -43,10 +40,7 @@ class NoReranker(Reranker):
     """
 
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """Return texts and scores unchanged."""
         return Ok(list(zip(texts, scores)))
@@ -76,6 +70,7 @@ class CrossEncoderReranker(Reranker):
         if self._model is None:
             try:
                 from sentence_transformers import CrossEncoder
+
                 self._model = CrossEncoder(self.model_name)
             except ImportError:
                 raise ImportError(
@@ -84,10 +79,7 @@ class CrossEncoderReranker(Reranker):
                 )
 
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """
         Rerank using cross-encoder model.
@@ -146,10 +138,7 @@ class BM25Reranker(Reranker):
         self.b = b
 
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """
         Rerank using BM25 algorithm combined with original scores.
@@ -163,15 +152,15 @@ class BM25Reranker(Reranker):
             Reranked list combining BM25 and original scores
         """
         try:
-            from rank_bm25 import BM25Okapi
             import nltk
             from nltk.tokenize import word_tokenize
+            from rank_bm25 import BM25Okapi
 
             # Ensure NLTK punkt is available
             try:
-                nltk.data.find('tokenizers/punkt')
+                nltk.data.find("tokenizers/punkt")
             except LookupError:
-                nltk.download('punkt', quiet=True)
+                nltk.download("punkt", quiet=True)
 
             # Tokenize query and documents
             query_tokens = word_tokenize(query.lower())
@@ -185,7 +174,9 @@ class BM25Reranker(Reranker):
 
             # Normalize BM25 scores to 0-1 range
             if bm25_scores.max() > bm25_scores.min():
-                bm25_scores = (bm25_scores - bm25_scores.min()) / (bm25_scores.max() - bm25_scores.min())
+                bm25_scores = (bm25_scores - bm25_scores.min()) / (
+                    bm25_scores.max() - bm25_scores.min()
+                )
 
             # Combine BM25 with original scores
             combined_scores = []
@@ -227,10 +218,7 @@ class ReciprocalRankFusionReranker(Reranker):
         self.k = k
 
     def rerank(
-        self,
-        query: str,
-        texts: List[str],
-        scores: List[float]
+        self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """
         Rerank using Reciprocal Rank Fusion.

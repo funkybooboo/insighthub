@@ -1,9 +1,6 @@
 """Local filesystem blob storage implementation."""
 
-import os
 from pathlib import Path
-from typing import Optional
-from urllib.parse import urljoin
 
 from .storage import BlobStorage
 

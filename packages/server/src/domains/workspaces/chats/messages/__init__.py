@@ -2,6 +2,7 @@
 
 from src.infrastructure.models import ChatMessage
 from src.infrastructure.repositories.chat_messages import ChatMessageRepository
+
 from .service import ChatMessageService
 
 __all__ = ["ChatMessage", "ChatMessageRepository", "ChatMessageService"]

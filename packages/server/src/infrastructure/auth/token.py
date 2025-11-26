@@ -1,7 +1,7 @@
 """JWT token utilities for authentication."""
 
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
 
 import jwt
 

@@ -12,14 +12,9 @@ from typing import BinaryIO
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
 from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
-from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import (
-    VectorEmbeddingEncoder,
-)
+from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_store import VectorStore
-from src.infrastructure.rag.workflows.consume_workflow import (
-    ConsumeWorkflow,
-)
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflowError
+from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow, ConsumeWorkflowError
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.result import Err, Ok, Result
 
@@ -115,9 +110,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
         try:
             chunk_texts = [chunk.text for chunk in chunks]
             embeddings = self.embedder.embed(chunk_texts)
-            logger.info(
-                f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings"
-            )
+            logger.info(f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings")
         except Exception as e:
             return Err(
                 ConsumeWorkflowError(

@@ -1,7 +1,8 @@
 """Mappers for chats message models and DTOs."""
 
-from .dtos import MessageResponse
 from src.infrastructure.models import ChatMessage
+
+from .dtos import MessageResponse
 
 
 class MessageMapper:

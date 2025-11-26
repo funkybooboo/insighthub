@@ -18,5 +18,5 @@ __all__ = [
     "RagConfig",
     "User",
     "VectorRagConfig",
-    "Workspace"
+    "Workspace",
 ]

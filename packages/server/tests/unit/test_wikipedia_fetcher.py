@@ -1,7 +1,7 @@
 """Unit tests for Wikipedia fetcher."""
 
-import pytest
 from unittest.mock import Mock, patch
+
 
 from src.infrastructure.wikipedia import WikipediaFetcher, wikipedia_fetcher
 
@@ -15,7 +15,7 @@ class TestWikipediaFetcher:
         assert fetcher.timeout == 10
         assert fetcher.max_retries == 2
 
-    @patch('src.infrastructure.wikipedia.fetch.requests.Session')
+    @patch("src.infrastructure.wikipedia.fetch.requests.Session")
     def test_search_articles_success(self, mock_session):
         """Test successful article search."""
         # Mock the response
@@ -23,7 +23,7 @@ class TestWikipediaFetcher:
         mock_response.json.return_value = [
             ["Machine learning"],  # titles
             ["Machine learning is..."],  # descriptions
-            ["https://en.wikipedia.org/wiki/Machine_learning"]  # urls
+            ["https://en.wikipedia.org/wiki/Machine_learning"],  # urls
         ]
         mock_response.raise_for_status.return_value = None
 
@@ -40,7 +40,7 @@ class TestWikipediaFetcher:
         assert articles[0]["title"] == "Machine learning"
         assert "wikipedia.org" in articles[0]["url"]
 
-    @patch('src.infrastructure.wikipedia.fetch.requests.Session')
+    @patch("src.infrastructure.wikipedia.fetch.requests.Session")
     def test_search_articles_network_error(self, mock_session):
         """Test search with network error."""
         mock_session_instance = Mock()
@@ -53,7 +53,7 @@ class TestWikipediaFetcher:
         assert result.is_err()
         assert "Search request failed" in result.err()
 
-    @patch('src.infrastructure.wikipedia.fetch.requests.Session')
+    @patch("src.infrastructure.wikipedia.fetch.requests.Session")
     def test_fetch_article_direct_success(self, mock_session):
         """Test direct article fetch success."""
         # Mock the API response
@@ -62,11 +62,9 @@ class TestWikipediaFetcher:
             "title": "Python (programming language)",
             "extract": "Python is a programming language...",
             "content_urls": {
-                "desktop": {
-                    "page": "https://en.wikipedia.org/wiki/Python_(programming_language)"
-                }
+                "desktop": {"page": "https://en.wikipedia.org/wiki/Python_(programming_language)"}
             },
-            "categories": [{"title": "Category:Programming languages"}]
+            "categories": [{"title": "Category:Programming languages"}],
         }
         mock_response.raise_for_status.return_value = None
 
@@ -83,7 +81,7 @@ class TestWikipediaFetcher:
         assert "Python is a programming language" in article.content
         assert article.language == "en"
 
-    @patch('src.infrastructure.wikipedia.fetch.requests.Session')
+    @patch("src.infrastructure.wikipedia.fetch.requests.Session")
     def test_fetch_article_not_found(self, mock_session):
         """Test article fetch when article doesn't exist."""
         mock_response = Mock()
@@ -108,7 +106,7 @@ class TestWikipediaFetcher:
             url="https://en.wikipedia.org/wiki/Test_Article",
             language="en",
             summary="A test summary",
-            categories=["Category:Test articles"]
+            categories=["Category:Test articles"],
         )
 
         markdown = article.to_markdown()

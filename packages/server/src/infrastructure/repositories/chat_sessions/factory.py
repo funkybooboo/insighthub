@@ -1,7 +1,7 @@
 """Factory for creating chats session repository instances."""
 
-from .in_memory_chat_session_repository import InMemoryChatSessionRepository
 from .chat_session_repository import ChatSessionRepository
+from .in_memory_chat_session_repository import InMemoryChatSessionRepository
 
 
 def create_chat_session_repository(repo_type: str = "memory") -> ChatSessionRepository:

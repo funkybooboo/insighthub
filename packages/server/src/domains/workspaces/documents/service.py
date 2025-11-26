@@ -2,23 +2,20 @@
 
 from typing import BinaryIO
 
-from src.infrastructure.storage import BlobStorage
-
 from src.infrastructure.models import Document
 from src.infrastructure.repositories.documents import DocumentRepository
+from src.infrastructure.storage import BlobStorage
 
 from .dtos import DocumentListResponse
 from .exceptions import DocumentNotFoundError, DocumentProcessingError
 from .mappers import DocumentMapper
 
 
-
-
-
 # Allowed extensions are determined dynamically from registered parsers
 def get_allowed_extensions() -> set[str]:
     """Get allowed file extensions from registered parsers."""
     from src.infrastructure.rag.steps.general.parsing.factory import get_supported_extensions
+
     return get_supported_extensions()
 
 
@@ -39,10 +36,6 @@ class DocumentService:
         """
         self.repository = repository
         self.blob_storage = blob_storage
-
-
-
-
 
     def upload_document(
         self,
@@ -110,6 +103,7 @@ class DocumentService:
 
             # Start background processing
             from src.workers import get_document_processor
+
             processor = get_document_processor()
             processor.start_processing(document, 0)  # TODO: Pass actual user_id
 
@@ -119,7 +113,6 @@ class DocumentService:
             if isinstance(e, DocumentProcessingError):
                 raise
             raise DocumentProcessingError(filename, f"Upload failed: {str(e)}") from e
-
 
         """
         High-level orchestration method for document upload.
@@ -206,7 +199,11 @@ class DocumentService:
         """List all documents for a users with pagination."""
         # Note: This is a simplified implementation - in a real system,
         # we'd need to join with workspaces to filter by user access
-        return list(self.repository._documents.values())[skip:skip + limit] if hasattr(self.repository, '_documents') else []
+        return (
+            list(self.repository._documents.values())[skip : skip + limit]
+            if hasattr(self.repository, "_documents")
+            else []
+        )
 
     def update_document(self, document_id: int, **kwargs) -> Document | None:
         """Update document fields."""
@@ -243,8 +240,6 @@ class DocumentService:
             return False
 
         return True
-
-
 
     def list_user_documents_as_dto(self, user_id: int) -> DocumentListResponse:
         """
@@ -341,9 +336,3 @@ class DocumentService:
         updated_doc = self.update_document(document_id, **kwargs)
 
         return updated_doc is not None
-
-
-
-
-
-

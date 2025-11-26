@@ -26,7 +26,9 @@ class ChatSessionService:
         if rag_type not in ["vector", "graph"]:
             raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
-        return self.repository.create(user_id, title.strip() if title else None, workspace_id, rag_type)
+        return self.repository.create(
+            user_id, title.strip() if title else None, workspace_id, rag_type
+        )
 
     def get_session(self, session_id: int) -> ChatSession | None:
         """Get session by ID."""
@@ -35,8 +37,6 @@ class ChatSessionService:
     def list_user_sessions(self, user_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
         """List sessions for a users."""
         return self.repository.get_by_user(user_id, skip, limit)
-
-
 
     def update_session(self, session_id: int, title: str | None = None) -> ChatSession | None:
         """Update session title."""

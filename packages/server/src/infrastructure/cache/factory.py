@@ -1,8 +1,8 @@
 """Cache infrastructure factory."""
 
-from typing import Any, Optional
 import time
 from threading import Lock
+from typing import Any, Optional
 
 
 class Cache:
@@ -44,11 +44,11 @@ class InMemoryCache(Cache):
                 return None
 
             entry = self._cache[key]
-            if time.time() > entry['expires_at']:
+            if time.time() > entry["expires_at"]:
                 del self._cache[key]
                 return None
 
-            return entry['value']
+            return entry["value"]
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Set value in cache with optional TTL."""
@@ -56,10 +56,7 @@ class InMemoryCache(Cache):
         expires_at = time.time() + ttl
 
         with self._lock:
-            self._cache[key] = {
-                'value': value,
-                'expires_at': expires_at
-            }
+            self._cache[key] = {"value": value, "expires_at": expires_at}
 
     def delete(self, key: str) -> bool:
         """Delete value from cache."""
@@ -76,7 +73,7 @@ class InMemoryCache(Cache):
                 return False
 
             entry = self._cache[key]
-            if time.time() > entry['expires_at']:
+            if time.time() > entry["expires_at"]:
                 del self._cache[key]
                 return False
 
@@ -91,16 +88,19 @@ class InMemoryCache(Cache):
 class RedisCache(Cache):
     """Redis cache implementation."""
 
-    def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0,
-                 password: Optional[str] = None, default_ttl: int = 3600):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        password: Optional[str] = None,
+        default_ttl: int = 3600,
+    ):
         try:
             import redis
+
             self._client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
-                decode_responses=True
+                host=host, port=port, db=db, password=password, decode_responses=True
             )
             self._client.ping()  # Test connection
             self._available = True

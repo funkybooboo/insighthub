@@ -1,6 +1,9 @@
 """Document parsing for various file formats."""
 
-from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser, ParsingError
+from src.infrastructure.rag.steps.general.parsing.document_parser import (
+    DocumentParser,
+    ParsingError,
+)
 from src.infrastructure.rag.steps.general.parsing.docx_document_parser import DocxDocumentParser
 from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory, parser_factory
 from src.infrastructure.rag.steps.general.parsing.html_document_parser import HTMLDocumentParser
