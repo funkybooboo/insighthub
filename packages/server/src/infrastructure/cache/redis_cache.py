@@ -1,9 +1,7 @@
 
-import time
-from threading import Lock
 from typing import Any, Optional
 
-from src.infrastructure.cache import Cache
+from src.infrastructure.cache.cache import Cache
 
 
 class RedisCache(Cache):
