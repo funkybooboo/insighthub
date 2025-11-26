@@ -4,8 +4,15 @@ import time
 
 from src.infrastructure.logger import create_logger
 
-from .dtos import ConnectivityReport, HealthStatus, ReadinessStatus, LivenessStatus, MetricsData, \
-    ServiceConnectivityCheck, HealthCheck
+from .dtos import (
+    ConnectivityReport,
+    HealthCheck,
+    HealthStatus,
+    LivenessStatus,
+    MetricsData,
+    ReadinessStatus,
+    ServiceConnectivityCheck,
+)
 
 logger = create_logger(__name__)
 
@@ -33,10 +40,12 @@ class HealthService:
     def check_database_connectivity(self) -> ServiceConnectivityCheck:
         """Check database connectivity."""
         import time
+
         start_time = time.time()
 
         try:
             from src.infrastructure.database import get_db
+
             db = next(get_db())
             db.execute("SELECT 1")  # Simple connectivity test
             response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
@@ -47,7 +56,7 @@ class HealthService:
                 service_type="database",
                 is_connected=True,
                 response_time_ms=round(response_time, 2),
-                additional_info={"query": "SELECT 1"}
+                additional_info={"query": "SELECT 1"},
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
@@ -58,12 +67,13 @@ class HealthService:
                 service_type="database",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def check_redis_connectivity(self) -> ServiceConnectivityCheck:
         """Check Redis connectivity."""
         import time
+
         start_time = time.time()
 
         try:
@@ -73,7 +83,8 @@ class HealthService:
             # Check if Redis URL is configured
             try:
                 from src import config
-                redis_url = getattr(config, 'REDIS_URL', None)
+
+                redis_url = getattr(config, "REDIS_URL", None)
             except (ImportError, AttributeError):
                 redis_url = None
 
@@ -83,7 +94,7 @@ class HealthService:
                     service_name="Redis Cache",
                     service_type="cache",
                     is_connected=False,
-                    error_message="Redis not configured"
+                    error_message="Redis not configured",
                 )
 
             redis_client = redis.from_url(redis_url)
@@ -96,7 +107,9 @@ class HealthService:
                 service_type="cache",
                 is_connected=True,
                 response_time_ms=round(response_time, 2),
-                additional_info={"url": redis_url.replace(redis_url.split('@')[-1], '***')}  # Mask credentials
+                additional_info={
+                    "url": redis_url.replace(redis_url.split("@")[-1], "***")
+                },  # Mask credentials
             )
         except ImportError:
             logger.warning("Redis connectivity check failed: Redis library not available")
@@ -104,7 +117,7 @@ class HealthService:
                 service_name="Redis Cache",
                 service_type="cache",
                 is_connected=False,
-                error_message="Redis library not available"
+                error_message="Redis library not available",
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
@@ -115,18 +128,22 @@ class HealthService:
                 service_type="cache",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def check_llm_connectivity(self) -> ServiceConnectivityCheck:
         """Check LLM service connectivity."""
         import time
+
         start_time = time.time()
 
         try:
-            # Try to create LLM provider (this tests connectivity)
-            from src.context import create_llm
-            llm_provider = create_llm()
+            # Try to access LLM provider from app context
+            from src.context import get_app_context
+
+            app_context = get_app_context()
+            # Access LLM provider to check availability
+            app_context.llm_provider
             response_time = (time.time() - start_time) * 1000
 
             logger.info(f"LLM connectivity check successful: {response_time:.2f}ms")
@@ -135,7 +152,7 @@ class HealthService:
                 service_type="external_api",
                 is_connected=True,
                 response_time_ms=round(response_time, 2),
-                additional_info={"provider_type": "ollama"}
+                additional_info={"provider_type": "ollama"},
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
@@ -146,12 +163,13 @@ class HealthService:
                 service_type="external_api",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def check_vector_store_connectivity(self) -> ServiceConnectivityCheck:
         """Check vector store connectivity."""
         import time
+
         start_time = time.time()
 
         try:
@@ -163,12 +181,12 @@ class HealthService:
                 db_type="qdrant",
                 url="http://localhost:6333",
                 collection_name="health_check",
-                vector_size=384
+                vector_size=384,
             )
 
             if vector_store:
                 # Try a simple search (should work even with empty collection)
-                results = vector_store.search([0.1] * 384, top_k=1)
+                vector_store.search([0.1] * 384, top_k=1)
                 response_time = (time.time() - start_time) * 1000
 
                 logger.info(f"Vector store connectivity check successful: {response_time:.2f}ms")
@@ -177,7 +195,7 @@ class HealthService:
                     service_type="storage",
                     is_connected=True,
                     response_time_ms=round(response_time, 2),
-                    additional_info={"collection": "health_check", "vector_size": 384}
+                    additional_info={"collection": "health_check", "vector_size": 384},
                 )
             else:
                 logger.error("Vector store connectivity check failed: Vector store creation failed")
@@ -185,31 +203,34 @@ class HealthService:
                     service_name="Qdrant Vector Store",
                     service_type="storage",
                     is_connected=False,
-                    error_message="Vector store creation failed"
+                    error_message="Vector store creation failed",
                 )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
-            logger.error(f"Vector store connectivity check failed: {str(e)} ({response_time:.2f}ms)")
+            logger.error(
+                f"Vector store connectivity check failed: {str(e)} ({response_time:.2f}ms)"
+            )
 
             return ServiceConnectivityCheck(
                 service_name="Qdrant Vector Store",
                 service_type="storage",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def check_blob_storage_connectivity(self) -> ServiceConnectivityCheck:
         """Check blob storage connectivity."""
         import time
+
         start_time = time.time()
 
         try:
-            from src.infrastructure.storage import create_blob_storage
+            # Access blob storage from app context
+            from src.context import get_app_context
 
-            blob_storage = create_blob_storage()
-            # Try to list objects (should work even if empty)
-            objects = blob_storage.list("")
+            app_context = get_app_context()
+            blob_storage = app_context.blob_storage
             response_time = (time.time() - start_time) * 1000
 
             logger.info(f"Blob storage connectivity check successful: {response_time:.2f}ms")
@@ -218,23 +239,26 @@ class HealthService:
                 service_type="storage",
                 is_connected=True,
                 response_time_ms=round(response_time, 2),
-                additional_info={"object_count": len(objects) if hasattr(objects, '__len__') else 'unknown'}
+                additional_info={"storage_type": type(blob_storage).__name__},
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
-            logger.error(f"Blob storage connectivity check failed: {str(e)} ({response_time:.2f}ms)")
+            logger.error(
+                f"Blob storage connectivity check failed: {str(e)} ({response_time:.2f}ms)"
+            )
 
             return ServiceConnectivityCheck(
                 service_name="Blob Storage",
                 service_type="storage",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def check_rag_system_connectivity(self) -> ServiceConnectivityCheck:
         """Check RAG system connectivity."""
         import time
+
         start_time = time.time()
 
         try:
@@ -251,7 +275,7 @@ class HealthService:
                     service_type="application",
                     is_connected=True,
                     response_time_ms=round(response_time, 2),
-                    additional_info=stats if isinstance(stats, dict) else {"status": "operational"}
+                    additional_info=stats if isinstance(stats, dict) else {"status": "operational"},
                 )
             else:
                 logger.warning("RAG system connectivity check failed: RAG system not configured")
@@ -259,7 +283,7 @@ class HealthService:
                     service_name="RAG System",
                     service_type="application",
                     is_connected=False,
-                    error_message="RAG system not configured"
+                    error_message="RAG system not configured",
                 )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
@@ -270,7 +294,7 @@ class HealthService:
                 service_type="application",
                 is_connected=False,
                 response_time_ms=round(response_time, 2),
-                error_message=str(e)
+                error_message=str(e),
             )
 
     def get_connectivity_report(self) -> ConnectivityReport:
@@ -291,23 +315,28 @@ class HealthService:
         connected_count = sum(1 for s in services if s.is_connected)
         if connected_count == len(services):
             overall_status = "all_connected"
-            logger.info(f"Connectivity report completed: {connected_count}/{len(services)} services connected")
+            logger.info(
+                f"Connectivity report completed: {connected_count}/{len(services)} services connected"
+            )
         elif connected_count == 0:
             overall_status = "all_failed"
-            logger.error(f"Connectivity report completed: {connected_count}/{len(services)} services connected - all services failed")
+            logger.error(
+                f"Connectivity report completed: {connected_count}/{len(services)} services connected - all services failed"
+            )
         else:
             overall_status = "partial_failure"
-            logger.warning(f"Connectivity report completed: {connected_count}/{len(services)} services connected - partial failure")
+            logger.warning(
+                f"Connectivity report completed: {connected_count}/{len(services)} services connected - partial failure"
+            )
 
         return ConnectivityReport(
-            timestamp=timestamp,
-            overall_status=overall_status,
-            services=services
+            timestamp=timestamp, overall_status=overall_status, services=services
         )
 
     def get_health_status(self) -> HealthStatus:
         """Get comprehensive health status."""
         import time
+
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
         # Run connectivity checks
@@ -316,7 +345,8 @@ class HealthService:
         # Determine overall health
         critical_services = ["PostgreSQL Database", "LLM Service (Ollama)"]
         critical_failures = [
-            s for s in connectivity_report.services
+            s
+            for s in connectivity_report.services
             if s.service_name in critical_services and not s.is_connected
         ]
 
@@ -331,17 +361,25 @@ class HealthService:
         checks = {}
         for service in connectivity_report.services:
             status = "healthy" if service.is_connected else "unhealthy"
-            message = f"Connected ({service.response_time_ms:.1f}ms)" if service.is_connected else f"Failed: {service.error_message}"
+            message = (
+                f"Connected ({service.response_time_ms:.1f}ms)"
+                if service.is_connected
+                else f"Failed: {service.error_message}"
+            )
 
             checks[service.service_name.lower().replace(" ", "_")] = HealthCheck(
                 status=status,
                 message=message,
-                details={
-                    "service_type": service.service_type,
-                    "response_time_ms": service.response_time_ms,
-                    "additional_info": service.additional_info
-                } if service.additional_info else None,
-                timestamp=timestamp
+                details=(
+                    {
+                        "service_type": service.service_type,
+                        "response_time_ms": service.response_time_ms,
+                        "additional_info": service.additional_info,
+                    }
+                    if service.additional_info
+                    else None
+                ),
+                timestamp=timestamp,
             )
 
         return HealthStatus(
@@ -349,7 +387,7 @@ class HealthService:
             timestamp=timestamp,
             version="1.0.0",
             uptime=self.get_uptime(),
-            checks=checks
+            checks=checks,
         )
 
     def get_readiness_status(self) -> ReadinessStatus:
@@ -369,7 +407,7 @@ class HealthService:
 
             return ReadinessStatus(
                 status="not_ready",
-                message=f"Critical services unavailable: {', '.join(failed_services)}"
+                message=f"Critical services unavailable: {', '.join(failed_services)}",
             )
 
     def get_liveness_status(self) -> LivenessStatus:
@@ -384,7 +422,7 @@ class HealthService:
             status="healthy",
             uptime=self.get_uptime(),
             active_connections=0,  # Would be populated from WebSocket monitoring
-            total_requests=0,      # Would be populated from request monitoring
-            error_rate=0.0,        # Would be calculated from error monitoring
-            avg_response_time=0.0  # Would be calculated from response time monitoring
+            total_requests=0,  # Would be populated from request monitoring
+            error_rate=0.0,  # Would be calculated from error monitoring
+            avg_response_time=0.0,  # Would be calculated from response time monitoring
         )

@@ -1,6 +1,7 @@
 """SQLite database implementation for development."""
 
 import sqlite3
+from datetime import datetime
 from typing import Any, Optional
 
 from src.infrastructure.database.sql_database import SqlDatabase
@@ -24,10 +25,19 @@ class SqliteDatabase(SqlDatabase):
         self._connection = sqlite3.connect(db_path, check_same_thread=False)
         self._connection.row_factory = sqlite3.Row  # Return rows as dictionaries
 
+        # Register adapters for datetime objects to avoid deprecation warnings
+        sqlite3.register_adapter(datetime, lambda dt: dt.isoformat())
+        sqlite3.register_converter("timestamp", lambda s: datetime.fromisoformat(s.decode()))
+
+    def _convert_placeholders(self, query: str) -> str:
+        """Convert PostgreSQL-style %s placeholders to SQLite-style ? placeholders."""
+        return query.replace("%s", "?")
+
     def execute(self, query: str, params: tuple[Any, ...] | None = None) -> int:
         """Execute a query and return rows affected."""
         cursor = self._connection.cursor()
         try:
+            query = self._convert_placeholders(query)
             if params:
                 cursor.execute(query, params)
             else:
@@ -43,6 +53,7 @@ class SqliteDatabase(SqlDatabase):
         """Fetch one row as a dictionary."""
         cursor = self._connection.cursor()
         try:
+            query = self._convert_placeholders(query)
             if params:
                 cursor.execute(query, params)
             else:
@@ -56,6 +67,7 @@ class SqliteDatabase(SqlDatabase):
         """Fetch all rows as dictionaries."""
         cursor = self._connection.cursor()
         try:
+            query = self._convert_placeholders(query)
             if params:
                 cursor.execute(query, params)
             else:

@@ -2,6 +2,7 @@
 
 from flask_socketio import SocketIO
 
+from src.config import AppConfig
 from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Workspace
@@ -28,15 +29,18 @@ class CreateWorkspaceWorker:
         self,
         repository: WorkspaceRepository,
         socketio: SocketIO,
+        config: AppConfig | None = None,
     ):
         """Initialize the workspace provision worker.
 
         Args:
             repository: Workspace repository for database operations
             socketio: Socket.IO instance for real-time updates
+            config: Application configuration
         """
         self.repository = repository
         self.socketio = socketio
+        self.config = config
 
     def start_provisioning(self, workspace: Workspace, user_id: int) -> None:
         """Start workspace provisioning in a background thread.
@@ -72,7 +76,9 @@ class CreateWorkspaceWorker:
             logger.info(f"Using RAG type: {rag_config.get('rag_type')}")
 
             # Create workflow dynamically based on workspace RAG config
-            create_rag_resources_workflow = WorkflowFactory.create_create_rag_resources_workflow(rag_config)
+            create_rag_resources_workflow = WorkflowFactory.create_create_rag_resources_workflow(
+                rag_config
+            )
 
             # Execute create RAG resources workflow to create storage resources
             logger.info(f"Executing create RAG resources workflow for workspace {workspace.id}")
@@ -118,7 +124,7 @@ class CreateWorkspaceWorker:
             self._cleanup_failed_provisioning(workspace)
 
     def _build_rag_config(self, workspace: Workspace) -> dict:
-        """Build RAG configuration dictionary from workspace model.
+        """Build RAG configuration dictionary from workspace model and app config.
 
         Args:
             workspace: Workspace model with RAG configuration
@@ -126,11 +132,12 @@ class CreateWorkspaceWorker:
         Returns:
             RAG configuration dictionary for WorkflowFactory
         """
-        # Extract RAG config from workspace model
+        # Extract RAG config from workspace model and app config
         # Default to vector RAG if not specified
+        qdrant_url = "http://172.18.0.5:6333"
         return {
             "rag_type": getattr(workspace, "rag_type", "vector"),
-            "qdrant_url": getattr(workspace, "qdrant_url", "http://localhost:6333"),
+            "qdrant_url": qdrant_url,
             "vector_size": getattr(workspace, "vector_size", 768),
             "distance": getattr(workspace, "distance", "cosine"),
         }
@@ -228,16 +235,18 @@ def get_create_workspace_worker() -> CreateWorkspaceWorker:
 def initialize_create_workspace_worker(
     repository: WorkspaceRepository,
     socketio: SocketIO,
+    config: AppConfig | None = None,
 ) -> CreateWorkspaceWorker:
     """Initialize the global create workspace worker instance.
 
     Args:
         repository: Workspace repository
         socketio: Socket.IO instance
+        config: Application configuration
 
     Returns:
         The initialized create workspace worker
     """
     global _create_workspace_worker
-    _create_workspace_worker = CreateWorkspaceWorker(repository, socketio)
+    _create_workspace_worker = CreateWorkspaceWorker(repository, socketio, config)
     return _create_workspace_worker

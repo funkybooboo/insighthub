@@ -50,7 +50,9 @@ def handle_chat_response_chunk(event_data: dict, socketio: SocketIO) -> None:
             if is_complete:
                 logger.info(f"Chat response completed for session {session_id}")
             elif len(chunk) > 0:
-                logger.debug(f"Chat response chunk sent for session {session_id}: {len(chunk)} chars")
+                logger.debug(
+                    f"Chat response chunk sent for session {session_id}: {len(chunk)} chars"
+                )
 
     except Exception as e:
         logger.error(f"Failed to handle chat response chunk: {e}")

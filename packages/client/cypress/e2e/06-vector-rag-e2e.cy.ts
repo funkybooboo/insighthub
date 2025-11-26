@@ -218,8 +218,9 @@ describe('Vector RAG End-to-End Flow', () => {
                     expect(response.body.chunks.length).to.be.greaterThan(0);
 
                     // Verify chunks have embeddings
-                    response.body.chunks.forEach((chunk: any) => {
+                    response.body.chunks.forEach((chunk: { embedding?: unknown }) => {
                         expect(chunk).to.have.property('embedding');
+                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                         expect(chunk.embedding).to.not.be.null;
                     });
                 });
@@ -239,6 +240,7 @@ describe('Vector RAG End-to-End Flow', () => {
                 }).then((response) => {
                     expect(response.status).to.equal(200);
                     expect(response.body.vector_count).to.be.greaterThan(0);
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     expect(response.body.collection_name).to.exist;
                 });
             });

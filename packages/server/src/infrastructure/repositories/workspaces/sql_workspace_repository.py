@@ -1,6 +1,6 @@
 """SQL implementation of WorkspaceRepository."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from src.infrastructure.database import SqlDatabase
@@ -38,8 +38,8 @@ class SqlWorkspaceRepository(WorkspaceRepository):
                 description,
                 rag_type,
                 status,
-                datetime.utcnow(),
-                datetime.utcnow(),
+                datetime.now(UTC),
+                datetime.now(UTC),
             ),
         )
 
@@ -97,7 +97,7 @@ class SqlWorkspaceRepository(WorkspaceRepository):
             if hasattr(workspace, key):
                 setattr(workspace, key, value)
 
-        workspace.updated_at = datetime.utcnow()
+        workspace.updated_at = datetime.now(UTC)
 
         # Update in database
         query = """
@@ -151,3 +151,23 @@ class SqlWorkspaceRepository(WorkspaceRepository):
         """Create graph RAG config for workspace."""
         # TODO: Implement when graph_rag_configs table is created
         pass
+
+    def create_vector_rag_config(self, config: VectorRagConfig) -> VectorRagConfig:
+        """Create vector RAG config for workspace."""
+        # TODO: Implement when vector_rag_configs table is created
+        return config
+
+    def update_vector_rag_config(self, workspace_id: int, **kwargs) -> Optional[VectorRagConfig]:
+        """Update vector RAG config for workspace."""
+        # TODO: Implement when vector_rag_configs table is created
+        return None
+
+    def create_graph_rag_config(self, config: GraphRagConfig) -> GraphRagConfig:
+        """Create graph RAG config for workspace."""
+        # TODO: Implement when graph_rag_configs table is created
+        return config
+
+    def update_graph_rag_config(self, workspace_id: int, **kwargs) -> Optional[GraphRagConfig]:
+        """Update graph RAG config for workspace."""
+        # TODO: Implement when graph_rag_configs table is created
+        return None

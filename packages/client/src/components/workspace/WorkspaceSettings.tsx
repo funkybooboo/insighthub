@@ -51,10 +51,10 @@ const WorkspaceSettings = () => {
                 ragConfig: config,
             }));
         } catch (error) {
-             logger.error('Failed to load RAG config', error as Error, {
-                 workspaceId: activeWorkspaceId,
-             });
-             // If no config found, initialize with default values for form
+            logger.error('Failed to load RAG config', error as Error, {
+                workspaceId: activeWorkspaceId,
+            });
+            // If no config found, initialize with default values for form
             setRagConfig(null);
             setFormData((prev) => ({
                 ...prev,

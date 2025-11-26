@@ -67,7 +67,9 @@ class QdrantVectorStore(VectorStore):
         logger.info(f"Adding {len(items)} vectors to vector store")
         self.db.upsert_batch(items)
 
-    def search(self, query_embedding: List[float], top_k: int = 5, filters: FilterDict | None = None) -> List[Tuple[Chunk, float]]:
+    def search(
+        self, query_embedding: List[float], top_k: int = 5, filters: FilterDict | None = None
+    ) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.
 

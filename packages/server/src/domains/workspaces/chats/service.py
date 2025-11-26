@@ -41,7 +41,9 @@ class ChatService:
             # 2. Re-execute them with the new document available
             # 3. Update query status and send results
 
-            logger.info(f"Would retry pending RAG queries for workspace {workspace_id}, user {user_id}")
+            logger.info(
+                f"Would retry pending RAG queries for workspace {workspace_id}, user {user_id}"
+            )
             logger.debug(f"Using LLM provider: {type(llm_provider).__name__}")
 
             # TODO: Implement actual retry logic when pending query storage is available

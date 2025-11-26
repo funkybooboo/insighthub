@@ -56,6 +56,7 @@ class SecurityConfig(BaseModel):
 
     secret_key: str = Field(description="Flask secret key", min_length=32)
     jwt_secret_key: str = Field(description="JWT secret key", min_length=32)
+    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expire_minutes: int = Field(default=1440, description="JWT expiration in minutes")
     cors_origins: List[str] = Field(
         default=["http://localhost:3000"], description="CORS allowed origins"
@@ -70,6 +71,7 @@ class WorkerConfig(BaseModel):
     chunk_size: int = Field(default=1000, description="Document chunk size")
     chunk_overlap: int = Field(default=200, description="Document chunk overlap")
     batch_size: int = Field(default=32, description="Batch processing size")
+
 
 class StorageConfig(BaseModel):
     """Storage configuration."""
@@ -155,6 +157,7 @@ class AppConfig(BaseSettings):
         description="JWT secret key",
         min_length=32,
     )
+    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expire_minutes: int = Field(default=1440, description="JWT expiration in minutes")
     cors_origins_str: str = Field(
         default="http://localhost:3000", description="CORS allowed origins (comma-separated)"
@@ -189,11 +192,19 @@ class AppConfig(BaseSettings):
 
     # Repository types
     user_repository_type: str = Field(default="memory", description="User repository type")
-    workspace_repository_type: str = Field(default="memory", description="Workspace repository type")
+    workspace_repository_type: str = Field(
+        default="memory", description="Workspace repository type"
+    )
     document_repository_type: str = Field(default="memory", description="Document repository type")
-    chat_session_repository_type: str = Field(default="memory", description="Chat session repository type")
-    chat_message_repository_type: str = Field(default="memory", description="Chat message repository type")
-    default_rag_config_repository_type: str = Field(default="memory", description="Default RAG config repository type")
+    chat_session_repository_type: str = Field(
+        default="memory", description="Chat session repository type"
+    )
+    chat_message_repository_type: str = Field(
+        default="memory", description="Chat message repository type"
+    )
+    default_rag_config_repository_type: str = Field(
+        default="memory", description="Default RAG config repository type"
+    )
 
     # Legacy compatibility
     rate_limit_enabled: bool = Field(default=True, description="Rate limiting enabled")
@@ -237,6 +248,7 @@ class AppConfig(BaseSettings):
         return SecurityConfig(
             secret_key=self.secret_key,
             jwt_secret_key=self.jwt_secret_key,
+            jwt_algorithm=self.jwt_algorithm,
             jwt_expire_minutes=self.jwt_expire_minutes,
             cors_origins=[origin.strip() for origin in self.cors_origins_str.split(",")],
         )
@@ -282,7 +294,8 @@ class AppConfig(BaseSettings):
             neo4j_password=self.neo4j_password,
         )
 
-    def validate_config(self) -> None:
+    @staticmethod
+    def validate_config() -> None:
         """Validate configuration and raise errors for invalid configurations."""
         # Skip validation during container startup - let the app handle connection issues gracefully
         print("Configuration validation skipped - app will handle connections gracefully")

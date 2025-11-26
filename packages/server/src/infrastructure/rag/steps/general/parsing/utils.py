@@ -26,7 +26,7 @@ def extract_text(file_obj: BinaryIO, filename: str) -> str:
     file_obj.seek(0)
     content = file_obj.read()
     try:
-        return content.decode('utf-8')
+        return content.decode("utf-8")
     except UnicodeDecodeError:
         # If not UTF-8, return a placeholder
         return f"Binary file: {filename}"

@@ -58,7 +58,7 @@ def emit_wikipedia_fetch_status(
     status: str,
     document_ids: list[int] | None = None,
     message: str | None = None,
-    error: str | None = None
+    error: str | None = None,
 ) -> None:
     """Emit wikipedia_fetch_status event during Wikipedia fetching."""
     data = {"workspace_id": workspace_id, "query": query, "status": status}

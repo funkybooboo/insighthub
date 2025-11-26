@@ -5,7 +5,9 @@ from .in_memory_default_rag_config_repository import InMemoryDefaultRagConfigRep
 from .sql_default_rag_config_repository import SqlDefaultRagConfigRepository
 
 
-def create_default_rag_config_repository(repo_type: str = "memory", db=None) -> DefaultRagConfigRepository:
+def create_default_rag_config_repository(
+    repo_type: str = "memory", db=None
+) -> DefaultRagConfigRepository:
     """Create a default RAG config repository instance based on configuration.
 
     Args:

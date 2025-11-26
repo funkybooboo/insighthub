@@ -52,12 +52,17 @@ def get_health() -> tuple[Response, int]:
         return jsonify(response_data), status_code
 
     except Exception as e:
-        return jsonify({
-            "status": "unhealthy",
-            "timestamp": "unknown",
-            "version": "unknown",
-            "error": f"Health check failed: {str(e)}"
-        }), 503
+        return (
+            jsonify(
+                {
+                    "status": "unhealthy",
+                    "timestamp": "unknown",
+                    "version": "unknown",
+                    "error": f"Health check failed: {str(e)}",
+                }
+            ),
+            503,
+        )
 
 
 @health_bp.route("/readiness", methods=["GET"])
@@ -83,10 +88,7 @@ def get_readiness() -> tuple[Response, int]:
         return jsonify(response_data), status_code
 
     except Exception as e:
-        return jsonify({
-            "status": "not_ready",
-            "message": f"Readiness check failed: {str(e)}"
-        }), 503
+        return jsonify({"status": "not_ready", "message": f"Readiness check failed: {str(e)}"}), 503
 
 
 @health_bp.route("/liveness", methods=["GET"])
@@ -109,10 +111,7 @@ def get_liveness() -> tuple[Response, int]:
         return jsonify(response_data), 200
 
     except Exception as e:
-        return jsonify({
-            "status": "dead",
-            "message": f"Liveness check failed: {str(e)}"
-        }), 503
+        return jsonify({"status": "dead", "message": f"Liveness check failed: {str(e)}"}), 503
 
 
 @health_bp.route("/connectivity", methods=["GET"])
@@ -158,12 +157,17 @@ def get_connectivity() -> tuple[Response, int]:
         return jsonify(response_data), 200
 
     except Exception as e:
-        return jsonify({
-            "timestamp": "unknown",
-            "overall_status": "error",
-            "services": [],
-            "error": f"Connectivity check failed: {str(e)}"
-        }), 503
+        return (
+            jsonify(
+                {
+                    "timestamp": "unknown",
+                    "overall_status": "error",
+                    "services": [],
+                    "error": f"Connectivity check failed: {str(e)}",
+                }
+            ),
+            503,
+        )
 
 
 @health_bp.route("/heartbeat", methods=["GET"])
@@ -178,12 +182,10 @@ def heartbeat() -> tuple[Response, int]:
         200: {"status": "ok", "timestamp": "ISO timestamp"}
     """
     from datetime import datetime
+
     timestamp = datetime.now().isoformat() + "Z"
 
-    return jsonify({
-        "status": "ok",
-        "timestamp": timestamp
-    }), 200
+    return jsonify({"status": "ok", "timestamp": timestamp}), 200
 
 
 @health_bp.route("/metrics", methods=["GET"])
@@ -215,12 +217,17 @@ def get_metrics() -> tuple[Response, int]:
         return jsonify(response_data), 200
 
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "uptime": "unknown",
-            "active_connections": 0,
-            "total_requests": 0,
-            "error_rate": 0.0,
-            "avg_response_time": 0.0,
-            "error": f"Metrics retrieval failed: {str(e)}"
-        }), 503
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "uptime": "unknown",
+                    "active_connections": 0,
+                    "total_requests": 0,
+                    "error_rate": 0.0,
+                    "avg_response_time": 0.0,
+                    "error": f"Metrics retrieval failed: {str(e)}",
+                }
+            ),
+            503,
+        )

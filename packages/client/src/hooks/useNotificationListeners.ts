@@ -221,12 +221,24 @@ export const useNotificationListeners = () => {
 
         // Cleanup function
         return () => {
-            socketService.off('document_status', handleDocumentStatus as (...args: unknown[]) => void);
-            socketService.off('workspace_status', handleWorkspaceStatus as (...args: unknown[]) => void);
-            socketService.off('wikipedia_fetch_status', handleWikipediaFetchStatus as (...args: unknown[]) => void);
+            socketService.off(
+                'document_status',
+                handleDocumentStatus as (...args: unknown[]) => void
+            );
+            socketService.off(
+                'workspace_status',
+                handleWorkspaceStatus as (...args: unknown[]) => void
+            );
+            socketService.off(
+                'wikipedia_fetch_status',
+                handleWikipediaFetchStatus as (...args: unknown[]) => void
+            );
             socketService.off('chat_complete', handleChatComplete as (...args: unknown[]) => void);
             socketService.off('error', handleError as (...args: unknown[]) => void);
-            socketService.off('chats.no_context_found', handleNoContextFound as (...args: unknown[]) => void);
+            socketService.off(
+                'chats.no_context_found',
+                handleNoContextFound as (...args: unknown[]) => void
+            );
             socketService.off('connected', handleConnected as (...args: unknown[]) => void);
             socketService.off('disconnect', handleDisconnected as (...args: unknown[]) => void);
         };

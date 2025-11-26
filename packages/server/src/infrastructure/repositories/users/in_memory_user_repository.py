@@ -1,7 +1,7 @@
 """In-memory implementation of UserRepository."""
 
-from datetime import datetime
-from typing import Optional, List
+from datetime import UTC, datetime
+from typing import List, Optional
 
 from src.infrastructure.models import User
 
@@ -52,7 +52,7 @@ class InMemoryUserRepository(UserRepository):
             if hasattr(user, key):
                 setattr(user, key, value)
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(UTC)
         return user
 
     def delete(self, user_id: int) -> bool:
@@ -65,7 +65,7 @@ class InMemoryUserRepository(UserRepository):
     def list_all(self, skip: int = 0, limit: int = 100) -> List[User]:
         """List all users with pagination."""
         all_users = list(self._users.values())
-        return all_users[skip:skip + limit]
+        return all_users[skip : skip + limit]
 
     def count_all(self) -> int:
         """Count all users."""

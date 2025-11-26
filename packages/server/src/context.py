@@ -2,12 +2,15 @@
 
 import threading
 
+from src import config
 from src.domains.auth.service import UserService
 from src.domains.default_rag_configs.service import DefaultRagConfigService
 from src.domains.health.service import HealthService
+from src.domains.workspaces.chats.messages.service import ChatMessageService
+from src.domains.workspaces.chats.service import ChatService
+from src.domains.workspaces.chats.sessions.service import ChatSessionService
 from src.domains.workspaces.documents.service import DocumentService
 from src.domains.workspaces.service import WorkspaceService
-from src import config
 from src.infrastructure.cache.factory import create_cache
 from src.infrastructure.llm.factory import create_llm_provider
 from src.infrastructure.logger import create_logger
@@ -19,17 +22,14 @@ from src.infrastructure.repositories.default_rag_configs.factory import (
 from src.infrastructure.repositories.documents.factory import create_document_repository
 from src.infrastructure.repositories.users.factory import create_user_repository
 from src.infrastructure.repositories.workspaces.factory import create_workspace_repository
-from src.domains.workspaces.chats.messages.service import ChatMessageService
-from src.domains.workspaces.chats.service import ChatService
-from src.domains.workspaces.chats.sessions.service import ChatSessionService
 from src.infrastructure.storage.factory import create_blob_storage
 from src.workers import (
     initialize_add_document_worker,
     initialize_chat_query_worker,
+    initialize_create_workspace_worker,
     initialize_fetch_wikipedia_worker,
     initialize_remove_document_worker,
     initialize_remove_workspace_worker,
-    initialize_create_workspace_worker,
 )
 
 logger = create_logger(__name__)
@@ -54,8 +54,7 @@ class AppContext:
         self.chat_session_service = ChatSessionService(repository=session_repo)
         self.chat_message_service = ChatMessageService(repository=message_repo)
         self.chat_service = ChatService(
-            message_service=self.chat_message_service,
-            session_service=self.chat_session_service
+            message_service=self.chat_message_service, session_service=self.chat_session_service
         )
 
         # Initialize infrastructure components first
@@ -112,8 +111,12 @@ class AppContext:
         self.message_repo = message_repo
 
         # Initialize default RAG config service (required)
-        default_rag_config_repo_type = getattr(config, "default_rag_config_repository_type", "in_memory")
-        default_rag_config_repo = create_default_rag_config_repository(repo_type=default_rag_config_repo_type, db=db)
+        default_rag_config_repo_type = getattr(
+            config, "default_rag_config_repository_type", "in_memory"
+        )
+        default_rag_config_repo = create_default_rag_config_repository(
+            repo_type=default_rag_config_repo_type, db=db
+        )
         self.default_rag_config_service = DefaultRagConfigService(
             repository=default_rag_config_repo
         )
@@ -146,6 +149,7 @@ class AppContext:
         initialize_create_workspace_worker(
             repository=self.workspace_repo,
             socketio=socketio,
+            config=config,
         )
 
         initialize_remove_workspace_worker(

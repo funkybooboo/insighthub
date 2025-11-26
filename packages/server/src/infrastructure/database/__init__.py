@@ -1,12 +1,18 @@
 """Database infrastructure."""
 
 from .factory import close_database, create_database, create_database_from_config
+
+# Import concrete implementations after SqlDatabase is available
+from .postgres_sql_database import PostgresSqlDatabase
 from .sql_database import SqlDatabase
 
-# Import concrete implementations
-from .postgres_sql_database import PostgresSqlDatabase
-
-__all__ = ["SqlDatabase", "PostgresSqlDatabase", "create_database", "create_database_from_config", "close_database"]
+__all__ = [
+    "SqlDatabase",
+    "PostgresSqlDatabase",
+    "create_database",
+    "create_database_from_config",
+    "close_database",
+]
 
 
 def get_db():

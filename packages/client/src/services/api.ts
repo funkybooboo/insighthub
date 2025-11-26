@@ -1,6 +1,6 @@
 /**
-  * API service for communicating with the InsightHub backend.
-  */
+ * API service for communicating with the InsightHub backend.
+ */
 
 import axios, { type AxiosInstance } from 'axios';
 import { logger } from '../lib/logger';
@@ -14,7 +14,6 @@ import type {
     VectorRagConfig,
     GraphRagConfig,
 } from '../types/workspace';
-import type { Context } from '../types/chat';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -173,7 +172,7 @@ class ApiService {
      * Check API health status
      */
     async healthCheck(): Promise<HealthResponse> {
-        const { data } = await this.client.get<HealthResponse>('/health');
+        const { data } = await this.client.get<HealthResponse>('/api/health');
         return data;
     }
 
@@ -208,7 +207,7 @@ class ApiService {
         ignoreRag?: boolean
     ): Promise<{ message_id: string }> {
         const { data } = await this.client.post<{ message_id: string }>(
-            `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/messages`,
+            `/api/workspaces/${workspaceId}/chats/sessions/${sessionId}/messages`,
             { content, message_type: messageType || 'user', ignore_rag: ignoreRag }
         );
         return data;
@@ -223,7 +222,7 @@ class ApiService {
         messageId?: string
     ): Promise<{ message: string }> {
         const { data } = await this.client.post<{ message: string }>(
-            `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}/cancel`,
+            `/api/workspaces/${workspaceId}/chats/sessions/${sessionId}/cancel`,
             { message_id: messageId }
         );
         return data;
@@ -541,7 +540,7 @@ class ApiService {
         title?: string
     ): Promise<{ session_id: number; title: string }> {
         const { data } = await this.client.post<{ session_id: number; title: string }>(
-            `/api/workspaces/${workspaceId}/chat/sessions`,
+            `/api/workspaces/${workspaceId}/chats/sessions`,
             { title }
         );
         return data;
@@ -567,7 +566,7 @@ class ApiService {
                 updated_at: string;
                 message_count: number;
             }>
-        >(`/api/workspaces/${workspaceId}/chat/sessions`);
+        >(`/api/workspaces/${workspaceId}/chats/sessions`);
         return data;
     }
 
@@ -576,7 +575,7 @@ class ApiService {
      */
     async deleteChatSession(workspaceId: number, sessionId: number): Promise<{ message: string }> {
         const { data } = await this.client.delete<{ message: string }>(
-            `/api/workspaces/${workspaceId}/chat/sessions/${sessionId}`
+            `/api/workspaces/${workspaceId}/chats/sessions/${sessionId}`
         );
         return data;
     }

@@ -11,9 +11,11 @@ FilterDict = dict[str, str | int | float | bool | None | list[str | int | float]
 # Primitive values
 PrimitiveValue = str | int | float | bool | None
 
+
 # Health status for service health checks
 class HealthStatus(TypedDict, total=False):
     """Health status dictionary for service health checks."""
+
     status: str
     provider: str
     model_available: bool

@@ -3,7 +3,7 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
-from src.infrastructure.database import SqlDatabase
+from .sql_database import SqlDatabase
 
 
 class PostgresSqlDatabase(SqlDatabase):

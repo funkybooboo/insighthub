@@ -4,7 +4,11 @@ from datetime import datetime
 from typing import Optional
 
 from src.infrastructure.database import SqlDatabase
-from src.infrastructure.models import DefaultGraphRagConfig, DefaultRagConfig, DefaultVectorRagConfig
+from src.infrastructure.models import (
+    DefaultGraphRagConfig,
+    DefaultRagConfig,
+    DefaultVectorRagConfig,
+)
 
 from .default_rag_config_repository import DefaultRagConfigRepository
 
@@ -39,8 +43,12 @@ class SqlDefaultRagConfigRepository(DefaultRagConfigRepository):
 
             # Extract graph config fields
             graph_config = {
-                "entity_extraction_algorithm": result.get("graph_entity_extraction_algorithm", "spacy"),
-                "relationship_extraction_algorithm": result.get("graph_relationship_extraction_algorithm", "dependency-parsing"),
+                "entity_extraction_algorithm": result.get(
+                    "graph_entity_extraction_algorithm", "spacy"
+                ),
+                "relationship_extraction_algorithm": result.get(
+                    "graph_relationship_extraction_algorithm", "dependency-parsing"
+                ),
                 "clustering_algorithm": result.get("graph_clustering_algorithm", "leiden"),
             }
 

@@ -80,11 +80,7 @@ class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
 
             # Check if this is a Qdrant database
             if hasattr(self.vector_database, "_client"):
-                from qdrant_client.http.models import (
-                    FieldCondition,
-                    Filter,
-                    MatchValue,
-                )
+                from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 
                 # Build filter for document_id and workspace_id
                 filter_conditions = Filter(

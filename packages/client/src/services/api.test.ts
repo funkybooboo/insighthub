@@ -527,7 +527,7 @@ describe('ApiService', () => {
 
             const result = await apiService.sendChatMessage(1, 1, 'Hello world');
             expect(result.message_id).toBe('msg-123');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/1/messages', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/messages', {
                 content: 'Hello world',
                 message_type: 'user',
             });
@@ -542,7 +542,7 @@ describe('ApiService', () => {
 
             const result = await apiService.cancelChatMessage(1, 1, 'msg-123');
             expect(result.message).toBe('Message cancelled');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/1/cancel', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/1/cancel', {
                 message_id: 'msg-123',
             });
         });
@@ -556,7 +556,7 @@ describe('ApiService', () => {
             const result = await apiService.createChatSession(1, 'Test Chat');
             expect(result.session_id).toBe(123);
             expect(result.title).toBe('New Chat');
-            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions', {
+            expect(mockPost).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions', {
                 title: 'Test Chat',
             });
         });
@@ -578,7 +578,7 @@ describe('ApiService', () => {
 
             const result = await apiService.getChatSessions(1);
             expect(result).toEqual(mockSessions);
-            expect(mockGet).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions');
+            expect(mockGet).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions');
         });
 
         it('should delete chats session', async () => {
@@ -589,7 +589,7 @@ describe('ApiService', () => {
 
             const result = await apiService.deleteChatSession(1, 123);
             expect(result.message).toBe('Session deleted');
-            expect(mockDelete).toHaveBeenCalledWith('/api/workspaces/1/chats/sessions/123');
+            expect(mockDelete).toHaveBeenCalledWith('/api/workspaces/1/chat/sessions/123');
         });
     });
 

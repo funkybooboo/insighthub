@@ -11,7 +11,8 @@ export type Status =
     | 'ready'
     | 'failed'
     | 'error'
-    | 'deleting';
+    | 'deleting'
+    | 'deleted';
 
 interface StatusBadgeProps {
     status: Status;

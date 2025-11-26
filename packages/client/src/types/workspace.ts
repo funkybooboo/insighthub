@@ -35,11 +35,14 @@ export type RagConfig = VectorRagConfig | GraphRagConfig;
 // Workspace model
 export interface Workspace {
     id: number;
+    user_id?: number;
     name: string;
     description: string | null;
     rag_type: string;
+    status?: string;
     created_at: string;
     updated_at: string;
+    document_count?: number;
 }
 
 // Request types for workspace operations
@@ -47,6 +50,7 @@ export interface CreateWorkspaceRequest {
     name: string;
     description?: string;
     rag_type?: string;
+    rag_config?: CreateRagConfigRequest;
 }
 
 export interface UpdateWorkspaceRequest {
@@ -63,6 +67,17 @@ export interface CreateRagConfigRequest {
 export interface UpdateRagConfigRequest {
     rag_type?: string;
     config?: RagConfig;
+}
+
+// Legacy type for backward compatibility - represents RAG config as flat object
+export interface FlatRagConfig {
+    embedding_algorithm?: string;
+    chunking_algorithm?: string;
+    rerank_algorithm?: string;
+    chunk_size?: number;
+    chunk_overlap?: number;
+    top_k?: number;
+    rerank_enabled?: boolean;
 }
 
 // Client-specific extensions

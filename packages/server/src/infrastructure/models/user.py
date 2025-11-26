@@ -1,7 +1,7 @@
 """User model."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 import bcrypt
 
@@ -16,8 +16,8 @@ class User:
     full_name: str | None = None
     id: int = 0
     theme_preference: str = "dark"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def set_password(self, password: str) -> None:
         """Hash and set the users's password."""

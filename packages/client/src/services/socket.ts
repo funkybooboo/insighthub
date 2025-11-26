@@ -1,6 +1,6 @@
 /**
-  * Socket.IO service for real-time chats streaming.
-  */
+ * Socket.IO service for real-time chats streaming.
+ */
 
 import { io, Socket } from 'socket.io-client';
 import { logger } from '../lib/logger';
@@ -96,8 +96,8 @@ class SocketService {
     private currentClientId: string | null = null;
 
     /**
-      * Connect to the Socket.IO server
-      */
+     * Connect to the Socket.IO server
+     */
     connect(): void {
         if (this.socket?.connected) {
             logger.debug('Socket already connected, skipping connection attempt');
@@ -114,8 +114,8 @@ class SocketService {
     }
 
     /**
-      * Disconnect from the Socket.IO server
-      */
+     * Disconnect from the Socket.IO server
+     */
     disconnect(): void {
         if (this.socket) {
             logger.info('Disconnecting from Socket.IO server');
@@ -135,8 +135,8 @@ class SocketService {
     }
 
     /**
-      * Send a chats message
-      */
+     * Send a chats message
+     */
     sendMessage(data: ChatMessageData): void {
         if (!this.socket) {
             logger.error('Cannot send message: Socket not connected');

@@ -51,11 +51,11 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                 setDocuments(response.documents);
                 onDocumentCountChange?.(response.documents.length);
             } catch (err) {
-                 logger.error('Error loading documents', err as Error, {
-                     workspaceId,
-                 });
-                 setError('Failed to load documents');
-             }
+                logger.error('Error loading documents', err as Error, {
+                    workspaceId,
+                });
+                setError('Failed to load documents');
+            }
         }, [workspaceId, onDocumentCountChange]);
 
         // Update document status when real-time updates come in
@@ -100,14 +100,14 @@ const DocumentList = forwardRef<DocumentListRef, DocumentListProps>(
                 await apiService.deleteDocument(workspaceId, docId);
                 setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
                 onDocumentChange?.();
-             } catch (err) {
-                 logger.error('Error deleting document', err as Error, {
-                     workspaceId,
-                     documentId: docId,
-                     filename,
-                 });
-                 setError(`Failed to delete "${filename}"`);
-             }
+            } catch (err) {
+                logger.error('Error deleting document', err as Error, {
+                    workspaceId,
+                    documentId: docId,
+                    filename,
+                });
+                setError(`Failed to delete "${filename}"`);
+            }
         };
 
         const getDocumentStatus = (doc: DocumentWithStatus): DocumentStatus => {

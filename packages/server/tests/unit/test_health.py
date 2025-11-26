@@ -1,6 +1,7 @@
 """Unit tests for health domain."""
 
 import time
+
 import pytest
 
 from src.domains.health.service import HealthService

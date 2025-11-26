@@ -1,6 +1,6 @@
 """In-memory implementation of WorkspaceRepository."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
@@ -78,7 +78,7 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
             if hasattr(workspace, key):
                 setattr(workspace, key, value)
 
-        workspace.updated_at = datetime.utcnow()
+        workspace.updated_at = datetime.now(UTC)
         return workspace
 
     def delete(self, workspace_id: int) -> bool:
@@ -103,3 +103,37 @@ class InMemoryWorkspaceRepository(WorkspaceRepository):
     def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
         """Get generic RAG config for workspace."""
         return self.rag_configs.get(workspace_id)
+
+    def create_vector_rag_config(self, config: VectorRagConfig) -> VectorRagConfig:
+        """Create vector RAG config for workspace."""
+        self.vector_rag_configs[config.workspace_id] = config
+        return config
+
+    def update_vector_rag_config(self, workspace_id: int, **kwargs) -> Optional[VectorRagConfig]:
+        """Update vector RAG config for workspace."""
+        config = self.vector_rag_configs.get(workspace_id)
+        if not config:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+
+        return config
+
+    def create_graph_rag_config(self, config: GraphRagConfig) -> GraphRagConfig:
+        """Create graph RAG config for workspace."""
+        self.graph_rag_configs[config.workspace_id] = config
+        return config
+
+    def update_graph_rag_config(self, workspace_id: int, **kwargs) -> Optional[GraphRagConfig]:
+        """Update graph RAG config for workspace."""
+        config = self.graph_rag_configs.get(workspace_id)
+        if not config:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+
+        return config

@@ -1,6 +1,6 @@
 """Algorithms routes for listing available RAG algorithms."""
 
-from flask import Blueprint, jsonify, Response
+from flask import Blueprint, Response, jsonify
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.factory import get_available_chunkers

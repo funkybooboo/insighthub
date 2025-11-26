@@ -1,4 +1,5 @@
 """Cache infrastructure factory."""
+
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.cache.in_memory_cache import InMemoryCache
 from src.infrastructure.cache.redis_cache import RedisCache

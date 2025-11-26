@@ -1,4 +1,3 @@
-
 from typing import Any, Optional
 
 from src.infrastructure.cache.cache import Cache

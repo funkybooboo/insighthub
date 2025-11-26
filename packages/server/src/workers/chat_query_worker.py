@@ -169,16 +169,24 @@ class ChatQueryWorker:
         return {
             "rag_type": getattr(workspace, "rag_type", "vector"),
             "embedder_type": getattr(workspace, "embedder_type", "ollama"),
-            "embedder_config": getattr(workspace, "embedder_config", {
-                "base_url": "http://localhost:11434",
-                "model_name": "nomic-embed-text",
-            }),
+            "embedder_config": getattr(
+                workspace,
+                "embedder_config",
+                {
+                    "base_url": "http://localhost:11434",
+                    "model_name": "nomic-embed-text",
+                },
+            ),
             "vector_store_type": getattr(workspace, "vector_store_type", "qdrant"),
-            "vector_store_config": getattr(workspace, "vector_store_config", {
-                "host": "localhost",
-                "port": 6333,
-                "collection_name": f"workspace_{workspace.id}",
-            }),
+            "vector_store_config": getattr(
+                workspace,
+                "vector_store_config",
+                {
+                    "host": "localhost",
+                    "port": 6333,
+                    "collection_name": f"workspace_{workspace.id}",
+                },
+            ),
             "enable_reranking": getattr(workspace, "enable_reranking", False),
             "reranker_type": getattr(workspace, "reranker_type", "dummy"),
             "reranker_config": getattr(workspace, "reranker_config", {}),

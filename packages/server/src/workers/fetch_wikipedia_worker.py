@@ -1,14 +1,12 @@
 """Wikipedia article fetch worker."""
 
 import hashlib
-from io import BytesIO
 
 from flask_socketio import SocketIO
 
 from src.domains.workspaces.documents.exceptions import DocumentProcessingError
 from src.infrastructure.events import dispatch_event
 from src.infrastructure.logger import create_logger
-from src.infrastructure.models import Document
 from src.infrastructure.repositories.documents import DocumentRepository
 from src.infrastructure.repositories.workspaces import WorkspaceRepository
 from src.infrastructure.storage import BlobStorage
@@ -51,11 +49,7 @@ class FetchWikipediaWorker:
         self.socketio = socketio
 
     def start_fetch(
-        self,
-        workspace_id: int,
-        user_id: int,
-        query: str,
-        language: str = "en"
+        self, workspace_id: int, user_id: int, query: str, language: str = "en"
     ) -> None:
         """Start Wikipedia article fetch in a background thread.
 
@@ -71,11 +65,7 @@ class FetchWikipediaWorker:
         run_async(self._fetch_wikipedia_pipeline, workspace_id, user_id, query, language)
 
     def _fetch_wikipedia_pipeline(
-        self,
-        workspace_id: int,
-        user_id: int,
-        query: str,
-        language: str
+        self, workspace_id: int, user_id: int, query: str, language: str
     ) -> None:
         """Execute the Wikipedia fetch pipeline.
 
@@ -118,7 +108,7 @@ class FetchWikipediaWorker:
 
             # Convert article to markdown format
             content = article.to_markdown()
-            content_bytes = content.encode('utf-8')
+            content_bytes = content.encode("utf-8")
             file_size = len(content_bytes)
 
             # Calculate content hash
@@ -139,7 +129,9 @@ class FetchWikipediaWorker:
                 return
 
             # Create filename
-            safe_title = "".join(c for c in article.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_title = "".join(
+                c for c in article.title if c.isalnum() or c in (" ", "-", "_")
+            ).rstrip()
             filename = f"Wikipedia - {safe_title}.md"
 
             # Generate blob key
@@ -147,11 +139,12 @@ class FetchWikipediaWorker:
 
             # Upload to blob storage
             logger.info(f"Uploading article to blob storage: {blob_key}")
-            file_obj = BytesIO(content_bytes)
             try:
                 self.blob_storage.upload(blob_key, content_bytes, "text/markdown")
             except Exception as e:
-                raise DocumentProcessingError(filename, f"Failed to upload to blob storage: {str(e)}")
+                raise DocumentProcessingError(
+                    filename, f"Failed to upload to blob storage: {str(e)}"
+                )
 
             # Create document record
             logger.info(f"Creating document record for: {filename}")

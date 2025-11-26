@@ -1,10 +1,9 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { type RootState } from '../index';
-import apiService from '../../services/api';
-import { type RagConfig } from '../../types/workspace';
+import apiService, { type DefaultRagConfig } from '../../services/api';
 
 interface UserSettingsState {
-    defaultRagConfig: RagConfig | null;
+    defaultRagConfig: DefaultRagConfig | null;
     isLoading: boolean;
     error: string | null;
 }
@@ -15,7 +14,7 @@ const initialState: UserSettingsState = {
     error: null,
 };
 
-export const fetchDefaultRagConfig = createAsyncThunk(
+export const fetchDefaultRagConfig = createAsyncThunk<DefaultRagConfig | null, void>(
     'userSettings/fetchDefaultRagConfig',
     async (_, { rejectWithValue }) => {
         try {
@@ -29,11 +28,11 @@ export const fetchDefaultRagConfig = createAsyncThunk(
     }
 );
 
-export const updateDefaultRagConfig = createAsyncThunk(
+export const updateDefaultRagConfig = createAsyncThunk<DefaultRagConfig, DefaultRagConfig>(
     'userSettings/updateDefaultRagConfig',
-    async (ragConfig: RagConfig, { rejectWithValue }) => {
+    async (ragConfig: DefaultRagConfig, { rejectWithValue }) => {
         try {
-            return await apiService.saveDefaultRagConfig(ragConfig as RagConfig);
+            return await apiService.saveDefaultRagConfig(ragConfig);
         } catch (error: unknown) {
             const err = error as { response?: { data?: { message?: string } }; message?: string };
             return rejectWithValue(
@@ -57,10 +56,13 @@ const userSettingsSlice = createSlice({
                 state.isLoading = true;
                 state.error = null;
             })
-            .addCase(fetchDefaultRagConfig.fulfilled, (state, action: PayloadAction<RagConfig>) => {
-                state.defaultRagConfig = action.payload;
-                state.isLoading = false;
-            })
+            .addCase(
+                fetchDefaultRagConfig.fulfilled,
+                (state, action: PayloadAction<DefaultRagConfig | null>) => {
+                    state.defaultRagConfig = action.payload;
+                    state.isLoading = false;
+                }
+            )
             .addCase(fetchDefaultRagConfig.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as string;
@@ -71,7 +73,7 @@ const userSettingsSlice = createSlice({
             })
             .addCase(
                 updateDefaultRagConfig.fulfilled,
-                (state, action: PayloadAction<RagConfig>) => {
+                (state, action: PayloadAction<DefaultRagConfig>) => {
                     state.defaultRagConfig = action.payload;
                     state.isLoading = false;
                 }

@@ -131,7 +131,9 @@ class RemoveDocumentWorker:
             logger.info(f"Looking up workspace {document.workspace_id} RAG config")
             workspace = self.workspace_repository.get_by_id(document.workspace_id)
             if not workspace:
-                logger.warning(f"Workspace {document.workspace_id} not found, skipping chunk removal")
+                logger.warning(
+                    f"Workspace {document.workspace_id} not found, skipping chunk removal"
+                )
                 return
 
             rag_config = self._build_rag_config(workspace)
@@ -173,11 +175,15 @@ class RemoveDocumentWorker:
         return {
             "rag_type": getattr(workspace, "rag_type", "vector"),
             "vector_store_type": getattr(workspace, "vector_store_type", "qdrant"),
-            "vector_store_config": getattr(workspace, "vector_store_config", {
-                "host": "localhost",
-                "port": 6333,
-                "collection_name": f"workspace_{workspace.id}",
-            }),
+            "vector_store_config": getattr(
+                workspace,
+                "vector_store_config",
+                {
+                    "host": "localhost",
+                    "port": 6333,
+                    "collection_name": f"workspace_{workspace.id}",
+                },
+            ),
         }
 
     def _update_status(

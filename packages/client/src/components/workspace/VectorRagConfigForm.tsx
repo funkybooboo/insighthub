@@ -47,17 +47,18 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
                 const data = await apiService.getVectorAlgorithms();
                 setAlgorithms(data);
             } catch (error) {
-                 logger.error('Failed to fetch vector algorithms', error as Error);
-                 // Fallback to defaults if API fails
+                logger.error('Failed to fetch vector algorithms', error as Error);
+                // Fallback to defaults if API fails
                 setAlgorithms({
                     embedding_algorithms: [
                         { value: 'nomic-embed-text', label: 'Nomic Embed Text' },
                     ],
-                    chunking_algorithms: [
-                        { value: 'sentence', label: 'Sentence-based' },
-                    ],
+                    chunking_algorithms: [{ value: 'sentence', label: 'Sentence-based' }],
                     rerank_algorithms: [
-                        { value: 'cross-encoder/ms-marco-MiniLM-L-6-v2', label: 'Cross-Encoder MiniLM' },
+                        {
+                            value: 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+                            label: 'Cross-Encoder MiniLM',
+                        },
                     ],
                 });
             } finally {
@@ -95,7 +96,7 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
             ...prev,
             rerank_enabled: checked,
             rerank_algorithm: checked
-                ? (prev.rerank_algorithm || RERANK_ALGORITHMS[0]?.value)
+                ? prev.rerank_algorithm || RERANK_ALGORITHMS[0]?.value
                 : undefined,
         }));
     };
@@ -103,7 +104,10 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
     return (
         <div className="space-y-6">
             <div>
-                <label htmlFor="embedding_algorithm" className="block text-sm font-medium text-gray-700">
+                <label
+                    htmlFor="embedding_algorithm"
+                    className="block text-sm font-medium text-gray-700"
+                >
                     Embedding Algorithm
                 </label>
                 <select
@@ -126,7 +130,10 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
             </div>
 
             <div>
-                <label htmlFor="chunking_algorithm" className="block text-sm font-medium text-gray-700">
+                <label
+                    htmlFor="chunking_algorithm"
+                    className="block text-sm font-medium text-gray-700"
+                >
                     Chunking Algorithm
                 </label>
                 <select
@@ -165,13 +172,14 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
                         step="100"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                        Characters per chunk (100-5000)
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Characters per chunk (100-5000)</p>
                 </div>
 
                 <div>
-                    <label htmlFor="chunk_overlap" className="block text-sm font-medium text-gray-700">
+                    <label
+                        htmlFor="chunk_overlap"
+                        className="block text-sm font-medium text-gray-700"
+                    >
                         Chunk Overlap
                     </label>
                     <input
@@ -186,9 +194,7 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
                         step="50"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                        Overlap between chunks (0-1000)
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Overlap between chunks (0-1000)</p>
                 </div>
             </div>
 
@@ -208,9 +214,7 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
                     step="1"
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                    Number of results to retrieve (1-50)
-                </p>
+                <p className="mt-1 text-xs text-gray-500">Number of results to retrieve (1-50)</p>
             </div>
 
             <div className="flex items-center">
@@ -230,7 +234,10 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
 
             {config.rerank_enabled && (
                 <div>
-                    <label htmlFor="rerank_algorithm" className="block text-sm font-medium text-gray-700">
+                    <label
+                        htmlFor="rerank_algorithm"
+                        className="block text-sm font-medium text-gray-700"
+                    >
                         Rerank Algorithm
                     </label>
                     <select

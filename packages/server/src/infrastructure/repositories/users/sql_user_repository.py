@@ -1,7 +1,7 @@
 """SQL implementation of UserRepository."""
 
-from datetime import datetime
-from typing import Optional, List
+from datetime import UTC, datetime
+from typing import List, Optional
 
 from src.infrastructure.database import SqlDatabase
 from src.infrastructure.models import User
@@ -84,7 +84,7 @@ class SqlUserRepository(UserRepository):
             if hasattr(user, key):
                 setattr(user, key, value)
 
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(UTC)
 
         # Update in database
         query = """

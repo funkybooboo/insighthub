@@ -1,6 +1,7 @@
 """Flask API application."""
 
-from src.app import create_app as create_app_instance, create_flask_app
+from src.app import create_app as create_app_instance
+from src.app import create_flask_app
 from src.config import config
 from src.infrastructure.logger import create_logger
 
@@ -16,7 +17,7 @@ def main() -> None:
         host=config.host,
         port=config.port,
         debug=config.debug,
-        allow_unsafe_werkzeug=True
+        allow_unsafe_werkzeug=True,
     )
 
 

@@ -7,7 +7,7 @@ from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
 
-F = TypeVar('F', bound=Callable[..., object])
+F = TypeVar("F", bound=Callable[..., object])
 
 
 def run_async(func: F, *args: object, **kwargs: object) -> Thread:

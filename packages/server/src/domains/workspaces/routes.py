@@ -1,16 +1,12 @@
 """Workspaces routes for managing workspaces and their resources."""
 
-from flask import Blueprint, g, jsonify, request, Response
+from flask import Blueprint, Response, g, jsonify, request
 
-from .dtos import GraphRagConfigDTO, VectorRagConfigDTO
-from .mappers import (
-    GraphRagConfigMapper,
-    RagConfigMapper,
-    VectorRagConfigMapper,
-    WorkspaceMapper,
-)
 from src.infrastructure.auth import get_current_user_id
 from src.infrastructure.logger import create_logger
+
+from .dtos import GraphRagConfigDTO, VectorRagConfigDTO
+from .mappers import GraphRagConfigMapper, RagConfigMapper, VectorRagConfigMapper, WorkspaceMapper
 
 logger = create_logger(__name__)
 
@@ -83,7 +79,9 @@ def create_workspace() -> tuple[Response, int]:
     response_data = WorkspaceMapper.dto_to_dict(workspace_dto)
 
     # Note: RAG configuration setup happens asynchronously
-    response_data["message"] = "Workspace created successfully. RAG configuration setup is in progress."
+    response_data["message"] = (
+        "Workspace created successfully. RAG configuration setup is in progress."
+    )
 
     return jsonify(response_data), 201
 
@@ -152,7 +150,10 @@ def delete_workspace(workspace_id: int) -> tuple[Response, int]:
     if not success:
         return jsonify({"error": "Workspace not found"}), 404
 
-    return jsonify({"message": "Workspace deletion initiated successfully. Cleanup is in progress."}), 200
+    return (
+        jsonify({"message": "Workspace deletion initiated successfully. Cleanup is in progress."}),
+        200,
+    )
 
 
 # RAG Config endpoints
@@ -178,7 +179,7 @@ def get_rag_config(workspace_id: int) -> tuple[Response, int]:
     return jsonify(response_data), 200
 
 
-# Vector RAG Config endpoints (read-only)
+# Vector RAG Config endpoints
 @workspaces_bp.route("/<int:workspace_id>/vector-rag-config", methods=["GET"])
 def get_vector_rag_config(workspace_id: int) -> tuple[Response, int]:
     """Get vector RAG configuration for a workspace."""
@@ -210,7 +211,74 @@ def get_vector_rag_config(workspace_id: int) -> tuple[Response, int]:
     return jsonify(response_data), 200
 
 
-# Graph RAG Config endpoints (read-only)
+@workspaces_bp.route("/<int:workspace_id>/vector-rag-config", methods=["POST"])
+def create_vector_rag_config(workspace_id: int) -> tuple[Response, int]:
+    """Create vector RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    data = request.get_json() or {}
+
+    try:
+        config = service.create_vector_rag_config(
+            workspace_id=workspace_id,
+            embedding_algorithm=data.get("embedding_algorithm", "ollama"),
+            chunking_algorithm=data.get("chunking_algorithm", "sentence"),
+            rerank_algorithm=data.get("rerank_algorithm", "none"),
+            chunk_size=data.get("chunk_size", 1000),
+            chunk_overlap=data.get("chunk_overlap", 200),
+            top_k=data.get("top_k", 5),
+        )
+
+        # Convert to DTO and then to response dict
+        config_dto = VectorRagConfigMapper.to_dto(config)
+        response_data = VectorRagConfigMapper.dto_to_dict(config_dto)
+
+        return jsonify(response_data), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@workspaces_bp.route("/<int:workspace_id>/vector-rag-config", methods=["PATCH"])
+def update_vector_rag_config(workspace_id: int) -> tuple[Response, int]:
+    """Update vector RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    data = request.get_json() or {}
+
+    try:
+        config = service.update_vector_rag_config(
+            workspace_id=workspace_id,
+            embedding_algorithm=data.get("embedding_algorithm"),
+            chunking_algorithm=data.get("chunking_algorithm"),
+            rerank_algorithm=data.get("rerank_algorithm"),
+            chunk_size=data.get("chunk_size"),
+            chunk_overlap=data.get("chunk_overlap"),
+            top_k=data.get("top_k"),
+        )
+
+        if not config:
+            return jsonify({"error": "Vector RAG config not found"}), 404
+
+        # Convert to DTO and then to response dict
+        config_dto = VectorRagConfigMapper.to_dto(config)
+        response_data = VectorRagConfigMapper.dto_to_dict(config_dto)
+
+        return jsonify(response_data), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# Graph RAG Config endpoints
 @workspaces_bp.route("/<int:workspace_id>/graph-rag-config", methods=["GET"])
 def get_graph_rag_config(workspace_id: int) -> tuple[Response, int]:
     """Get graph RAG configuration for a workspace."""
@@ -237,3 +305,66 @@ def get_graph_rag_config(workspace_id: int) -> tuple[Response, int]:
     response_data = GraphRagConfigMapper.dto_to_dict(config_dto)
 
     return jsonify(response_data), 200
+
+
+@workspaces_bp.route("/<int:workspace_id>/graph-rag-config", methods=["POST"])
+def create_graph_rag_config(workspace_id: int) -> tuple[Response, int]:
+    """Create graph RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    data = request.get_json() or {}
+
+    try:
+        config = service.create_graph_rag_config(
+            workspace_id=workspace_id,
+            entity_extraction_algorithm=data.get("entity_extraction_algorithm", "spacy"),
+            relationship_extraction_algorithm=data.get(
+                "relationship_extraction_algorithm", "dependency-parsing"
+            ),
+            clustering_algorithm=data.get("clustering_algorithm", "leiden"),
+        )
+
+        # Convert to DTO and then to response dict
+        config_dto = GraphRagConfigMapper.to_dto(config)
+        response_data = GraphRagConfigMapper.dto_to_dict(config_dto)
+
+        return jsonify(response_data), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@workspaces_bp.route("/<int:workspace_id>/graph-rag-config", methods=["PATCH"])
+def update_graph_rag_config(workspace_id: int) -> tuple[Response, int]:
+    """Update graph RAG configuration for a workspace."""
+    user_id = get_current_user_id()
+    service = g.app_context.workspace_service
+
+    # Check access
+    if not service.validate_workspace_access(workspace_id, user_id):
+        return jsonify({"error": "Workspace not found"}), 404
+
+    data = request.get_json() or {}
+
+    try:
+        config = service.update_graph_rag_config(
+            workspace_id=workspace_id,
+            entity_extraction_algorithm=data.get("entity_extraction_algorithm"),
+            relationship_extraction_algorithm=data.get("relationship_extraction_algorithm"),
+            clustering_algorithm=data.get("clustering_algorithm"),
+        )
+
+        if not config:
+            return jsonify({"error": "Graph RAG config not found"}), 404
+
+        # Convert to DTO and then to response dict
+        config_dto = GraphRagConfigMapper.to_dto(config)
+        response_data = GraphRagConfigMapper.dto_to_dict(config_dto)
+
+        return jsonify(response_data), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400

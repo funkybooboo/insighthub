@@ -10,21 +10,28 @@ tasks:
   up:
     desc: Start all services
     cmds:
+      - task down
       - docker compose up -d
 
   down:
-    desc: Stop all services
+    desc: Stop all services, including dev and prod profiles
     cmds:
-      - docker compose down --volumes --remove-orphans
+      # Stop and remove containers for ALL profiles
+      - docker compose --profile dev down --remove-orphans
+      - docker compose --profile prod down --remove-orphans
+      - docker compose down --remove-orphans
+      - docker network prune -f
 
   dev:
     desc: Start development environment
     cmds:
-      - docker compose --profile dev up -d
+      - task down
+      - docker compose --profile dev up --build -d
 
   prod:
     desc: Start production environment
     cmds:
+      - task down
       - docker compose --profile prod up --build -d
 
   logs:
@@ -38,6 +45,8 @@ tasks:
       - docker compose ps
 
   clean:
-    desc: Remove containers and volumes
+    desc: Remove containers and volumes (all profiles)
     cmds:
-      - docker compose down -v
+      - docker compose --profile dev down -v --remove-orphans
+      - docker compose --profile prod down -v --remove-orphans
+      - docker compose down -v --remove-orphans

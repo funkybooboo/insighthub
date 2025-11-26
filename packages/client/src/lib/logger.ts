@@ -11,7 +11,7 @@ export const LogLevel = {
     NONE: 4,
 } as const;
 
-export type LogLevelType = typeof LogLevel[keyof typeof LogLevel];
+export type LogLevelType = (typeof LogLevel)[keyof typeof LogLevel];
 
 interface LogEntry {
     level: LogLevelType;
@@ -54,7 +54,12 @@ class Logger {
         return message;
     }
 
-    private log(level: LogLevelType, message: string, context?: Record<string, unknown>, error?: Error): void {
+    private log(
+        level: LogLevelType,
+        message: string,
+        context?: Record<string, unknown>,
+        error?: Error
+    ): void {
         if (!this.shouldLog(level)) {
             return;
         }

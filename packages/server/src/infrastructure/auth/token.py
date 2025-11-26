@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import jwt
 
-from src import config
+from src.config import config
 
 
 def create_access_token(user_id: int, expires_delta: timedelta | None = None) -> str:
@@ -20,17 +20,17 @@ def create_access_token(user_id: int, expires_delta: timedelta | None = None) ->
         Encoded JWT token
     """
     if expires_delta is None:
-        expires_delta = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = timedelta(minutes=config.jwt_expire_minutes)
 
-    expire = datetime.utcnow() + expires_delta
+    expire = datetime.now() + expires_delta
 
     payload = {
         "user_id": user_id,
         "exp": expire,
-        "iat": datetime.utcnow(),
+        "iat": datetime.now(),
     }
 
-    return jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+    return jwt.encode(payload, config.jwt_secret_key, algorithm=config.jwt_algorithm)
 
 
 def decode_access_token(token: str) -> Dict[str, Any]:
@@ -47,7 +47,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
         jwt.ExpiredSignatureError: If token is expired
         jwt.InvalidTokenError: If token is invalid
     """
-    return jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+    return jwt.decode(token, config.jwt_secret_key, algorithms=[config.jwt_algorithm])
 
 
 def verify_token(token: str) -> bool:

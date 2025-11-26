@@ -4,8 +4,6 @@ from typing import BinaryIO
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
-
-logger = create_logger(__name__)
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
@@ -17,6 +15,8 @@ from src.infrastructure.storage import BlobStorage
 from .dtos import DocumentListResponse, DocumentUploadResult
 from .exceptions import DocumentNotFoundError, DocumentProcessingError
 from .mappers import DocumentMapper
+
+logger = create_logger(__name__)
 
 
 # Allowed extensions are determined dynamically from registered parsers
@@ -75,7 +75,9 @@ class DocumentService:
         Raises:
             DocumentProcessingError: If blob storage upload fails
         """
-        logger.info(f"Starting document upload: filename='{filename}', workspace_id={workspace_id}, user_id={user_id}, size={file_size} bytes")
+        logger.info(
+            f"Starting document upload: filename='{filename}', workspace_id={workspace_id}, user_id={user_id}, size={file_size} bytes"
+        )
 
         try:
             # Generate blob key (using hash + original filename for uniqueness)
@@ -114,7 +116,9 @@ class DocumentService:
                 logger.error(f"Database record creation failed for document: filename='{filename}'")
                 raise DocumentProcessingError(filename, "Failed to create database record")
 
-            logger.info(f"Document record created: document_id={document.id}, filename='{filename}'")
+            logger.info(
+                f"Document record created: document_id={document.id}, filename='{filename}'"
+            )
 
             # Start background processing
             from src.workers import get_add_document_worker
@@ -160,8 +164,15 @@ class DocumentService:
         return mime_type, file_size, content_hash, text_content, existing_doc
 
     def _create_document_upload_result(
-        self, workspace_id: int, user_id: int, filename: str, file_obj: BinaryIO,
-        mime_type: str, file_size: int, content_hash: str, text_length: int
+        self,
+        workspace_id: int,
+        user_id: int,
+        filename: str,
+        file_obj: BinaryIO,
+        mime_type: str,
+        file_size: int,
+        content_hash: str,
+        text_length: int,
     ) -> DocumentUploadResult:
         """
         Create and upload document, returning the result.
@@ -229,8 +240,7 @@ class DocumentService:
 
         # Create and upload document
         return self._create_document_upload_result(
-            workspace_id, user_id, filename, file_obj,
-            mime_type, file_size, content_hash, len(text)
+            workspace_id, user_id, filename, file_obj, mime_type, file_size, content_hash, len(text)
         )
 
     def download_document(self, document_id: int) -> bytes | None:
@@ -249,7 +259,9 @@ class DocumentService:
         if document and document.file_path:
             try:
                 content = self.blob_storage.download(document.file_path)
-                logger.info(f"Document downloaded successfully: document_id={document_id}, size={len(content) if content else 0} bytes")
+                logger.info(
+                    f"Document downloaded successfully: document_id={document_id}, size={len(content) if content else 0} bytes"
+                )
                 return content
             except Exception as e:
                 logger.error(f"Error downloading document: {str(e)} (document_id={document_id})")
@@ -287,16 +299,22 @@ class DocumentService:
         Returns:
             bool: True if deletion was successful, False otherwise
         """
-        logger.info(f"Deleting document: document_id={document_id}, delete_from_storage={delete_from_storage}")
+        logger.info(
+            f"Deleting document: document_id={document_id}, delete_from_storage={delete_from_storage}"
+        )
 
         if delete_from_storage:
             document = self.repository.get_by_id(document_id)
             if document and document.file_path:
                 try:
                     self.blob_storage.delete(document.file_path)
-                    logger.info(f"Document deleted from blob storage: document_id={document_id}, blob_key='{document.file_path}'")
+                    logger.info(
+                        f"Document deleted from blob storage: document_id={document_id}, blob_key='{document.file_path}'"
+                    )
                 except Exception as e:
-                    logger.error(f"Error deleting from blob storage: {str(e)} (document_id={document_id})")
+                    logger.error(
+                        f"Error deleting from blob storage: {str(e)} (document_id={document_id})"
+                    )
                     # Continue with database deletion
 
         # Always attempt database deletion
@@ -310,8 +328,6 @@ class DocumentService:
         # If blob storage deletion failed but database deletion succeeded,
         # we have an orphaned file in storage - this should be handled by cleanup jobs
         return db_deleted
-
-
 
     def list_user_documents_as_dto(self, user_id: int) -> DocumentListResponse:
         """
@@ -343,12 +359,16 @@ class DocumentService:
         Raises:
             DocumentNotFoundError: If document does not exist
         """
-        logger.info(f"Starting validated document deletion: document_id={document_id}, user_id={user_id}")
+        logger.info(
+            f"Starting validated document deletion: document_id={document_id}, user_id={user_id}"
+        )
 
         # Check if document exists
         document = self.get_document_by_id(document_id)
         if not document:
-            logger.warning(f"Document deletion failed: document not found (document_id={document_id}, user_id={user_id})")
+            logger.warning(
+                f"Document deletion failed: document not found (document_id={document_id}, user_id={user_id})"
+            )
             raise DocumentNotFoundError(document_id)
 
         # Launch RemoveDocumentWorker in background
@@ -407,7 +427,7 @@ class DocumentService:
 
     @staticmethod
     def fetch_wikipedia_article(
-            workspace_id: int, user_id: int, query: str, language: str = "en"
+        workspace_id: int, user_id: int, query: str, language: str = "en"
     ) -> DocumentUploadResult:
         """
         Fetch a Wikipedia article and add it to the workspace.

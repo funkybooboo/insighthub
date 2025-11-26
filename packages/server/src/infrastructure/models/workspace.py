@@ -1,7 +1,7 @@
 """Workspace domain models."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -14,8 +14,8 @@ class Workspace:
     description: str | None = None
     rag_type: str = "vector"  # "vector" or "graph"
     status: str = "ready"  # "ready", "provisioning", "deleting", "failed"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __repr__(self) -> str:
         return f"<Workspace(id={self.id}, name={self.name}, user_id={self.user_id})>"
@@ -32,8 +32,8 @@ class VectorRagConfig:
     chunk_size: int = 1000
     chunk_overlap: int = 200
     top_k: int = 5
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -44,8 +44,8 @@ class GraphRagConfig:
     entity_extraction_algorithm: str = "spacy"
     relationship_extraction_algorithm: str = "dependency-parsing"
     clustering_algorithm: str = "leiden"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 # Backward compatibility - keep RagConfig for now
@@ -56,5 +56,5 @@ class RagConfig:
     workspace_id: int
     rag_type: str
     config: dict
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))

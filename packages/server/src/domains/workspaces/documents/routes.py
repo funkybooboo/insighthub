@@ -2,7 +2,6 @@
 
 from flask import Blueprint, Response, g, jsonify, request
 
-from .mappers import DocumentMapper
 from src.domains.workspaces.documents.exceptions import (
     DocumentNotFoundError,
     DocumentProcessingError,
@@ -10,6 +9,8 @@ from src.domains.workspaces.documents.exceptions import (
 )
 from src.infrastructure.auth import get_current_user, require_auth
 from src.infrastructure.logger import create_logger
+
+from .mappers import DocumentMapper
 
 logger = create_logger(__name__)
 
@@ -92,10 +93,15 @@ def upload_workspace_document(workspace_id: str) -> tuple[Response, int]:
         # Convert document to DTO using mapper
         document_dto = DocumentMapper.document_to_dto(result.document)
 
-        return jsonify({
-            "message": "Document uploaded successfully. Processing and RAG indexing is in progress.",
-            "document": document_dto.to_dict()
-        }), 201
+        return (
+            jsonify(
+                {
+                    "message": "Document uploaded successfully. Processing and RAG indexing is in progress.",
+                    "document": document_dto.to_dict(),
+                }
+            ),
+            201,
+        )
 
     except InvalidFileTypeError as e:
         return jsonify({"error": f"Unsupported file type. {str(e)}"}), 415
@@ -287,10 +293,15 @@ def fetch_wikipedia_article(workspace_id: str) -> tuple[Response, int]:
         # Convert document to DTO using mapper
         document_dto = DocumentMapper.document_to_dto(result.document)
 
-        return jsonify({
-            "message": "Wikipedia article fetched and added successfully. Processing and RAG indexing is in progress.",
-            "document": document_dto.to_dict()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "message": "Wikipedia article fetched and added successfully. Processing and RAG indexing is in progress.",
+                    "document": document_dto.to_dict(),
+                }
+            ),
+            200,
+        )
 
     except DocumentProcessingError as e:
         return jsonify({"error": f"Wikipedia fetch failed: {str(e)}"}), 404

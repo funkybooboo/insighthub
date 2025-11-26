@@ -11,7 +11,6 @@ from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFa
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
 from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
 from src.infrastructure.rag.workflows.add_document_workflow import AddDocumentWorkflow
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow
 from src.infrastructure.rag.workflows.create_rag_resources_workflow import (
     CreateRagResourcesWorkflow,
 )

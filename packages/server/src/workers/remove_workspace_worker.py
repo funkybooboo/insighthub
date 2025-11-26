@@ -85,7 +85,9 @@ class RemoveWorkspaceWorker:
             logger.info(f"Using RAG type: {rag_config.get('rag_type')}")
 
             # Create workflow dynamically based on workspace RAG config
-            remove_rag_resources_workflow = WorkflowFactory.create_remove_rag_resources_workflow(rag_config)
+            remove_rag_resources_workflow = WorkflowFactory.create_remove_rag_resources_workflow(
+                rag_config
+            )
 
             # Execute remove RAG resources workflow to delete storage resources
             logger.info(f"Executing remove RAG resources workflow for workspace {workspace.id}")

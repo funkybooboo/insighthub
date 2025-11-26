@@ -21,7 +21,8 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
 }) => {
     const [config, setConfig] = useState<Partial<GraphRagConfig>>(() => ({
         entity_extraction_algorithm: initialConfig.entity_extraction_algorithm || 'ollama',
-        relationship_extraction_algorithm: initialConfig.relationship_extraction_algorithm || 'ollama',
+        relationship_extraction_algorithm:
+            initialConfig.relationship_extraction_algorithm || 'ollama',
         clustering_algorithm: initialConfig.clustering_algorithm || 'leiden',
         max_hops: initialConfig.max_hops || 2,
         min_cluster_size: initialConfig.min_cluster_size || 5,
@@ -46,18 +47,12 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
                 const data = await apiService.getGraphAlgorithms();
                 setAlgorithms(data);
             } catch (error) {
-                 logger.error('Failed to fetch graph algorithms', error as Error);
-                 // Fallback to defaults if API fails
+                logger.error('Failed to fetch graph algorithms', error as Error);
+                // Fallback to defaults if API fails
                 setAlgorithms({
-                    entity_extraction_algorithms: [
-                        { value: 'ollama', label: 'Ollama LLM' },
-                    ],
-                    relationship_extraction_algorithms: [
-                        { value: 'ollama', label: 'Ollama LLM' },
-                    ],
-                    clustering_algorithms: [
-                        { value: 'leiden', label: 'Leiden Algorithm' },
-                    ],
+                    entity_extraction_algorithms: [{ value: 'ollama', label: 'Ollama LLM' }],
+                    relationship_extraction_algorithms: [{ value: 'ollama', label: 'Ollama LLM' }],
+                    clustering_algorithms: [{ value: 'leiden', label: 'Leiden Algorithm' }],
                 });
             } finally {
                 setLoadingAlgorithms(false);
@@ -89,7 +84,10 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
     return (
         <div className="space-y-6">
             <div>
-                <label htmlFor="entity_extraction_algorithm" className="block text-sm font-medium text-gray-700">
+                <label
+                    htmlFor="entity_extraction_algorithm"
+                    className="block text-sm font-medium text-gray-700"
+                >
                     Entity Extraction Algorithm
                 </label>
                 <select
@@ -112,7 +110,10 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
             </div>
 
             <div>
-                <label htmlFor="relationship_extraction_algorithm" className="block text-sm font-medium text-gray-700">
+                <label
+                    htmlFor="relationship_extraction_algorithm"
+                    className="block text-sm font-medium text-gray-700"
+                >
                     Relationship Extraction Algorithm
                 </label>
                 <select
@@ -135,7 +136,10 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
             </div>
 
             <div>
-                <label htmlFor="clustering_algorithm" className="block text-sm font-medium text-gray-700">
+                <label
+                    htmlFor="clustering_algorithm"
+                    className="block text-sm font-medium text-gray-700"
+                >
                     Clustering Algorithm
                 </label>
                 <select
@@ -180,7 +184,10 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor="min_cluster_size" className="block text-sm font-medium text-gray-700">
+                    <label
+                        htmlFor="min_cluster_size"
+                        className="block text-sm font-medium text-gray-700"
+                    >
                         Min Cluster Size
                     </label>
                     <input
@@ -195,13 +202,14 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
                         step="1"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                        Minimum entities per cluster
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Minimum entities per cluster</p>
                 </div>
 
                 <div>
-                    <label htmlFor="max_cluster_size" className="block text-sm font-medium text-gray-700">
+                    <label
+                        htmlFor="max_cluster_size"
+                        className="block text-sm font-medium text-gray-700"
+                    >
                         Max Cluster Size
                     </label>
                     <input
@@ -216,9 +224,7 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
                         step="10"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                        Maximum entities per cluster
-                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Maximum entities per cluster</p>
                 </div>
             </div>
         </div>

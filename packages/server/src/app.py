@@ -4,6 +4,8 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
+from src.config import config
+from src.context import create_app_context
 from src.domains.algorithms.routes import algorithms_bp
 from src.domains.auth.routes import auth_bp
 from src.domains.health.routes import health_bp
@@ -11,8 +13,6 @@ from src.domains.workspaces.chats.messages.routes import messages_bp
 from src.domains.workspaces.chats.sessions.routes import sessions_bp
 from src.domains.workspaces.documents.routes import documents_bp
 from src.domains.workspaces.routes import workspaces_bp
-from src.config import config
-from src.context import create_app_context
 from src.infrastructure.database import create_database_from_config
 from src.infrastructure.logger import create_logger
 from src.infrastructure.middleware.context_middleware import setup_context_middleware
@@ -64,6 +64,7 @@ def create_app() -> App:
 
     return _app_instance
 
+
 def reset_app() -> None:
     """Reset the application instance (primarily for testing)."""
     global _app_instance
@@ -87,6 +88,7 @@ def create_flask_app(app_instance: App) -> Flask:
 
     # Register domain event handlers for event-driven architecture
     from src.infrastructure.events import register_domain_event_handlers
+
     register_domain_event_handlers(app_instance.socketio)
 
     # Set up context middleware for requests

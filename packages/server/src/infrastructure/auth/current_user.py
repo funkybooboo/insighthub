@@ -33,6 +33,7 @@ def get_current_user() -> User:
 
     Raises:
         RuntimeError: If called outside of auth context
+        ValueError: If user from token is not found (should trigger 401)
     """
     if not hasattr(g, "user_id"):
         raise RuntimeError("No authenticated users in context. Use @require_auth decorator.")
@@ -43,6 +44,8 @@ def get_current_user() -> User:
     user = g.app_context.user_service.get_user_by_id(g.user_id)
 
     if not user:
-        raise RuntimeError(f"User {g.user_id} not found")
+        from jwt.exceptions import InvalidTokenError
+
+        raise InvalidTokenError(f"User {g.user_id} from token not found")
 
     return user

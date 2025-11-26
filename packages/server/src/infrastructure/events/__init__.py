@@ -1,43 +1,15 @@
 """Unified event system for the application."""
 
 # Core event broadcasting functions
+from src.domains.workspaces.chats.events import CHAT_EVENT_HANDLERS
+
+# Domain-specific event handlers
+from src.domains.workspaces.documents.events import DOCUMENT_EVENT_HANDLERS
+from src.domains.workspaces.events import WORKSPACE_EVENT_HANDLERS
 from src.infrastructure.events.events import (
     broadcast_document_status,
     broadcast_workspace_status,
     emit_wikipedia_fetch_status,
-)
-
-# Event processing handlers (now in domains)
-# from src.domains.workspaces.documents.events import (
-#     handle_document_embedded,
-#     handle_document_indexed,
-#     handle_document_parsed,
-#     handle_document_chunked,
-# )
-
-# Event types and data structures
-from src.infrastructure.events.types import (
-    # Document events
-    DocumentStatusData,
-    DocumentProcessingData,
-    DocumentParsedData,
-    DocumentChunkedData,
-    DocumentEmbeddedData,
-    DocumentIndexedData,
-    # Workspace events
-    WorkspaceStatusData,
-    WorkspaceOperationCompleteData,
-    # Chat events
-    ChatMessageData,
-    ChatResponseData,
-    ChatResponseCompleteData,
-    ChatErrorData,
-    # System events
-    SystemHealthData,
-    WorkerTaskData,
-    # Legacy types for backward compatibility
-    LegacyDocumentStatusData,
-    LegacyWorkspaceStatusData,
 )
 
 # Event handler registry
@@ -48,10 +20,34 @@ from src.infrastructure.events.handlers import (
     unregister_event_handler,
 )
 
-# Domain-specific event handlers
-from src.domains.workspaces.documents.events import DOCUMENT_EVENT_HANDLERS
-from src.domains.workspaces.events import WORKSPACE_EVENT_HANDLERS
-from src.domains.workspaces.chats.events import CHAT_EVENT_HANDLERS
+# Event types and data structures
+from src.infrastructure.events.types import (  # Document events; Workspace events; Chat events; System events; Legacy types for backward compatibility
+    ChatErrorData,
+    ChatMessageData,
+    ChatResponseCompleteData,
+    ChatResponseData,
+    DocumentChunkedData,
+    DocumentEmbeddedData,
+    DocumentIndexedData,
+    DocumentParsedData,
+    DocumentProcessingData,
+    DocumentStatusData,
+    LegacyDocumentStatusData,
+    LegacyWorkspaceStatusData,
+    SystemHealthData,
+    WorkerTaskData,
+    WorkspaceOperationCompleteData,
+    WorkspaceStatusData,
+)
+
+# Event processing handlers (now in domains)
+# from src.domains.workspaces.documents.events import (
+#     handle_document_embedded,
+#     handle_document_indexed,
+#     handle_document_parsed,
+#     handle_document_chunked,
+# )
+
 
 def register_domain_event_handlers(socketio) -> None:
     """
@@ -81,7 +77,6 @@ __all__ = [
     "broadcast_document_status",
     "broadcast_workspace_status",
     "emit_wikipedia_fetch_status",
-
     # Event types
     "DocumentStatusData",
     "DocumentProcessingData",
@@ -99,18 +94,15 @@ __all__ = [
     "WorkerTaskData",
     "LegacyDocumentStatusData",
     "LegacyWorkspaceStatusData",
-
     # Handler registry
     "dispatch_event",
     "event_registry",
     "register_event_handler",
     "unregister_event_handler",
-
     # Domain handlers
     "DOCUMENT_EVENT_HANDLERS",
     "WORKSPACE_EVENT_HANDLERS",
     "CHAT_EVENT_HANDLERS",
-
     # Registration function
     "register_domain_event_handlers",
 ]

@@ -43,11 +43,11 @@ const FileUpload = ({ workspaceId, onUploadSuccess, disabled = false }: FileUplo
             // Notify parent component that an upload was initiated (status will come via websockets)
             onUploadSuccess?.();
         } catch (err: unknown) {
-             logger.error('Upload initiation error', err as Error, {
-                 workspaceId,
-                 fileName: file.name,
-                 fileSize: file.size,
-             });
+            logger.error('Upload initiation error', err as Error, {
+                workspaceId,
+                fileName: file.name,
+                fileSize: file.size,
+            });
             const errorMessage =
                 err instanceof AxiosError && err.response?.data?.detail
                     ? err.response.data.detail

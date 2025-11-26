@@ -47,7 +47,9 @@ class SocketHandler:
                 logger.info(f"Client left room: {room}")
                 emit("left", {"room": room})
 
-    def emit_to_room(self, room: str, event: str, data: dict[str, object] | str | int | float | bool | None) -> None:
+    def emit_to_room(
+        self, room: str, event: str, data: dict[str, object] | str | int | float | bool | None
+    ) -> None:
         """
         Emit event to all clients in a room.
 
@@ -58,7 +60,9 @@ class SocketHandler:
         """
         self.socketio.emit(event, data, to=room, namespace="/")
 
-    def emit_to_all(self, event: str, data: dict[str, object] | str | int | float | bool | None) -> None:
+    def emit_to_all(
+        self, event: str, data: dict[str, object] | str | int | float | bool | None
+    ) -> None:
         """
         Emit event to all connected clients.
 

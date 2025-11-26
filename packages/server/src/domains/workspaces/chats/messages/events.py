@@ -6,6 +6,7 @@ from typing import TypedDict
 
 from flask import current_app, g
 from flask_socketio import emit
+
 from src.infrastructure.logger import create_logger
 
 from .exceptions import EmptyMessageError, LlmProviderError
@@ -131,7 +132,9 @@ class ChatSocketHandler:
                         # Ensure we have at least some relevant results
                         relevant_results = [result for result in rag_results if result.score > 0.1]
                         if not relevant_results:
-                            logger.warning(f"No relevant RAG context found for query: {user_message[:50]}...")
+                            logger.warning(
+                                f"No relevant RAG context found for query: {user_message[:50]}..."
+                            )
                     except Exception as e:
                         logger.warning(f"RAG system check failed: {e}")
 

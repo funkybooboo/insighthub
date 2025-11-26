@@ -14,7 +14,7 @@ _rate_limit_storage: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=
 def require_rate_limit(
     max_requests: int = 100,
     window_seconds: int = 60,
-) -> 'Callable[[Callable[..., object]], Callable[..., object]]':
+) -> "Callable[[Callable[..., object]], Callable[..., object]]":
     """
     Decorator to apply rate limiting to a route.
 
@@ -29,7 +29,7 @@ def require_rate_limit(
         Decorated function
     """
 
-    def decorator(f: 'Callable[..., object]') -> 'Callable[..., object]':
+    def decorator(f: "Callable[..., object]") -> "Callable[..., object]":
         @wraps(f)
         def decorated_function(*args: object, **kwargs: object) -> object:
             # Get client identifier (IP address for now)
@@ -50,7 +50,7 @@ def require_rate_limit(
                 return Response(
                     "Rate limit exceeded. Try again later.",
                     status=429,
-                    headers={"Retry-After": str(int(window_seconds))}
+                    headers={"Retry-After": str(int(window_seconds))},
                 )
 
             # Add current timestamp

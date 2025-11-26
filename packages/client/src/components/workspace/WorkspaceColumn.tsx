@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FaPlus, FaCog } from 'react-icons/fa';
+import { FaPlus, FaCog, FaFolderOpen } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import type { RootState, AppDispatch } from '@/store';
 import {
@@ -21,12 +21,7 @@ import { LoadingSpinner } from '@/components/shared';
 import { apiService } from '@/services/api';
 import { validateWorkspaceName, validateDescription } from '@/lib/validation';
 import RagConfigForm from './RagConfigForm';
-import {
-    type CreateRagConfigRequest,
-    type VectorRagConfig,
-    type GraphRagConfig,
-} from '@/types/workspace';
-import WorkspaceHeader from './WorkspaceHeader'; // Import the new component
+import { type RagConfig, type CreateRagConfigRequest } from '@/types/workspace';
 import { selectIsWorkspaceDeleting } from '@/store/slices/statusSlice';
 
 const WorkspaceColumn: React.FC = () => {
@@ -35,6 +30,7 @@ const WorkspaceColumn: React.FC = () => {
     const activeWorkspaceId = useSelector(selectActiveWorkspaceId);
     const workspacesLoading = useSelector((state: RootState) => state.workspace.isLoading);
     const workspacesError = useSelector((state: RootState) => state.workspace.error);
+    const workspaceStatuses = useSelector((state: RootState) => state.status.workspaces);
     const isAnyWorkspaceDeleting = useSelector((state: RootState) =>
         Object.values(state.status.workspaces).some((ws) =>
             selectIsWorkspaceDeleting(ws.workspace_id)(state)
@@ -44,7 +40,6 @@ const WorkspaceColumn: React.FC = () => {
     const defaultRagConfig = useSelector(selectDefaultRagConfig);
     const loadingDefaultRagConfig = useSelector(selectUserSettingsLoading);
 
-    const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState('');
     const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('');
@@ -52,11 +47,13 @@ const WorkspaceColumn: React.FC = () => {
     const [validationError, setValidationError] = useState<string | null>(null);
 
     // RAG config state for create modal (local state, pre-populated by defaultRagConfig)
-    const [ragConfigForWorkspace, setRagConfigForWorkspace] = useState<
-        Partial<CreateRagConfigRequest>
-    >({});
+    const [ragConfigForWorkspace, setRagConfigForWorkspace] = useState<Partial<RagConfig>>({});
 
-    const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+    const _activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
+
+    const handleRagConfigChange = useCallback((config: Partial<CreateRagConfigRequest>) => {
+        setRagConfigForWorkspace(config.config || {});
+    }, []);
 
     const loadWorkspaces = useCallback(async () => {
         dispatch(setLoading(true));
@@ -90,13 +87,13 @@ const WorkspaceColumn: React.FC = () => {
 
     useEffect(() => {
         if (defaultRagConfig) {
-            setRagConfigForWorkspace(defaultRagConfig);
+            // Convert RagConfig to the format expected by RagConfigForm
+            setRagConfigForWorkspace(defaultRagConfig || {});
         }
     }, [defaultRagConfig]);
 
     const handleWorkspaceChange = (workspaceId: number) => {
         dispatch(setActiveWorkspace(workspaceId));
-        setShowWorkspaceDropdown(false);
     };
 
     const handleCreateWorkspace = async (e: React.FormEvent) => {
@@ -117,14 +114,10 @@ const WorkspaceColumn: React.FC = () => {
 
         setIsCreating(true);
         try {
-            // Determine RAG type from config
-            const ragType = ragConfigForWorkspace.retriever_type === 'graph' ? 'graph' : 'vector';
-
             const workspace = await apiService.createWorkspace({
                 name: newWorkspaceName.trim(),
                 description: newWorkspaceDescription.trim() || undefined,
-                rag_type: ragType,
-                rag_config: ragConfigForWorkspace, // Pass the config directly
+                rag_config: ragConfigForWorkspace as CreateRagConfigRequest,
             });
 
             dispatch(addWorkspace(workspace));
@@ -158,85 +151,95 @@ const WorkspaceColumn: React.FC = () => {
                 </span>
             </div>
 
-            {/* Workspace Selector */}
-            <WorkspaceHeader
-                activeWorkspace={activeWorkspace}
-                workspacesLoading={workspacesLoading}
-                showWorkspaceDropdown={showWorkspaceDropdown}
-                setShowWorkspaceDropdown={setShowWorkspaceDropdown}
-            />
+            {/* New Workspace Button */}
+            <div className="border-b border-gray-200/80 dark:border-gray-800">
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    disabled={isAnyWorkspaceDeleting}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                >
+                    <FaPlus className="w-5 h-5" />
+                    New Workspace
+                </button>
+            </div>
 
-            {showWorkspaceDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-10 max-h-64 overflow-y-auto">
-                    {workspacesLoading && (
-                        <div className="p-4 text-center">
-                            <LoadingSpinner size="sm" />
-                        </div>
-                    )}
-                    {workspacesError && (
-                        <div className="p-4 text-red-500 text-sm text-center">
-                            {workspacesError}
-                        </div>
-                    )}
-                    {!workspacesLoading && !workspacesError && workspaces.length === 0 ? (
-                        <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                            No workspaces yet
-                        </div>
-                    ) : (
-                        <div className="py-1">
-                            {workspaces.map((workspace) => (
-                                <button
+            {/* Workspaces List */}
+            <div className="flex-1 overflow-y-auto">
+                {workspacesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                        <LoadingSpinner size="md" />
+                    </div>
+                ) : workspacesError ? (
+                    <div className="p-4 text-red-500 text-sm text-center">{workspacesError}</div>
+                ) : workspaces.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center px-4 text-gray-500 dark:text-gray-400">
+                        <FaFolderOpen className="w-12 h-12 mb-3 text-gray-400 dark:text-gray-500" />
+                        <p className="text-sm font-medium">No workspaces yet</p>
+                        <p className="text-xs mt-1">Create your first workspace to get started</p>
+                    </div>
+                ) : (
+                    <div className="space-y-1 p-3">
+                        {workspaces.map((workspace) => {
+                            const workspaceStatus =
+                                workspaceStatuses[workspace.id]?.status || 'ready';
+                            return (
+                                <div
                                     key={workspace.id}
                                     onClick={() => handleWorkspaceChange(workspace.id)}
-                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between gap-2 ${
+                                    className={`group relative px-3 py-2.5 rounded-xl cursor-pointer transition-all ${
                                         workspace.id === activeWorkspaceId
-                                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                                     }`}
-                                    disabled={isAnyWorkspaceDeleting}
                                 >
-                                    <span className="truncate">{workspace.name}</span>
-                                    {workspace.status !== 'ready' && (
-                                        <span
-                                            className={`text-xs px-2 py-0.5 rounded-full ${
-                                                workspace.status === 'provisioning'
-                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                    : workspace.status === 'deleting'
-                                                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                                                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                            }`}
-                                        >
-                                            {workspace.status}
-                                        </span>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    <div className="border-t border-gray-100 dark:border-gray-700">
-                        <button
-                            onClick={() => {
-                                setShowWorkspaceDropdown(false);
-                                setShowCreateModal(true);
-                            }}
-                            className="w-full px-4 py-2.5 text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 transition-colors"
-                            disabled={isAnyWorkspaceDeleting}
-                        >
-                            <FaPlus className="w-3 h-3" />
-                            Create New Workspace
-                        </button>
-                        {activeWorkspaceId && (
-                            <Link
-                                to={`/workspaces/${activeWorkspaceId}`}
-                                onClick={() => setShowWorkspaceDropdown(false)}
-                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 transition-colors"
-                                disabled={isAnyWorkspaceDeleting} // Disable settings link if any workspace is deleting
-                            >
-                                <FaCog className="w-4 h-4" />
-                                Workspace Settings
-                            </Link>
-                        )}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <h3
+                                                className={`text-sm font-medium truncate ${
+                                                    workspace.id === activeWorkspaceId
+                                                        ? 'text-blue-700 dark:text-blue-300'
+                                                        : 'text-gray-700 dark:text-gray-200'
+                                                }`}
+                                            >
+                                                {workspace.name}
+                                            </h3>
+                                            {workspace.description && (
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                                    {workspace.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {workspaceStatus !== 'ready' && (
+                                            <span
+                                                className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                                    workspaceStatus === 'provisioning'
+                                                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                        : workspaceStatus === 'deleting'
+                                                          ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                                                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                }`}
+                                            >
+                                                {workspaceStatus}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
+                )}
+            </div>
+
+            {/* Workspace Settings Link */}
+            {activeWorkspaceId && (
+                <div className="border-t border-gray-200/80 dark:border-gray-800 p-3">
+                    <Link
+                        to={`/workspaces/${activeWorkspaceId}`}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors"
+                    >
+                        <FaCog className="w-4 h-4" />
+                        Workspace Settings
+                    </Link>
                 </div>
             )}
 
@@ -309,8 +312,8 @@ const WorkspaceColumn: React.FC = () => {
                                 {!loadingDefaultRagConfig && (
                                     <div className="mt-4">
                                         <RagConfigForm
-                                            initialConfig={ragConfigForWorkspace}
-                                            onConfigChange={setRagConfigForWorkspace}
+                                            initialConfig={defaultRagConfig || {}}
+                                            onConfigChange={handleRagConfigChange}
                                         />
                                     </div>
                                 )}

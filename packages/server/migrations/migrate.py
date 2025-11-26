@@ -8,7 +8,7 @@ from pathlib import Path
 import psycopg2
 
 
-def run_migrations(database_url: str, migrations_dir: str = "migrations"):
+def run_migrations(database_url: str, migrations_dir: str = "."):
     """
     Run all migration files in order.
 

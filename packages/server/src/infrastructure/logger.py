@@ -6,7 +6,7 @@ import sys
 from enum import Enum
 from typing import Any
 
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.json import JsonFormatter
 
 # Type alias for context values - primitives only, no Any
 ContextValue = str | int | float | bool | None
@@ -213,7 +213,7 @@ class Logger:
         """Configure the underlying Python logger with secrets filtering and JSON formatter."""
         if not Logger._configured:
             log_handler = logging.StreamHandler(sys.stdout)
-            formatter = jsonlogger.JsonFormatter(
+            formatter = JsonFormatter(
                 "%(asctime)s %(name)s %(levelname)s %(filename)s %(lineno)d %(message)s"
             )
             log_handler.setFormatter(formatter)
@@ -252,7 +252,9 @@ class Logger:
             cls._instances[name] = cls(name, level)
         return cls._instances[name]
 
-    def _log(self, level: int, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def _log(
+        self, level: int, message: str, extra: dict | None = None, exc_info: Any = None
+    ) -> None:
         """
         Log a message with a given level and extra context.
 

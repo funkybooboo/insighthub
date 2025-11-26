@@ -2,7 +2,15 @@
 
 from typing import Any, Dict
 
-from .dtos import ConnectivityReport, HealthCheck, HealthStatus, ReadinessStatus, LivenessStatus, MetricsData, ServiceConnectivityCheck
+from .dtos import (
+    ConnectivityReport,
+    HealthCheck,
+    HealthStatus,
+    LivenessStatus,
+    MetricsData,
+    ReadinessStatus,
+    ServiceConnectivityCheck,
+)
 
 
 class HealthMapper:
@@ -27,7 +35,7 @@ class HealthMapper:
                         status=check_data.get("status", "unknown"),
                         message=check_data.get("message", ""),
                         details=check_data.get("details"),
-                        timestamp=check_data.get("timestamp")
+                        timestamp=check_data.get("timestamp"),
                     )
 
         return HealthStatus(
@@ -35,7 +43,7 @@ class HealthMapper:
             timestamp=data.get("timestamp", ""),
             version=data.get("version", "unknown"),
             uptime=data.get("uptime"),
-            checks=checks
+            checks=checks,
         )
 
     @staticmethod
@@ -72,10 +80,7 @@ class HealthMapper:
     @staticmethod
     def dict_to_readiness_status(data: Dict[str, any]) -> ReadinessStatus:
         """Convert readiness status dictionary to ReadinessStatus DTO."""
-        return ReadinessStatus(
-            status=data.get("status", "unknown"),
-            message=data.get("message")
-        )
+        return ReadinessStatus(status=data.get("status", "unknown"), message=data.get("message"))
 
     @staticmethod
     def readiness_status_to_dict(readiness: ReadinessStatus) -> Dict[str, any]:
@@ -88,10 +93,7 @@ class HealthMapper:
     @staticmethod
     def dict_to_liveness_status(data: Dict[str, any]) -> LivenessStatus:
         """Convert liveness status dictionary to LivenessStatus DTO."""
-        return LivenessStatus(
-            status=data.get("status", "unknown"),
-            message=data.get("message")
-        )
+        return LivenessStatus(status=data.get("status", "unknown"), message=data.get("message"))
 
     @staticmethod
     def liveness_status_to_dict(liveness: LivenessStatus) -> Dict[str, any]:
@@ -112,7 +114,7 @@ class HealthMapper:
             total_requests=data.get("total_requests", 0),
             error_rate=data.get("error_rate", 0.0),
             avg_response_time=data.get("avg_response_time", 0.0),
-            performance=data.get("performance")
+            performance=data.get("performance"),
         )
 
     @staticmethod
@@ -154,19 +156,21 @@ class ConnectivityMapper:
         if "services" in data and isinstance(data["services"], list):
             for service_data in data["services"]:
                 if isinstance(service_data, dict):
-                    services.append(ServiceConnectivityCheck(
-                        service_name=service_data.get("service_name", "unknown"),
-                        service_type=service_data.get("service_type", "unknown"),
-                        is_connected=service_data.get("is_connected", False),
-                        response_time_ms=service_data.get("response_time_ms"),
-                        error_message=service_data.get("error_message"),
-                        additional_info=service_data.get("additional_info")
-                    ))
+                    services.append(
+                        ServiceConnectivityCheck(
+                            service_name=service_data.get("service_name", "unknown"),
+                            service_type=service_data.get("service_type", "unknown"),
+                            is_connected=service_data.get("is_connected", False),
+                            response_time_ms=service_data.get("response_time_ms"),
+                            error_message=service_data.get("error_message"),
+                            additional_info=service_data.get("additional_info"),
+                        )
+                    )
 
         return ConnectivityReport(
             timestamp=data.get("timestamp", ""),
             overall_status=data.get("overall_status", "unknown"),
-            services=services
+            services=services,
         )
 
     @staticmethod

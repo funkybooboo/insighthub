@@ -1,7 +1,7 @@
 """User repository interface."""
 
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 
 from src.infrastructure.models import User
 

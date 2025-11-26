@@ -2,6 +2,8 @@
 
 from typing import List
 
+from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
+
 from .dtos import (
     GraphRagConfigDTO,
     RagConfigDTO,
@@ -9,7 +11,6 @@ from .dtos import (
     WorkspaceDTO,
     WorkspaceListDTO,
 )
-from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
 
 
 class WorkspaceMapper:
@@ -48,9 +49,7 @@ class WorkspaceMapper:
         Returns:
             WorkspaceListDTO instance
         """
-        return WorkspaceListDTO(
-            workspaces=[WorkspaceMapper.to_dto(w) for w in workspaces]
-        )
+        return WorkspaceListDTO(workspaces=[WorkspaceMapper.to_dto(w) for w in workspaces])
 
     @staticmethod
     def dto_to_dict(dto: WorkspaceDTO) -> dict:

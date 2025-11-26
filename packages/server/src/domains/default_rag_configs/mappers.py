@@ -2,7 +2,6 @@
 
 from src.domains.default_rag_configs.dtos import (
     DefaultRagConfigDTO,
-    DefaultRagConfigResponseDTO,
     GraphRagConfigDTO,
     VectorRagConfigDTO,
 )
@@ -115,7 +114,9 @@ class DefaultRagConfigMapper:
         if "entity_extraction_algorithm" in data:
             graph_config["entity_extraction_algorithm"] = data["entity_extraction_algorithm"]
         if "relationship_extraction_algorithm" in data:
-            graph_config["relationship_extraction_algorithm"] = data["relationship_extraction_algorithm"]
+            graph_config["relationship_extraction_algorithm"] = data[
+                "relationship_extraction_algorithm"
+            ]
         if "clustering_algorithm" in data:
             graph_config["clustering_algorithm"] = data["clustering_algorithm"]
         return graph_config

@@ -9,7 +9,17 @@ interface DocumentStatusUpdate {
     document_id: number;
     user_id: number;
     workspace_id: number | null;
-    status: 'pending' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'ready' | 'failed' | 'processing' | 'deleting' | 'deleted';
+    status:
+        | 'pending'
+        | 'parsing'
+        | 'chunking'
+        | 'embedding'
+        | 'indexing'
+        | 'ready'
+        | 'failed'
+        | 'processing'
+        | 'deleting'
+        | 'deleted';
     error: string | null;
     chunk_count: number | null;
     filename: string;

@@ -1,50 +1,51 @@
 version: '3'
 
 tasks:
-  default:
-    desc: Show available tasks
-    cmds:
-      - task --list
-    silent: true
+    default:
+        desc: Show available tasks
+        cmds:
+            - task --list
+        silent: true
 
-  install:
-    desc: Install dependencies
-    cmds:
-      - bun install
+    install:
+        desc: Install dependencies
+        cmds:
+            - bun install
 
-  dev:
-    desc: Run development server
-    cmds:
-      - bun run dev
+    dev:
+        desc: Run development server
+        cmds:
+            - bun run dev
 
-  build:
-    desc: Build for production
-    cmds:
-      - bun run build
+    build:
+        desc: Build for production
+        cmds:
+            - bun run build
 
-  lint:
-    desc: Run ESLint
-    cmds:
-      - bun run lint
+    lint:
+        desc: Run ESLint
+        cmds:
+            - bun run lint
 
-  format:
-    desc: Format code
-    cmds:
-      - bun run format
+    format:
+        desc: Format code
+        cmds:
+            - bun run format
 
-  test:
-    desc: Run tests
-    cmds:
-      - bun run test
+    test:
+        desc: Run tests
+        cmds:
+            - bun run test
 
-  check:
-    desc: Run checks (lint, format, build)
-    cmds:
-      - task: lint
-      - task: format
-      - task: build
+    check:
+        desc: Run checks (lint, format, build)
+        cmds:
+            - task: lint
+            - task: format
+            - task: build
+            - task: test
 
-  clean:
-    desc: Clean generated files
-    cmds:
-      - rm -rf node_modules dist .vite
+    clean:
+        desc: Clean generated files
+        cmds:
+            - rm -rf node_modules dist .vite

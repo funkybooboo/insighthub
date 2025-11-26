@@ -84,8 +84,4 @@ class ConnectivityReport:
         if self.summary is None:
             connected = sum(1 for s in self.services if s.is_connected)
             failed = len(self.services) - connected
-            self.summary = {
-                "connected": connected,
-                "failed": failed,
-                "total": len(self.services)
-            }
+            self.summary = {"connected": connected, "failed": failed, "total": len(self.services)}

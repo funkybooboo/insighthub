@@ -30,7 +30,9 @@ def list_messages(workspace_id: str, session_id: str) -> tuple[Response, int]:
 
     # Validate workspace and session access
     message_service = g.app_context.chat_message_service
-    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+    if not message_service.validate_workspace_and_session_access(
+        int(workspace_id), int(session_id), user.id
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     messages, total = service.get_session_messages(int(session_id), skip, limit)
@@ -51,7 +53,9 @@ def create_message(workspace_id: str, session_id: str) -> tuple[Response, int]:
 
     # Validate workspace and session access
     message_service = g.app_context.chat_message_service
-    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+    if not message_service.validate_workspace_and_session_access(
+        int(workspace_id), int(session_id), user.id
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     service = g.app_context.chat_message_service
@@ -92,7 +96,9 @@ def get_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Re
 
     # Validate workspace and session access
     message_service = g.app_context.chat_message_service
-    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+    if not message_service.validate_workspace_and_session_access(
+        int(workspace_id), int(session_id), user.id
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     # Validate message access
@@ -115,7 +121,9 @@ def delete_message(workspace_id: str, session_id: str, message_id: str) -> tuple
 
     # Validate workspace and session access
     message_service = g.app_context.chat_message_service
-    if not message_service.validate_workspace_and_session_access(int(workspace_id), int(session_id), user.id):
+    if not message_service.validate_workspace_and_session_access(
+        int(workspace_id), int(session_id), user.id
+    ):
         return jsonify({"error": "Access denied"}), 403
 
     # Validate message access
@@ -129,3 +137,26 @@ def delete_message(workspace_id: str, session_id: str, message_id: str) -> tuple
         return jsonify({"error": "Message not found"}), 404
 
     return jsonify({"message": "Message deleted successfully"}), 200
+
+
+@messages_bp.route("/cancel", methods=["POST"])
+@require_auth
+def cancel_message_streaming(workspace_id: str, session_id: str) -> tuple[Response, int]:
+    """Cancel message streaming for a chats session."""
+    user = get_current_user()
+
+    # Validate workspace and session access
+    message_service = g.app_context.chat_message_service
+    if not message_service.validate_workspace_and_session_access(
+        int(workspace_id), int(session_id), user.id
+    ):
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json() or {}
+    message_id = data.get("message_id")
+
+    # TODO: Implement actual cancellation logic
+    # For now, just return success
+    logger.info(f"Cancelling message streaming for session {session_id}, message {message_id}")
+
+    return jsonify({"message": "Message streaming cancelled successfully"}), 200

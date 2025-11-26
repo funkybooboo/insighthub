@@ -5,6 +5,7 @@ from typing import Optional
 # Flask-dependent imports
 try:
     from flask import Request
+
     _flask_available = True
 except ImportError:
     _flask_available = False
@@ -34,6 +35,7 @@ def get_client_ip(request: Optional["Request"] = None) -> str:
     if request is None:
         try:
             from flask import request as flask_request
+
             request = flask_request
         except (ImportError, RuntimeError):
             return "unknown"
@@ -44,14 +46,14 @@ def get_client_ip(request: Optional["Request"] = None) -> str:
     # Try various headers in order of preference
     ip_sources = [
         # Cloudflare
-        request.headers.get('CF-Connecting-IP'),
+        request.headers.get("CF-Connecting-IP"),
         # Standard proxy header (take first IP if comma-separated)
-        request.headers.get('X-Forwarded-For'),
+        request.headers.get("X-Forwarded-For"),
         # Other proxy headers
-        request.headers.get('X-Real-IP'),
-        request.headers.get('X-Forwarded'),
-        request.headers.get('Forwarded-For'),
-        request.headers.get('Forwarded'),
+        request.headers.get("X-Real-IP"),
+        request.headers.get("X-Forwarded"),
+        request.headers.get("Forwarded-For"),
+        request.headers.get("Forwarded"),
         # Direct connection
         request.remote_addr,
     ]
@@ -59,7 +61,7 @@ def get_client_ip(request: Optional["Request"] = None) -> str:
     for ip_source in ip_sources:
         if ip_source:
             # Handle comma-separated values (multiple proxies)
-            ip = ip_source.split(',')[0].strip()
+            ip = ip_source.split(",")[0].strip()
 
             # Validate IP format (basic check)
             if _is_valid_ip(ip):
@@ -81,22 +83,22 @@ def _is_valid_ip(ip: str) -> bool:
     import re
 
     # IPv4 pattern
-    ipv4_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+    ipv4_pattern = r"^(\d{1,3}\.){3}\d{1,3}$"
     if re.match(ipv4_pattern, ip):
         # Check that each octet is 0-255
         try:
-            octets = [int(octet) for octet in ip.split('.')]
+            octets = [int(octet) for octet in ip.split(".")]
             return all(0 <= octet <= 255 for octet in octets)
         except ValueError:
             return False
 
     # IPv6 pattern (simplified)
-    ipv6_pattern = r'^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$'
+    ipv6_pattern = r"^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
     if re.match(ipv6_pattern, ip):
         return True
 
     # IPv6 compressed pattern (simplified)
-    ipv6_compressed_pattern = r'^([0-9a-fA-F]{1,4}:)*:[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4})*$'
+    ipv6_compressed_pattern = r"^([0-9a-fA-F]{1,4}:)*:[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4})*$"
     if re.match(ipv6_compressed_pattern, ip):
         return True
 

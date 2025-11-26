@@ -25,11 +25,15 @@ def create_database(db_url: str) -> SqlDatabase:
             if db_url not in _database_instances:
                 if db_url.startswith("postgresql://") or db_url.startswith("postgres://"):
                     # Import here to avoid circular import
-                    from src.infrastructure.database.postgres_sql_database import PostgresSqlDatabase
+                    from src.infrastructure.database.postgres_sql_database import (
+                        PostgresSqlDatabase,
+                    )
+
                     _database_instances[db_url] = PostgresSqlDatabase(db_url)
                 elif db_url.startswith("sqlite://"):
                     # Use SQLite implementation for development
                     from src.infrastructure.database.sqlite_database import SqliteDatabase
+
                     _database_instances[db_url] = SqliteDatabase(db_url)
                 else:
                     raise ValueError(f"Unsupported database URL scheme: {db_url}")
@@ -50,7 +54,9 @@ def create_database_from_config() -> SqlDatabase:
     """
     from src import config
 
-    db_url = getattr(config, "DATABASE_URL", getattr(config, "database_url", "sqlite:///insighthub.db"))
+    db_url = getattr(
+        config, "DATABASE_URL", getattr(config, "database_url", "sqlite:///insighthub.db")
+    )
     return create_database(db_url)
 
 

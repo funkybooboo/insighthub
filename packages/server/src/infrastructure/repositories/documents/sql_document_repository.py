@@ -160,7 +160,9 @@ class SqlDocumentRepository(DocumentRepository):
     def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
         """Count documents in workspace with optional status filter."""
         if status_filter:
-            query = "SELECT COUNT(*) as count FROM documents WHERE workspace_id = %s AND status = %s"
+            query = (
+                "SELECT COUNT(*) as count FROM documents WHERE workspace_id = %s AND status = %s"
+            )
             result = self.db.fetch_one(query, (workspace_id, status_filter))
         else:
             query = "SELECT COUNT(*) as count FROM documents WHERE workspace_id = %s"

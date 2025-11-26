@@ -45,9 +45,9 @@ export default function WorkspacesPage() {
     const [createError, setCreateError] = useState<string | null>(null);
 
     // RAG config state for create modal (local state, pre-populated by defaultRagConfig)
-    const [ragConfigForWorkspace, setRagConfigForWorkspace] = useState<
-        Partial<CreateRagConfigRequest>
-    >({});
+    const [ragConfigForWorkspace, setRagConfigForWorkspace] = useState<Partial<VectorRagConfig>>(
+        {}
+    );
     const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
 
     const loadWorkspaces = useCallback(async () => {
@@ -83,7 +83,8 @@ export default function WorkspacesPage() {
 
     useEffect(() => {
         if (defaultRagConfig) {
-            setRagConfigForWorkspace(defaultRagConfig);
+            // For now, assume it's VectorRagConfig (we only support vector RAG)
+            setRagConfigForWorkspace(defaultRagConfig as VectorRagConfig);
         }
     }, [defaultRagConfig]);
 
@@ -112,21 +113,25 @@ export default function WorkspacesPage() {
         setCreateError(null);
 
         try {
-            // Ensure required fields are present with defaults if not explicitly set
-            const finalRagConfig: CreateRagConfigRequest = {
-                retriever_type: ragConfigForWorkspace.retriever_type || 'vector',
-                embedding_model: ragConfigForWorkspace.embedding_model || 'nomic-embed-text',
+            // Build RAG config in the format expected by server
+            const ragConfig = {
+                embedding_algorithm:
+                    ragConfigForWorkspace.embedding_algorithm || 'nomic-embed-text',
+                chunking_algorithm: ragConfigForWorkspace.chunking_algorithm || 'sentence',
+                rerank_algorithm: ragConfigForWorkspace.rerank_enabled
+                    ? ragConfigForWorkspace.rerank_algorithm ||
+                      'cross-encoder/ms-marco-MiniLM-L-6-v2'
+                    : 'none',
                 chunk_size: ragConfigForWorkspace.chunk_size || 1000,
                 chunk_overlap: ragConfigForWorkspace.chunk_overlap || 200,
                 top_k: ragConfigForWorkspace.top_k || 8,
-                rerank_enabled: ragConfigForWorkspace.rerank_enabled || false,
-                rerank_model: ragConfigForWorkspace.rerank_model,
             };
 
             const workspace = await apiService.createWorkspace({
                 name: newWorkspaceName.trim(),
                 description: newWorkspaceDescription.trim() || undefined,
-                rag_config: finalRagConfig,
+                rag_type: 'vector', // Default to vector for now
+                rag_config: ragConfig,
             });
 
             const workspaceWithStatus: WorkspaceWithStatus = {
@@ -246,7 +251,7 @@ export default function WorkspacesPage() {
                                     </div>
                                 )}
 
-                                {workspace.status === 'error' && workspace.status_message && (
+                                {workspace.status === 'failed' && workspace.status_message && (
                                     <div className="mt-4 text-sm text-red-600 dark:text-red-400">
                                         Error: {workspace.status_message}
                                     </div>

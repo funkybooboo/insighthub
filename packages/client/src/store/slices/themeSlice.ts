@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import apiService from '../../services/api';
-import type { RootState } from '../index';
 import { logger } from '../../lib/logger';
 
 export type Theme = 'light' | 'dark';
@@ -51,7 +50,7 @@ const themeSlice = createSlice({
 
 export const { toggleTheme, setTheme } = themeSlice.actions;
 
-export const toggleThemeAndSave = createAsyncThunk<void, void, { state: RootState }>(
+export const toggleThemeAndSave = createAsyncThunk<void, void, { state: { theme: ThemeState } }>(
     'theme/toggleAndSave',
     async (_, { dispatch, getState }) => {
         dispatch(toggleTheme());

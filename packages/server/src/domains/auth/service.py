@@ -25,7 +25,9 @@ class UserService:
         self, username: str, email: str, password: str, full_name: str | None = None
     ) -> User:
         """Create a new users with password."""
-        return self.repository.create(User(username, email, password, full_name))
+        return self.repository.create(
+            User(username, email, User.hash_password(password), full_name)
+        )
 
     def get_user_by_id(self, user_id: int) -> User | None:
         """Get users by ID."""
@@ -132,3 +134,42 @@ class UserService:
             f"User registered successfully: user_id={user.id}, username={username}, email={email}"
         )
         return user
+
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> bool:
+        """
+        Change a user's password.
+
+        Args:
+            user_id: The user ID
+            current_password: The current password
+            new_password: The new password
+
+        Returns:
+            bool: True if password was changed successfully
+
+        Raises:
+            UserAuthenticationError: If current password is incorrect
+        """
+        logger.info(f"Password change attempt for user_id={user_id}")
+
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            logger.warning(f"Password change failed: user not found (user_id={user_id})")
+            return False
+
+        if not user.check_password(current_password):
+            logger.warning(
+                f"Password change failed: incorrect current password (user_id={user_id})"
+            )
+            raise UserAuthenticationError("Current password is incorrect")
+
+        # Update password
+        updated_user = self.repository.update(
+            user_id, password_hash=User.hash_password(new_password)
+        )
+        if updated_user:
+            logger.info(f"Password changed successfully for user_id={user_id}")
+            return True
+        else:
+            logger.warning(f"Password change failed: update failed (user_id={user_id})")
+            return False

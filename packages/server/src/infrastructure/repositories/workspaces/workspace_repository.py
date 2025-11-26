@@ -56,3 +56,23 @@ class WorkspaceRepository(ABC):
     def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:
         """Get generic RAG config for workspace."""
         pass
+
+    @abstractmethod
+    def create_vector_rag_config(self, config: VectorRagConfig) -> VectorRagConfig:
+        """Create vector RAG config for workspace."""
+        pass
+
+    @abstractmethod
+    def update_vector_rag_config(self, workspace_id: int, **kwargs) -> Optional[VectorRagConfig]:
+        """Update vector RAG config for workspace."""
+        pass
+
+    @abstractmethod
+    def create_graph_rag_config(self, config: GraphRagConfig) -> GraphRagConfig:
+        """Create graph RAG config for workspace."""
+        pass
+
+    @abstractmethod
+    def update_graph_rag_config(self, workspace_id: int, **kwargs) -> Optional[GraphRagConfig]:
+        """Update graph RAG config for workspace."""
+        pass

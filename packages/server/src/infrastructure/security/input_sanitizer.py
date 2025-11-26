@@ -1,9 +1,8 @@
-
 """Input sanitization utilities for security."""
 
 import html
 import re
-from typing import Any, Union
+from typing import Any
 
 
 class InputSanitizer:
@@ -19,34 +18,60 @@ class InputSanitizer:
 
     # Dangerous HTML tags that should be removed
     DANGEROUS_HTML_TAGS = {
-        'script', 'iframe', 'object', 'embed', 'form', 'input', 'button',
-        'link', 'meta', 'style', 'applet', 'param', 'base', 'bgsound'
+        "script",
+        "iframe",
+        "object",
+        "embed",
+        "form",
+        "input",
+        "button",
+        "link",
+        "meta",
+        "style",
+        "applet",
+        "param",
+        "base",
+        "bgsound",
     }
 
     # Dangerous HTML attributes
     DANGEROUS_HTML_ATTRS = {
-        'onload', 'onerror', 'onclick', 'onmouseover', 'onmouseout',
-        'onkeydown', 'onkeyup', 'onkeypress', 'onsubmit', 'onreset',
-        'onselect', 'onchange', 'onfocus', 'onblur', 'onabort',
-        'javascript:', 'data:', 'vbscript:'
+        "onload",
+        "onerror",
+        "onclick",
+        "onmouseover",
+        "onmouseout",
+        "onkeydown",
+        "onkeyup",
+        "onkeypress",
+        "onsubmit",
+        "onreset",
+        "onselect",
+        "onchange",
+        "onfocus",
+        "onblur",
+        "onabort",
+        "javascript:",
+        "data:",
+        "vbscript:",
     }
 
     # SQL injection patterns to detect/remove
     SQL_INJECTION_PATTERNS = [
-        r';\s*(drop|delete|update|insert|alter|create|truncate)\s',
-        r';\s*(union|select)\s.*\sfrom\s',
-        r'--',  # SQL comments
-        r'/\*.*\*/',  # Block comments
-        r';\s*exec\s',
-        r';\s*execute\s',
+        r";\s*(drop|delete|update|insert|alter|create|truncate)\s",
+        r";\s*(union|select)\s.*\sfrom\s",
+        r"--",  # SQL comments
+        r"/\*.*\*/",  # Block comments
+        r";\s*exec\s",
+        r";\s*execute\s",
     ]
 
     # Path traversal patterns
     PATH_TRAVERSAL_PATTERNS = [
-        r'\.\./',  # Parent directory
-        r'\.\.\\',  # Windows parent directory
-        r'%2e%2e%2f',  # URL encoded ../
-        r'%2e%2e%5c',  # URL encoded ..\
+        r"\.\./",  # Parent directory
+        r"\.\.\\",  # Windows parent directory
+        r"%2e%2e%2f",  # URL encoded ../
+        r"%2e%2e%5c",  # URL encoded ..\
     ]
 
     @staticmethod
@@ -67,13 +92,13 @@ class InputSanitizer:
 
         # Remove dangerous tags
         for tag in InputSanitizer.DANGEROUS_HTML_TAGS:
-            pattern = rf'<{tag}[^>]*>.*?</{tag}>|<{tag}[^>]*/?>'
-            input_text = re.sub(pattern, '', input_text, flags=re.IGNORECASE | re.DOTALL)
+            pattern = rf"<{tag}[^>]*>.*?</{tag}>|<{tag}[^>]*/?>"
+            input_text = re.sub(pattern, "", input_text, flags=re.IGNORECASE | re.DOTALL)
 
         # Remove dangerous attributes
         for attr in InputSanitizer.DANGEROUS_HTML_ATTRS:
             pattern = rf'\s{re.escape(attr)}\s*=\s*["\'][^"\']*["\']'
-            input_text = re.sub(pattern, '', input_text, flags=re.IGNORECASE)
+            input_text = re.sub(pattern, "", input_text, flags=re.IGNORECASE)
 
         # Escape remaining HTML
         return html.escape(input_text, quote=True)
@@ -97,7 +122,7 @@ class InputSanitizer:
 
         # Remove/replace dangerous patterns
         for pattern in InputSanitizer.SQL_INJECTION_PATTERNS:
-            input_text = re.sub(pattern, '', input_text, flags=re.IGNORECASE)
+            input_text = re.sub(pattern, "", input_text, flags=re.IGNORECASE)
 
         # Escape single quotes
         input_text = input_text.replace("'", "''")
@@ -120,10 +145,10 @@ class InputSanitizer:
 
         # Remove path traversal patterns
         for pattern in InputSanitizer.PATH_TRAVERSAL_PATTERNS:
-            filename = re.sub(pattern, '', filename, flags=re.IGNORECASE)
+            filename = re.sub(pattern, "", filename, flags=re.IGNORECASE)
 
         # Remove dangerous characters
-        filename = re.sub(r'[<>:"|?*]', '', filename)
+        filename = re.sub(r'[<>:"|?*]', "", filename)
 
         # Limit length
         filename = filename[:255]
@@ -150,10 +175,10 @@ class InputSanitizer:
             input_text = str(input_text)
 
         # Remove null bytes
-        input_text = input_text.replace('\x00', '')
+        input_text = input_text.replace("\x00", "")
 
         # Remove control characters except newlines and tabs
-        input_text = re.sub(r'[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]', '', input_text)
+        input_text = re.sub(r"[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]", "", input_text)
 
         # Limit length
         input_text = input_text[:max_length]
@@ -177,7 +202,7 @@ class InputSanitizer:
         email = email.strip().lower()
 
         # Basic email validation pattern
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
         if re.match(email_pattern, email):
             return email
@@ -201,7 +226,7 @@ class InputSanitizer:
         url = url.strip()
 
         # Basic URL validation
-        url_pattern = r'^https?://[^\s/$.?#].[^\s]*$'
+        url_pattern = r"^https?://[^\s/$.?#].[^\s]*$"
 
         if re.match(url_pattern, url):
             return url
@@ -229,7 +254,7 @@ class InputSanitizer:
             return False
 
         # Check allowed characters (letters, numbers, underscores, hyphens)
-        username_pattern = r'^[a-zA-Z0-9_-]+$'
+        username_pattern = r"^[a-zA-Z0-9_-]+$"
         return bool(re.match(username_pattern, username))
 
     @staticmethod
@@ -249,7 +274,7 @@ class InputSanitizer:
         email = email.strip()
 
         # RFC 5322 compliant email pattern (simplified)
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
         return bool(re.match(email_pattern, email))
 
@@ -268,11 +293,7 @@ class InputSanitizer:
             - strength: str - "weak", "medium", or "strong"
         """
         if not isinstance(password, str):
-            return {
-                "valid": False,
-                "errors": ["Password must be a string"],
-                "strength": "weak"
-            }
+            return {"valid": False, "errors": ["Password must be a string"], "strength": "weak"}
 
         errors = []
         score = 0
@@ -284,19 +305,19 @@ class InputSanitizer:
             score += 1
 
         # Uppercase check
-        if not re.search(r'[A-Z]', password):
+        if not re.search(r"[A-Z]", password):
             errors.append("Password must contain at least one uppercase letter")
         else:
             score += 1
 
         # Lowercase check
-        if not re.search(r'[a-z]', password):
+        if not re.search(r"[a-z]", password):
             errors.append("Password must contain at least one lowercase letter")
         else:
             score += 1
 
         # Number check
-        if not re.search(r'\d', password):
+        if not re.search(r"\d", password):
             errors.append("Password must contain at least one number")
         else:
             score += 1
@@ -310,8 +331,16 @@ class InputSanitizer:
 
         # Check for common weak passwords
         weak_passwords = [
-            "password", "123456", "qwerty", "abc123", "password123",
-            "admin", "letmein", "welcome", "monkey", "123456789"
+            "password",
+            "123456",
+            "qwerty",
+            "abc123",
+            "password123",
+            "admin",
+            "letmein",
+            "welcome",
+            "monkey",
+            "123456789",
         ]
         if password.lower() in weak_passwords:
             errors.append("Password is too common, please choose a stronger password")
@@ -325,11 +354,7 @@ class InputSanitizer:
         else:
             strength = "strong"
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "strength": strength
-        }
+        return {"valid": len(errors) == 0, "errors": errors, "strength": strength}
 
     @classmethod
     def sanitize_all(cls, data: Any) -> Any:

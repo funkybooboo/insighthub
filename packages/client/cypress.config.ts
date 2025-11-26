@@ -35,23 +35,23 @@ export default defineConfig({
         testEmail: 'testuser@example.com',
 
         // Vector RAG pipeline timeouts (in milliseconds)
-        documentUploadTimeout: 30000,      // 30 seconds for upload
-        documentParsingTimeout: 60000,     // 1 minute for parsing
-        documentChunkingTimeout: 60000,    // 1 minute for chunking
-        documentEmbeddingTimeout: 120000,  // 2 minutes for embedding generation
-        documentIndexingTimeout: 120000,   // 2 minutes for vector indexing
-        documentReadyTimeout: 300000,      // 5 minutes total pipeline timeout
+        documentUploadTimeout: 30000, // 30 seconds for upload
+        documentParsingTimeout: 60000, // 1 minute for parsing
+        documentChunkingTimeout: 60000, // 1 minute for chunking
+        documentEmbeddingTimeout: 120000, // 2 minutes for embedding generation
+        documentIndexingTimeout: 120000, // 2 minutes for vector indexing
+        documentReadyTimeout: 300000, // 5 minutes total pipeline timeout
 
         // Chat and query timeouts
-        chatResponseTimeout: 120000,       // 2 minutes for LLM response
-        contextRetrievalTimeout: 30000,    // 30 seconds for vector search
+        chatResponseTimeout: 120000, // 2 minutes for LLM response
+        contextRetrievalTimeout: 30000, // 30 seconds for vector search
 
         // Workspace provisioning
         workspaceProvisioningTimeout: 120000, // 2 minutes for workspace setup
     },
     retries: {
-        runMode: 2,      // Retry failed tests twice in CI
-        openMode: 0,     // No retries in interactive mode
+        runMode: 2, // Retry failed tests twice in CI
+        openMode: 0, // No retries in interactive mode
     },
     // Reporter configuration for CI/CD
     reporter: 'cypress-multi-reporters',
