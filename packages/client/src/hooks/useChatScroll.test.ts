@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useChatScroll } from './useChatScroll';
+import '../test/setup';
 
 describe('useChatScroll', () => {
     let mockScrollIntoView: ReturnType<typeof vi.fn>;

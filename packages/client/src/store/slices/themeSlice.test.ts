@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
 import themeReducer, { toggleTheme, setTheme } from './themeSlice';
-import '../../test/setup';
 
 describe('themeSlice', () => {
     let store: ReturnType<typeof configureStore>;

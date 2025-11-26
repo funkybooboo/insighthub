@@ -1,8 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
 import { render, act, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import ChatBot from './ChatBot';
@@ -11,6 +8,7 @@ import workspaceSlice from '../../store/slices/workspaceSlice';
 import statusSlice from '../../store/slices/statusSlice';
 import socketService from '../../services/socket';
 import apiService from '../../services/api';
+import '../../test/setup';
 
 // Mock the UI components to avoid styling issues
 vi.mock('@/components/shared', () => ({
@@ -135,6 +133,14 @@ vi.mock('../../services/socket', () => ({
         onChatNoContextFound: vi.fn(() => vi.fn()),
         removeAllListeners: vi.fn(),
         on: vi.fn(() => vi.fn()), // Return cleanup function
+    },
+}));
+
+vi.mock('../../services/api', () => ({
+    default: {
+        listDocuments: vi.fn(),
+        createChatSession: vi.fn(),
+        getChatSessions: vi.fn(),
     },
 }));
 

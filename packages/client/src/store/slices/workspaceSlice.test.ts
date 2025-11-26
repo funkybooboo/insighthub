@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import workspaceReducer, {
     setWorkspaces,
     addWorkspace,
@@ -10,6 +10,7 @@ import workspaceReducer, {
     clearError,
 } from './workspaceSlice';
 import type { WorkspaceState, Workspace } from '../../types/workspace';
+import '../../test/setup';
 
 const ACTIVE_WORKSPACE_KEY = 'activeWorkspaceId';
 

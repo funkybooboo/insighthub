@@ -1,13 +1,7 @@
-/**
- * Unit tests for Auth Redux slice
- */
-
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import authReducer, { setCredentials, logout, setLoading, setUser, type User } from './authSlice';
-import '../../test/setup';
 
 describe('authSlice', () => {
-
     describe('initial state', () => {
         it('should have correct initial state when no token in localStorage', () => {
             const state = authReducer(undefined, { type: '@@INIT' });

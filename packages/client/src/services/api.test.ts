@@ -1,13 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { apiService } from './api';
 import '../test/setup';
-import type {
-    Workspace,
-    RagConfig,
-    CreateWorkspaceRequest,
-    UpdateWorkspaceRequest,
-} from '../types/workspace';
+import type { Workspace, CreateWorkspaceRequest, UpdateWorkspaceRequest } from '../types/workspace';
 import { server } from '../test/msw-server';
 
 const API_BASE_URL = 'http://localhost:5000';
@@ -20,18 +15,6 @@ const mockWorkspace: Workspace = {
     updated_at: '2025-01-01T00:00:00Z',
     document_count: 5,
     session_count: 2,
-};
-
-const mockRagConfig: RagConfig = {
-    id: 1,
-    workspace_id: 1,
-    embedding_model: 'nomic-embed-text',
-    retriever_type: 'vector',
-    chunk_size: 1000,
-    chunk_overlap: 200,
-    top_k: 5,
-    created_at: '2025-01-01T00:00:00Z',
-    updated_at: '2025-01-01T00:00:00Z',
 };
 
 beforeEach(() => {
@@ -431,14 +414,11 @@ describe('ApiService', () => {
 
         it('should create chats session', async () => {
             server.use(
-                http.post(
-                    `${API_BASE_URL}/api/workspaces/1/chat/sessions`,
-                    async ({ request }) => {
-                        const body = await request.json();
-                        expect(body).toEqual({ title: 'Test Chat' });
-                        return HttpResponse.json({ session_id: 123, title: 'New Chat' });
-                    }
-                )
+                http.post(`${API_BASE_URL}/api/workspaces/1/chat/sessions`, async ({ request }) => {
+                    const body = await request.json();
+                    expect(body).toEqual({ title: 'Test Chat' });
+                    return HttpResponse.json({ session_id: 123, title: 'New Chat' });
+                })
             );
 
             const result = await apiService.createChatSession(1, 'Test Chat');
@@ -468,12 +448,9 @@ describe('ApiService', () => {
 
         it('should delete chats session', async () => {
             server.use(
-                http.delete(
-                    `${API_BASE_URL}/api/workspaces/1/chat/sessions/123`,
-                    () => {
-                        return HttpResponse.json({ message: 'Session deleted' });
-                    }
-                )
+                http.delete(`${API_BASE_URL}/api/workspaces/1/chat/sessions/123`, () => {
+                    return HttpResponse.json({ message: 'Session deleted' });
+                })
             );
 
             const result = await apiService.deleteChatSession(1, 123);
@@ -496,10 +473,7 @@ describe('ApiService', () => {
                 )
             );
 
-            const result = await apiService.fetchWikipediaArticle(
-                1,
-                'machine learning'
-            );
+            const result = await apiService.fetchWikipediaArticle(1, 'machine learning');
             expect(result.message).toBe('Wikipedia article fetched successfully');
         });
     });

@@ -16,7 +16,7 @@ const Modal: React.FC<ModalProps> = ({ show, onClose, title, children, footer })
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-6xl mx-4 max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                         {title}

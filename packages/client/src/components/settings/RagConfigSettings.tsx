@@ -1,21 +1,33 @@
 import { useState, useEffect } from 'react';
 import apiService from '../../services/api';
-import type { VectorRagConfig } from '../../types/workspace';
+import type { RagConfig, VectorRagConfig, GraphRagConfig } from '../../types/workspace';
 import {
     EmbeddingConfigSection,
     RetrieverConfigSection,
     ChunkingConfigSection,
     RetrievalConfigSection,
     RerankingConfigSection,
+    GraphRagConfigSection,
 } from './RagConfigSections';
 
-const DEFAULT_CONFIG: VectorRagConfig = {
+const DEFAULT_VECTOR_CONFIG: VectorRagConfig = {
     embedding_model: 'nomic-embed-text',
     retriever_type: 'vector',
     chunk_size: 1000,
     chunk_overlap: 200,
     top_k: 8,
     rerank_enabled: false,
+};
+
+const DEFAULT_GRAPH_CONFIG: GraphRagConfig = {
+    embedding_model: 'nomic-embed-text',
+    retriever_type: 'graph',
+    chunk_size: 1000,
+    chunk_overlap: 200,
+    top_k: 8,
+    entity_extraction_algorithm: 'llm-based',
+    relationship_extraction_algorithm: 'llm-based',
+    clustering_algorithm: 'leiden',
 };
 
 function getErrorMessage(error: unknown): string {
@@ -25,17 +37,47 @@ function getErrorMessage(error: unknown): string {
     return 'An unexpected error occurred';
 }
 
+interface AlgorithmOption {
+    value: string;
+    label: string;
+    description?: string;
+}
+
 export default function RagConfigSettings() {
-    const [config, setConfig] = useState<VectorRagConfig>(DEFAULT_CONFIG);
+    const [config, setConfig] = useState<RagConfig>(DEFAULT_VECTOR_CONFIG);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
         null
     );
+    const [vectorAlgorithms, setVectorAlgorithms] = useState<{
+        embedding_algorithms: AlgorithmOption[];
+        chunking_algorithms: AlgorithmOption[];
+        rerank_algorithms: AlgorithmOption[];
+    } | null>(null);
+    const [graphAlgorithms, setGraphAlgorithms] = useState<{
+        entity_extraction_algorithms: AlgorithmOption[];
+        relationship_extraction_algorithms: AlgorithmOption[];
+        clustering_algorithms: AlgorithmOption[];
+    } | null>(null);
 
     useEffect(() => {
         loadConfig();
+        loadAlgorithms();
     }, []);
+
+    const loadAlgorithms = async () => {
+        try {
+            const [vectorData, graphData] = await Promise.all([
+                apiService.getVectorAlgorithms(),
+                apiService.getGraphAlgorithms(),
+            ]);
+            setVectorAlgorithms(vectorData);
+            setGraphAlgorithms(graphData);
+        } catch (error: unknown) {
+            setMessage({ type: 'error', text: getErrorMessage(error) });
+        }
+    };
 
     const loadConfig = async () => {
         try {
@@ -69,11 +111,27 @@ export default function RagConfigSettings() {
         }
     };
 
-    const handleChange = (
-        field: keyof VectorRagConfig,
-        value: string | number | boolean | undefined
-    ) => {
-        setConfig((prev) => ({ ...prev, [field]: value }));
+    const handleChange = (field: string, value: string | number | boolean | undefined) => {
+        setConfig((prev) => {
+            const newConfig = { ...prev, [field]: value };
+
+            // When retriever_type changes, reset to appropriate defaults
+            if (field === 'retriever_type') {
+                if (value === 'vector') {
+                    return {
+                        ...DEFAULT_VECTOR_CONFIG,
+                        retriever_type: 'vector',
+                    };
+                } else if (value === 'graph') {
+                    return {
+                        ...DEFAULT_GRAPH_CONFIG,
+                        retriever_type: 'graph',
+                    };
+                }
+            }
+
+            return newConfig;
+        });
     };
 
     if (loading) {
@@ -112,11 +170,66 @@ export default function RagConfigSettings() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <EmbeddingConfigSection config={config} onChange={handleChange} />
-                <RetrieverConfigSection config={config} onChange={handleChange} />
-                <ChunkingConfigSection config={config} onChange={handleChange} />
-                <RetrievalConfigSection config={config} onChange={handleChange} />
-                <RerankingConfigSection config={config} onChange={handleChange} />
+                <RetrieverConfigSection
+                    config={{
+                        retriever_type: config.retriever_type || 'vector',
+                    }}
+                    onChange={handleChange}
+                />
+                <EmbeddingConfigSection
+                    config={{
+                        embedding_model: config.embedding_model || 'nomic-embed-text',
+                    }}
+                    algorithms={
+                        vectorAlgorithms
+                            ? { embedding_algorithms: vectorAlgorithms.embedding_algorithms }
+                            : undefined
+                    }
+                    onChange={handleChange}
+                />
+
+                {config.retriever_type === 'vector' && (
+                    <>
+                        <ChunkingConfigSection
+                            config={{
+                                chunk_size: config.chunk_size || 1000,
+                                chunk_overlap: config.chunk_overlap || 200,
+                            }}
+                            onChange={handleChange}
+                        />
+                        <RetrievalConfigSection
+                            config={{
+                                top_k: config.top_k || 8,
+                            }}
+                            onChange={handleChange}
+                        />
+                        <RerankingConfigSection
+                            config={{
+                                rerank_enabled: config.rerank_enabled || false,
+                                rerank_model: config.rerank_model,
+                            }}
+                            algorithms={
+                                vectorAlgorithms
+                                    ? { rerank_algorithms: vectorAlgorithms.rerank_algorithms }
+                                    : undefined
+                            }
+                            onChange={handleChange}
+                        />
+                    </>
+                )}
+
+                {config.retriever_type === 'graph' && (
+                    <GraphRagConfigSection
+                        config={{
+                            entity_extraction_algorithm: config.entity_extraction_algorithm,
+                            relationship_extraction_algorithm:
+                                config.relationship_extraction_algorithm,
+                            clustering_algorithm: config.clustering_algorithm,
+                        }}
+                        algorithms={graphAlgorithms || undefined}
+                        onChange={handleChange}
+                    />
+                )}
 
                 {/* Submit Button */}
                 <div className="pt-4">

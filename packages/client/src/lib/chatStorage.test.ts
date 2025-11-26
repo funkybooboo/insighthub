@@ -1,11 +1,6 @@
-/**
- * Unit tests for chatStorage utility
- */
-
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { chatStorage } from './chatStorage';
 import type { ChatSession } from '@/types/chats';
-import '../test/setup';
 
 describe('chatStorage', () => {
     beforeEach(() => {

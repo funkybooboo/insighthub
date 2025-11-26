@@ -49,4 +49,6 @@ tasks:
     cmds:
       - docker compose --profile dev down -v --remove-orphans
       - docker compose --profile prod down -v --remove-orphans
-      - docker compose down -v --remove-orphans
+      - docker compose down --remove-orphans
+      - docker network prune -f
+      - docker network prune -f

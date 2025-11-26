@@ -2,7 +2,7 @@
  * Unit tests for Chat Redux slice
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import chatReducer, {
     createSession,
     setActiveSession,
@@ -13,7 +13,7 @@ import chatReducer, {
     setLoading,
     clearAllSessions,
 } from './chatSlice';
-import type { ChatSession, Message, ChatState } from '@/types/chats';
+import type { ChatSession, Message, ChatState } from '@/types/chat';
 import { chatStorage } from '@/lib/chatStorage';
 
 // Mock chatStorage
@@ -26,10 +26,6 @@ vi.mock('@/lib/chatStorage', () => ({
 }));
 
 describe('chatSlice', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
-
     describe('initial state', () => {
         it('should have correct initial state', () => {
             const state = chatReducer(undefined, { type: '@@INIT' });

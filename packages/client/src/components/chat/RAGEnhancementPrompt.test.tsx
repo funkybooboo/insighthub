@@ -1,5 +1,7 @@
 import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import RAGEnhancementPrompt from './RAGEnhancementPrompt';
+import '../../test/setup';
 
 const defaultProps = {
     isVisible: true,
