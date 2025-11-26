@@ -12,10 +12,10 @@ from src.domains.workspaces.chats.sessions.routes import sessions_bp
 from src.domains.workspaces.documents.routes import documents_bp
 from src.domains.workspaces.routes import workspaces_bp
 from src.infrastructure.config import config
-from src.infrastructure.context import create_app_context, create_database
+from src.infrastructure.context import create_app_context
+from src.infrastructure.database import create_database_from_config
 from src.infrastructure.logger import create_logger
 from src.infrastructure.middleware.context_middleware import setup_context_middleware
-from src.infrastructure.sockets.handler import SocketHandler
 
 logger = create_logger(__name__)
 
@@ -35,12 +35,9 @@ def create_app() -> Flask:
     # Initialize SocketIO
     socketio = SocketIO(app, cors_allowed_origins=cors_origins)
 
-    # Initialize socket handler
-    socket_handler = SocketHandler(socketio)
-
     # Initialize workers with SocketIO
     # Create a temporary app context to initialize workers
-    db = create_database()
+    db = create_database_from_config()
     app_context = create_app_context(db)
     app_context.initialize_workers(socketio)
     logger.info("Background workers initialized successfully")

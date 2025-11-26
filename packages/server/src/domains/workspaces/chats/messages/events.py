@@ -61,7 +61,7 @@ class ChatSocketHandler:
         """
         with current_app.app_context():
             # Import here to avoid circular dependency
-            from src.infrastructure.context import AppContext
+            from src.infrastructure.context import create_app_context
 
             db = None
             request_id = str(uuid.uuid4())
@@ -69,7 +69,7 @@ class ChatSocketHandler:
             try:
                 # Get database session
                 db = next(self._get_db())
-                app_context = AppContext(db)
+                app_context = create_app_context(db)
 
                 user_message = str(data.get("message", ""))
                 session_id_raw = data.get("session_id")
@@ -191,8 +191,7 @@ class ChatSocketHandler:
                 if client_id in self._active_requests:
                     del self._active_requests[client_id]
 
-                if db is not None:
-                    db.close()
+                # Don't close singleton database connection
 
     def handle_chat_response_chunk(self, data: Mapping[str, object]) -> None:
         """
@@ -322,13 +321,13 @@ class ChatSocketHandler:
         """
         with current_app.app_context():
             # Import here to avoid circular dependency
-            from src.infrastructure.context import AppContext
+            from src.infrastructure.context import create_app_context
 
             db = None
             try:
                 # Get database session
                 db = next(self._get_db())
-                app_context = AppContext(db)
+                app_context = create_app_context(db)
 
                 # Look up the active request ID for this client
                 client_id = str((data or {}).get("client_id", "")) if data else None
@@ -346,8 +345,8 @@ class ChatSocketHandler:
                 emit("error", {"error": f"Error cancelling chats: {str(e)}"})
 
             finally:
-                if db is not None:
-                    db.close()
+                # Don't close singleton database connection
+                pass
 
     def _get_db(self):
         """Get database session."""

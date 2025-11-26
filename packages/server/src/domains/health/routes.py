@@ -39,7 +39,7 @@ def health() -> tuple[Response, int]:
 
         db: SqlDatabase = next(get_db())
         db.execute("SELECT 1")  # Simple query to test connectivity
-        db.close()
+        # Don't close singleton database connection
         health_status["checks"]["database"] = {
             "status": "healthy",
             "message": "Database connection OK",
@@ -133,7 +133,7 @@ def readiness() -> tuple[Response, int]:
 
         db: SqlDatabase = next(get_db())
         db.execute("SELECT 1")
-        db.close()
+        # Don't close singleton database connection
 
         return jsonify({"status": "ready"}), 200
     except Exception:

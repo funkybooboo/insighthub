@@ -28,7 +28,6 @@ def setup_context_middleware(app: Flask) -> None:
     @app.teardown_appcontext
     def teardown_appcontext(exception: Exception | None = None) -> None:
         """Clean up app context after request."""
-        if hasattr(g, "app_context"):
-            # Close database connection
-            if hasattr(g.app_context, "db"):
-                g.app_context.db.close()
+        # Note: Database connection is now a singleton and should not be closed per request
+        # The singleton database connection will be closed when the application shuts down
+        pass

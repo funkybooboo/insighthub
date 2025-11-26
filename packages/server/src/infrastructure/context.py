@@ -1,5 +1,7 @@
 """Application context for dependency injection and service management."""
 
+import threading
+
 from src.domains.auth.service import UserService
 from src.domains.default_rag_configs.service import DefaultRagConfigService
 from src.domains.workspaces.documents.service import DocumentService
@@ -124,3 +126,39 @@ class AppContext:
             socketio=socketio,
             llm_provider=self.llm_provider,
         )
+
+
+# Singleton instance and lock for thread safety
+_app_context_instance: AppContext | None = None
+_app_context_lock = threading.Lock()
+
+
+def create_app_context(db=None) -> AppContext:
+    """Create or return the singleton application context instance.
+
+    Args:
+        db: Optional database connection (currently unused, connections created internally)
+
+    Returns:
+        Singleton AppContext instance
+    """
+    global _app_context_instance
+
+    if _app_context_instance is None:
+        with _app_context_lock:
+            # Double-check pattern for thread safety
+            if _app_context_instance is None:
+                _app_context_instance = AppContext(db=db)
+
+    return _app_context_instance
+
+
+def reset_app_context() -> None:
+    """Reset the singleton application context instance.
+
+    This is primarily for testing purposes.
+    """
+    global _app_context_instance
+
+    with _app_context_lock:
+        _app_context_instance = None

@@ -1,6 +1,6 @@
 """Factory for creating users repository instances."""
 
-from src.infrastructure.database.sql import SqlDatabase
+from src.infrastructure.database import create_database
 
 from .sql_user_repository import SqlUserRepository
 from .user_repository import UserRepository
@@ -27,7 +27,7 @@ def create_user_repository(
         raise NotImplementedError("PostgreSQL repository not yet implemented")
     elif db_type == "sqlite":
         # Create SQLite database connection
-        db = SqlDatabase(db_url)
+        db = create_database(db_url)
         return SqlUserRepository(db)
     else:
         raise ValueError(f"Unsupported database type: {db_type}")

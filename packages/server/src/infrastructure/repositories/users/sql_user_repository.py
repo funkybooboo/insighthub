@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.database.sql import SqlDatabase
+from src.infrastructure.database import SqlDatabase
 from src.infrastructure.models import User
 
 from .user_repository import UserRepository
@@ -19,42 +19,43 @@ class SqlUserRepository(UserRepository):
         """Get users by ID."""
         query = """
             SELECT id, username, email, password_hash, full_name, created_at, updated_at, theme_preference
-            FROM users WHERE id = ?
+            FROM users WHERE id = %s
         """
-        result = self.db.execute(query, (user_id,)).fetchone()
+        result = self.db.fetch_one(query, (user_id,))
         if result:
-            return User(*result)
+            return User(**result)
         return None
 
     def get_by_username(self, username: str) -> Optional[User]:
         """Get users by username."""
         query = """
             SELECT id, username, email, password_hash, full_name, created_at, updated_at, theme_preference
-            FROM users WHERE username = ?
+            FROM users WHERE username = %s
         """
-        result = self.db.execute(query, (username,)).fetchone()
+        result = self.db.fetch_one(query, (username,))
         if result:
-            return User(*result)
+            return User(**result)
         return None
 
     def get_by_email(self, email: str) -> Optional[User]:
         """Get users by email."""
         query = """
             SELECT id, username, email, password_hash, full_name, created_at, updated_at, theme_preference
-            FROM users WHERE email = ?
+            FROM users WHERE email = %s
         """
-        result = self.db.execute(query, (email,)).fetchone()
+        result = self.db.fetch_one(query, (email,))
         if result:
-            return User(*result)
+            return User(**result)
         return None
 
     def create(self, user: User) -> User:
         """Create a new users."""
         query = """
             INSERT INTO users (username, email, password_hash, full_name, created_at, updated_at, theme_preference)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
         """
-        user_id = self.db.execute(
+        result = self.db.fetch_one(
             query,
             (
                 user.username,
@@ -65,9 +66,10 @@ class SqlUserRepository(UserRepository):
                 user.updated_at,
                 user.theme_preference,
             ),
-        ).lastrowid
+        )
 
-        user.id = user_id
+        if result:
+            user.id = result["id"]
         return user
 
     def update(self, user_id: int, **kwargs) -> Optional[User]:
@@ -87,9 +89,9 @@ class SqlUserRepository(UserRepository):
         # Update in database
         query = """
             UPDATE users
-            SET username = ?, email = ?, password_hash = ?, full_name = ?,
-                updated_at = ?, theme_preference = ?
-            WHERE id = ?
+            SET username = %s, email = %s, password_hash = %s, full_name = %s,
+                updated_at = %s, theme_preference = %s
+            WHERE id = %s
         """
         self.db.execute(
             query,
@@ -108,6 +110,6 @@ class SqlUserRepository(UserRepository):
 
     def delete(self, user_id: int) -> bool:
         """Delete users."""
-        query = "DELETE FROM users WHERE id = ?"
-        result = self.db.execute(query, (user_id,))
-        return result.rowcount > 0
+        query = "DELETE FROM users WHERE id = %s"
+        affected_rows = self.db.execute(query, (user_id,))
+        return affected_rows > 0
