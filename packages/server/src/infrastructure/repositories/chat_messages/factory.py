@@ -18,7 +18,7 @@ def create_chat_message_repository(repo_type: str = "memory", db=None) -> ChatMe
     Raises:
         ValueError: If repo_type is not supported or db is missing for SQL repos
     """
-    if repo_type == "memory":
+    if repo_type == "in_memory":
         return InMemoryChatMessageRepository()
     elif repo_type == "postgres":
         if db is None:

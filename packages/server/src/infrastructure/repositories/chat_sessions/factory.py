@@ -18,7 +18,7 @@ def create_chat_session_repository(repo_type: str = "memory", db=None) -> ChatSe
     Raises:
         ValueError: If repo_type is not supported or db is missing for SQL repos
     """
-    if repo_type == "memory":
+    if repo_type == "in_memory":
         return InMemoryChatSessionRepository()
     elif repo_type == "postgres":
         if db is None:

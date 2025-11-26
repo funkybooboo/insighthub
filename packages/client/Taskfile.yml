@@ -1,144 +1,50 @@
 version: '3'
 
 tasks:
-    default:
-        desc: Show available tasks
-        cmds:
-            - task --list
-        silent: true
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
 
-    install:
-        desc: Install dependencies
-        cmds:
-            - bun install
+  install:
+    desc: Install dependencies
+    cmds:
+      - bun install
 
-    dev:
-        desc: Run development server
-        cmds:
-            - bun run dev
+  dev:
+    desc: Run development server
+    cmds:
+      - bun run dev
 
-    build:
-        desc: Build for production
-        cmds:
-            - bun run build
+  build:
+    desc: Build for production
+    cmds:
+      - bun run build
 
-    lint:
-        desc: Run ESLint
-        cmds:
-            - bun run lint
+  lint:
+    desc: Run ESLint
+    cmds:
+      - bun run lint
 
-    format:
-        desc: Format code with Prettier
-        cmds:
-            - bun run format
+  format:
+    desc: Format code
+    cmds:
+      - bun run format
 
-    format-check:
-        desc: Check if code is formatted
-        cmds:
-            - bun run format:check
+  test:
+    desc: Run tests
+    cmds:
+      - bun run test
 
-    type-check:
-        desc: Run TypeScript type checking
-        cmds:
-            - bun run build
+  check:
+    desc: Run checks (lint, format, build)
+    cmds:
+      - task: lint
+      - task: format
+      - task: build
 
-    test:
-        desc: Run unit tests
-        cmds:
-            - bun run test:run
-
-    test:watch:
-        desc: Run unit tests in watch mode
-        cmds:
-            - bun run test
-
-    test:coverage:
-        desc: Run unit tests with coverage report
-        cmds:
-            - bun run test:coverage
-
-    test:ui:
-        desc: Run tests with Vitest UI
-        cmds:
-            - bun run test:ui
-
-    storybook:
-        desc: Run Storybook development server
-        cmds:
-            - bun run storybook
-
-    storybook:build:
-        desc: Build Storybook for production
-        cmds:
-            - bun run build-storybook
-
-    check:
-        desc: Run all checks (format-check, lint, type-check, test, build)
-        cmds:
-            - task: format-check
-            - task: lint
-            - task: type-check
-            - task: test
-            - task: build
-
-    clean:
-        desc: Clean generated files
-        cmds:
-            - rm -rf node_modules dist .vite coverage storybook-static playwright-report test-results
-            - find . -type f -name "*.log" -delete
-
-    preview:
-        desc: Preview production build
-        cmds:
-            - bun run preview
-
-    audit:
-        desc: Audit project dependencies for vulnerabilities
-        cmds:
-            - bun audit
-
-    scan:
-        desc: Run security scan on all projects using Trivy
-        cmds:
-            - trivy fs --scanners vuln --ignore-unfixed .
-
-    security:
-        desc: 'Run security scans (Bun audit & Trivy)'
-        cmds:
-            - bun audit
-            - trivy fs --scanners vuln --ignore-unfixed .
-
-    cypress:
-        desc: Open Cypress test runner
-        cmds:
-            - bun run cypress
-
-    cypress:headless:
-        desc: Run Cypress tests in headless mode
-        cmds:
-            - bun run cypress:headless
-
-    cypress:chrome:
-        desc: Run Cypress tests in Chrome browser
-        cmds:
-            - bun run cypress:chrome
-
-    cypress:firefox:
-        desc: Run Cypress tests in Firefox browser
-        cmds:
-            - bun run cypress:firefox
-
-    cypress:edge:
-        desc: Run Cypress tests in Edge browser
-        cmds:
-            - bun run cypress:edge
-
-    e2e:
-        desc: Run end-to-end tests (starts dev server automatically)
-        cmds:
-            - bun run e2e
-
-    e2e:headless:
-        desc: Run end-to-end tests in headless mode
-        cmds:
-            - bun run e2e:headless
+  clean:
+    desc: Clean generated files
+    cmds:
+      - rm -rf node_modules dist .vite

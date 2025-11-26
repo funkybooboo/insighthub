@@ -192,6 +192,12 @@ def create_app_context(db, socketio) -> AppContext:
     return _app_context_instance
 
 
+def get_app_context() -> AppContext:
+    if not _app_context_instance:
+        raise Exception("call create_app_context first")
+    return _app_context_instance
+
+
 def reset_app_context() -> None:
     """Reset the singleton application context instance.
 

@@ -18,7 +18,7 @@ def create_default_rag_config_repository(repo_type: str = "memory", db=None) -> 
     Raises:
         ValueError: If repo_type is not supported or db is missing for SQL repos
     """
-    if repo_type == "memory":
+    if repo_type == "in_memory":
         return InMemoryDefaultRagConfigRepository()
     elif repo_type == "postgres":
         if db is None:

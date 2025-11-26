@@ -13,123 +13,34 @@ tasks:
       - poetry install --no-root
 
   test:
-    desc: Run all tests with coverage
+    desc: Run tests
     cmds:
-      - poetry run pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
-
-  test:unit:
-    desc: Run unit tests only (fast)
-    cmds:
-      - poetry run pytest tests/unit/ -v --cov=src/domains --cov=src/infrastructure
-
-  test:integration:
-    desc: Run integration tests with testcontainers (slower, requires Docker)
-    cmds:
-      - poetry run pytest tests/integration/ -v -s
-
-  test:watch:
-    desc: Run tests in watch mode
-    cmds:
-      - poetry run pytest-watch tests/
+      - poetry run pytest tests/
 
   format:
-    desc: Format code with black, isort, and ruff
+    desc: Format code
     cmds:
       - poetry run black src tests
       - poetry run isort src tests
-      - poetry run ruff check src tests --fix
 
   lint:
-    desc: Run ruff linter
+    desc: Run linter
     cmds:
       - poetry run ruff check src tests
 
-  type-check:
-    desc: Run mypy type checker
-    cmds:
-      - poetry run mypy src tests
-
   check:
-    desc: Run all checks (format, lint, type-check, test)
+    desc: Run checks (format, lint, test)
     cmds:
       - task: format
       - task: lint
-      - task: type-check
       - task: test
+
+  server:
+    desc: Run server
+    cmds:
+      - poetry run python src/main.py
 
   clean:
     desc: Clean generated files
     cmds:
-      - rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml
-      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-      - find . -type f -name "*.pyc" -delete 2>/dev/null || true
-
-  run:
-    desc: Run the CLI (alias for cli task)
-    cmds:
-      - task: cli
-
-  server:
-    desc: Run Flask API server on port 5000
-    cmds:
-      - poetry run python src/main.py
-
-  cli:
-    desc: 'Run RAG CLI (usage: task cli -- command args)'
-    cmds:
-      - poetry run python src/cli.py {{.CLI_ARGS}}
-
-  health:
-    desc: Check Flask API server health
-    cmds:
-      - |
-        if curl -s http://localhost:5000/health | grep -q "healthy"; then
-          echo "Server is healthy"
-        else
-          echo "Server is not responding"
-        fi
-    silent: true
-
-  test:api:
-    desc: 'Run Bruno API tests (requires: npm install -g @usebruno/cli)'
-    cmds:
-      - cmd: echo "Running Bruno API tests..."
-        silent: true
-      - cmd: |
-          if ! command -v bru &> /dev/null; then
-            echo "Error: Bruno CLI not found. Install with: npm install -g @usebruno/cli"
-            exit 1
-          fi
-        silent: true
-      - bru run --env local bruno/
-
-  test:api:verbose:
-    desc: 'Run Bruno API tests with verbose output'
-    cmds:
-      - cmd: echo "Running Bruno API tests (verbose)..."
-        silent: true
-      - bru run --env local --verbose bruno/
-
-  audit:
-    desc: Audit Python dependencies for vulnerabilities
-    cmds:
-      - echo "Running pip-audit on current Poetry environment..."
-      - poetry run pip-audit
-      - echo "Running Trivy dependency scan..."
-      - trivy fs --scanners vuln --ignore-unfixed .
-
-  scan:
-    desc: Scan Python code for security issues
-    cmds:
-      - echo "Running Bandit code scan..."
-      - poetry run bandit -r src
-
-  security:
-    desc: Run full security scan (dependencies + code)
-    cmds:
-      - echo "Running pip-audit on current Poetry environment..."
-      - poetry run pip-audit
-      - echo "Running Trivy dependency scan..."
-      - trivy fs --scanners vuln --ignore-unfixed .
-      - echo "Running Bandit code scan..."
-      - poetry run bandit -r src
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage

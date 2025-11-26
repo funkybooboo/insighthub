@@ -7,85 +7,37 @@ tasks:
       - task --list
     silent: true
 
-  # Production environment (default)
   up:
-    desc: Start production services
+    desc: Start all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod up -d
+      - docker compose up -d
 
   down:
-    desc: Stop production services
+    desc: Stop all services
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml --profile prod --profile dev down
+      - docker compose down
+
+  dev:
+    desc: Start development environment
+    cmds:
+      - docker compose --profile dev up
+
+  prod:
+    desc: Start production environment
+    cmds:
+      - docker compose --profile prod up --build
 
   logs:
-    desc: Show production service logs
+    desc: Show service logs
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.dev.yml --profile prod --profile dev logs -f
+      - docker compose logs -f
 
   ps:
-    desc: Show production service status
+    desc: Show service status
     cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml --profile prod ps
-
-  # Development environment
-  "up-dev":
-    desc: Start development services
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev up -d
-
-  "down-dev":
-    desc: Stop development services
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev down
-
-  "logs-dev":
-    desc: Show development service logs
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev logs -f
-
-  "ps-dev":
-    desc: Show development service status
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile dev ps
-
-  # Development workflow
-  install:
-    desc: Install all dependencies
-    cmds:
-      - echo "Dependencies are installed via Docker"
-
-  format:
-    desc: Format all code
-    cmds:
-      - echo "Code formatting is handled in individual packages"
-
-  test:
-    desc: Run all tests
-    cmds:
-      - echo "Tests are run in individual packages"
-
-  build:
-    desc: Build production Docker images
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-
-  "build-dev":
-    desc: Build development Docker images
-    cmds:
-      - docker compose -f docker-compose.yml -f docker-compose.dev.yml build
-
-  check:
-    desc: Run all checks (format, lint, type-check, test)
-    cmds:
-      - echo "Checks are run in individual packages"
+      - docker compose ps
 
   clean:
-    desc: Remove all containers and volumes
+    desc: Remove containers and volumes
     cmds:
-      - docker compose -f docker-compose.yml down -v
-
-  "clean:all":
-    desc: Clean everything (containers, volumes, and generated files)
-    cmds:
-      - task clean
+      - docker compose down -v

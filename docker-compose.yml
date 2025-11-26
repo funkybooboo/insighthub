@@ -1,10 +1,6 @@
 services:
   postgres:
-    labels:
-      project: insighthub
     image: pgvector/pgvector:pg16
-    container_name: insighthub-postgres
-    restart: unless-stopped
     ports:
       - '5432:5432'
     environment:
@@ -18,15 +14,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - insighthub
 
   ollama:
-    labels:
-      project: insighthub
     image: ollama/ollama:0.13.0
-    container_name: insighthub-ollama
-    restart: unless-stopped
     ports:
       - '11434:11434'
     volumes:
@@ -36,38 +26,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - insighthub
 
   ollama-setup:
-    labels:
-      project: insighthub
     image: ollama/ollama:0.13.0
-    container_name: insighthub-ollama-setup
-    restart: on-failure:3
     depends_on:
       ollama:
         condition: service_healthy
     environment:
       OLLAMA_HOST: ollama:11434
     entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        echo "Pulling llama3.2:1b model..."
-        ollama pull llama3.2:1b
-        echo "Pulling nomic-embed-text model..."
-        ollama pull nomic-embed-text
-         echo "Models pulled successfully!"
-    networks:
-      - insighthub
+    command: >
+      -c "
+        echo 'Pulling models...' &&
+        ollama pull llama3.2:1b &&
+        ollama pull nomic-embed-text &&
+        echo 'Models ready!'
+      "
 
   qdrant:
-    labels:
-      project: insighthub
     image: qdrant/qdrant:v1.16.1
-    container_name: insighthub-qdrant
-    restart: unless-stopped
     ports:
       - '6333:6333'
       - '6334:6334'
@@ -78,15 +55,9 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-    networks:
-      - insighthub
 
   redis:
-    labels:
-      project: insighthub
     image: redis:7-alpine
-    container_name: insighthub-redis
-    restart: unless-stopped
     ports:
       - '6379:6379'
     volumes:
@@ -96,15 +67,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - insighthub
 
   rabbitmq:
-    labels:
-      project: insighthub
     image: rabbitmq:3-management-alpine
-    container_name: insighthub-rabbitmq
-    restart: unless-stopped
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -118,15 +83,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - insighthub
 
   minio:
-    labels:
-      project: insighthub
     image: minio/minio:latest
-    container_name: insighthub-minio
-    restart: unless-stopped
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -141,8 +100,97 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - insighthub
+
+  server-dev:
+    profiles: [dev]
+    build:
+      context: packages/server
+      dockerfile: Dockerfile
+    ports:
+      - '5000:8000'
+    environment:
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      OLLAMA_BASE_URL: http://ollama:11434
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: insighthub
+      S3_SECRET_KEY: insighthub_dev_secret
+      S3_BUCKET_NAME: documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  client-dev:
+    profiles: [dev]
+    image: insighthub-client:dev
+    build:
+      context: packages/client
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - '3000:5173'
+    environment:
+      VITE_API_URL: http://localhost:5000
+    depends_on:
+      - server-dev
+
+  server-prod:
+    profiles: [prod]
+    image: insighthub-server:latest
+    build:
+      context: packages/server
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    environment:
+      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
+      OLLAMA_BASE_URL: http://ollama:11434
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: insighthub
+      S3_SECRET_KEY: insighthub_dev_secret
+      S3_BUCKET_NAME: documents
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  client-prod:
+    profiles: [prod]
+    image: insighthub-client:prod
+    build:
+      context: packages/client
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - '3000:80'
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - server-prod
 
 
 
