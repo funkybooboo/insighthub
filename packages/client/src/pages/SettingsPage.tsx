@@ -36,7 +36,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
     const [currentConfig, setCurrentConfig] = useState<Partial<CreateRagConfigRequest>>(
         defaultRagConfig || {}
     );
-    const [isEditing, setIsEditing] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     useEffect(() => {
@@ -64,11 +63,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
     };
 
     const handleSave = async () => {
-        if (!isEditing) {
-            setIsEditing(true);
-            return;
-        }
-
         if (error) {
             dispatch(clearUserSettingsError());
         }
@@ -103,10 +97,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
         const resultAction = await dispatch(updateDefaultRagConfig(configToSave));
         if (updateDefaultRagConfig.fulfilled.match(resultAction)) {
             setSaveSuccess(true);
-            setIsEditing(false);
-        } else {
-            // Error handled by slice, just ensure editing mode stays for users to correct
-            setIsEditing(true);
         }
     };
 
