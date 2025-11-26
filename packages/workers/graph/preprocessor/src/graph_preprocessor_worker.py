@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.llm import create_llm_provider
 from shared.messaging.consumer import MessageConsumer
 from shared.messaging.publisher import MessagePublisher
@@ -24,7 +24,7 @@ class GraphPreprocessorWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the graph preprocessor worker."""
         super().__init__(consumer, publisher, config)
@@ -280,7 +280,7 @@ class GraphPreprocessorWorker(Worker):
 def create_graph_preprocessor_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> GraphPreprocessorWorker:
     """Create a graph preprocessor worker."""
     return GraphPreprocessorWorker(consumer, publisher, config)

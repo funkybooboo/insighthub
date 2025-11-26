@@ -4,7 +4,7 @@ Document parser worker - extracts text from various file formats (PDF, DOCX, HTM
 
 ## Responsibility
 
-- Consume document.ingested events
+- Consume document.uploaded events
 - Fetch documents from MinIO storage
 - Extract text content based on file type
 - Store parsed text in PostgreSQL
@@ -14,7 +14,7 @@ Document parser worker - extracts text from various file formats (PDF, DOCX, HTM
 
 | Direction | Event             | Description                         |
 |-----------|-------------------|-------------------------------------|
-| Consumes  | document.ingested | Triggered when document is uploaded |
+| Consumes  | document.uploaded | Triggered when document is uploaded |
 | Produces  | document.parsed   | Emitted after text is extracted     |
 
 ## Environment Variables

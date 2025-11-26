@@ -8,6 +8,7 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+shared-python = {path = "../../../shared/python", develop = true}
 
 
 [tool.poetry.group.dev.dependencies]

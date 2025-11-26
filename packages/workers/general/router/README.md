@@ -39,8 +39,8 @@ Document routing worker that orchestrates RAG pipeline selection and distributio
 | Direction | Event              | Description                          |
 |-----------|--------------------|--------------------------------------|
 | Consumes  | document.chunked   | Triggered after document chunking    |
-| Produces  | document.chunked   | Routes to vector.embedder queue      |
-| Produces  | document.chunked   | Routes to graph.entity-extraction queue |
+| Produces  | document.chunked   | Routes to vector.embedder routing key |
+| Produces  | document.chunked   | Routes to graph.entity_extraction routing key |
 
 ## Environment Variables
 

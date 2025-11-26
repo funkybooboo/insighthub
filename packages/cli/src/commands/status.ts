@@ -73,9 +73,19 @@ statusCommand.action(async () => {
             });
 
             workspaces.workspaces.slice(0, 5).forEach((workspace) => {
+                // Determine RAG type based on config structure
+                let ragType = 'unknown';
+                if (workspace.rag_config) {
+                    if ('embedding_algorithm' in workspace.rag_config) {
+                        ragType = 'vector';
+                    } else if ('entity_extraction_algorithm' in workspace.rag_config) {
+                        ragType = 'graph';
+                    }
+                }
+
                 table.push([
                     workspace.name,
-                    workspace.rag_config?.retriever_type || 'unknown',
+                    ragType,
                     workspace.document_count || 0,
                     workspace.session_count || 0,
                 ]);

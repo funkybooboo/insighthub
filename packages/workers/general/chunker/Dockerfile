@@ -12,14 +12,12 @@ RUN apt-get update && apt-get install -y \
 # Install poetry
 RUN pip install poetry==1.8.1
 
-# Configure poetry
+# Configure poetry - install globally, not in virtualenv
 RUN poetry config virtualenvs.create false
 
-# Copy shared package wheel (latest version)
-COPY packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
-
-# Install shared package
-RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
+# Copy shared package source at the correct relative path
+# Path dependency in pyproject.toml: {path = "../../../shared/python"}
+COPY packages/shared/python/ ../../../shared/python/
 
 # Copy dependency files
 COPY packages/workers/general/chunker/pyproject.toml packages/workers/general/chunker/poetry.lock* ./

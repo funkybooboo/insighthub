@@ -6,7 +6,7 @@ import signal
 import sys
 from typing import Any
 
-from shared.config import Config
+from shared.config import config
 from shared.messaging import create_message_consumer, create_message_publisher
 
 from .document_router_worker import create_document_router_worker
@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def main() -> None:
     """Main entry point for the document router worker."""
-    # Load configuration
-    config = Config()
+    # Configuration is already loaded
 
     # Setup logging
     logging.basicConfig(
@@ -29,18 +28,39 @@ async def main() -> None:
 
     # Create messaging components
     consumer = create_message_consumer(
-        broker_url=config.rabbitmq_url,
-        queue_name="document_router_queue",
-        exchange_name=config.rabbitmq_exchange,
+        consumer_type="rabbitmq",
+        rabbitmq_url=config.rabbitmq_url,
+        exchange=config.rabbitmq_exchange,
+        exchange_type="topic",
+        prefetch_count=2,
     )
 
+    # Parse RabbitMQ URL to extract components
+    from urllib.parse import urlparse
+
+    parsed = urlparse(config.rabbitmq_url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5672
+    username = parsed.username or "guest"
+    password = parsed.password or "guest"
+
     publisher = create_message_publisher(
-        broker_url=config.rabbitmq_url,
-        exchange_name=config.rabbitmq_exchange,
+        publisher_type="rabbitmq",
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        exchange=config.rabbitmq_exchange,
+        exchange_type="topic",
     )
 
     # Create worker
     worker = create_document_router_worker(consumer, publisher, config)
+
+    # Connect and declare queue
+    consumer.connect()
+    consumer.declare_queue("document_router_queue", "document.chunked")
+    worker.set_queue_name("document_router_queue")
 
     # Setup signal handlers
     def signal_handler(signum: int, frame: Any) -> None:

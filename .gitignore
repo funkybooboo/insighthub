@@ -65,5 +65,7 @@ lcov.info
 # Storybook
 storybook-static/
 
+node_modules/
+
 CLAUDE.md
 GEMINI.md

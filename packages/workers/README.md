@@ -49,7 +49,7 @@ Workers that provide shared functionality across pipelines or handle infrastruct
 | Graph    | `connector`              | Graph connectivity utilities and maintenance              | [x] Implemented | `document.embedded`                               | `graph.updated`                                                                        |
 | General  | `router`                 | Route documents to appropriate RAG pipelines             | [x] Implemented | `document.chunked`                                | Routes to vector/graph pipelines                                                       |
 | General  | `enricher`               | Add metadata, summaries, classifications                  | [x] Implemented | `document.indexed`, `graph.updated`               | `document.enriched`                                                                    |
-| General  | `chat`                   | Process chat messages with RAG and LLM streaming          | [x] Implemented | `chat.message_received`                           | `chat.response_chunk`, `chat.response_complete`, `chat.error`, `chat.no_context_found` |
+| General  | `chat`                   | Orchestrate RAG queries and LLM responses                 | [x] Implemented | `chat.message_received`, `chat.vector_query_completed`, `chat.graph_query_completed` | `chat.vector_query`, `chat.graph_query`, `chat.response_chunk`, `chat.response_complete`, `chat.error`, `chat.no_context_found` |
 | General  | `wikipedia`              | Fetch content from Wikipedia and create documents         | [x] Implemented | `wikipedia.fetch_requested`                       | `document.uploaded`, `wikipedia.fetch_completed`                                       |
 | General  | `infrastructure-manager` | Consolidated workspace provisioning + deletion            | [x] Implemented | `workspace.provision_requested`, `workspace.deletion_requested` | `workspace.provision_status`, `workspace.deletion_status` |
 
@@ -60,11 +60,9 @@ Workers that provide shared functionality across pipelines or handle infrastruct
 ### Document Processing Pipeline (Vector + Graph RAG)
 
 ```
-document.uploaded --> Parser --> document.parsed --> Chucker --> document.chunked --> Embedder --> document.embedded --> Indexer --> document.indexed --> Enricher --> document.enriched
-                                                                                       |
-                                                                       Entity Extraction --> document.entities_extracted --> Relationship Extraction --> document.relationships_extracted --> Community Detection --> document.communities_detected --> Graph Construction --> document.graph_constructed
-                                                                                       |
-                                                                       Graph Connector --> graph.updated --------------------------------^
+document.uploaded --> Parser --> document.parsed --> Chucker --> document.chunked --> Router --> vector.embedder --> Vector Processor --> document.indexed --> Enricher --> document.enriched
+                                                                                      |
+                                                                                      +--> graph.entity_extraction --> Graph Preprocessor --> document.communities_detected --> Graph Construction --> document.graph_constructed --> graph.updated --^
 ```
 
 ### Wikipedia Content Pipeline
@@ -76,7 +74,9 @@ wikipedia.fetch_requested --> Wikipedia --> document.uploaded --> [Document Proc
 ### Chat Interaction Pipeline
 
 ```
-chat.message_received --> Chat --> chat.vector_query/chat.graph_query --> Vector Query/Graph Query --> chat.response_chunk/chat.response_complete/chat.error/chat.no_context_found
+chat.message_received --> Chat --> chat.vector_query --> Vector Query --> chat.vector_query_completed --> Chat --> chat.response_chunk/chat.response_complete
+                      |
+                      +--> chat.graph_query --> Graph Query --> chat.graph_query_completed --^
 ```
 
 ### Graph Query Pipeline
@@ -523,21 +523,21 @@ All workers include:
 |                         +- router: Pipeline routing
 |                         +- wikipedia: External content
 |                         +- enricher: Content enhancement
-|                         +- chat: User interaction
+|                         +- chat: RAG orchestration
 |                         +- infrastructure-manager: Workspace lifecycle
 |
 |-- Vector Workers (2) ---+- processor: Embedding + indexing
 |                         +- query: Similarity search
 |
 +-- Graph Workers (4) ----+- preprocessor: Entity/relationship/community
-                          +- construction: Graph building
-                          +- query: Graph traversal
-                          +- connector: Graph utilities
+                           +- construction: Graph building
+                           +- query: Graph traversal
+                           +- connector: Graph utilities
 ```
 
 **Worker Consolidation Results:**
 - **Before**: 17 workers (embedder + indexer + entity-extraction + relationship-extraction + community-detection + provisioner + deletion)
-- **After**: 11 workers (35% reduction)
+- **After**: 13 workers (23% reduction)
 - **Benefits**: Reduced complexity, fewer network hops, better performance, easier maintenance
 
 **Graph RAG Query**:

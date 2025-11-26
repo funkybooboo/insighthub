@@ -42,6 +42,23 @@ class MessagePublisher(ABC):
         """
         pass
 
+    def publish_event(self, routing_key: str, event: PayloadDict | None = None, **kwargs: any) -> None:
+        """
+        Convenience method to publish an event with keyword arguments.
+
+        This allows calling publish_event with either:
+        - publish_event("routing.key", {"event_type": "...", ...})
+        - publish_event(routing_key="routing.key", event_type="...", ...)
+
+        Args:
+            routing_key: Routing key for event
+            event: Event payload dict (optional if using kwargs)
+            **kwargs: Event fields as keyword arguments
+        """
+        if event is None:
+            event = kwargs
+        self.publish(routing_key, event)
+
     def __enter__(self) -> "MessagePublisher":
         """Context manager entry."""
         self.connect()

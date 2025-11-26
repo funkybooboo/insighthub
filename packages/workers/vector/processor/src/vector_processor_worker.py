@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.database.vector import create_vector_store, VectorStore
 from shared.documents.embedding import VectorEmbeddingEncoder, create_embedding_encoder
 from shared.messaging.consumer import MessageConsumer
@@ -23,7 +23,7 @@ class VectorProcessorWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
         chunk_repository: SqlChunkRepository,
         embedding_encoder: VectorEmbeddingEncoder,
         vector_store: VectorStore,
@@ -125,37 +125,33 @@ class VectorProcessorWorker(Worker):
 def create_vector_processor_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> VectorProcessorWorker:
     """Create a vector processor worker with all dependencies."""
     from shared.database.sql.postgres import PostgresConnection
     from shared.repositories.chunk.factory import create_chunk_repository
 
-    # Create database connection
-    db_conn = PostgresConnection(
-        host=config.database_host,
-        port=config.database_port,
-        database=config.database_name,
-        user=config.database_user,
-        password=config.database_password,
-    )
+    # Create database connection using database_url
+    db_conn = PostgresConnection(db_url=config.database_url)
+    db_conn.connect()
 
     # Create chunk repository
     chunk_repository = create_chunk_repository(db_conn)
 
     # Create embedding encoder
     embedding_encoder = create_embedding_encoder(
-        provider=config.embedding_provider or "ollama",
-        model_name=config.embedding_model or "nomic-embed-text",
+        provider="ollama",
+        model_name=config.ollama_embedding_model,
         base_url=config.ollama_base_url,
     )
 
-    # Create vector store
+    # Create vector store - Qdrant URL from host:port
+    qdrant_url = f"http://{config.qdrant_host}:{config.qdrant_port}"
     vector_store = create_vector_store(
         db_type="qdrant",
-        url=config.qdrant_url or "http://localhost:6333",
-        collection_name=config.qdrant_collection or "documents",
-        vector_size=config.embedding_dimension or 768,
+        url=qdrant_url,
+        collection_name=config.qdrant_collection_name,
+        vector_size=768,  # nomic-embed-text embedding dimension
     )
 
     if not vector_store:

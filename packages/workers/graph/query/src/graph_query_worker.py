@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.database.graph import create_graph_store
 from shared.llm import create_llm_provider
 from shared.messaging.consumer import MessageConsumer
@@ -20,7 +20,7 @@ class GraphQueryWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the graph query worker."""
         super().__init__(consumer, publisher, config)
@@ -105,7 +105,7 @@ class GraphQueryWorker(Worker):
 def create_graph_query_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> GraphQueryWorker:
     """Create a graph query worker."""
     return GraphQueryWorker(consumer, publisher, config)

@@ -7,9 +7,7 @@ packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pika = "^1.3.2"
-psycopg2-binary = "^2.9.0"
-qdrant-client = "^1.7.0"
+shared-python = {path = "../../../shared/python", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
@@ -81,11 +79,6 @@ mypy_path = ["src"]
 [[tool.mypy.overrides]]
 module = [
     "testcontainers.*",
-    "shared.*",
-    "pika.*",
-    "psycopg2.*",
-    "qdrant_client.*",
-    "packages.workers.chat.src.main",
 ]
 ignore_missing_imports = true
 

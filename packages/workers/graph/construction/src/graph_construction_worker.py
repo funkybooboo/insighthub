@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.database.graph import create_graph_store
 from shared.messaging.consumer import MessageConsumer
 from shared.messaging.publisher import MessagePublisher
@@ -23,7 +23,7 @@ class GraphConstructionWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the graph construction worker."""
         super().__init__(consumer, publisher, config)
@@ -127,7 +127,7 @@ class GraphConstructionWorker(Worker):
 def create_graph_construction_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> GraphConstructionWorker:
     """Create a graph construction worker."""
     return GraphConstructionWorker(consumer, publisher, config)

@@ -14,11 +14,11 @@ import wikipediaapi
 
 from shared.config import config
 from shared.database.sql.postgres import PostgresConnection
-from shared.logger import get_logger
+from shared.logger import create_logger
 from shared.storage.s3_blob_storage import S3BlobStorage
 from shared.worker.worker import Worker as BaseWorker
 
-logger = get_logger(__name__)
+logger = create_logger(__name__)
 
 # Use unified config
 RABBITMQ_URL = config.rabbitmq_url

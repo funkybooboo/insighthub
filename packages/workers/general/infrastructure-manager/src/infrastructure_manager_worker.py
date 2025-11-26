@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.database.vector import create_vector_store
 from shared.database.graph import create_graph_store
 from shared.messaging.consumer import MessageConsumer
@@ -20,7 +20,7 @@ class InfrastructureManagerWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the infrastructure manager worker."""
         super().__init__(consumer, publisher, config)
@@ -166,7 +166,7 @@ class InfrastructureManagerWorker(Worker):
 def create_infrastructure_manager_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> InfrastructureManagerWorker:
     """Create an infrastructure manager worker."""
     return InfrastructureManagerWorker(consumer, publisher, config)

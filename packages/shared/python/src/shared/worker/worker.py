@@ -1,17 +1,18 @@
 """Base worker class for message queue processing."""
 
 import json
-import signal
+import logging
 from abc import ABC, abstractmethod
+from typing import Any, Dict
 
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 
-from shared.logger import create_logger
-from shared.messaging import RabbitMQConsumer
-from shared.types.common import PayloadDict
+from shared.config import AppConfig
+from shared.messaging.consumer import MessageConsumer
+from shared.messaging.publisher import MessagePublisher
 
-logger = create_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Worker(ABC):
@@ -19,59 +20,46 @@ class Worker(ABC):
     Base class for worker processes.
 
     Provides common functionality for all workers:
-    - RabbitMQ connection management
-    - Signal handling for graceful shutdown
+    - RabbitMQ connection management via consumer/publisher
     - Message parsing and error handling
     - Event publishing
+    - Graceful shutdown
 
-    Subclasses must implement process_event() method.
+    Subclasses must implement process_message() method.
     """
 
     def __init__(
         self,
-        worker_name: str,
-        rabbitmq_url: str,
-        exchange: str,
-        exchange_type: str,
-        consume_routing_key: str,
-        consume_queue: str,
-        prefetch_count: int,
+        consumer: MessageConsumer,
+        publisher: MessagePublisher,
+        config: AppConfig,
     ) -> None:
         """
         Initialize worker.
 
         Args:
-            worker_name: Name of this worker (for logging)
-            rabbitmq_url: RabbitMQ connection URL
-            exchange: Exchange name
-            exchange_type: Type of exchange (topic, direct, fanout)
-            consume_routing_key: Routing key to consume
-            consume_queue: Queue name to consume from
-            prefetch_count: Number of messages to prefetch
+            consumer: Message queue consumer instance
+            publisher: Message queue publisher instance
+            config: Application configuration
         """
-        self._worker_name = worker_name
-        self._consume_routing_key = consume_routing_key
-        self._consume_queue = consume_queue
-        self._consumer = RabbitMQConsumer(
-            rabbitmq_url=rabbitmq_url,
-            exchange=exchange,
-            exchange_type=exchange_type,
-            prefetch_count=prefetch_count,
-        )
+        self.consumer = consumer
+        self.publisher = publisher
+        self.config = config
+        self._queue_name: str | None = None
 
     @abstractmethod
-    def process_event(self, event_data: PayloadDict) -> None:
+    def process_message(self, message: Dict[str, Any]) -> None:
         """
-        Process an event from the queue.
+        Process a message from the queue.
 
         This method must be implemented by subclasses.
 
         Args:
-            event_data: Parsed event data as dictionary
+            message: Parsed message data as dictionary
         """
         pass
 
-    def on_message(
+    def _on_message(
         self,
         ch: BlockingChannel,
         method: Basic.Deliver,
@@ -88,61 +76,55 @@ class Worker(ABC):
             body: Message body (JSON bytes)
         """
         try:
-            event_data: PayloadDict = json.loads(body)
+            message: Dict[str, Any] = json.loads(body)
 
             logger.info(
-                "Processing message",
-                extra={"worker": self._worker_name, "routing_key": method.routing_key},
+                f"Processing message with routing key: {method.routing_key}",
+                extra={"routing_key": method.routing_key},
             )
 
-            self.process_event(event_data)
+            self.process_message(message)
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
-            logger.info(
-                "Successfully processed message",
-                extra={"worker": self._worker_name},
-            )
+            logger.info("Successfully processed message")
 
         except json.JSONDecodeError as e:
-            logger.error(
-                "Failed to decode message JSON",
-                extra={"worker": self._worker_name, "error": str(e)},
-            )
+            logger.error(f"Failed to decode message JSON: {e}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         except Exception as e:
-            logger.error(
-                "Error processing message",
-                extra={"worker": self._worker_name, "error": str(e)},
-            )
+            logger.error(f"Error processing message: {e}", exc_info=True)
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    def publish_event(self, routing_key: str, event: PayloadDict) -> None:
-        """
-        Publish an event to RabbitMQ.
+    async def start(self) -> None:
+        """Start the worker and begin consuming messages."""
+        logger.info("Starting worker")
 
-        Args:
-            routing_key: Routing key for the event
-            event: Event payload as dictionary
-        """
-        self._consumer.publish_event(routing_key, event)
-        logger.info(
-            "Published event",
-            extra={"worker": self._worker_name, "routing_key": routing_key},
-        )
+        if self._queue_name is None:
+            raise RuntimeError(
+                "Queue name not set. Call consumer.declare_queue() and worker.set_queue_name() before worker.start()"
+            )
 
-    def start(self) -> None:
-        """Start the worker."""
-        logger.info("Starting worker", extra={"worker": self._worker_name})
-
-        signal.signal(signal.SIGINT, self._consumer.signal_handler)
-        signal.signal(signal.SIGTERM, self._consumer.signal_handler)
-
-        self._consumer.connect()
-        self._consumer.declare_queue(self._consume_queue, self._consume_routing_key)
-        self._consumer.consume(self._consume_queue, self.on_message)
+        try:
+            # Start consuming messages
+            self.consumer.consume(self._queue_name, self._on_message)
+        except KeyboardInterrupt:
+            logger.info("Received keyboard interrupt")
+            self.stop()
+        except Exception as e:
+            logger.error(f"Error in worker: {e}", exc_info=True)
+            raise
 
     def stop(self) -> None:
-        """Stop the worker."""
-        logger.info("Stopping worker", extra={"worker": self._worker_name})
-        self._consumer.stop()
+        """Stop the worker gracefully."""
+        logger.info("Stopping worker")
+        self.consumer.stop()
+
+    def set_queue_name(self, queue_name: str) -> None:
+        """
+        Set the queue name for consumption.
+
+        Args:
+            queue_name: Name of the queue to consume from
+        """
+        self._queue_name = queue_name

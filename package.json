@@ -1,0 +1,17 @@
+{
+  "name": "insighthub",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/client",
+    "packages/cli",
+    "packages/shared/typescript"
+  ],
+  "scripts": {
+    "install:all": "bun install",
+    "build:shared": "cd packages/shared/typescript && bun run build",
+    "build:client": "cd packages/client && bun run build",
+    "build:cli": "cd packages/cli && bun run build:ts",
+    "build": "bun run build:shared && bun run build:client && bun run build:cli"
+  }
+}

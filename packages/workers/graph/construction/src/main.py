@@ -6,7 +6,7 @@ import signal
 import sys
 from typing import Any
 
-from shared.config import Config
+from shared.config import config
 from shared.messaging import create_message_consumer, create_message_publisher
 
 from .graph_construction_worker import create_graph_construction_worker
@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def main() -> None:
     """Main entry point for the graph construction worker."""
-    # Load configuration
-    config = Config()
+    # Configuration is already loaded
 
     # Setup logging
     logging.basicConfig(
@@ -34,9 +33,23 @@ async def main() -> None:
         exchange_name=config.rabbitmq_exchange,
     )
 
+    # Parse RabbitMQ URL to extract components
+    from urllib.parse import urlparse
+
+    parsed = urlparse(config.rabbitmq_url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5672
+    username = parsed.username or "guest"
+    password = parsed.password or "guest"
+
     publisher = create_message_publisher(
-        broker_url=config.rabbitmq_url,
-        exchange_name=config.rabbitmq_exchange,
+        publisher_type="rabbitmq",
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        exchange=config.rabbitmq_exchange,
+        exchange_type="topic",
     )
 
     # Create worker

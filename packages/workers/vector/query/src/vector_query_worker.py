@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.database.vector import create_vector_store
 from shared.llm import create_llm_provider
 from shared.messaging.consumer import MessageConsumer
@@ -20,12 +20,26 @@ class VectorQueryWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the vector query worker."""
         super().__init__(consumer, publisher, config)
-        self.vector_store = create_vector_store("qdrant")
-        self.llm_provider = create_llm_provider("ollama")
+
+        # Create vector store with config
+        qdrant_url = f"http://{config.qdrant_host}:{config.qdrant_port}"
+        self.vector_store = create_vector_store(
+            db_type="qdrant",
+            url=qdrant_url,
+            collection_name=config.qdrant_collection_name,
+            vector_size=768,  # nomic-embed-text embedding dimension
+        )
+
+        # Create LLM provider for embeddings
+        self.llm_provider = create_llm_provider(
+            provider="ollama",
+            base_url=config.ollama_base_url,
+            model=config.ollama_embedding_model,
+        )
 
     def process_message(self, message: Dict[str, Any]) -> None:
         """Process vector query message."""
@@ -111,7 +125,7 @@ class VectorQueryWorker(Worker):
 def create_vector_query_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> VectorQueryWorker:
     """Create a vector query worker."""
     return VectorQueryWorker(consumer, publisher, config)

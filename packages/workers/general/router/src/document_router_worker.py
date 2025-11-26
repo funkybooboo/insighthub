@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, List
 
-from shared.config import Config
+from shared.config import AppConfig
 from shared.messaging.consumer import MessageConsumer
 from shared.messaging.publisher import MessagePublisher
 from shared.worker import Worker
@@ -18,7 +18,7 @@ class DocumentRouterWorker(Worker):
         self,
         consumer: MessageConsumer,
         publisher: MessagePublisher,
-        config: Config,
+        config: AppConfig,
     ):
         """Initialize the document router worker."""
         super().__init__(consumer, publisher, config)
@@ -73,7 +73,7 @@ class DocumentRouterWorker(Worker):
 def create_document_router_worker(
     consumer: MessageConsumer,
     publisher: MessagePublisher,
-    config: Config,
+    config: AppConfig,
 ) -> DocumentRouterWorker:
     """Create a document router worker."""
     return DocumentRouterWorker(consumer, publisher, config)

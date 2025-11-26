@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "insighthub-shared"
+name = "shared-python"
 version = "0.1.1"
 description = "Shared types, interfaces, and utilities for InsightHub server and workers"
 authors = ["Nate Stott"]

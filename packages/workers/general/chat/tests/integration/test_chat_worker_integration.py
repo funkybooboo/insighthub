@@ -3,7 +3,7 @@
 import psycopg2
 import psycopg2.extras
 
-from src.main import ChatOrchestratorWorker
+# Note: Integration tests need to be updated for the new async architecture
 
 
 class TestChatWorkerDatabaseIntegration:

@@ -35,14 +35,14 @@ WORKDIR /app
 # ============================================================================
 FROM base AS dependencies
 
-# Copy and install shared package wheel
-COPY --chown=app:app packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
-RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
+# Copy shared package source (needed for path dependency resolution)
+COPY --chown=app:app packages/shared/python/ ../shared/python/
 
 # Copy server dependency files
 COPY --chown=app:app packages/server/pyproject.toml packages/server/poetry.lock ./
 
 # Install server dependencies (without dev dependencies)
+# Poetry will resolve the path dependency ../shared/python
 RUN poetry install --no-root --only main
 
 # ============================================================================
@@ -50,14 +50,14 @@ RUN poetry install --no-root --only main
 # ============================================================================
 FROM base AS dependencies-dev
 
-# Copy and install shared package wheel
-COPY --chown=app:app packages/shared/python/dist/insighthub_shared-0.1.1-py3-none-any.whl /tmp/
-RUN pip install /tmp/insighthub_shared-0.1.1-py3-none-any.whl
+# Copy shared package source (needed for path dependency resolution)
+COPY --chown=app:app packages/shared/python/ ../shared/python/
 
 # Copy server dependency files
 COPY --chown=app:app packages/server/pyproject.toml packages/server/poetry.lock ./
 
 # Install all dependencies (including dev)
+# Poetry will resolve the path dependency ../shared/python
 RUN poetry install --no-root
 
 # ============================================================================

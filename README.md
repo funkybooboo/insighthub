@@ -110,13 +110,16 @@ task build-dev && task up-dev
 # Start infrastructure services only
 task up-infra
 
+# Install Python workspace dependencies (one-time setup)
+./install-python-workspace.sh
+
 # Terminal 1: Start backend server
 cd packages/server
-poetry install && task server
+poetry run python -m src.api
 
 # Terminal 2: Start frontend
 cd packages/client
-bun install && task dev
+bun install && bun run dev
 ```
 
 ## Application Workflow
@@ -223,18 +226,45 @@ insighthub/
 |   |   --- pyproject.toml
 |   --- cli/                    # Command-line interface
 |   --- workers/                # Background processing workers
-|   |   --- parser/             # Document parsing worker
-|   |   --- chunker/            # Text chunking worker
-|   |   --- embedder/           # Embedding generation worker
-|   |   --- indexer/            # Vector indexing worker
-|   --- shared/                 # Shared utilities and types
+|   |   --- general/            # General purpose workers
+|   |   |   --- chat/           # Chat orchestration worker
+|   |   |   --- chunker/        # Text chunking worker
+|   |   |   --- enricher/       # Document enrichment worker
+|   |   |   --- parser/         # Document parsing worker
+|   |   |   --- router/         # Document routing worker
+|   |   |   --- wikipedia/      # Wikipedia fetch worker
+|   |   |   --- infrastructure-manager/  # Workspace provisioning
+|   |   --- vector/             # Vector RAG workers
+|   |   |   --- processor/      # Vector embedding and indexing
+|   |   |   --- query/          # Vector similarity search
+|   |   --- graph/              # Graph RAG workers (planned)
+|   |   |   --- connector/      # Graph node connection
+|   |   |   --- construction/   # Graph building
+|   |   |   --- preprocessor/   # Entity extraction
+|   |   |   --- query/          # Graph traversal queries
+|   --- shared/                 # Shared libraries
+|   |   --- python/             # Shared Python package (shared-python)
+|   |   --- typescript/         # Shared TypeScript package
 --- docs/                       # Documentation
 --- elk/                        # ELK stack configuration
 --- .github/workflows/          # CI/CD workflows
 --- docker-compose.yml          # Service orchestration
 --- Taskfile.yml                # Task automation
+--- install-python-workspace.sh # Python workspace installer
 --- README.md
 ```
+
+### Workspace Architecture
+
+InsightHub uses a **monorepo workspace structure** for dependency management:
+
+- **TypeScript**: Bun workspaces with shared-typescript for client and CLI
+- **Python**: Poetry path dependencies with shared-python for server and workers
+- **Benefits**: No duplicate dependencies, editable installs, instant code changes
+
+All packages (server + 14 workers) share common dependencies from `packages/shared/python`. Changes to shared code are immediately available without rebuilds.
+
+See [Python Workspace Guide](docs/setup/python-workspace.md) for setup details.
 
 ## Testing
 
@@ -337,12 +367,31 @@ docker compose logs filebeat logstash kibana
 
 ## Documentation
 
-- [Architecture Guide](docs/architecture.md) - Detailed system architecture
-- [Client User Flows](docs/client-user-flows.md) - Detailed user interaction flows
-- [Testing Guide](docs/testing.md) - Comprehensive testing documentation
-- [Docker Setup](docs/docker.md) - Container deployment guide
+### Setup & Installation
+- [Docker Setup](docs/setup/docker.md) - Container deployment guide
+- [Python Workspace](docs/setup/python-workspace.md) - Python monorepo workspace setup
+- [Docker Workspace Update](docs/setup/docker-workspace-update.md) - Docker workspace changes
+- [Taskfile Setup](docs/setup/taskfile-setup.md) - Task automation configuration
+
+### Architecture
+- [System Architecture](docs/architecture/architecture.md) - Detailed system architecture
+- [Project Structure](docs/architecture/project-structure.md) - Codebase organization
+- [RAG System](docs/architecture/rag-system-documentation.md) - RAG implementation details
+- [Streaming](docs/architecture/streaming.md) - Real-time streaming architecture
+
+### Development
+- [Contributing Guide](docs/development/contributing.md) - Development guidelines
+- [Testing Guide](docs/development/testing.md) - Comprehensive testing documentation
+- [GitHub Actions](docs/development/github-actions.md) - CI/CD workflows
+
+### User Guides
+- [Client User Flows](docs/user-guides/client-user-flows.md) - Detailed user interaction flows
+
+### Additional Resources
 - [API Documentation](packages/server/docs/api.md) - REST API reference
-- [Contributing Guide](docs/contributing.md) - Development guidelines
+- [CHANGELOG](CHANGELOG.md) - Version history and changes
+- [CLAUDE.md](CLAUDE.md) - Claude AI assistant instructions
+- [GEMINI.md](GEMINI.md) - Gemini AI assistant instructions
 
 ## License
 
