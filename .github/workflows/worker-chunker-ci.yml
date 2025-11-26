@@ -1,32 +1,32 @@
-name: Worker Enricher CI
+name: Worker Chucker CI
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'packages/workers/enricher/**'
+            - 'packages/workers/general/chunker/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-enricher-ci.yml'
+            - '.github/workflows/worker-chunker-ci.yml'
     pull_request:
         branches:
             - main
         paths:
-            - 'packages/workers/enricher/**'
+            - 'packages/workers/general/chunker/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-enricher-ci.yml'
+            - '.github/workflows/worker-chucker-ci.yml'
 
 jobs:
-    worker-enricher-ci:
+    worker-chucker-ci:
         runs-on: ubuntu-latest
 
         defaults:
             run:
-                working-directory: packages/workers/enricher
+                working-directory: packages/workers/general/chunker
 
         steps:
             - name: Checkout code
@@ -49,8 +49,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: packages/workers/enricher/.venv
-                  key: venv-${{ runner.os }}-enricher-${{ hashFiles('packages/workers/enricher/poetry.lock') }}
+                  path: packages/workers/general/chunker/.venv
+                  key: venv-${{ runner.os }}-chunker-${{ hashFiles('packages/workers/general/chunker/poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
                   # Install shared package first
                   cd packages/shared/python && poetry install --no-root
                   # Install worker dependencies
-                  cd ../../../packages/workers/enricher && task install
+                  cd ../../../packages/workers/general/chunker && task install
 
             - name: Format code (with auto-fix)
               run: task format

@@ -1,32 +1,32 @@
-name: Worker Wikipedia CI
+name: Worker Vector Query CI
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'packages/workers/wikipedia/**'
+            - 'packages/workers/vector/query/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-wikipedia-ci.yml'
+            - '.github/workflows/worker-vector-query-ci.yml'
     pull_request:
         branches:
             - main
         paths:
-            - 'packages/workers/wikipedia/**'
+            - 'packages/workers/vector/query/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-wikipedia-ci.yml'
+            - '.github/workflows/worker-vector-query-ci.yml'
 
 jobs:
-    worker-wikipedia-ci:
+    worker-vector-query-ci:
         runs-on: ubuntu-latest
 
         defaults:
             run:
-                working-directory: packages/workers/wikipedia
+                working-directory: packages/workers/vector/query
 
         steps:
             - name: Checkout code
@@ -49,8 +49,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: packages/workers/wikipedia/.venv
-                  key: venv-${{ runner.os }}-wikipedia-${{ hashFiles('packages/workers/wikipedia/poetry.lock') }}
+                  path: packages/workers/vector/query/.venv
+                  key: venv-${{ runner.os }}-vector-query-${{ hashFiles('packages/workers/vector/query/poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
                   # Install shared package first
                   cd packages/shared/python && poetry install --no-root
                   # Install worker dependencies
-                  cd ../../../packages/workers/wikipedia && task install
+                  cd ../../../packages/workers/vector/query && task install
 
             - name: Format code (with auto-fix)
               run: task format

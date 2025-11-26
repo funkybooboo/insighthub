@@ -1,32 +1,32 @@
-name: Worker Deletion CI
+name: Worker Vector Processor CI
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'packages/workers/deletion/**'
+            - 'packages/workers/vector/processor/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-deletion-ci.yml'
+            - '.github/workflows/worker-vector-processor-ci.yml'
     pull_request:
         branches:
             - main
         paths:
-            - 'packages/workers/deletion/**'
+            - 'packages/workers/vector/processor/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-deletion-ci.yml'
+            - '.github/workflows/worker-vector-processor-ci.yml'
 
 jobs:
-    worker-deletion-ci:
+    worker-vector-processor-ci:
         runs-on: ubuntu-latest
 
         defaults:
             run:
-                working-directory: packages/workers/deletion
+                working-directory: packages/workers/vector/processor
 
         steps:
             - name: Checkout code
@@ -49,8 +49,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: packages/workers/deletion/.venv
-                  key: venv-${{ runner.os }}-deletion-${{ hashFiles('packages/workers/deletion/poetry.lock') }}
+                  path: packages/workers/vector/processor/.venv
+                  key: venv-${{ runner.os }}-vector-processor-${{ hashFiles('packages/workers/vector/processor/poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
                   # Install shared package first
                   cd packages/shared/python && poetry install --no-root
                   # Install worker dependencies
-                  cd ../../../packages/workers/deletion && task install
+                  cd ../../../packages/workers/vector/processor && task install
 
             - name: Format code (with auto-fix)
               run: task format

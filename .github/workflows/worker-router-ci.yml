@@ -1,32 +1,32 @@
-name: Worker Indexer CI
+name: Worker Router CI
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'packages/workers/indexer/**'
+            - 'packages/workers/general/router/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-indexer-ci.yml'
+            - '.github/workflows/worker-router-ci.yml'
     pull_request:
         branches:
             - main
         paths:
-            - 'packages/workers/indexer/**'
+            - 'packages/workers/general/router/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-indexer-ci.yml'
+            - '.github/workflows/worker-router-ci.yml'
 
 jobs:
-    worker-indexer-ci:
+    worker-router-ci:
         runs-on: ubuntu-latest
 
         defaults:
             run:
-                working-directory: packages/workers/indexer
+                working-directory: packages/workers/general/router
 
         steps:
             - name: Checkout code
@@ -49,8 +49,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: packages/workers/indexer/.venv
-                  key: venv-${{ runner.os }}-indexer-${{ hashFiles('packages/workers/indexer/poetry.lock') }}
+                  path: packages/workers/general/router/.venv
+                  key: venv-${{ runner.os }}-router-${{ hashFiles('packages/workers/general/router/poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
                   # Install shared package first
                   cd packages/shared/python && poetry install --no-root
                   # Install worker dependencies
-                  cd ../../../packages/workers/indexer && task install
+                  cd ../../../packages/workers/general/router && task install
 
             - name: Format code (with auto-fix)
               run: task format

@@ -1,32 +1,32 @@
-name: Worker Provisioner CI
+name: Worker Graph Construction CI
 
 on:
     push:
         branches:
             - main
         paths:
-            - 'packages/workers/provisioner/**'
+            - 'packages/workers/graph/construction/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-provisioner-ci.yml'
+            - '.github/workflows/worker-graph-construction-ci.yml'
     pull_request:
         branches:
             - main
         paths:
-            - 'packages/workers/provisioner/**'
+            - 'packages/workers/graph/construction/**'
             - 'packages/shared/**'
             - 'infra/**'
             - 'Taskfile.yml'
-            - '.github/workflows/worker-provisioner-ci.yml'
+            - '.github/workflows/worker-graph-construction-ci.yml'
 
 jobs:
-    worker-provisioner-ci:
+    worker-graph-construction-ci:
         runs-on: ubuntu-latest
 
         defaults:
             run:
-                working-directory: packages/workers/provisioner
+                working-directory: packages/workers/graph/construction
 
         steps:
             - name: Checkout code
@@ -49,8 +49,8 @@ jobs:
               id: cached-poetry-dependencies
               uses: actions/cache@v4
               with:
-                  path: packages/workers/provisioner/.venv
-                  key: venv-${{ runner.os }}-provisioner-${{ hashFiles('packages/workers/provisioner/poetry.lock') }}
+                  path: packages/workers/graph/construction/.venv
+                  key: venv-${{ runner.os }}-graph-construction-${{ hashFiles('packages/workers/graph/construction/poetry.lock') }}
 
             - name: Install dependencies
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
                   # Install shared package first
                   cd packages/shared/python && poetry install --no-root
                   # Install worker dependencies
-                  cd ../../../packages/workers/provisioner && task install
+                  cd ../../../packages/workers/graph/construction && task install
 
             - name: Format code (with auto-fix)
               run: task format
