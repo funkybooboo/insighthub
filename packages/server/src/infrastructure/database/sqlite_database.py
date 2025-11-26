@@ -3,8 +3,10 @@
 import sqlite3
 from typing import Any, Optional
 
+from src.infrastructure.database.sql_database import SqlDatabase
 
-class SqliteDatabase:
+
+class SqliteDatabase(SqlDatabase):
     """SQLite database implementation for development and testing."""
 
     def __init__(self, database_url: str):

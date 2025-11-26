@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'; // Added useCallback
 import { useDispatch, useSelector } from 'react-redux';
 
+import { logger } from '@/lib/logger';
 import type { RootState } from '@/store';
 import {
     createSession,
@@ -71,9 +72,11 @@ const ChatBot = () => {
 
                     // Set as active
                     dispatch(setActiveSession(newSessionId));
-                } catch (error) {
-                    console.error('Error creating initial chats session:', error);
-                    // Fallback to local session if backend fails
+                 } catch (error) {
+                     logger.error('Error creating initial chat session', error as Error, {
+                         workspaceId: activeWorkspaceId,
+                     });
+                     // Fallback to local session if backend fails
                     const newSessionId = `session-${Date.now()}`;
                     dispatch(createSession({ id: newSessionId }));
                 }
@@ -93,9 +96,11 @@ const ChatBot = () => {
             try {
                 // We don't need to await this to block chats, just ensure it's triggered
                 apiService.listDocuments(activeWorkspaceId);
-            } catch (error) {
-                console.error('Error loading documents on mount:', error);
-            }
+             } catch (error) {
+                 logger.error('Error loading documents on mount', error as Error, {
+                     workspaceId: activeWorkspaceId,
+                 });
+             }
         };
 
         loadDocuments();
@@ -103,10 +108,13 @@ const ChatBot = () => {
 
     const onSubmit = useCallback(
         async ({ prompt }: ChatFormData, ignoreRag?: boolean) => {
-            if (!activeSessionId || !activeWorkspaceId) {
-                console.error('No active session or workspace');
-                return;
-            }
+             if (!activeSessionId || !activeWorkspaceId) {
+                 logger.error('Cannot send message: No active session or workspace', undefined, {
+                     activeSessionId,
+                     activeWorkspaceId,
+                 });
+                 return;
+             }
 
             try {
                 setError('');
@@ -151,8 +159,11 @@ const ChatBot = () => {
                     undefined,
                     ignoreRag
                 );
-            } catch (error: unknown) {
-                console.error('Error sending message:', error);
+             } catch (error: unknown) {
+                 logger.error('Error sending message', error as Error, {
+                     sessionId: activeSessionId,
+                     workspaceId: activeWorkspaceId,
+                 });
 
                 // Handle different error types
                 let errorMessage = 'Something went wrong, try again!';
@@ -201,9 +212,9 @@ const ChatBot = () => {
         socketService.connect();
 
         // Set up event listeners
-        socketService.onConnected(() => {
-            console.log('Connected to chats server');
-        });
+         socketService.onConnected(() => {
+             logger.info('Connected to chat server');
+         });
 
         socketService.onChatResponseChunk((data) => {
             if (!activeSessionId) return;
@@ -276,10 +287,12 @@ const ChatBot = () => {
             notificationAudio.play();
         });
 
-        socketService.onChatCancelled(() => {
-            if (!activeSessionId) return;
+         socketService.onChatCancelled(() => {
+             if (!activeSessionId) return;
 
-            console.log('Chat stream cancelled by users');
+             logger.info('Chat stream cancelled by user', {
+                 sessionId: activeSessionId,
+             });
 
             // Reset current message buffer
             currentBotMessage.current = '';
@@ -290,8 +303,10 @@ const ChatBot = () => {
             dispatch(setTyping(false));
         });
 
-        socketService.onError((data) => {
-            console.error('Socket error:', data.error);
+         socketService.onError((data) => {
+             logger.error('Socket error occurred', new Error(data.error), {
+                 sessionId: activeSessionId,
+             });
             const errorMessage = data.error || 'Connection error occurred';
 
             setError(errorMessage);
@@ -317,14 +332,17 @@ const ChatBot = () => {
             currentBotMessageId.current = null;
         });
 
-        socketService.onDisconnected(() => {
-            console.log('Disconnected from chats server');
-        });
+         socketService.onDisconnected(() => {
+             logger.info('Disconnected from chat server');
+         });
 
-        // Listen for no context found event to show RAG enhancement prompt
-        socketService.on('chats.no_context_found', (data: { session_id: number; query: string }) => {
-            if (!activeSessionId) return;
-            console.log('No context found for query:', data.query);
+         // Listen for no context found event to show RAG enhancement prompt
+         socketService.on('chats.no_context_found', (data: { session_id: number; query: string }) => {
+             if (!activeSessionId) return;
+             logger.info('No context found for query', {
+                 sessionId: activeSessionId,
+                 query: data.query,
+             });
             setShowRAGPrompt(true);
         });
 
@@ -344,9 +362,12 @@ const ChatBot = () => {
                     activeSession.sessionId,
                     currentBotMessageId.current || undefined
                 );
-            } else {
-                console.warn('Cannot cancel: missing workspace or session ID');
-            }
+             } else {
+                 logger.warn('Cannot cancel message: missing workspace or session ID', {
+                     workspaceId: activeWorkspaceId,
+                     sessionId: activeSession?.sessionId,
+                 });
+             }
 
             // Also cancel via WebSocket for immediate response
             socketService.cancelMessage();
@@ -355,11 +376,14 @@ const ChatBot = () => {
             setIsBotTyping(false);
             dispatch(setTyping(false));
             currentBotMessage.current = '';
-            currentBotMessageId.current = null;
+             currentBotMessageId.current = null;
 
-            console.log('Message cancelled');
-        } catch (error: unknown) {
-            console.error('Error cancelling message:', error);
+             logger.info('Message cancelled successfully');
+         } catch (error: unknown) {
+             logger.error('Error cancelling message', error as Error, {
+                 sessionId: activeSessionId,
+                 workspaceId: activeWorkspaceId,
+             });
             const errorMessage = 'Failed to cancel message. It may still be processing.';
             setError(errorMessage);
 
@@ -419,8 +443,12 @@ const ChatBot = () => {
                 })
             );
             // Actual re-submission will be handled by a useEffect watching isWorkspaceProcessing
-        } catch (err: unknown) {
-            console.error('Error fetching Wikipedia:', err);
+         } catch (err: unknown) {
+             logger.error('Error fetching Wikipedia article', err as Error, {
+                 sessionId: activeSessionId,
+                 workspaceId: activeWorkspaceId,
+                 query,
+             });
             const error = err as { response?: { data?: { detail?: string }; status?: number } };
             let message = 'Failed to fetch Wikipedia article.';
 
@@ -477,9 +505,12 @@ const ChatBot = () => {
 
     // Effect to retry query after RAG enhancement completes
     useEffect(() => {
-        // Only retry if there's a last query, workspace is no longer processing, and bot isn't typing
-        if (activeWorkspaceId && lastUserQuery.current && !isWorkspaceProcessing && !isBotTyping) {
-            console.log('RAG enhancement complete, retrying last query:', lastUserQuery.current);
+         // Only retry if there's a last query, workspace is no longer processing, and bot isn't typing
+         if (activeWorkspaceId && lastUserQuery.current && !isWorkspaceProcessing && !isBotTyping) {
+             logger.info('RAG enhancement complete, retrying last query', {
+                 workspaceId: activeWorkspaceId,
+                 query: lastUserQuery.current,
+             });
             const queryToRetry = lastUserQuery.current;
             lastUserQuery.current = ''; // Clear immediately to prevent re-triggering
             onSubmit({ prompt: queryToRetry });

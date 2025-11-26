@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { GraphRagConfig } from '../../types/workspace';
+import { logger } from '../../lib/logger';
 
 interface GraphRagConfigFormProps {
     initialConfig?: Partial<GraphRagConfig>;
@@ -45,8 +46,8 @@ const GraphRagConfigForm: React.FC<GraphRagConfigFormProps> = ({
                 const data = await apiService.getGraphAlgorithms();
                 setAlgorithms(data);
             } catch (error) {
-                console.error('Failed to fetch graph algorithms:', error);
-                // Fallback to defaults if API fails
+                 logger.error('Failed to fetch graph algorithms', error as Error);
+                 // Fallback to defaults if API fails
                 setAlgorithms({
                     entity_extraction_algorithms: [
                         { value: 'ollama', label: 'Ollama LLM' },

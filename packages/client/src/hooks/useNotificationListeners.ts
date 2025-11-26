@@ -14,6 +14,10 @@ export const useNotificationListeners = () => {
     const { addNotification } = useNotifications();
 
     useEffect(() => {
+        // Connect socket if not already connected
+        if (!socketService.isConnected()) {
+            socketService.connect();
+        }
         // Document status updates
         const handleDocumentStatus = (data: DocumentStatusData) => {
             const { status, message, error } = data;

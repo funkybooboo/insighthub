@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import apiService from '@/services/api';
 import { LoadingSpinner } from '@/components/shared';
 import { AxiosError } from 'axios';
+import { logger } from '@/lib/logger';
 
 interface FileUploadProps {
     workspaceId: number;
@@ -42,7 +43,11 @@ const FileUpload = ({ workspaceId, onUploadSuccess, disabled = false }: FileUplo
             // Notify parent component that an upload was initiated (status will come via websockets)
             onUploadSuccess?.();
         } catch (err: unknown) {
-            console.error('Upload initiation error:', err);
+             logger.error('Upload initiation error', err as Error, {
+                 workspaceId,
+                 fileName: file.name,
+                 fileSize: file.size,
+             });
             const errorMessage =
                 err instanceof AxiosError && err.response?.data?.detail
                     ? err.response.data.detail

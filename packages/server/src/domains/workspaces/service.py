@@ -1,7 +1,10 @@
 """Workspace service for business logic."""
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
 from src.infrastructure.repositories.workspaces import WorkspaceRepository
+
+logger = create_logger(__name__)
 
 
 class WorkspaceService:
@@ -20,17 +23,23 @@ class WorkspaceService:
         rag_config: dict[str, str | int | float | bool] | None = None,
     ) -> Workspace:
         """Create a new workspace with optional RAG configuration."""
+        logger.info(f"Creating workspace: name='{name}', user_id={user_id}, rag_type='{rag_type}'")
+
         # Validate inputs
         if not name or not name.strip():
+            logger.error(f"Workspace creation failed: empty name (user_id={user_id})")
             raise ValueError("Workspace name cannot be empty")
 
         if len(name.strip()) > 255:
+            logger.error(f"Workspace creation failed: name too long '{name[:50]}...' (user_id={user_id})")
             raise ValueError("Workspace name too long (max 255 characters)")
 
         if description and len(description) > 1000:
+            logger.error(f"Workspace creation failed: description too long (user_id={user_id})")
             raise ValueError("Workspace description too long (max 1000 characters)")
 
         if rag_type not in ["vector", "graph"]:
+            logger.error(f"Workspace creation failed: invalid rag_type '{rag_type}' (user_id={user_id})")
             raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
         # Validate RAG config if provided
@@ -42,11 +51,15 @@ class WorkspaceService:
             user_id, name.strip(), description, rag_type, rag_config, status='provisioning'
         )
 
+        logger.info(f"Workspace created in database: workspace_id={workspace.id}, status='provisioning'")
+
         # Launch CreateWorkspaceWorker in background
         from src.workers import get_create_workspace_worker
 
         provision_worker = get_create_workspace_worker()
         provision_worker.start_provisioning(workspace, user_id)
+
+        logger.info(f"Background provisioning started for workspace {workspace.id}")
 
         # Returns immediately with status='provisioning'
         # Worker will update status to 'ready' when complete
@@ -93,19 +106,25 @@ class WorkspaceService:
         Returns:
             bool: True if deletion was started, False if workspace not found
         """
+        logger.info(f"Starting workspace deletion: workspace_id={workspace_id}, user_id={user_id}")
+
         # Get workspace
         workspace = self.repository.get_by_id(workspace_id)
         if not workspace:
+            logger.warning(f"Workspace deletion failed: workspace not found (workspace_id={workspace_id}, user_id={user_id})")
             return False
 
         # Update status to 'deleting'
         self.repository.update(workspace_id, status='deleting')
+        logger.info(f"Workspace status updated to 'deleting': workspace_id={workspace_id}")
 
         # Launch RemoveWorkspaceWorker in background
         from src.workers import get_remove_workspace_worker
 
         cleanup_worker = get_remove_workspace_worker()
         cleanup_worker.start_cleanup(workspace, user_id)
+
+        logger.info(f"Background cleanup started for workspace {workspace_id}")
 
         # Returns immediately, deletion happens in background
         return True

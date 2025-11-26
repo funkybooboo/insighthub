@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 interface ErrorFallbackProps {
     error?: Error;
@@ -75,7 +76,9 @@ const ErrorBoundary: React.FC<ErrorBoundaryProps> = ({
     }, []);
 
     const handleError = useCallback((error: Error, errorInfo: React.ErrorInfo) => {
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
+        logger.error('ErrorBoundary caught an error', error, {
+            componentStack: errorInfo.componentStack,
+        });
         setError(error);
     }, []);
 

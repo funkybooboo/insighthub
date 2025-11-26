@@ -5,6 +5,7 @@ import {
     updateWikipediaFetchStatus,
     clearWikipediaFetchStatus,
 } from '@/store/slices/statusSlice'; // Import necessary selectors and actions
+import { logger } from '@/lib/logger';
 import DocumentList, { type DocumentListRef } from './DocumentList';
 import FileUpload from './FileUpload';
 import { LoadingSpinner } from '../shared';
@@ -42,7 +43,12 @@ const DocumentManager = ({
     useEffect(() => {
         // Set up socket listeners for Wikipedia fetch status
         socketService.onWikipediaFetchStatus((data) => {
-            console.log('Wikipedia fetch status update:', data);
+            logger.debug('Wikipedia fetch status update', {
+                workspaceId: data.workspace_id,
+                query: data.query,
+                status: data.status,
+                message: data.message,
+            });
             dispatch(
                 updateWikipediaFetchStatus({
                     id: data.id,

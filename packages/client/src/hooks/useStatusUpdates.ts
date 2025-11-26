@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import socketService from '../services/socket';
 import type { RootState } from '../store';
 import { updateDocumentStatus, updateWorkspaceStatus } from '../store/slices/statusSlice';
+import { logger } from '../lib/logger';
 
 interface DocumentStatusUpdate {
     document_id: number;
@@ -56,21 +57,33 @@ export function useStatusUpdates() {
         // Listen for document status updates
         const handleDocumentStatus = (data: unknown) => {
             const update = data as DocumentStatusUpdate;
-            console.log('Document status update:', update);
+            logger.debug('Document status update received', {
+                documentId: update.document_id,
+                workspaceId: update.workspace_id,
+                status: update.status,
+                filename: update.filename,
+            });
             dispatch(updateDocumentStatus(update));
         };
 
         // Listen for workspace status updates
         const handleWorkspaceStatus = (data: unknown) => {
             const update = data as WorkspaceStatusUpdate;
-            console.log('Workspace status update:', update);
+            logger.debug('Workspace status update received', {
+                workspaceId: update.workspace_id,
+                status: update.status,
+                message: update.message,
+            });
             dispatch(updateWorkspaceStatus(update));
         };
 
         // Listen for subscription confirmation
         const handleSubscribed = (data: unknown) => {
             const subscribed = data as { user_id: number; room: string };
-            console.log('Subscribed to status updates:', subscribed);
+            logger.info('Subscribed to status updates', {
+                userId: subscribed.user_id,
+                room: subscribed.room,
+            });
         };
 
         socketService.on('document_status', handleDocumentStatus);

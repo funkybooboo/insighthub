@@ -5,6 +5,7 @@ import type { RootState } from '../../store';
 import { removeWorkspace, updateWorkspace, setError } from '../../store/slices/workspaceSlice';
 import { apiService } from '../../services/api';
 import { ConfirmDialog } from '../shared';
+import { logger } from '../../lib/logger';
 import {
     type RagConfig,
     type VectorRagConfig,
@@ -50,8 +51,10 @@ const WorkspaceSettings = () => {
                 ragConfig: config,
             }));
         } catch (error) {
-            console.error('Failed to load RAG config:', error);
-            // If no config found, initialize with default values for form
+             logger.error('Failed to load RAG config', error as Error, {
+                 workspaceId: activeWorkspaceId,
+             });
+             // If no config found, initialize with default values for form
             setRagConfig(null);
             setFormData((prev) => ({
                 ...prev,

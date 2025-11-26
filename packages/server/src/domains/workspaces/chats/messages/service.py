@@ -2,7 +2,10 @@
 
 from flask import g
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatMessage
+
+logger = create_logger(__name__)
 from src.infrastructure.repositories.chat_messages import ChatMessageRepository
 
 
@@ -32,14 +35,19 @@ class ChatMessageService:
         Returns:
             The created message
         """
+        logger.info(f"Creating chat message: session_id={session_id}, role='{role}', content_length={len(content)}")
+
         # Validate inputs
         if not content or not content.strip():
+            logger.error(f"Message creation failed: empty content (session_id={session_id})")
             raise ValueError("Message content cannot be empty")
 
         if len(content.strip()) > 10000:  # Reasonable limit for message content
+            logger.error(f"Message creation failed: content too long {len(content)} chars (session_id={session_id})")
             raise ValueError("Message content too long (max 10000 characters)")
 
         if role not in ["users", "assistant", "system"]:
+            logger.error(f"Message creation failed: invalid role '{role}' (session_id={session_id})")
             raise ValueError("Invalid message role. Must be 'users', 'assistant', or 'system'")
 
         # Validation is performed at the route level
@@ -50,7 +58,10 @@ class ChatMessageService:
             import json
             extra_metadata_str = json.dumps(extra_metadata)
 
-        return self.repository.create(session_id, role, content.strip(), extra_metadata_str)
+        message = self.repository.create(session_id, role, content.strip(), extra_metadata_str)
+        logger.info(f"Chat message created: message_id={message.id}, session_id={session_id}")
+
+        return message
 
     def validate_workspace_and_session_access(self, workspace_id: int, session_id: int, user_id: int) -> bool:
         """Validate that user has access to the workspace and session.
@@ -106,11 +117,25 @@ class ChatMessageService:
         self, session_id: int, skip: int = 0, limit: int = 50
     ) -> tuple[list[ChatMessage], int]:
         """Get messages for a session."""
+        logger.info(f"Retrieving session messages: session_id={session_id}, skip={skip}, limit={limit}")
+
         # Validation is performed at the route level
         messages = self.repository.get_by_session(session_id, skip, limit)
         total = len(self.repository.get_by_session(session_id))  # Get total count
+
+        logger.info(f"Retrieved {len(messages)} messages for session {session_id} (total: {total})")
+
         return messages, total
 
     def delete_message(self, message_id: int) -> bool:
         """Delete a message."""
-        return self.repository.delete(message_id)
+        logger.info(f"Deleting chat message: message_id={message_id}")
+
+        deleted = self.repository.delete(message_id)
+
+        if deleted:
+            logger.info(f"Chat message deleted: message_id={message_id}")
+        else:
+            logger.warning(f"Chat message deletion failed: message not found (message_id={message_id})")
+
+        return deleted

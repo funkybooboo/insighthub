@@ -41,6 +41,7 @@ class HealthService:
             db.execute("SELECT 1")  # Simple connectivity test
             response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
 
+            logger.info(f"Database connectivity check successful: {response_time:.2f}ms")
             return ServiceConnectivityCheck(
                 service_name="PostgreSQL Database",
                 service_type="database",
@@ -50,6 +51,7 @@ class HealthService:
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"Database connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="PostgreSQL Database",
@@ -76,6 +78,7 @@ class HealthService:
                 redis_url = None
 
             if not redis_url:
+                logger.warning("Redis connectivity check skipped: Redis not configured")
                 return ServiceConnectivityCheck(
                     service_name="Redis Cache",
                     service_type="cache",
@@ -87,6 +90,7 @@ class HealthService:
             redis_client.ping()
             response_time = (time.time() - start_time) * 1000
 
+            logger.info(f"Redis connectivity check successful: {response_time:.2f}ms")
             return ServiceConnectivityCheck(
                 service_name="Redis Cache",
                 service_type="cache",
@@ -95,6 +99,7 @@ class HealthService:
                 additional_info={"url": redis_url.replace(redis_url.split('@')[-1], '***')}  # Mask credentials
             )
         except ImportError:
+            logger.warning("Redis connectivity check failed: Redis library not available")
             return ServiceConnectivityCheck(
                 service_name="Redis Cache",
                 service_type="cache",
@@ -103,6 +108,7 @@ class HealthService:
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"Redis connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="Redis Cache",
@@ -123,6 +129,7 @@ class HealthService:
             llm_provider = create_llm()
             response_time = (time.time() - start_time) * 1000
 
+            logger.info(f"LLM connectivity check successful: {response_time:.2f}ms")
             return ServiceConnectivityCheck(
                 service_name="LLM Service (Ollama)",
                 service_type="external_api",
@@ -132,6 +139,7 @@ class HealthService:
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"LLM connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="LLM Service (Ollama)",
@@ -163,6 +171,7 @@ class HealthService:
                 results = vector_store.search([0.1] * 384, top_k=1)
                 response_time = (time.time() - start_time) * 1000
 
+                logger.info(f"Vector store connectivity check successful: {response_time:.2f}ms")
                 return ServiceConnectivityCheck(
                     service_name="Qdrant Vector Store",
                     service_type="storage",
@@ -171,6 +180,7 @@ class HealthService:
                     additional_info={"collection": "health_check", "vector_size": 384}
                 )
             else:
+                logger.error("Vector store connectivity check failed: Vector store creation failed")
                 return ServiceConnectivityCheck(
                     service_name="Qdrant Vector Store",
                     service_type="storage",
@@ -179,6 +189,7 @@ class HealthService:
                 )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"Vector store connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="Qdrant Vector Store",
@@ -201,6 +212,7 @@ class HealthService:
             objects = blob_storage.list("")
             response_time = (time.time() - start_time) * 1000
 
+            logger.info(f"Blob storage connectivity check successful: {response_time:.2f}ms")
             return ServiceConnectivityCheck(
                 service_name="Blob Storage",
                 service_type="storage",
@@ -210,6 +222,7 @@ class HealthService:
             )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"Blob storage connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="Blob Storage",
@@ -232,6 +245,7 @@ class HealthService:
                 stats = current_app.rag_system.get_stats()
                 response_time = (time.time() - start_time) * 1000
 
+                logger.info(f"RAG system connectivity check successful: {response_time:.2f}ms")
                 return ServiceConnectivityCheck(
                     service_name="RAG System",
                     service_type="application",
@@ -240,6 +254,7 @@ class HealthService:
                     additional_info=stats if isinstance(stats, dict) else {"status": "operational"}
                 )
             else:
+                logger.warning("RAG system connectivity check failed: RAG system not configured")
                 return ServiceConnectivityCheck(
                     service_name="RAG System",
                     service_type="application",
@@ -248,6 +263,7 @@ class HealthService:
                 )
         except Exception as e:
             response_time = (time.time() - start_time) * 1000
+            logger.error(f"RAG system connectivity check failed: {str(e)} ({response_time:.2f}ms)")
 
             return ServiceConnectivityCheck(
                 service_name="RAG System",
@@ -261,6 +277,7 @@ class HealthService:
         """Get comprehensive connectivity report for all services."""
         timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
+        logger.info("Starting comprehensive connectivity report")
         services = [
             self.check_database_connectivity(),
             self.check_redis_connectivity(),
@@ -274,10 +291,13 @@ class HealthService:
         connected_count = sum(1 for s in services if s.is_connected)
         if connected_count == len(services):
             overall_status = "all_connected"
+            logger.info(f"Connectivity report completed: {connected_count}/{len(services)} services connected")
         elif connected_count == 0:
             overall_status = "all_failed"
+            logger.error(f"Connectivity report completed: {connected_count}/{len(services)} services connected - all services failed")
         else:
             overall_status = "partial_failure"
+            logger.warning(f"Connectivity report completed: {connected_count}/{len(services)} services connected - partial failure")
 
         return ConnectivityReport(
             timestamp=timestamp,

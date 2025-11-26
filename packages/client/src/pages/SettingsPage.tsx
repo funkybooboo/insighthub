@@ -8,6 +8,7 @@ import {
     selectUserSettingsError,
     clearUserSettingsError,
 } from '../store/slices/userSettingsSlice';
+import { logger } from '../lib/logger';
 import { type AppDispatch, type RootState } from '../store';
 import RagConfigForm from '../components/workspace/RagConfigForm';
 import ProfileSettings from '../components/settings/ProfileSettings';
@@ -45,7 +46,7 @@ const SettingsPage: React.FC = () => {
     useEffect(() => {
         if (error) {
             // Optionally, show a toast or alert for the error
-            console.error('Settings Error:', error);
+            logger.error('Settings error occurred', new Error(error));
         }
     }, [error]);
 

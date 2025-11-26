@@ -2,7 +2,10 @@
 
 from typing import BinaryIO
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
+
+logger = create_logger(__name__)
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
@@ -72,6 +75,8 @@ class DocumentService:
         Raises:
             DocumentProcessingError: If blob storage upload fails
         """
+        logger.info(f"Starting document upload: filename='{filename}', workspace_id={workspace_id}, user_id={user_id}, size={file_size} bytes")
+
         try:
             # Generate blob key (using hash + original filename for uniqueness)
             blob_key = f"{content_hash}/{filename}"
@@ -81,7 +86,9 @@ class DocumentService:
             file_content = file_obj.read()
             try:
                 self.blob_storage.upload(blob_key, file_content, mime_type)
+                logger.info(f"Document uploaded to blob storage: blob_key='{blob_key}'")
             except Exception as e:
+                logger.error(f"Blob storage upload failed: {str(e)} (filename='{filename}')")
                 raise DocumentProcessingError(
                     filename, f"Failed to upload to blob storage: {str(e)}"
                 )
@@ -104,7 +111,10 @@ class DocumentService:
 
                 with suppress(Exception):
                     self.blob_storage.delete(blob_key)
+                logger.error(f"Database record creation failed for document: filename='{filename}'")
                 raise DocumentProcessingError(filename, "Failed to create database record")
+
+            logger.info(f"Document record created: document_id={document.id}, filename='{filename}'")
 
             # Start background processing
             from src.workers import get_add_document_worker
@@ -112,11 +122,14 @@ class DocumentService:
             worker = get_add_document_worker()
             worker.start_processing(document, user_id)
 
+            logger.info(f"Background processing started for document {document.id}")
+
             return document
 
         except Exception as e:
             if isinstance(e, DocumentProcessingError):
                 raise
+            logger.error(f"Document upload failed: {str(e)} (filename='{filename}')")
             raise DocumentProcessingError(filename, f"Upload failed: {str(e)}") from e
 
     def _process_file_upload(
@@ -230,13 +243,19 @@ class DocumentService:
         Returns:
             Optional[bytes]: File content if found, None otherwise
         """
+        logger.info(f"Downloading document: document_id={document_id}")
+
         document = self.repository.get_by_id(document_id)
         if document and document.file_path:
             try:
-                return self.blob_storage.download(document.file_path)
+                content = self.blob_storage.download(document.file_path)
+                logger.info(f"Document downloaded successfully: document_id={document_id}, size={len(content) if content else 0} bytes")
+                return content
             except Exception as e:
-                print(f"Error downloading document: {e}")
+                logger.error(f"Error downloading document: {str(e)} (document_id={document_id})")
                 return None
+        else:
+            logger.warning(f"Document not found or has no file path: document_id={document_id}")
         return None
 
     def get_document_by_id(self, document_id: int) -> Document | None:
@@ -268,25 +287,29 @@ class DocumentService:
         Returns:
             bool: True if deletion was successful, False otherwise
         """
+        logger.info(f"Deleting document: document_id={document_id}, delete_from_storage={delete_from_storage}")
+
         if delete_from_storage:
             document = self.repository.get_by_id(document_id)
             if document and document.file_path:
                 try:
                     self.blob_storage.delete(document.file_path)
+                    logger.info(f"Document deleted from blob storage: document_id={document_id}, blob_key='{document.file_path}'")
                 except Exception as e:
-                    print(f"Error deleting from blob storage: {e}")
+                    logger.error(f"Error deleting from blob storage: {str(e)} (document_id={document_id})")
                     # Continue with database deletion
 
         # Always attempt database deletion
         db_deleted = self.repository.delete(document_id)
 
+        if db_deleted:
+            logger.info(f"Document deleted from database: document_id={document_id}")
+        else:
+            logger.error(f"Failed to delete document from database: document_id={document_id}")
+
         # If blob storage deletion failed but database deletion succeeded,
         # we have an orphaned file in storage - this should be handled by cleanup jobs
-        if not db_deleted:
-            print(f"Warning: Failed to delete document {document_id} from database")
-            return False
-
-        return True
+        return db_deleted
 
 
 
@@ -320,9 +343,12 @@ class DocumentService:
         Raises:
             DocumentNotFoundError: If document does not exist
         """
+        logger.info(f"Starting validated document deletion: document_id={document_id}, user_id={user_id}")
+
         # Check if document exists
         document = self.get_document_by_id(document_id)
         if not document:
+            logger.warning(f"Document deletion failed: document not found (document_id={document_id}, user_id={user_id})")
             raise DocumentNotFoundError(document_id)
 
         # Launch RemoveDocumentWorker in background
@@ -330,6 +356,8 @@ class DocumentService:
 
         cleanup_worker = get_remove_document_worker()
         cleanup_worker.start_cleanup(document, user_id)
+
+        logger.info(f"Background cleanup started for document {document_id}")
 
     def update_document_status(
         self,

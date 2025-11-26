@@ -1,8 +1,9 @@
 /**
- * Socket.IO service for real-time chats streaming.
- */
+  * Socket.IO service for real-time chats streaming.
+  */
 
 import { io, Socket } from 'socket.io-client';
+import { logger } from '../lib/logger';
 import { type Context } from '../types/chat'; // Import Context type
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -95,13 +96,15 @@ class SocketService {
     private currentClientId: string | null = null;
 
     /**
-     * Connect to the Socket.IO server
-     */
+      * Connect to the Socket.IO server
+      */
     connect(): void {
         if (this.socket?.connected) {
+            logger.debug('Socket already connected, skipping connection attempt');
             return;
         }
 
+        logger.info('Connecting to Socket.IO server', { url: SOCKET_URL });
         this.socket = io(SOCKET_URL, {
             transports: ['websocket', 'polling'],
             reconnection: true,
@@ -111,12 +114,15 @@ class SocketService {
     }
 
     /**
-     * Disconnect from the Socket.IO server
-     */
+      * Disconnect from the Socket.IO server
+      */
     disconnect(): void {
         if (this.socket) {
+            logger.info('Disconnecting from Socket.IO server');
             this.socket.disconnect();
             this.socket = null;
+        } else {
+            logger.debug('Socket already disconnected');
         }
         this.currentClientId = null;
     }
@@ -129,14 +135,20 @@ class SocketService {
     }
 
     /**
-     * Send a chats message
-     */
+      * Send a chats message
+      */
     sendMessage(data: ChatMessageData): void {
         if (!this.socket) {
+            logger.error('Cannot send message: Socket not connected');
             throw new Error('Socket not connected. Call connect() first.');
         }
         // Generate a unique client ID for this message (for cancellation tracking)
         this.currentClientId = `client-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        logger.debug('Sending chat message', {
+            session_id: data.session_id,
+            workspace_id: data.workspace_id,
+            client_id: this.currentClientId,
+        });
         this.socket.emit('chat_message', {
             ...data,
             client_id: this.currentClientId,

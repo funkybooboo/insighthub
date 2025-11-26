@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { VectorRagConfig } from '../../types/workspace';
+import { logger } from '../../lib/logger';
 
 interface VectorRagConfigFormProps {
     initialConfig?: Partial<VectorRagConfig>;
@@ -46,8 +47,8 @@ const VectorRagConfigForm: React.FC<VectorRagConfigFormProps> = ({
                 const data = await apiService.getVectorAlgorithms();
                 setAlgorithms(data);
             } catch (error) {
-                console.error('Failed to fetch vector algorithms:', error);
-                // Fallback to defaults if API fails
+                 logger.error('Failed to fetch vector algorithms', error as Error);
+                 // Fallback to defaults if API fails
                 setAlgorithms({
                     embedding_algorithms: [
                         { value: 'nomic-embed-text', label: 'Nomic Embed Text' },

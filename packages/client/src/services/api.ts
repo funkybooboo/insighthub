@@ -1,8 +1,9 @@
 /**
- * API service for communicating with the InsightHub backend.
- */
+  * API service for communicating with the InsightHub backend.
+  */
 
 import axios, { type AxiosInstance } from 'axios';
+import { logger } from '../lib/logger';
 import type {
     Workspace,
     RagConfig,
@@ -127,15 +128,39 @@ class ApiService {
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
                 }
+                logger.debug('API Request', {
+                    method: config.method?.toUpperCase(),
+                    url: config.url,
+                    hasAuth: !!token,
+                });
                 return config;
             },
-            (error) => Promise.reject(error)
+            (error) => {
+                logger.error('API Request Error', error, {
+                    method: error.config?.method?.toUpperCase(),
+                    url: error.config?.url,
+                });
+                return Promise.reject(error);
+            }
         );
 
         this.client.interceptors.response.use(
-            (response) => response,
+            (response) => {
+                logger.debug('API Response', {
+                    method: response.config.method?.toUpperCase(),
+                    url: response.config.url,
+                    status: response.status,
+                });
+                return response;
+            },
             (error) => {
+                logger.error('API Response Error', error, {
+                    method: error.config?.method?.toUpperCase(),
+                    url: error.config?.url,
+                    status: error.response?.status,
+                });
                 if (error.response?.status === 401) {
+                    logger.info('Authentication token expired, redirecting to login');
                     localStorage.removeItem('token');
                     window.location.href = '/login';
                 }

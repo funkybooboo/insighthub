@@ -2,12 +2,15 @@
 
 from typing import Optional
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import (
     DefaultGraphRagConfig,
     DefaultRagConfig,
     DefaultVectorRagConfig,
 )
 from src.infrastructure.repositories.default_rag_configs import DefaultRagConfigRepository
+
+logger = create_logger(__name__)
 
 
 class DefaultRagConfigService:
@@ -51,9 +54,12 @@ class DefaultRagConfigService:
         Returns:
             Created or updated config
         """
+        logger.info(f"Creating/updating default RAG config: user_id={user_id}")
+
         existing_config = self.repository.get_by_user_id(user_id)
 
         if existing_config:
+            logger.info(f"Updating existing RAG config: user_id={user_id}")
             # Update existing config
             if vector_config:
                 for key, value in vector_config.items():
@@ -64,8 +70,11 @@ class DefaultRagConfigService:
                     if hasattr(existing_config.graph_config, key):
                         setattr(existing_config.graph_config, key, value)
 
-            return self.repository.update(existing_config)
+            updated_config = self.repository.update(existing_config)
+            logger.info(f"RAG config updated: user_id={user_id}")
+            return updated_config
         else:
+            logger.info(f"Creating new RAG config: user_id={user_id}")
             # Create new config
             vector_cfg = DefaultVectorRagConfig()
             if vector_config:
@@ -85,7 +94,9 @@ class DefaultRagConfigService:
                 vector_config=vector_cfg,
                 graph_config=graph_cfg,
             )
-            return self.repository.create(new_config)
+            created_config = self.repository.create(new_config)
+            logger.info(f"RAG config created: user_id={user_id}")
+            return created_config
 
     def delete_config(self, user_id: int) -> bool:
         """
@@ -95,6 +106,15 @@ class DefaultRagConfigService:
             user_id: User ID
 
         Returns:
-            True if deleted, False otherwise
+            True if deleted, False if not found
         """
-        return self.repository.delete_by_user_id(user_id)
+        logger.info(f"Deleting default RAG config: user_id={user_id}")
+
+        deleted = self.repository.delete_by_user_id(user_id)
+
+        if deleted:
+            logger.info(f"RAG config deleted: user_id={user_id}")
+        else:
+            logger.warning(f"RAG config deletion failed: config not found (user_id={user_id})")
+
+        return deleted

@@ -1,7 +1,10 @@
 """Chat session service."""
 
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatSession
 from src.infrastructure.repositories.chat_sessions import ChatSessionRepository
+
+logger = create_logger(__name__)
 
 
 class ChatSessionService:
@@ -19,16 +22,24 @@ class ChatSessionService:
         rag_type: str = "vector",
     ) -> ChatSession:
         """Create a new chats session."""
+        logger.info(f"Creating chat session: user_id={user_id}, workspace_id={workspace_id}, rag_type='{rag_type}'")
+
         # Validate inputs
         if title and len(title.strip()) > 255:
+            logger.error(f"Session creation failed: title too long (user_id={user_id})")
             raise ValueError("Session title too long (max 255 characters)")
 
         if rag_type not in ["vector", "graph"]:
+            logger.error(f"Session creation failed: invalid rag_type '{rag_type}' (user_id={user_id})")
             raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
-        return self.repository.create(
+        session = self.repository.create(
             user_id, title.strip() if title else None, workspace_id, rag_type
         )
+
+        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}")
+
+        return session
 
     def get_session(self, session_id: int) -> ChatSession | None:
         """Get session by ID."""
@@ -40,15 +51,34 @@ class ChatSessionService:
 
     def update_session(self, session_id: int, title: str | None = None) -> ChatSession | None:
         """Update session title."""
+        logger.info(f"Updating chat session: session_id={session_id}, new_title='{title}'")
+
         # Validate inputs
         if title and len(title.strip()) > 255:
+            logger.error(f"Session update failed: title too long (session_id={session_id})")
             raise ValueError("Session title too long (max 255 characters)")
 
-        return self.repository.update(session_id, title=title.strip() if title else None)
+        updated_session = self.repository.update(session_id, title=title.strip() if title else None)
+
+        if updated_session:
+            logger.info(f"Chat session updated: session_id={session_id}")
+        else:
+            logger.warning(f"Chat session update failed: session not found (session_id={session_id})")
+
+        return updated_session
 
     def delete_session(self, session_id: int) -> bool:
         """Delete a session."""
-        return self.repository.delete(session_id)
+        logger.info(f"Deleting chat session: session_id={session_id}")
+
+        deleted = self.repository.delete(session_id)
+
+        if deleted:
+            logger.info(f"Chat session deleted: session_id={session_id}")
+        else:
+            logger.warning(f"Chat session deletion failed: session not found (session_id={session_id})")
+
+        return deleted
 
     def validate_session_access(self, session_id: int, user_id: int) -> bool:
         """Validate that users has access to session."""

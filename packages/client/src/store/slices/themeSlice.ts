@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import apiService from '../../services/api';
 import type { RootState } from '../index';
+import { logger } from '../../lib/logger';
 
 export type Theme = 'light' | 'dark';
 
@@ -58,7 +59,9 @@ export const toggleThemeAndSave = createAsyncThunk<void, void, { state: RootStat
         try {
             await apiService.updatePreferences({ theme_preference: newTheme });
         } catch (error) {
-            console.error('Failed to save theme preference:', error);
+            logger.error('Failed to save theme preference', error as Error, {
+                theme: newTheme,
+            });
         }
     }
 );

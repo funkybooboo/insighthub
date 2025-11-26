@@ -20,12 +20,12 @@ tasks:
   dev:
     desc: Start development environment
     cmds:
-      - docker compose --profile dev up
+      - docker compose --profile dev up -d
 
   prod:
     desc: Start production environment
     cmds:
-      - docker compose --profile prod up --build
+      - docker compose --profile prod up --build -d
 
   logs:
     desc: Show service logs
