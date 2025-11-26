@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNotifications } from '../contexts/NotificationContext';
-import socketService, {
+import socketService from '../services/socket';
+import type {
     DocumentStatusData,
     WorkspaceStatusData,
     WikipediaFetchStatusData,
@@ -34,10 +35,26 @@ export const useNotificationListeners = () => {
                         duration: 5000,
                     });
                     break;
+                case 'deleting':
+                    addNotification({
+                        type: 'info',
+                        title: 'Document Deleting',
+                        message: message || 'Your document is being deleted...',
+                        duration: 3000,
+                    });
+                    break;
+                case 'deleted':
+                    addNotification({
+                        type: 'success',
+                        title: 'Document Deleted',
+                        message: message || 'Your document has been deleted successfully!',
+                        duration: 3000,
+                    });
+                    break;
                 case 'failed':
                     addNotification({
                         type: 'error',
-                        title: 'Document Processing Failed',
+                        title: 'Document Operation Failed',
                         message:
                             error || message || 'Failed to process document. Please try again.',
                         persistent: true,
@@ -67,12 +84,28 @@ export const useNotificationListeners = () => {
                         duration: 5000,
                     });
                     break;
-                case 'error':
+                case 'deleting':
+                    addNotification({
+                        type: 'info',
+                        title: 'Workspace Deleting',
+                        message: message || 'Deleting your workspace...',
+                        duration: 3000,
+                    });
+                    break;
+                case 'deleted':
+                    addNotification({
+                        type: 'success',
+                        title: 'Workspace Deleted',
+                        message: message || 'Your workspace has been deleted successfully!',
+                        duration: 3000,
+                    });
+                    break;
+                case 'failed':
                     addNotification({
                         type: 'error',
-                        title: 'Workspace Setup Failed',
+                        title: 'Workspace Operation Failed',
                         message:
-                            error || message || 'Failed to set up workspace. Please try again.',
+                            error || message || 'Failed to process workspace. Please try again.',
                         persistent: true,
                     });
                     break;
@@ -184,14 +217,14 @@ export const useNotificationListeners = () => {
 
         // Cleanup function
         return () => {
-            socketService.off('document_status', handleDocumentStatus);
-            socketService.off('workspace_status', handleWorkspaceStatus);
-            socketService.off('wikipedia_fetch_status', handleWikipediaFetchStatus);
-            socketService.off('chat_complete', handleChatComplete);
-            socketService.off('error', handleError);
-            socketService.off('chats.no_context_found', handleNoContextFound);
-            socketService.off('connected', handleConnected);
-            socketService.off('disconnect', handleDisconnected);
+            socketService.off('document_status', handleDocumentStatus as (...args: unknown[]) => void);
+            socketService.off('workspace_status', handleWorkspaceStatus as (...args: unknown[]) => void);
+            socketService.off('wikipedia_fetch_status', handleWikipediaFetchStatus as (...args: unknown[]) => void);
+            socketService.off('chat_complete', handleChatComplete as (...args: unknown[]) => void);
+            socketService.off('error', handleError as (...args: unknown[]) => void);
+            socketService.off('chats.no_context_found', handleNoContextFound as (...args: unknown[]) => void);
+            socketService.off('connected', handleConnected as (...args: unknown[]) => void);
+            socketService.off('disconnect', handleDisconnected as (...args: unknown[]) => void);
         };
     }, [addNotification]);
 };

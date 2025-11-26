@@ -1,12 +1,13 @@
 """Document service implementation."""
 
+import hashlib
 from typing import BinaryIO
 
 from src.infrastructure.models import Document
 from src.infrastructure.repositories.documents import DocumentRepository
 from src.infrastructure.storage import BlobStorage
 
-from .dtos import DocumentListResponse
+from .dtos import DocumentListResponse, DocumentUploadResult
 from .exceptions import DocumentNotFoundError, DocumentProcessingError
 from .mappers import DocumentMapper
 
@@ -45,6 +46,7 @@ class DocumentService:
         mime_type: str,
         content_hash: str,
         file_size: int,
+        user_id: int,
         chunk_count: int | None = None,
         rag_collection: str | None = None,
     ) -> Document:
@@ -89,7 +91,7 @@ class DocumentService:
                 file_size=file_size,
                 mime_type=mime_type,
                 content_hash=content_hash,
-                chunk_count=chunk_count,
+                chunk_count=0,  # Will be updated by worker
                 rag_collection=rag_collection,
             )
 
@@ -102,10 +104,10 @@ class DocumentService:
                 raise DocumentProcessingError(filename, "Failed to create database record")
 
             # Start background processing
-            from src.workers import get_document_processor
+            from src.workers import get_add_document_worker
 
-            processor = get_document_processor()
-            processor.start_processing(document, 0)  # TODO: Pass actual user_id
+            worker = get_add_document_worker()
+            worker.start_processing(document, user_id)
 
             return document
 
@@ -114,6 +116,9 @@ class DocumentService:
                 raise
             raise DocumentProcessingError(filename, f"Upload failed: {str(e)}") from e
 
+    def _upload_document_to_workspace_internal(
+        self, workspace_id: int, user_id: int, filename: str, file_obj: BinaryIO
+    ) -> DocumentUploadResult:
         """
         High-level orchestration method for document upload.
 
@@ -121,6 +126,7 @@ class DocumentService:
         MIME type determination, duplicate detection, text extraction, and upload.
 
         Args:
+            workspace_id: ID of the workspace to upload to
             user_id: ID of the users uploading the document
             filename: Name of the file
             file_obj: File object (must support seek)
@@ -158,6 +164,9 @@ class DocumentService:
             filename=filename,
             file_obj=file_obj,
             mime_type=mime_type,
+            content_hash=content_hash,
+            file_size=file_size,
+            user_id=user_id,
         )
 
         # Document uploaded - background tasks will process it
@@ -165,6 +174,72 @@ class DocumentService:
         return DocumentUploadResult(
             document=document,
             text_length=0,  # Text length not known until processing
+            is_duplicate=False,
+        )
+
+    def upload_document_to_workspace(
+        self, workspace_id: int, user_id: int, filename: str, file_obj: BinaryIO
+    ) -> DocumentUploadResult:
+        """
+        High-level orchestration method for document upload to workspace.
+
+        This method handles the complete document upload workflow including
+        MIME type determination, duplicate detection, text extraction, and upload.
+
+        Args:
+            workspace_id: ID of the workspace to upload to
+            user_id: ID of the user uploading the document
+            filename: Name of the file
+            file_obj: File object (must support seek)
+
+        Returns:
+            DocumentUploadResult with document, text length, and duplicate flag
+        """
+        # Determine MIME type from filename
+        extension = filename.rsplit(".", 1)[1].lower() if "." in filename else ""
+        mime_type = "application/pdf" if extension == "pdf" else "text/plain"
+
+        # Get file size
+        file_obj.seek(0, 2)  # Seek to end
+        file_size = file_obj.tell()
+        file_obj.seek(0)  # Seek back to beginning
+
+        # Check for duplicates
+        content_hash = self.calculate_file_hash(file_obj)
+        existing_doc = self.get_document_by_hash(content_hash)
+
+        if existing_doc:
+            # Document already exists - return it with duplicate flag
+            # Extract text for consistency (clients may want text_length)
+            file_obj.seek(0)
+            text = self.extract_text(file_obj, filename)
+            return DocumentUploadResult(
+                document=existing_doc,
+                text_length=len(text),
+                is_duplicate=True,
+            )
+
+        # Extract text
+        file_obj.seek(0)
+        text = self.extract_text(file_obj, filename)
+
+        # Upload document
+        file_obj.seek(0)
+        document = self.upload_document(
+            workspace_id=workspace_id,
+            filename=filename,
+            file_obj=file_obj,
+            mime_type=mime_type,
+            content_hash=content_hash,
+            file_size=file_size,
+            user_id=user_id,
+        )
+
+        # Document uploaded - background tasks will process it
+
+        return DocumentUploadResult(
+            document=document,
+            text_length=len(text),
             is_duplicate=False,
         )
 
@@ -241,6 +316,26 @@ class DocumentService:
 
         return True
 
+    def calculate_file_hash(self, file_obj: BinaryIO) -> str:
+        """Calculate SHA-256 hash of file content."""
+        file_obj.seek(0)
+        hash_obj = hashlib.sha256()
+        for chunk in iter(lambda: file_obj.read(4096), b""):
+            hash_obj.update(chunk)
+        return hash_obj.hexdigest()
+
+    def extract_text(self, file_obj: BinaryIO, filename: str) -> str:
+        """Extract text content from file."""
+        # Simple text extraction - in a real implementation this would use
+        # proper parsing libraries for PDFs, DOCX, etc.
+        file_obj.seek(0)
+        content = file_obj.read()
+        try:
+            return content.decode('utf-8')
+        except UnicodeDecodeError:
+            # If not UTF-8, return a placeholder
+            return f"Binary file: {filename}"
+
     def list_user_documents_as_dto(self, user_id: int) -> DocumentListResponse:
         """
         List all documents for a users as a DTO.
@@ -260,12 +355,13 @@ class DocumentService:
             total=len(document_dtos),
         )
 
-    def delete_document_with_validation(self, document_id: int) -> None:
+    def delete_document_with_validation(self, document_id: int, user_id: int) -> None:
         """
         Delete a document with validation.
 
         Args:
             document_id: The document ID to delete
+            user_id: ID of the user performing the deletion
 
         Raises:
             DocumentNotFoundError: If document does not exist
@@ -275,20 +371,11 @@ class DocumentService:
         if not document:
             raise DocumentNotFoundError(document_id)
 
-        # TODO: Launch DocumentCleanupWorker
-        # Worker should:
-        # 1. Remove chunks from vector/graph store (execute CleanupWorkflow)
-        # 2. Delete from blob storage
-        # 3. Delete from database
-        # 4. Broadcast status updates via WebSocket
-        #
-        # Example implementation:
-        #    from src.workers import get_document_cleanup_worker
-        #    cleanup_worker = get_document_cleanup_worker()
-        #    cleanup_worker.start_cleanup(document, user_id)
-        #
-        # For now, using synchronous deletion:
-        self.delete_document(document_id, delete_from_storage=True)
+        # Launch RemoveDocumentWorker in background
+        from src.workers import get_remove_document_worker
+
+        cleanup_worker = get_remove_document_worker()
+        cleanup_worker.start_cleanup(document, user_id)
 
     def update_document_status(
         self,

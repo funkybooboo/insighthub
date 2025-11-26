@@ -2,7 +2,9 @@
 
 from src.infrastructure.events.events import (
     DocumentStatusData,
+    WorkspaceStatusData,
     broadcast_document_status,
+    broadcast_workspace_status,
     emit_wikipedia_fetch_status,
 )
 from src.infrastructure.events.processing_events import (
@@ -14,7 +16,9 @@ from src.infrastructure.events.processing_events import (
 
 __all__ = [
     "DocumentStatusData",
+    "WorkspaceStatusData",
     "broadcast_document_status",
+    "broadcast_workspace_status",
     "emit_wikipedia_fetch_status",
     "handle_document_parsed",
     "handle_document_chunked",

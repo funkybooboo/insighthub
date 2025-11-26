@@ -7,9 +7,12 @@ export type DocumentStatus =
     | 'chunking'
     | 'embedding'
     | 'indexing'
+    | 'processing'
     | 'ready'
-    | 'failed';
-export type WorkspaceStatus = 'provisioning' | 'ready' | 'failed' | 'deleting' | 'error';
+    | 'failed'
+    | 'deleting'
+    | 'deleted';
+export type WorkspaceStatus = 'provisioning' | 'ready' | 'failed' | 'deleting' | 'deleted';
 export type WikipediaFetchStatus = 'pending' | 'fetching' | 'processing' | 'ready' | 'failed'; // New status type
 
 interface DocumentStatusUpdate {
@@ -115,7 +118,9 @@ export const selectIsWorkspaceProcessing = (workspaceId: number) => (state: Root
                 doc.status === 'parsing' ||
                 doc.status === 'chunking' ||
                 doc.status === 'embedding' ||
-                doc.status === 'indexing')
+                doc.status === 'indexing' ||
+                doc.status === 'processing' ||
+                doc.status === 'deleting')
     );
 
     // Check if any Wikipedia fetch for this workspace is processing

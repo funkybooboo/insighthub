@@ -120,7 +120,7 @@ class QdrantVectorDatabase(VectorDatabase):
         """
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, string_id))
 
-    def _build_filter(self, filters: dict[str] | None) -> Any:
+    def _build_filter(self, filters: dict[str, str | int | float | bool] | None) -> Filter | None:
         """
         Build a Qdrant filter from a dictionary.
 

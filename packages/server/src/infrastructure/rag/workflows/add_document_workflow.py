@@ -1,34 +1,36 @@
-"""Base interface for consume workflows.
+"""Base interface for add document workflows.
 
 All RAG implementations (Vector RAG, Graph RAG) must implement this interface
 for document ingestion workflows.
-
-DEPRECATED: Use AddDocumentWorkflow instead. This interface is kept for backward compatibility.
 """
 
 from abc import ABC, abstractmethod
 from typing import BinaryIO
 
-from src.infrastructure.rag.workflows.add_document_workflow import AddDocumentWorkflowError
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.result import Result
 
 
-class ConsumeWorkflowError(AddDocumentWorkflowError):
-    """Error during consume workflow execution.
+class AddDocumentWorkflowError(Exception):
+    """Error during add document workflow execution."""
 
-    DEPRECATED: Use AddDocumentWorkflowError instead.
-    This class is kept for backward compatibility.
+    def __init__(self, message: str, step: str) -> None:
+        """Initialize workflow error.
+
+        Args:
+            message: Error message
+            step: Workflow step where error occurred
+        """
+        self.message = message
+        self.step = step
+        super().__init__(f"[{step}] {message}")
+
+
+class AddDocumentWorkflow(ABC):
     """
+    Base interface for document addition workflows.
 
-    pass
-
-
-class ConsumeWorkflow(ABC):
-    """
-    Base interface for document consumption workflows.
-
-    All RAG implementations must provide a consume workflow that:
+    All RAG implementations must provide an add document workflow that:
     1. Accepts raw document content
     2. Processes it through their specific pipeline
     3. Indexes the processed content
@@ -44,9 +46,9 @@ class ConsumeWorkflow(ABC):
         document_id: str,
         workspace_id: str,
         metadata: MetadataDict | None = None,
-    ) -> Result[int, ConsumeWorkflowError]:
+    ) -> Result[int, AddDocumentWorkflowError]:
         """
-        Execute the consume workflow for document ingestion.
+        Execute the add document workflow for document ingestion.
 
         Args:
             raw_document: Binary document content to process

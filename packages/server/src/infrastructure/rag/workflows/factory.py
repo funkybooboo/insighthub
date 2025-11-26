@@ -10,15 +10,27 @@ from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
 from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
+from src.infrastructure.rag.workflows.add_document_workflow import AddDocumentWorkflow
 from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow
+from src.infrastructure.rag.workflows.create_rag_resources_workflow import (
+    CreateRagResourcesWorkflow,
+)
 from src.infrastructure.rag.workflows.graph_rag import (
     GraphRagConsumeWorkflow,
     GraphRagQueryWorkflow,
 )
 from src.infrastructure.rag.workflows.query_workflow import QueryWorkflow
+from src.infrastructure.rag.workflows.remove_document_workflow import RemoveDocumentWorkflow
+from src.infrastructure.rag.workflows.remove_rag_resources_workflow import (
+    RemoveRagResourcesWorkflow,
+)
 from src.infrastructure.rag.workflows.vector_rag import (
+    VectorRagAddDocumentWorkflow,
     VectorRagConsumeWorkflow,
+    VectorRagCreateRagResourcesWorkflow,
     VectorRagQueryWorkflow,
+    VectorRagRemoveDocumentWorkflow,
+    VectorRagRemoveRagResourcesWorkflow,
 )
 
 logger = create_logger(__name__)
@@ -33,8 +45,8 @@ class WorkflowFactory:
     """
 
     @staticmethod
-    def create_consume_workflow(rag_config: dict) -> ConsumeWorkflow:
-        """Create a consume workflow based on RAG configuration.
+    def create_add_document_workflow(rag_config: dict) -> AddDocumentWorkflow:
+        """Create an add document workflow based on RAG configuration.
 
         Args:
             rag_config: RAG configuration dictionary containing:
@@ -48,7 +60,7 @@ class WorkflowFactory:
                 - vector_store_config: {host, port, collection, ...}
 
         Returns:
-            ConsumeWorkflow implementation (Vector or Graph RAG)
+            AddDocumentWorkflow implementation (Vector or Graph RAG)
 
         Raises:
             ValueError: If rag_type is unsupported or config is invalid
@@ -56,11 +68,26 @@ class WorkflowFactory:
         rag_type = rag_config.get("rag_type", "vector")
 
         if rag_type == "vector":
-            return WorkflowFactory._create_vector_consume_workflow(rag_config)
+            return WorkflowFactory._create_vector_add_document_workflow(rag_config)
         elif rag_type == "graph":
-            return WorkflowFactory._create_graph_consume_workflow(rag_config)
+            return WorkflowFactory._create_graph_add_document_workflow(rag_config)
         else:
             raise ValueError(f"Unsupported RAG type: {rag_type}")
+
+    @staticmethod
+    def create_consume_workflow(rag_config: dict) -> ConsumeWorkflow:
+        """Create a consume workflow based on RAG configuration.
+
+        DEPRECATED: Use create_add_document_workflow instead.
+        This method is kept for backward compatibility.
+
+        Args:
+            rag_config: RAG configuration dictionary
+
+        Returns:
+            ConsumeWorkflow implementation (delegates to AddDocumentWorkflow)
+        """
+        return WorkflowFactory.create_add_document_workflow(rag_config)
 
     @staticmethod
     def create_query_workflow(rag_config: dict) -> QueryWorkflow:
@@ -85,9 +112,75 @@ class WorkflowFactory:
             raise ValueError(f"Unsupported RAG type: {rag_type}")
 
     @staticmethod
-    def _create_vector_consume_workflow(config: dict) -> VectorRagConsumeWorkflow:
-        """Create Vector RAG consume workflow with injected dependencies."""
-        logger.info("Creating Vector RAG consume workflow")
+    def create_remove_document_workflow(rag_config: dict) -> RemoveDocumentWorkflow:
+        """Create a remove document workflow based on RAG configuration.
+
+        Args:
+            rag_config: RAG configuration dictionary
+
+        Returns:
+            RemoveDocumentWorkflow implementation (Vector or Graph RAG)
+
+        Raises:
+            ValueError: If rag_type is unsupported or config is invalid
+        """
+        rag_type = rag_config.get("rag_type", "vector")
+
+        if rag_type == "vector":
+            return WorkflowFactory._create_vector_remove_document_workflow(rag_config)
+        elif rag_type == "graph":
+            return WorkflowFactory._create_graph_remove_document_workflow(rag_config)
+        else:
+            raise ValueError(f"Unsupported RAG type: {rag_type}")
+
+    @staticmethod
+    def create_create_rag_resources_workflow(rag_config: dict) -> CreateRagResourcesWorkflow:
+        """Create a create RAG resources workflow based on RAG configuration.
+
+        Args:
+            rag_config: RAG configuration dictionary
+
+        Returns:
+            CreateRagResourcesWorkflow implementation (Vector or Graph RAG)
+
+        Raises:
+            ValueError: If rag_type is unsupported or config is invalid
+        """
+        rag_type = rag_config.get("rag_type", "vector")
+
+        if rag_type == "vector":
+            return WorkflowFactory._create_vector_create_rag_resources_workflow(rag_config)
+        elif rag_type == "graph":
+            return WorkflowFactory._create_graph_create_rag_resources_workflow(rag_config)
+        else:
+            raise ValueError(f"Unsupported RAG type: {rag_type}")
+
+    @staticmethod
+    def create_remove_rag_resources_workflow(rag_config: dict) -> RemoveRagResourcesWorkflow:
+        """Create a remove RAG resources workflow based on RAG configuration.
+
+        Args:
+            rag_config: RAG configuration dictionary
+
+        Returns:
+            RemoveRagResourcesWorkflow implementation (Vector or Graph RAG)
+
+        Raises:
+            ValueError: If rag_type is unsupported or config is invalid
+        """
+        rag_type = rag_config.get("rag_type", "vector")
+
+        if rag_type == "vector":
+            return WorkflowFactory._create_vector_remove_rag_resources_workflow(rag_config)
+        elif rag_type == "graph":
+            return WorkflowFactory._create_graph_remove_rag_resources_workflow(rag_config)
+        else:
+            raise ValueError(f"Unsupported RAG type: {rag_type}")
+
+    @staticmethod
+    def _create_vector_add_document_workflow(config: dict) -> VectorRagAddDocumentWorkflow:
+        """Create Vector RAG add document workflow with injected dependencies."""
+        logger.info("Creating Vector RAG add document workflow")
 
         # Create parser
         parser_type = config.get("parser_type", "text")
@@ -115,14 +208,14 @@ class WorkflowFactory:
         logger.debug(f"Created vector store: {vector_store_type} with config {vector_store_config}")
 
         # Wire together into workflow
-        workflow = VectorRagConsumeWorkflow(
+        workflow = VectorRagAddDocumentWorkflow(
             parser=parser,
             chunker=chunker,
             embedder=embedder,
             vector_store=vector_store,
         )
 
-        logger.info("Vector RAG consume workflow created successfully")
+        logger.info("Vector RAG add document workflow created successfully")
         return workflow
 
     @staticmethod
@@ -161,6 +254,60 @@ class WorkflowFactory:
         return workflow
 
     @staticmethod
+    def _create_vector_remove_document_workflow(config: dict) -> VectorRagRemoveDocumentWorkflow:
+        """Create Vector RAG remove document workflow with injected dependencies."""
+        logger.info("Creating Vector RAG remove document workflow")
+
+        # Create vector database (needed for querying/deleting chunks)
+        vector_store_type = config.get("vector_store_type", "qdrant")
+        vector_store_config = config.get("vector_store_config", {})
+        vector_database = VectorStoreFactory.create_vector_store(
+            vector_store_type, **vector_store_config
+        )
+
+        workflow = VectorRagRemoveDocumentWorkflow(vector_database=vector_database)
+        logger.info("Vector RAG remove document workflow created successfully")
+        return workflow
+
+    @staticmethod
+    def _create_vector_create_rag_resources_workflow(
+        config: dict,
+    ) -> VectorRagCreateRagResourcesWorkflow:
+        """Create Vector RAG create resources workflow with injected dependencies."""
+        logger.info("Creating Vector RAG create resources workflow")
+
+        qdrant_url = config.get("qdrant_url", "http://localhost:6333")
+        vector_size = config.get("vector_size", 768)
+        distance = config.get("distance", "cosine")
+
+        workflow = VectorRagCreateRagResourcesWorkflow(
+            qdrant_url=qdrant_url,
+            vector_size=vector_size,
+            distance=distance,
+        )
+        logger.info("Vector RAG create resources workflow created successfully")
+        return workflow
+
+    @staticmethod
+    def _create_vector_remove_rag_resources_workflow(
+        config: dict,
+    ) -> VectorRagRemoveRagResourcesWorkflow:
+        """Create Vector RAG remove resources workflow with injected dependencies."""
+        logger.info("Creating Vector RAG remove resources workflow")
+
+        qdrant_url = config.get("qdrant_url", "http://localhost:6333")
+
+        workflow = VectorRagRemoveRagResourcesWorkflow(qdrant_url=qdrant_url)
+        logger.info("Vector RAG remove resources workflow created successfully")
+        return workflow
+
+    @staticmethod
+    def _create_graph_add_document_workflow(config: dict) -> GraphRagConsumeWorkflow:
+        """Create Graph RAG add document workflow (placeholder)."""
+        logger.warning("Graph RAG add document workflow not yet implemented")
+        return GraphRagConsumeWorkflow()
+
+    @staticmethod
     def _create_graph_consume_workflow(config: dict) -> GraphRagConsumeWorkflow:
         """Create Graph RAG consume workflow (placeholder)."""
         logger.warning("Graph RAG consume workflow not yet implemented")
@@ -171,6 +318,24 @@ class WorkflowFactory:
         """Create Graph RAG query workflow (placeholder)."""
         logger.warning("Graph RAG query workflow not yet implemented")
         return GraphRagQueryWorkflow()
+
+    @staticmethod
+    def _create_graph_remove_document_workflow(config: dict) -> GraphRagConsumeWorkflow:
+        """Create Graph RAG remove document workflow (placeholder)."""
+        logger.warning("Graph RAG remove document workflow not yet implemented")
+        return GraphRagConsumeWorkflow()
+
+    @staticmethod
+    def _create_graph_create_rag_resources_workflow(config: dict) -> GraphRagConsumeWorkflow:
+        """Create Graph RAG create resources workflow (placeholder)."""
+        logger.warning("Graph RAG create resources workflow not yet implemented")
+        return GraphRagConsumeWorkflow()
+
+    @staticmethod
+    def _create_graph_remove_rag_resources_workflow(config: dict) -> GraphRagConsumeWorkflow:
+        """Create Graph RAG remove resources workflow (placeholder)."""
+        logger.warning("Graph RAG remove resources workflow not yet implemented")
+        return GraphRagConsumeWorkflow()
 
 
 def create_default_vector_rag_config() -> dict:

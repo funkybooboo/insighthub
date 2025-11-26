@@ -1,4 +1,4 @@
-"""Document processing worker that executes consume workflows."""
+"""Add document worker that executes add document workflows."""
 
 from io import BytesIO
 
@@ -7,44 +7,47 @@ from flask_socketio import SocketIO
 from src.infrastructure.events import broadcast_document_status
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
-from src.infrastructure.rag.workflows import ConsumeWorkflow
+from src.infrastructure.rag.workflows.factory import WorkflowFactory
 from src.infrastructure.repositories.documents import DocumentRepository
+from src.infrastructure.repositories.workspaces import WorkspaceRepository
 from src.infrastructure.storage import BlobStorage
 from src.workers.tasks import run_async
 
 logger = create_logger(__name__)
 
 
-class DocumentProcessor:
+class AddDocumentWorker:
     """
-    Document processing worker that executes consume workflows in background threads.
+    Document processing worker that executes add document workflows in background threads.
 
-    The processor:
+    The worker:
     1. Receives document processing requests
-    2. Downloads document content from blob storage
-    3. Executes the appropriate consume workflow (Vector RAG, Graph RAG, etc.)
-    4. Updates status in database and broadcasts via WebSocket
+    2. Looks up workspace RAG configuration
+    3. Dynamically creates appropriate workflow using WorkflowFactory
+    4. Downloads document content from blob storage
+    5. Executes the workflow (Vector RAG, Graph RAG, etc.)
+    6. Updates status in database and broadcasts via WebSocket
     """
 
     def __init__(
         self,
-        repository: DocumentRepository,
+        document_repository: DocumentRepository,
+        workspace_repository: WorkspaceRepository,
         blob_storage: BlobStorage,
         socketio: SocketIO,
-        consume_workflow: ConsumeWorkflow,
     ):
-        """Initialize the document processor.
+        """Initialize the add document worker.
 
         Args:
-            repository: Document repository for database operations
+            document_repository: Document repository for database operations
+            workspace_repository: Workspace repository for RAG config lookup
             blob_storage: Blob storage for file operations
             socketio: Socket.IO instance for real-time updates
-            consume_workflow: Workflow implementation to execute (injected)
         """
-        self.repository = repository
+        self.document_repository = document_repository
+        self.workspace_repository = workspace_repository
         self.blob_storage = blob_storage
         self.socketio = socketio
-        self.consume_workflow = consume_workflow
 
     def start_processing(self, document: Document, user_id: int) -> None:
         """Start document processing in a background thread.
@@ -59,7 +62,7 @@ class DocumentProcessor:
         run_async(self._process_document_pipeline, document, user_id)
 
     def _process_document_pipeline(self, document: Document, user_id: int) -> None:
-        """Execute the consume workflow pipeline.
+        """Execute the add document workflow pipeline.
 
         Args:
             document: The document to process
@@ -75,6 +78,18 @@ class DocumentProcessor:
                 "Starting document processing",
             )
 
+            # Get workspace RAG configuration
+            logger.info(f"Looking up workspace {document.workspace_id} RAG config")
+            workspace = self.workspace_repository.get_by_id(document.workspace_id)
+            if not workspace:
+                raise Exception(f"Workspace {document.workspace_id} not found")
+
+            rag_config = self._build_rag_config(workspace)
+            logger.info(f"Using RAG type: {rag_config.get('rag_type')}")
+
+            # Create workflow dynamically based on workspace RAG config
+            add_document_workflow = WorkflowFactory.create_add_document_workflow(rag_config)
+
             # Download document from blob storage
             logger.info(f"Downloading document {document.id} from blob storage")
             try:
@@ -82,9 +97,9 @@ class DocumentProcessor:
             except Exception as e:
                 raise Exception(f"Failed to download document: {e}") from e
 
-            # Execute the consume workflow
-            logger.info(f"Executing consume workflow for document {document.id}")
-            result = self.consume_workflow.execute(
+            # Execute the add document workflow
+            logger.info(f"Executing add document workflow for document {document.id}")
+            result = add_document_workflow.execute(
                 raw_document=BytesIO(file_content),
                 document_id=str(document.id),
                 workspace_id=str(document.workspace_id),
@@ -142,6 +157,36 @@ class DocumentProcessor:
             # Clean up any partial data
             self._cleanup_failed_processing(document)
 
+    def _build_rag_config(self, workspace: object) -> dict:
+        """Build RAG configuration dictionary from workspace model.
+
+        Args:
+            workspace: Workspace model with RAG configuration
+
+        Returns:
+            RAG configuration dictionary for WorkflowFactory
+        """
+        # Extract RAG config from workspace model
+        # Default to vector RAG if not specified
+        return {
+            "rag_type": getattr(workspace, "rag_type", "vector"),
+            "parser_type": getattr(workspace, "parser_type", "text"),
+            "chunker_type": getattr(workspace, "chunker_type", "sentence"),
+            "chunker_config": getattr(workspace, "chunker_config", {"chunk_size": 500, "overlap": 50}),
+            "embedder_type": getattr(workspace, "embedder_type", "ollama"),
+            "embedder_config": getattr(workspace, "embedder_config", {
+                "base_url": "http://localhost:11434",
+                "model_name": "nomic-embed-text",
+            }),
+            "vector_store_type": getattr(workspace, "vector_store_type", "qdrant"),
+            "vector_store_config": getattr(workspace, "vector_store_config", {
+                "host": "localhost",
+                "port": 6333,
+                "collection_name": f"workspace_{workspace.id}",
+            }),
+            "enable_reranking": getattr(workspace, "enable_reranking", False),
+        }
+
     def _update_status(
         self,
         document_id: int,
@@ -165,11 +210,11 @@ class DocumentProcessor:
         """
         try:
             # Update in database
-            self.repository.update(document_id, processing_status=status)
+            self.document_repository.update(document_id, processing_status=status)
             if error:
-                self.repository.update(document_id, processing_error=error)
+                self.document_repository.update(document_id, processing_error=error)
             if chunk_count is not None:
-                self.repository.update(document_id, chunk_count=chunk_count)
+                self.document_repository.update(document_id, chunk_count=chunk_count)
 
             # Broadcast via WebSocket
             status_data = {
@@ -205,36 +250,38 @@ class DocumentProcessor:
             logger.warning(f"Failed to cleanup document {document.id}: {e}")
 
 
-# Global processor instance (will be initialized in context)
-_document_processor: DocumentProcessor | None = None
+# Global worker instance (will be initialized in context)
+_add_document_worker: AddDocumentWorker | None = None
 
 
-def get_document_processor() -> DocumentProcessor:
-    """Get the global document processor instance."""
-    if _document_processor is None:
+def get_add_document_worker() -> AddDocumentWorker:
+    """Get the global add document worker instance."""
+    if _add_document_worker is None:
         raise RuntimeError(
-            "Document processor not initialized. Call initialize_document_processor() first."
+            "Add document worker not initialized. Call initialize_add_document_worker() first."
         )
-    return _document_processor
+    return _add_document_worker
 
 
-def initialize_document_processor(
-    repository: DocumentRepository,
+def initialize_add_document_worker(
+    document_repository: DocumentRepository,
+    workspace_repository: WorkspaceRepository,
     blob_storage: BlobStorage,
     socketio: SocketIO,
-    consume_workflow: ConsumeWorkflow,
-) -> DocumentProcessor:
-    """Initialize the global document processor instance.
+) -> AddDocumentWorker:
+    """Initialize the global add document worker instance.
 
     Args:
-        repository: Document repository
+        document_repository: Document repository
+        workspace_repository: Workspace repository for RAG config lookup
         blob_storage: Blob storage
         socketio: Socket.IO instance
-        consume_workflow: Consume workflow implementation (Vector RAG, Graph RAG, etc.)
 
     Returns:
-        The initialized document processor
+        The initialized add document worker
     """
-    global _document_processor
-    _document_processor = DocumentProcessor(repository, blob_storage, socketio, consume_workflow)
-    return _document_processor
+    global _add_document_worker
+    _add_document_worker = AddDocumentWorker(
+        document_repository, workspace_repository, blob_storage, socketio
+    )
+    return _add_document_worker

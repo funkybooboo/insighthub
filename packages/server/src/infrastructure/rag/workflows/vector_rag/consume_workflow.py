@@ -1,4 +1,4 @@
-"""Vector RAG consume workflow implementation.
+"""Vector RAG add document workflow implementation.
 
 This workflow orchestrates the full Vector RAG document ingestion process:
 1. Parse document from binary
@@ -14,14 +14,17 @@ from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunk
 from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_store import VectorStore
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow, ConsumeWorkflowError
+from src.infrastructure.rag.workflows.add_document_workflow import (
+    AddDocumentWorkflow,
+    AddDocumentWorkflowError,
+)
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.result import Err, Ok, Result
 
 logger = create_logger(__name__)
 
 
-class VectorRagConsumeWorkflow(ConsumeWorkflow):
+class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
     """
     Orchestrates document consumption: parse -> chunk -> embed -> index.
 
@@ -56,7 +59,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
         document_id: str,
         workspace_id: str,
         metadata: MetadataDict | None = None,
-    ) -> Result[int, ConsumeWorkflowError]:
+    ) -> Result[int, AddDocumentWorkflowError]:
         """
         Execute the full consume workflow.
 
@@ -75,7 +78,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
 
         if parse_result.is_err():
             return Err(
-                ConsumeWorkflowError(
+                AddDocumentWorkflowError(
                     f"Failed to parse document: {parse_result.err()}",
                     step="parse",
                 )
@@ -95,7 +98,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
             )
         except Exception as e:
             return Err(
-                ConsumeWorkflowError(
+                AddDocumentWorkflowError(
                     f"Failed to chunk document: {e}",
                     step="chunk",
                 )
@@ -113,7 +116,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
             logger.info(f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings")
         except Exception as e:
             return Err(
-                ConsumeWorkflowError(
+                AddDocumentWorkflowError(
                     f"Failed to embed chunks: {e}",
                     step="embed",
                 )
@@ -147,7 +150,7 @@ class VectorRagConsumeWorkflow(ConsumeWorkflow):
 
         except Exception as e:
             return Err(
-                ConsumeWorkflowError(
+                AddDocumentWorkflowError(
                     f"Failed to index chunks: {e}",
                     step="index",
                 )

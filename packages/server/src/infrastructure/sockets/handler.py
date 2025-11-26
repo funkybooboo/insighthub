@@ -1,6 +1,6 @@
 """WebSocket handler for real-time communication."""
 
-from typing import Any, Dict
+from typing import Any
 
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
@@ -32,7 +32,7 @@ class SocketHandler:
             logger.info("Client disconnected")
 
         @self.socketio.on("join")
-        def handle_join(data: Dict[str, Any]) -> None:
+        def handle_join(data: dict[str, str]) -> None:
             """Join a room (e.g., for specific chats sessions)."""
             room = data.get("room")
             if room:
@@ -41,7 +41,7 @@ class SocketHandler:
                 emit("joined", {"room": room})
 
         @self.socketio.on("leave")
-        def handle_leave(data: Dict[str, Any]) -> None:
+        def handle_leave(data: dict[str, str]) -> None:
             """Leave a room."""
             room = data.get("room")
             if room:
@@ -49,7 +49,7 @@ class SocketHandler:
                 logger.info(f"Client left room: {room}")
                 emit("left", {"room": room})
 
-    def emit_to_room(self, room: str, event: str, data: Any) -> None:
+    def emit_to_room(self, room: str, event: str, data: dict[str, object] | str | int | float | bool | None) -> None:
         """
         Emit event to all clients in a room.
 
@@ -58,9 +58,9 @@ class SocketHandler:
             event: Event name
             data: Data to send
         """
-        self.socketio.emit(event, data, room=room)
+        self.socketio.emit(event, data, to=room, namespace="/")
 
-    def emit_to_all(self, event: str, data: Any) -> None:
+    def emit_to_all(self, event: str, data: dict[str, object] | str | int | float | bool | None) -> None:
         """
         Emit event to all connected clients.
 
@@ -68,4 +68,4 @@ class SocketHandler:
             event: Event name
             data: Data to send
         """
-        self.socketio.emit(event, data, broadcast=True)
+        self.socketio.emit(event, data)

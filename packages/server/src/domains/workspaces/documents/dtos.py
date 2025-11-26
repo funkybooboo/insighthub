@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import BinaryIO
 
+from src.infrastructure.models import Document
+
 
 @dataclass
 class DocumentUploadRequest:
@@ -39,6 +41,15 @@ class DocumentResponse:
             "processing_error": self.processing_error,
             "created_at": self.created_at.isoformat(),
         }
+
+
+@dataclass
+class DocumentUploadResult:
+    """Result data for document upload operation."""
+
+    document: Document
+    text_length: int
+    is_duplicate: bool
 
 
 @dataclass

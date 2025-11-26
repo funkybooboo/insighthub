@@ -41,20 +41,22 @@ export interface ChatCancelledData {
 export interface DocumentStatusData {
     document_id: number;
     workspace_id: number;
-    status: 'pending' | 'processing' | 'ready' | 'failed';
+    status: 'pending' | 'processing' | 'ready' | 'failed' | 'deleting' | 'deleted';
     message?: string;
     error?: string;
     progress?: number;
-    timestamp: string;
+    timestamp?: string;
+    filename?: string;
+    chunk_count?: number;
 }
 
 export interface WorkspaceStatusData {
     workspace_id: number;
     user_id: number;
-    status: 'provisioning' | 'ready' | 'error';
+    status: 'provisioning' | 'ready' | 'failed' | 'deleting' | 'deleted';
     message?: string;
     error?: string;
-    timestamp: string;
+    timestamp?: string;
 }
 
 export interface SubscribedData {

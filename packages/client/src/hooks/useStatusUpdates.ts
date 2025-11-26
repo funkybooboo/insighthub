@@ -8,20 +8,22 @@ interface DocumentStatusUpdate {
     document_id: number;
     user_id: number;
     workspace_id: number | null;
-    status: 'pending' | 'processing' | 'ready' | 'failed';
+    status: 'pending' | 'parsing' | 'chunking' | 'embedding' | 'indexing' | 'ready' | 'failed' | 'processing' | 'deleting' | 'deleted';
     error: string | null;
     chunk_count: number | null;
     filename: string;
-    metadata: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    progress?: number;
+    message?: string;
 }
 
 interface WorkspaceStatusUpdate {
     workspace_id: number;
     user_id: number;
-    status: 'provisioning' | 'ready' | 'error';
+    status: 'provisioning' | 'ready' | 'failed' | 'deleting' | 'deleted';
     message: string | null;
-    name: string;
-    metadata: Record<string, unknown>;
+    name?: string;
+    metadata?: Record<string, unknown>;
 }
 
 /**

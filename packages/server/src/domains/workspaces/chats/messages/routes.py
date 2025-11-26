@@ -24,12 +24,20 @@ def list_messages(workspace_id: str, session_id: str) -> tuple[Response, int]:
     user = get_current_user()
     service = g.app_context.chat_message_service
 
-    # TODO: Validate session access
-    messages = service.get_session_messages(int(session_id))
+    # Parse pagination parameters
+    skip = int(request.args.get("skip", 0))
+    limit = int(request.args.get("limit", 50))
+
+    # Validate session access
+    session_service = g.app_context.chat_session_service
+    if not session_service.validate_session_access(int(session_id), user.id):
+        return jsonify({"error": "No access to session"}), 403
+
+    messages, total = service.get_session_messages(int(session_id), skip, limit)
     response = MessageListResponse(
         messages=[MessageMapper.message_to_dto(msg) for msg in messages],
         count=len(messages),
-        total=len(messages),  # TODO: Add pagination
+        total=total,
     )
 
     return jsonify(response.to_dict()), 200
@@ -40,6 +48,12 @@ def list_messages(workspace_id: str, session_id: str) -> tuple[Response, int]:
 def create_message(workspace_id: str, session_id: str) -> tuple[Response, int]:
     """Create a new message in a chats session."""
     user = get_current_user()
+    session_service = g.app_context.chat_session_service
+
+    # Validate session access
+    if not session_service.validate_session_access(int(session_id), user.id):
+        return jsonify({"error": "No access to session"}), 403
+
     service = g.app_context.chat_message_service
 
     data = request.get_json() or {}
@@ -54,24 +68,17 @@ def create_message(workspace_id: str, session_id: str) -> tuple[Response, int]:
         content=request_dto.content,
     )
 
-    # TODO: Launch ChatQueryWorker (if role is 'users')
-    # Worker should:
-    # 1. Get workspace RAG configuration
-    # 2. Execute QueryWorkflow to retrieve relevant context
-    # 3. Generate LLM response with context
-    # 4. Stream response to client via WebSocket
-    # 5. Save assistant message to database
-    #
-    # Example implementation:
-    #    if request_dto.role == "users":
-    #        from src.workers import get_chat_query_worker
-    #        query_worker = get_chat_query_worker()
-    #        query_worker.process_query(
-    #            session_id=int(session_id),
-    #            workspace_id=int(workspace_id),
-    #            query_text=request_dto.content,
-    #            user_id=user.id
-    #        )
+    # Launch ChatQueryWorker for user messages (triggers RAG query and LLM response)
+    if request_dto.role == "user":
+        from src.workers import get_chat_query_worker
+
+        query_worker = get_chat_query_worker()
+        query_worker.process_query(
+            session_id=int(session_id),
+            workspace_id=int(workspace_id),
+            query_text=request_dto.content,
+            user_id=user.id,
+        )
 
     response = MessageMapper.message_to_dto(message)
     return jsonify(response.to_dict()), 201
@@ -97,9 +104,13 @@ def get_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Re
 def delete_message(workspace_id: str, session_id: str, message_id: str) -> tuple[Response, int]:
     """Delete a message."""
     user = get_current_user()
-    service = g.app_context.chat_message_service
+    session_service = g.app_context.chat_session_service
 
-    # TODO: Validate session access
+    # Validate session access
+    if not session_service.validate_session_access(int(session_id), user.id):
+        return jsonify({"error": "No access to session"}), 403
+
+    service = g.app_context.chat_message_service
     success = service.delete_message(int(message_id))
     if not success:
         return jsonify({"error": "Message not found"}), 404

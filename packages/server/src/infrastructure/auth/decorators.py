@@ -1,14 +1,14 @@
 """Authentication decorators for Flask routes."""
 
 from functools import wraps
-from typing import Any, Callable
+from typing import Callable
 
 from flask import Response, g, jsonify, request
 
 from src.infrastructure.auth.token import decode_access_token
 
 
-def require_auth(f: Callable[..., Any]) -> Callable[..., Any]:
+def require_auth(f: Callable[..., object]) -> Callable[..., object]:
     """
     Decorator to require authentication for a route.
 
@@ -19,7 +19,7 @@ def require_auth(f: Callable[..., Any]) -> Callable[..., Any]:
     """
 
     @wraps(f)
-    def decorated_function(*args: Any, **kwargs: Any) -> Response | Any:
+    def decorated_function(*args: object, **kwargs: object) -> object:
         auth_header = request.headers.get("Authorization")
 
         if not auth_header:

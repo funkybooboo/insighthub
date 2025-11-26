@@ -38,11 +38,18 @@ class AppContext:
         session_repo = create_chat_session_repository()
         message_repo = create_chat_message_repository()
 
-        from src.domains.workspaces.chat.messages.service import ChatMessageService
-        from src.domains.workspaces.chat.sessions.service import ChatSessionService
+        from src.domains.workspaces.chats.messages.service import ChatMessageService
+        from src.domains.workspaces.chats.sessions.service import ChatSessionService
 
         self.chat_session_service = ChatSessionService(repository=session_repo)
         self.chat_message_service = ChatMessageService(repository=message_repo)
+
+        # Initialize infrastructure components first
+        self.cache = create_cache()
+        self.llm_provider = create_llm_provider(
+            provider_type="ollama", base_url="http://localhost:11434", model_name="llama3.2"
+        )
+        self.blob_storage = create_blob_storage(storage_type="filesystem")
 
         # Initialize workspace service (required)
         workspace_repo = create_workspace_repository()
@@ -54,25 +61,11 @@ class AppContext:
             repository=document_repo, blob_storage=self.blob_storage
         )
 
-        # Initialize document processor for background processing
-        # Note: socketio will be set later when the socket handler is initialized
-        from src.infrastructure.rag.workflows.factory import (
-            WorkflowFactory,
-            create_default_vector_rag_config,
-        )
-        from src.workers.document_processing_worker import initialize_document_processor
-
-        # Create workflow using factory with default config
-        # TODO: Get RAG config from workspace settings instead of default
-        rag_config = create_default_vector_rag_config()
-        consume_workflow = WorkflowFactory.create_consume_workflow(rag_config)
-
-        self.document_processor = initialize_document_processor(
-            repository=document_repo,
-            blob_storage=self.blob_storage,
-            socketio=None,  # Will be updated when socketio becomes available
-            consume_workflow=consume_workflow,
-        )
+        # Store repositories for worker initialization
+        self.document_repo = document_repo
+        self.workspace_repo = workspace_repo
+        self.session_repo = session_repo
+        self.message_repo = message_repo
 
         # Initialize default RAG config service (required)
         default_rag_config_repo = create_default_rag_config_repository()
@@ -80,9 +73,54 @@ class AppContext:
             repository=default_rag_config_repo
         )
 
-        # Initialize infrastructure components
-        self.cache = create_cache()
-        self.llm_provider = create_llm_provider(
-            provider_type="ollama", base_url="http://localhost:11434", model_name="llama3.2"
+    def initialize_workers(self, socketio) -> None:
+        """
+        Initialize all background workers with SocketIO instance.
+
+        This should be called after SocketIO is created in the Flask app.
+
+        Args:
+            socketio: Flask-SocketIO instance for real-time updates
+        """
+        from src.workers import (
+            initialize_add_document_worker,
+            initialize_chat_query_worker,
+            initialize_remove_document_worker,
+            initialize_remove_workspace_worker,
+            initialize_create_workspace_worker,
         )
-        self.blob_storage = create_blob_storage(storage_type="filesystem")
+
+        # Initialize all workers
+        initialize_add_document_worker(
+            document_repository=self.document_repo,
+            workspace_repository=self.workspace_repo,
+            blob_storage=self.blob_storage,
+            socketio=socketio,
+        )
+
+        initialize_remove_document_worker(
+            document_repository=self.document_repo,
+            workspace_repository=self.workspace_repo,
+            blob_storage=self.blob_storage,
+            socketio=socketio,
+        )
+
+        initialize_create_workspace_worker(
+            repository=self.workspace_repo,
+            socketio=socketio,
+        )
+
+        initialize_remove_workspace_worker(
+            workspace_repository=self.workspace_repo,
+            document_repository=self.document_repo,
+            blob_storage=self.blob_storage,
+            socketio=socketio,
+        )
+
+        initialize_chat_query_worker(
+            message_repository=self.message_repo,
+            session_repository=self.session_repo,
+            workspace_repository=self.workspace_repo,
+            socketio=socketio,
+            llm_provider=self.llm_provider,
+        )

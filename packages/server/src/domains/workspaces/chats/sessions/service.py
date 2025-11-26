@@ -62,8 +62,14 @@ class ChatSessionService:
             return session
         return None
 
-    def list_workspace_sessions(self, workspace_id: int, user_id: int) -> list[ChatSession]:
+    def list_workspace_sessions(self, workspace_id: int, user_id: int, skip: int = 0, limit: int = 50) -> tuple[list[ChatSession], int]:
         """List sessions for a workspace (filtered by users access)."""
-        # For now, return all sessions in workspace
-        # TODO: Add proper workspace filtering
-        return self.repository.get_by_workspace(workspace_id)
+        # Get all sessions in workspace and filter by user
+        all_sessions = self.repository.get_by_workspace(workspace_id)
+        user_sessions = [s for s in all_sessions if s.user_id == user_id]
+
+        # Apply pagination
+        paginated_sessions = user_sessions[skip:skip + limit]
+        total = len(user_sessions)
+
+        return paginated_sessions, total

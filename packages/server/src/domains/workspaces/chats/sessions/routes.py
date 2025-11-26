@@ -22,11 +22,15 @@ def list_sessions(workspace_id: str) -> tuple[Response, int]:
     user = get_current_user()
     service = g.app_context.chat_session_service
 
-    sessions = service.list_workspace_sessions(int(workspace_id), user.id)
+    # Parse pagination parameters
+    skip = int(request.args.get("skip", 0))
+    limit = int(request.args.get("limit", 50))
+
+    sessions, total = service.list_workspace_sessions(int(workspace_id), user.id, skip, limit)
     response = SessionListResponse(
         sessions=[SessionMapper.session_to_dto(s) for s in sessions],
         count=len(sessions),
-        total=len(sessions),  # TODO: Add pagination
+        total=total,
     )
 
     return jsonify(response.to_dict()), 200

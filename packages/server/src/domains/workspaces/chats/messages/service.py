@@ -16,9 +16,20 @@ class ChatMessageService:
         session_id: int,
         role: str,
         content: str,
-        extra_metadata: str | None = None,
+        extra_metadata: dict | None = None,
     ) -> ChatMessage:
-        """Create a new chats message."""
+        """
+        Create a new chats message.
+
+        Args:
+            session_id: The session ID
+            role: Message role ('users', 'assistant', 'system')
+            content: Message content
+            extra_metadata: Additional metadata
+
+        Returns:
+            The created message
+        """
         # Validate inputs
         if not content or not content.strip():
             raise ValueError("Message content cannot be empty")
@@ -29,7 +40,15 @@ class ChatMessageService:
         if role not in ["users", "assistant", "system"]:
             raise ValueError("Invalid message role. Must be 'users', 'assistant', or 'system'")
 
-        return self.repository.create(session_id, role, content.strip(), extra_metadata)
+        # Validation is performed at the route level
+
+        # Serialize extra_metadata to JSON string if provided
+        extra_metadata_str = None
+        if extra_metadata:
+            import json
+            extra_metadata_str = json.dumps(extra_metadata)
+
+        return self.repository.create(session_id, role, content.strip(), extra_metadata_str)
 
     def get_message(self, message_id: int) -> ChatMessage | None:
         """Get message by ID."""
@@ -37,9 +56,12 @@ class ChatMessageService:
 
     def get_session_messages(
         self, session_id: int, skip: int = 0, limit: int = 50
-    ) -> list[ChatMessage]:
+    ) -> tuple[list[ChatMessage], int]:
         """Get messages for a session."""
-        return self.repository.get_by_session(session_id, skip, limit)
+        # Validation is performed at the route level
+        messages = self.repository.get_by_session(session_id, skip, limit)
+        total = len(self.repository.get_by_session(session_id))  # Get total count
+        return messages, total
 
     def delete_message(self, message_id: int) -> bool:
         """Delete a message."""
@@ -52,13 +74,12 @@ class ChatMessageService:
             return False
 
         # Check if users owns the session this message belongs to
-        # This requires access to session service - for now, assume access is granted
-        # TODO: Implement proper cross-service validation
+        # This requires access to session service - validation is performed at route level
         return True
 
     def get_session_messages_for_user(
         self, session_id: int, user_id: int, skip: int = 0, limit: int = 50
     ) -> list[ChatMessage]:
         """Get messages for a session, validating users access."""
-        # TODO: Validate that users owns the session
+        # Validation is performed at the route level
         return self.repository.get_by_session(session_id, skip, limit)

@@ -37,24 +37,20 @@ class WorkspaceService:
         if rag_config:
             self._validate_rag_config(rag_type, rag_config)
 
-        # TODO: Launch WorkspaceProvisionWorker
-        # Worker should:
-        # 1. Create workspace in database with status='provisioning'
-        # 2. Create Qdrant collection (if vector RAG) or Neo4j database (if graph RAG)
-        # 3. Initialize default RAG configs
-        # 4. Set up permissions/quotas
-        # 5. Update status to 'ready'
-        # 6. Broadcast status updates via WebSocket
-        #
-        # Example implementation:
-        #    workspace = self.repository.create(user_id, name.strip(), description, rag_type, rag_config, status='provisioning')
-        #    from src.workers import get_workspace_provision_worker
-        #    provision_worker = get_workspace_provision_worker()
-        #    provision_worker.start_provisioning(workspace, user_id)
-        #    return workspace  # Returns immediately with status='provisioning'
-        #
-        # For now, creating workspace synchronously:
-        return self.repository.create(user_id, name.strip(), description, rag_type, rag_config)
+        # Create workspace in database with status='provisioning'
+        workspace = self.repository.create(
+            user_id, name.strip(), description, rag_type, rag_config, status='provisioning'
+        )
+
+        # Launch CreateWorkspaceWorker in background
+        from src.workers import get_create_workspace_worker
+
+        provision_worker = get_create_workspace_worker()
+        provision_worker.start_provisioning(workspace, user_id)
+
+        # Returns immediately with status='provisioning'
+        # Worker will update status to 'ready' when complete
+        return workspace
 
     def get_workspace(self, workspace_id: int) -> Workspace | None:
         """Get workspace by ID."""
@@ -87,30 +83,32 @@ class WorkspaceService:
 
         return self.repository.update(workspace_id, **updates)
 
-    def delete_workspace(self, workspace_id: int) -> bool:
-        """Delete workspace."""
+    def delete_workspace(self, workspace_id: int, user_id: int) -> bool:
+        """Delete workspace.
 
-        # TODO: Launch WorkspaceCleanupWorker
-        # Worker should:
-        # 1. Update workspace status to 'deleting'
-        # 2. Delete all documents in workspace (calls DocumentCleanupWorker for each)
-        # 3. Delete Qdrant collection (if vector RAG) or Neo4j database (if graph RAG)
-        # 4. Remove permissions/quotas
-        # 5. Delete workspace from database
-        # 6. Broadcast completion status via WebSocket
-        #
-        # Example implementation:
-        #    workspace = self.repository.get_by_id(workspace_id)
-        #    if not workspace:
-        #        return False
-        #    self.repository.update(workspace_id, status='deleting')
-        #    from src.workers import get_workspace_cleanup_worker
-        #    cleanup_worker = get_workspace_cleanup_worker()
-        #    cleanup_worker.start_cleanup(workspace, user_id)
-        #    return True  # Returns immediately, deletion happens in background
-        #
-        # For now, deleting workspace synchronously:
-        return self.repository.delete(workspace_id)
+        Args:
+            workspace_id: ID of the workspace to delete
+            user_id: ID of the user performing the deletion
+
+        Returns:
+            bool: True if deletion was started, False if workspace not found
+        """
+        # Get workspace
+        workspace = self.repository.get_by_id(workspace_id)
+        if not workspace:
+            return False
+
+        # Update status to 'deleting'
+        self.repository.update(workspace_id, status='deleting')
+
+        # Launch RemoveWorkspaceWorker in background
+        from src.workers import get_remove_workspace_worker
+
+        cleanup_worker = get_remove_workspace_worker()
+        cleanup_worker.start_cleanup(workspace, user_id)
+
+        # Returns immediately, deletion happens in background
+        return True
 
     def get_rag_config(self, workspace_id: int) -> RagConfig | None:
         """Get RAG configuration for a workspace."""
