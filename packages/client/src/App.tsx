@@ -9,18 +9,14 @@ import WorkspaceColumn from './components/workspace/WorkspaceColumn';
 import ChatSessionList from './components/chat/ChatSessionList';
 import DocumentManager from './components/upload/DocumentManager';
 import Layout from './components/shared/Layout';
-import NotificationContainer from './components/shared/NotificationContainer';
 import SettingsPage from './pages/SettingsPage';
 import WorkspacesPage from './pages/WorkspacesPage';
 import WorkspaceDetailPage from './pages/WorkspaceDetailPage';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { useNotificationListeners } from './hooks/useNotificationListeners';
 import { setTheme } from './store/slices/themeSlice';
 import { useStatusUpdates } from './hooks/useStatusUpdates';
 import type { RootState } from './store';
 import { selectActiveWorkspaceId } from './store/slices/workspaceSlice';
 
-// Inner App component that uses notification hooks
 function AppContent() {
     const dispatch = useDispatch();
     const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -30,9 +26,6 @@ function AppContent() {
 
     // Subscribe to real-time status updates when authenticated
     useStatusUpdates();
-
-    // Listen for socket events and create notifications
-    useNotificationListeners();
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -92,7 +85,6 @@ function AppContent() {
                     />
                 </Routes>
             </BrowserRouter>
-            <NotificationContainer />
             {isAuthenticated && (
                 <SettingsPage isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
             )}
@@ -100,13 +92,8 @@ function AppContent() {
     );
 }
 
-// Main App component with NotificationProvider wrapper
 function App() {
-    return (
-        <NotificationProvider>
-            <AppContent />
-        </NotificationProvider>
-    );
+    return <AppContent />;
 }
 
 export default App;

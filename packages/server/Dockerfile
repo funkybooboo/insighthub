@@ -15,8 +15,8 @@ WORKDIR /app
 # Copy dependency files
 COPY pyproject.toml poetry.lock ./
 
-# Install dependencies
-RUN poetry install --only=main --no-root
+# Install dependencies (including dev for hot reload)
+RUN poetry install --no-root
 
 # Copy application code
 COPY src/ ./src/
@@ -29,5 +29,5 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Default command
+# Default command (can be overridden by docker-compose)
 CMD ["/usr/local/bin/poetry", "run", "python", "-m", "src.main"]

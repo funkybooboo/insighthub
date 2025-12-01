@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
     fetchDefaultRagConfig,
@@ -62,15 +62,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+    // Fetch config when modal opens. Reset transient flags when opening.
     useEffect(() => {
         if (isOpen) {
             dispatch(fetchDefaultRagConfig());
+            setHasUnsavedChanges(false); // start fresh each open
+            setSaveSuccess(false);
         }
     }, [isOpen, dispatch]);
 
+    // when default config from store updates, sync local state
     useEffect(() => {
         if (defaultRagConfig) {
             setCurrentConfig(defaultRagConfig);
+            // don't force-unsave here — new data from server is the saved state
         }
     }, [defaultRagConfig]);
 
@@ -81,12 +86,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
         }
     }, [error]);
 
+    // Generic function that child components can call to mark the page as changed
+    const markUnsaved = useCallback(() => {
+        setSaveSuccess(false);
+        setHasUnsavedChanges(true);
+    }, []);
+
     const handleConfigChange = (newConfig: Partial<RagConfig>) => {
         setCurrentConfig(newConfig);
         setSaveSuccess(false); // Reset success message on change
         setHasUnsavedChanges(true); // Mark as having unsaved changes
     };
 
+    // When saving, we only have an action for default RAG config here.
+    // If you have other save endpoints, call them here as well.
     const handleSave = async () => {
         if (error) {
             dispatch(clearUserSettingsError());
@@ -111,6 +124,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
         setSaveSuccess(false);
         setHasUnsavedChanges(false); // Reset unsaved changes flag
         dispatch(clearUserSettingsError());
+        // Note: if child components manage internal state, add optional reset callbacks
+        // to those children and call them here (not done because child code not present).
     };
 
     const handleClose = () => {
@@ -119,27 +134,49 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
     };
 
     return (
-        <Modal show={isOpen} onClose={handleClose} title="User Settings">
+        <Modal
+            show={isOpen}
+            onClose={handleClose}
+            title="User Settings"
+            topRight={
+                hasUnsavedChanges && (
+                    <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white shadow-md">
+                        <svg
+                            className="w-3 h-3 mr-1.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                clipRule="evenodd"
+                            />
+                        </svg>
+                        Unsaved Changes
+                    </span>
+                )
+            }
+        >
             <div className="space-y-6">
                 <section>
                     <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
                         Profile Information
                     </h2>
-                    <ProfileSettings user={user} />
+                    <ProfileSettings {...({ user, onChange: markUnsaved } as any)} />
                 </section>
 
                 <section>
                     <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
                         Change Password
                     </h2>
-                    <PasswordChangeForm />
+                    <PasswordChangeForm {...({ onChange: markUnsaved } as any)} />
                 </section>
 
                 <section>
                     <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
                         Theme Preferences
                     </h2>
-                    <ThemePreferences />
+                    <ThemePreferences {...({ onChange: markUnsaved } as any)} />
                 </section>
 
                 <section>
@@ -147,22 +184,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
                         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
                             Default RAG Configuration
                         </h2>
-                        {hasUnsavedChanges && (
-                            <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-500 text-white shadow-md animate-pulse">
-                                <svg
-                                    className="w-3 h-3 mr-1.5"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                                Unsaved Changes
-                            </span>
-                        )}
                     </div>
                     {isLoading && (
                         <p className="text-gray-600 dark:text-gray-400">
@@ -201,7 +222,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
                         <>
                             <RagConfigForm
                                 initialConfig={defaultRagConfig || {}}
-                                onConfigChange={handleConfigChange}
+                                // wrap existing config change handler and also mark unsaved globally
+                                onConfigChange={(cfg: Partial<RagConfig>) => {
+                                    handleConfigChange(cfg);
+                                    markUnsaved();
+                                }}
                                 readOnly={false}
                             />
 
@@ -213,7 +238,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ isOpen, onClose }) => {
                                     Cancel
                                 </button>
                                 <button
-                                    onClick={(e) => {
+                                    onClick={(_e) => {
                                         preventMovement();
                                         handleSave();
                                     }}

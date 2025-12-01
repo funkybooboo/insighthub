@@ -23,13 +23,9 @@ import socketService from '@/services/socket';
 import apiService from '@/services/api';
 
 import popSound from '@/assets/sounds/pop.mp3';
-import notificationSound from '@/assets/sounds/notification.mp3';
 
 const popAudio = new Audio(popSound);
 popAudio.volume = 0.2;
-
-const notificationAudio = new Audio(notificationSound);
-notificationAudio.volume = 0.2;
 
 const ChatBot = () => {
     const dispatch = useDispatch();
@@ -282,9 +278,6 @@ const ChatBot = () => {
             // Stop typing indicator
             setIsBotTyping(false);
             dispatch(setTyping(false));
-
-            // Play notification sound
-            notificationAudio.play();
         });
 
         socketService.onChatCancelled(() => {

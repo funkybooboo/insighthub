@@ -8,47 +8,78 @@ tasks:
     silent: true
 
   up:
-    desc: Start all services
+    desc: Start infrastructure services (databases, message queues, etc.)
     cmds:
-      - task down
       - docker compose up -d
 
   down:
-    desc: Stop all services, including dev and prod profiles
+    desc: Stop all running containers (preserves data in volumes)
     cmds:
-      # Stop and remove containers for ALL profiles
       - docker compose --profile dev down --remove-orphans
       - docker compose --profile prod down --remove-orphans
       - docker compose down --remove-orphans
       - docker network prune -f
 
   dev:
-    desc: Start development environment
+    desc: Start development environment with hot reload
     cmds:
-      - task down
+      - docker compose --profile dev up -d
+
+  dev-build:
+    desc: Rebuild and start development environment
+    cmds:
+      - docker compose --profile dev down
       - docker compose --profile dev up --build -d
 
   prod:
     desc: Start production environment
     cmds:
-      - task down
+      - docker compose --profile prod up -d
+
+  prod-build:
+    desc: Rebuild and start production environment
+    cmds:
+      - docker compose --profile prod down
       - docker compose --profile prod up --build -d
 
+  restart:
+    desc: Restart all running containers (preserves data)
+    cmds:
+      - docker compose restart
+
   logs:
-    desc: Show service logs
+    desc: Show service logs (use -f to follow)
     cmds:
       - docker compose logs -f
+
+  logs-server:
+    desc: Show server logs
+    cmds:
+      - docker compose logs -f server-dev server-prod
+
+  logs-client:
+    desc: Show client logs
+    cmds:
+      - docker compose logs -f client-dev client-prod
 
   ps:
     desc: Show service status
     cmds:
-      - docker compose ps
+      - docker compose ps -a
 
   clean:
-    desc: Remove containers and volumes (all profiles)
+    desc: DESTRUCTIVE - Remove all containers, volumes, and data
+    prompt: This will delete all data including databases. Continue?
     cmds:
       - docker compose --profile dev down -v --remove-orphans
       - docker compose --profile prod down -v --remove-orphans
-      - docker compose down --remove-orphans
+      - docker compose down -v --remove-orphans
       - docker network prune -f
-      - docker network prune -f
+      - echo "All containers and volumes removed"
+
+  reset:
+    desc: DESTRUCTIVE - Clean everything and start fresh with dev environment
+    prompt: This will delete all data and rebuild. Continue?
+    cmds:
+      - task clean
+      - task dev-build

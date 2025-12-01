@@ -49,6 +49,12 @@ const Layout: React.FC<LayoutProps> = ({
             <main className="flex-1 flex flex-col overflow-hidden">
                 <header className="flex-shrink-0 h-14 flex items-center justify-between px-6 bg-white dark:bg-gray-900 border-b border-gray-200/80 dark:border-gray-800">
                     <div className="flex-1">{headerContent}</div>
+                    <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+                        <img src="/logo.png" alt="InsightHub" className="h-7 w-7 object-contain" />
+                        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                            InsightHub
+                        </span>
+                    </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={openSettings}

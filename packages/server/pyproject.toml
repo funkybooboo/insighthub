@@ -37,6 +37,7 @@ mypy = "^1.8.0"
 ruff = "^0.6.0"
 types-requests = "^2.31.0"
 types-flask-cors = "^6.0.0.20250809"
+watchfiles = "^1.0.3"
 
 [build-system]
 requires = ["poetry-core"]

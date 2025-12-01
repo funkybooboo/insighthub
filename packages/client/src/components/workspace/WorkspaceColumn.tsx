@@ -145,16 +145,8 @@ const WorkspaceColumn: React.FC = () => {
 
     return (
         <div className="p-5 space-y-4">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="InsightHub" className="h-8 w-8 object-contain" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    InsightHub
-                </span>
-            </div>
-
             {/* New Workspace Button */}
-            <div className="border-b border-gray-200/80 dark:border-gray-800">
+            <div className="border-b border-gray-200/80 dark:border-gray-800 pb-4">
                 <button
                     onClick={() => setShowCreateModal(true)}
                     disabled={isAnyWorkspaceDeleting}

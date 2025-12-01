@@ -17,10 +17,6 @@ vi.mock('@/assets/sounds/pop.mp3', () => ({
     default: 'mock-pop-sound',
 }));
 
-vi.mock('@/assets/sounds/notification.mp3', () => ({
-    default: 'mock-notification-sound',
-}));
-
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi, beforeAll, afterAll } from 'vitest';

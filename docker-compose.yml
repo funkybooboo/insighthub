@@ -108,8 +108,13 @@ services:
       context: packages/server
       dockerfile: Dockerfile
     ports:
-      - '5000:8000'
+      - '5000:5000'
+    volumes:
+      - ./packages/server/src:/app/src:ro
+      - ./packages/server/migrations:/app/migrations:ro
+      - ./packages/shared/python/src:/app/shared:ro
     environment:
+      PORT: 5000
       DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
       OLLAMA_BASE_URL: http://ollama:11434
       QDRANT_URL: http://qdrant:6333
@@ -125,6 +130,9 @@ services:
       CHAT_SESSION_REPOSITORY_TYPE: postgres
       CHAT_MESSAGE_REPOSITORY_TYPE: postgres
       DEFAULT_RAG_CONFIG_REPOSITORY_TYPE: postgres
+      PYTHONDONTWRITEBYTECODE: 1
+      WATCHFILES_FORCE_POLLING: true
+    command: poetry run watchfiles "poetry run python -m src.main" src
     depends_on:
       postgres:
         condition: service_healthy
@@ -148,6 +156,9 @@ services:
       target: development
     ports:
       - '3000:5173'
+    volumes:
+      - ./packages/client:/app
+      - /app/node_modules
     environment:
       VITE_API_URL: http://localhost:5000
     depends_on:
