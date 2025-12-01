@@ -7,40 +7,17 @@ tasks:
       - task --list
     silent: true
 
+  # ==================== Infrastructure ====================
   up:
-    desc: Start infrastructure services (databases, message queues, etc.)
+    desc: Start infrastructure services (PostgreSQL, Ollama, Qdrant, Neo4j)
     cmds:
       - docker compose up -d
 
   down:
     desc: Stop all running containers (preserves data in volumes)
     cmds:
-      - docker compose --profile dev down --remove-orphans
-      - docker compose --profile prod down --remove-orphans
       - docker compose down --remove-orphans
       - docker network prune -f
-
-  dev:
-    desc: Start development environment with hot reload
-    cmds:
-      - docker compose --profile dev up -d
-
-  dev-build:
-    desc: Rebuild and start development environment
-    cmds:
-      - docker compose --profile dev down
-      - docker compose --profile dev up --build -d
-
-  prod:
-    desc: Start production environment
-    cmds:
-      - docker compose --profile prod up -d
-
-  prod-build:
-    desc: Rebuild and start production environment
-    cmds:
-      - docker compose --profile prod down
-      - docker compose --profile prod up --build -d
 
   restart:
     desc: Restart all running containers (preserves data)
@@ -52,34 +29,92 @@ tasks:
     cmds:
       - docker compose logs -f
 
-  logs-server:
-    desc: Show server logs
-    cmds:
-      - docker compose logs -f server-dev server-prod
-
-  logs-client:
-    desc: Show client logs
-    cmds:
-      - docker compose logs -f client-dev client-prod
-
   ps:
     desc: Show service status
     cmds:
       - docker compose ps -a
 
-  clean:
+  clean-docker:
     desc: DESTRUCTIVE - Remove all containers, volumes, and data
     prompt: This will delete all data including databases. Continue?
     cmds:
-      - docker compose --profile dev down -v --remove-orphans
-      - docker compose --profile prod down -v --remove-orphans
       - docker compose down -v --remove-orphans
       - docker network prune -f
       - echo "All containers and volumes removed"
 
-  reset:
-    desc: DESTRUCTIVE - Clean everything and start fresh with dev environment
-    prompt: This will delete all data and rebuild. Continue?
+  # ==================== Python Development ====================
+  install:
+    desc: Install Python dependencies using Poetry
     cmds:
-      - task clean
-      - task dev-build
+      - poetry install
+
+  lock:
+    desc: Lock Python dependencies
+    cmds:
+      - poetry lock
+
+  format:
+    desc: Format Python code with Black and isort
+    cmds:
+      - poetry run black src tests
+      - poetry run isort src tests
+
+  lint:
+    desc: Lint Python code with Ruff
+    cmds:
+      - poetry run ruff check src tests
+
+  type-check:
+    desc: Type-check Python code with mypy
+    cmds:
+      - poetry run mypy src tests
+
+  test:
+    desc: Run tests with pytest
+    cmds:
+      - poetry run pytest tests/ -v --cov=src
+
+  check:
+    desc: Run all quality checks (format, lint, type-check, test)
+    cmds:
+      - task: format
+      - task: lint
+      - task: type-check
+      - task: test
+
+  # ==================== Database ====================
+  migrate-up:
+    desc: Run database migrations
+    cmds:
+      - cd migrations && ./migrate.sh up
+
+  migrate-down:
+    desc: Rollback database migrations
+    cmds:
+      - cd migrations && ./migrate.sh down
+
+  migrate-docker:
+    desc: Run database migrations in Docker
+    cmds:
+      - cd migrations && ./migrate.sh up --docker
+
+  # ==================== Cleanup ====================
+  clean:
+    desc: Clean Python cache files and build artifacts
+    cmds:
+      - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name ".coverage" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+      - rm -rf dist/ build/ 2>/dev/null || true
+      - echo "Python cache and build artifacts removed"
+
+  clean-all:
+    desc: Clean everything (cache + Docker data)
+    prompt: This will delete all cache and Docker data. Continue?
+    cmds:
+      - task: clean
+      - task: clean-docker

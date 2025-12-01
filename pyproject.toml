@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "insighthub"
+version = "2.0.0"
+description = "Chat-centric RAG system with Vector and Graph implementations"
+authors = ["Nate Stott"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+psycopg2-binary = "^2.9.9"
+qdrant-client = "^1.7.0"
+sentence-transformers = "^2.2.2"
+requests = "^2.31.0"
+pypdf = "^6.4.0"
+pydantic-settings = "^2.12.0"
+python-dotenv = "^1.2.1"
+python-json-logger = "^4.0.0"
+beautifulsoup4 = "^4.14.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^4.1.0"
+black = "^24.0.0"
+isort = "^5.13.0"
+mypy = "^1.8.0"
+ruff = "^0.6.0"
+types-requests = "^2.31.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# Black configuration
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+# isort configuration
+[tool.isort]
+profile = "black"
+line_length = 100
+
+# Mypy configuration
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+# Ruff configuration
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

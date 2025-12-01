@@ -11,7 +11,6 @@ downloads/
 eggs/
 .eggs/
 lib/
-!packages/client/src/lib
 lib64/
 parts/
 sdist/
@@ -21,12 +20,11 @@ wheels/
 .installed.cfg
 *.egg
 
-next.txt
-
 # Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -41,12 +39,14 @@ ENV/
 
 # Environment
 .env
+.env.local
 .secrets
 
 # Docker
 *.log
 
-# Data
+# Application Data
+uploads/
 data/
 *.db
 *.sqlite
@@ -61,11 +61,22 @@ htmlcov/
 .coverage
 *.lcov
 lcov.info
+.pytest_cache/
 
-# Storybook
-storybook-static/
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-node_modules/
+# Ruff
+.ruff_cache/
 
+# Documentation (AI-specific files)
 CLAUDE.md
 GEMINI.md
+
+# Temporary files
+*.tmp
+*.bak
+*~
+.DS_Store

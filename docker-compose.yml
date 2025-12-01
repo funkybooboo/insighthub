@@ -1,4 +1,5 @@
 services:
+  # Database
   postgres:
     image: pgvector/pgvector:pg16
     ports:
@@ -15,6 +16,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # LLM Service
   ollama:
     image: ollama/ollama:0.13.0
     ports:
@@ -28,6 +30,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Pull required models
   ollama-setup:
     image: ollama/ollama:0.13.0
     depends_on:
@@ -44,6 +47,7 @@ services:
         echo 'Models ready!'
       "
 
+  # Vector Database
   qdrant:
     image: qdrant/qdrant:v1.16.1
     ports:
@@ -57,167 +61,22 @@ services:
       timeout: 10s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
+  # Graph Database for Graph RAG
+  neo4j:
+    image: neo4j:5-community
     ports:
-      - '6379:6379'
+      - '7474:7474'  # HTTP
+      - '7687:7687'  # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/insighthub_dev
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
     volumes:
-      - redis_data:/data
+      - neo4j_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p insighthub_dev 'RETURN 1'"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    ports:
-      - '5672:5672'
-      - '15672:15672'
-    environment:
-      RABBITMQ_DEFAULT_USER: insighthub
-      RABBITMQ_DEFAULT_PASS: insighthub_dev
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - '9000:9000'
-      - '9001:9001'
-    environment:
-      MINIO_ROOT_USER: insighthub
-      MINIO_ROOT_PASSWORD: insighthub_dev_secret
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  server-dev:
-    profiles: [dev]
-    build:
-      context: packages/server
-      dockerfile: Dockerfile
-    ports:
-      - '5000:5000'
-    volumes:
-      - ./packages/server/src:/app/src:ro
-      - ./packages/server/migrations:/app/migrations:ro
-      - ./packages/shared/python/src:/app/shared:ro
-    environment:
-      PORT: 5000
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      OLLAMA_BASE_URL: http://ollama:11434
-      QDRANT_URL: http://qdrant:6333
-      REDIS_URL: redis://redis:6379/0
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: insighthub
-      S3_SECRET_KEY: insighthub_dev_secret
-      S3_BUCKET_NAME: documents
-      USER_REPOSITORY_TYPE: postgres
-      WORKSPACE_REPOSITORY_TYPE: postgres
-      DOCUMENT_REPOSITORY_TYPE: postgres
-      CHAT_SESSION_REPOSITORY_TYPE: postgres
-      CHAT_MESSAGE_REPOSITORY_TYPE: postgres
-      DEFAULT_RAG_CONFIG_REPOSITORY_TYPE: postgres
-      PYTHONDONTWRITEBYTECODE: 1
-      WATCHFILES_FORCE_POLLING: true
-    command: poetry run watchfiles "poetry run python -m src.main" src
-    depends_on:
-      postgres:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-
-  client-dev:
-    profiles: [dev]
-    image: insighthub-client:dev
-    build:
-      context: packages/client
-      dockerfile: Dockerfile
-      target: development
-    ports:
-      - '3000:5173'
-    volumes:
-      - ./packages/client:/app
-      - /app/node_modules
-    environment:
-      VITE_API_URL: http://localhost:5000
-    depends_on:
-      - server-dev
-
-  server-prod:
-    profiles: [prod]
-    image: insighthub-server:latest
-    build:
-      context: packages/server
-      dockerfile: Dockerfile
-    ports:
-      - '8000:8000'
-    environment:
-      PORT: 8000
-      DATABASE_URL: postgresql://insighthub:insighthub_dev@postgres:5432/insighthub
-      OLLAMA_BASE_URL: http://ollama:11434
-      QDRANT_URL: http://qdrant:6333
-      REDIS_URL: redis://redis:6379/0
-      RABBITMQ_URL: amqp://insighthub:insighthub_dev@rabbitmq:5672/
-      S3_ENDPOINT_URL: http://minio:9000
-      S3_ACCESS_KEY: insighthub
-      S3_SECRET_KEY: insighthub_dev_secret
-      S3_BUCKET_NAME: documents
-      USER_REPOSITORY_TYPE: postgres
-      WORKSPACE_REPOSITORY_TYPE: postgres
-      DOCUMENT_REPOSITORY_TYPE: postgres
-      CHAT_SESSION_REPOSITORY_TYPE: postgres
-      CHAT_MESSAGE_REPOSITORY_TYPE: postgres
-      DEFAULT_RAG_CONFIG_REPOSITORY_TYPE: postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-
-  client-prod:
-    profiles: [prod]
-    image: insighthub-client:prod
-    build:
-      context: packages/client
-      dockerfile: Dockerfile
-      target: production
-      args:
-        VITE_API_URL: http://localhost:8000
-    ports:
-      - '3000:80'
-    depends_on:
-      - server-prod
-
-
 
 volumes:
   postgres_data:
@@ -226,14 +85,10 @@ volumes:
     name: insighthub_ollama_data
   qdrant_data:
     name: insighthub_qdrant_data
-  redis_data:
-    name: insighthub_redis_data
-  rabbitmq_data:
-    name: insighthub_rabbitmq_data
-  minio_data:
-    name: insighthub_minio_data
+  neo4j_data:
+    name: insighthub_neo4j_data
 
 networks:
-  insighthub:
+  default:
     name: insighthub_network
     driver: bridge
