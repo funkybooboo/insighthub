@@ -5,7 +5,6 @@ import sys
 
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows.factory import WorkflowFactory
 
 logger = create_logger(__name__)
 
@@ -18,16 +17,9 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
             print("No workspaces found")
             return
 
-        print("\nWorkspaces:")
-        print("=" * 80)
         for ws in workspaces:
             selected = " (SELECTED)" if ws.id == ctx.current_workspace_id else ""
             print(f"[{ws.id}] {ws.name}{selected}")
-            print(f"    Status: {ws.status} | RAG Type: {ws.rag_type}")
-            if ws.description:
-                print(f"    Description: {ws.description}")
-            print(f"    Created: {ws.created_at}")
-            print("-" * 80)
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -38,6 +30,20 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create a new workspace (interactive)."""
     try:
+        # Get default RAG config
+        default_config = ctx.default_rag_config_service.get_config()
+
+        # Auto-create default config if it doesn't exist
+        if not default_config:
+            logger.info("No default RAG config found, creating default configuration")
+            default_config = ctx.default_rag_config_service.create_or_update_config(
+                rag_type="vector",
+                vector_config={},
+                graph_config={},
+            )
+
+        default_rag_type = default_config.rag_type
+
         # Interactive prompts
         name = input("Workspace name: ").strip()
         if not name:
@@ -46,46 +52,118 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         description = input("Description (optional): ").strip() or None
 
-        rag_type = input("RAG type (vector/graph) [vector]: ").strip() or "vector"
+        rag_type = input(f"RAG type (vector/graph) [{default_rag_type}]: ").strip() or default_rag_type
         if rag_type not in ["vector", "graph"]:
             print("Error: RAG type must be 'vector' or 'graph'", file=sys.stderr)
             sys.exit(1)
 
-        # Create workspace
-        print(f"\nCreating workspace '{name}'...")
-        workspace = ctx.workspace_repo.create(
+        # Create workspace using service
+        workspace = ctx.workspace_service.create_workspace(
             name=name,
             description=description,
             rag_type=rag_type,
-            rag_config=None,
-            status="provisioning",
         )
 
-        logger.info(f"Workspace created: id={workspace.id}")
+        print(f"Created workspace [{workspace.id}] {workspace.name}")
 
-        # Provision RAG resources
-        print("Provisioning RAG resources...")
-        provision_workflow = WorkflowFactory.create_create_rag_resources_workflow(
-            rag_config=workspace.rag_config or {}
+    except KeyboardInterrupt:
+        print("\nCancelled")
+        sys.exit(0)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        logger.error(f"Failed to create workspace: {e}", exc_info=True)
+        sys.exit(1)
+
+
+def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
+    """Show detailed information about a workspace."""
+    try:
+        workspace = ctx.workspace_service.get_workspace(args.workspace_id)
+        if not workspace:
+            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        print(f"ID: {workspace.id}")
+        print(f"Name: {workspace.name}")
+        print(f"RAG Type: {workspace.rag_type}")
+        print(f"Status: {workspace.status}")
+        if workspace.description:
+            print(f"Description: {workspace.description}")
+        print(f"Created: {workspace.created_at}")
+        print(f"Updated: {workspace.updated_at}")
+
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        logger.error(f"Failed to show workspace: {e}")
+        sys.exit(1)
+
+
+def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
+    """Update a workspace (interactive)."""
+    try:
+        workspace = ctx.workspace_service.get_workspace(args.workspace_id)
+        if not workspace:
+            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        # Show current values and prompt for new ones
+        print(f"Current name: {workspace.name}")
+        name = input(f"New name (press Enter to keep): ").strip()
+
+        print(f"Current description: {workspace.description or '(none)'}")
+        description = input(f"New description (press Enter to keep): ").strip()
+
+        # Only update if values were provided
+        if not name and not description:
+            print("No changes made")
+            return
+
+        updated = ctx.workspace_service.update_workspace(
+            args.workspace_id,
+            name=name if name else None,
+            description=description if description else None,
         )
 
-        result = provision_workflow.execute(
-            workspace_id=str(workspace.id),
-            rag_config=workspace.rag_config or {},
-        )
-
-        if result.is_ok():
-            ctx.workspace_repo.update(workspace.id, status="ready")
-            logger.info(f"Workspace {workspace.id} ready")
-            print(f"\nWorkspace created successfully!")
-            print(f"  ID: {workspace.id}")
-            print(f"  Name: {name}")
-            print(f"  Status: ready")
+        if updated:
+            print(f"Updated [{updated.id}] {updated.name}")
         else:
-            ctx.workspace_repo.update(workspace.id, status="failed")
-            error = result.unwrap_err()
-            print(f"Error: Provisioning failed - {error}", file=sys.stderr)
-            logger.error(f"Provisioning failed: {error}")
+            print(f"Error: Failed to update workspace", file=sys.stderr)
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\nCancelled")
+        sys.exit(0)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        logger.error(f"Failed to update workspace: {e}")
+        sys.exit(1)
+
+
+def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
+    """Delete a workspace."""
+    try:
+        workspace = ctx.workspace_service.get_workspace(args.workspace_id)
+        if not workspace:
+            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
+            sys.exit(1)
+
+        # Confirm deletion
+        confirm = input(f"Delete workspace [{workspace.id}] {workspace.name}? (yes/no): ").strip().lower()
+        if confirm not in ["yes", "y"]:
+            print("Cancelled")
+            return
+
+        deleted = ctx.workspace_service.delete_workspace(args.workspace_id)
+        if deleted:
+            print(f"Deleted [{workspace.id}] {workspace.name}")
+        else:
+            print(f"Error: Failed to delete workspace", file=sys.stderr)
             sys.exit(1)
 
     except KeyboardInterrupt:
@@ -93,7 +171,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         sys.exit(0)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        logger.error(f"Failed to create workspace: {e}", exc_info=True)
+        logger.error(f"Failed to delete workspace: {e}")
         sys.exit(1)
 
 
@@ -106,7 +184,7 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
             sys.exit(1)
 
         ctx.current_workspace_id = workspace.id
-        print(f"Selected workspace: [{workspace.id}] {workspace.name}")
+        print(f"Selected [{workspace.id}] {workspace.name}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

@@ -82,6 +82,13 @@ tasks:
       - task: type-check
       - task: test
 
+  # ==================== CLI ====================
+  cli:
+    desc: Run CLI command (usage - task cli -- workspace list)
+    cmds:
+      - poetry run python -m src.main {{.CLI_ARGS}}
+    silent: true
+
   # ==================== Database ====================
   migrate-up:
     desc: Run database migrations

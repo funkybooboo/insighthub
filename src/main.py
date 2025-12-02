@@ -60,7 +60,13 @@ For help on a specific resource, use:
     ws_subparsers = ws_parser.add_subparsers(dest="action", help="Workspace action")
 
     ws_list = ws_subparsers.add_parser("list", help="List all workspaces")
+    ws_show = ws_subparsers.add_parser("show", help="Show detailed workspace information")
+    ws_show.add_argument("workspace_id", type=int, help="Workspace ID")
     ws_new = ws_subparsers.add_parser("new", help="Create new workspace (interactive)")
+    ws_update = ws_subparsers.add_parser("update", help="Update workspace (interactive)")
+    ws_update.add_argument("workspace_id", type=int, help="Workspace ID")
+    ws_delete = ws_subparsers.add_parser("delete", help="Delete workspace")
+    ws_delete.add_argument("workspace_id", type=int, help="Workspace ID")
     ws_select = ws_subparsers.add_parser("select", help="Select a workspace")
     ws_select.add_argument("workspace_id", type=int, help="Workspace ID")
 
@@ -131,8 +137,14 @@ For help on a specific resource, use:
             sys.exit(0)
         elif args.action == "list":
             workspace_commands.cmd_list(ctx, args)
+        elif args.action == "show":
+            workspace_commands.cmd_show(ctx, args)
         elif args.action == "new":
             workspace_commands.cmd_new(ctx, args)
+        elif args.action == "update":
+            workspace_commands.cmd_update(ctx, args)
+        elif args.action == "delete":
+            workspace_commands.cmd_delete(ctx, args)
         elif args.action == "select":
             workspace_commands.cmd_select(ctx, args)
         else:
