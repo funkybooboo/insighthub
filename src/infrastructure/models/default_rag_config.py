@@ -27,7 +27,7 @@ class DefaultGraphRagConfig:
 
 @dataclass
 class DefaultRagConfig:
-    """Default RAG configuration (single-user system, used when creating new workspaces)."""
+    """Default RAG configuration (single-user system, used when creating new workspace)."""
 
     id: int
     rag_type: str = "vector"  # "vector" or "graph"

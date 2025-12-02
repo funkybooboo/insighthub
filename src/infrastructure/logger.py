@@ -24,7 +24,7 @@ class LogLevel(Enum):
 
 class SecretsFilter(logging.Filter):
     """
-    Logging filter that redacts sensitive information from log messages.
+    Logging filter that redacts sensitive information from log message.
 
     Patterns detected and redacted:
     - API keys and tokens

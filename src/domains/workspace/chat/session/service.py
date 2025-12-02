@@ -1,0 +1,103 @@
+"""Chat session service."""
+
+from src.infrastructure.logger import create_logger
+from src.infrastructure.models import ChatSession
+from src.infrastructure.repositories import ChatSessionRepository
+
+logger = create_logger(__name__)
+
+
+class ChatSessionService:
+    """Service for managing chat session."""
+
+    def __init__(self, repository: ChatSessionRepository):
+        """Initialize service with repository."""
+        self.repository = repository
+
+    def create_session(
+        self,
+        title: str | None = None,
+        workspace_id: int | None = None,
+        rag_type: str = "vector",
+    ) -> ChatSession:
+        """Create a new chat session (single-user system)."""
+        logger.info(f"Creating chat session: workspace_id={workspace_id}, rag_type='{rag_type}'")
+
+        # Validate inputs
+        if title and len(title.strip()) > 255:
+            logger.error("Session creation failed: title too long")
+            raise ValueError("Session title too long (max 255 characters)")
+
+        if rag_type not in ["vector", "graph"]:
+            logger.error(f"Session creation failed: invalid rag_type '{rag_type}'")
+            raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
+
+        session = self.repository.create(title.strip() if title else None, workspace_id, rag_type)
+
+        logger.info(f"Chat session created: session_id={session.id}")
+
+        return session
+
+    def get_session(self, session_id: int) -> ChatSession | None:
+        """Get session by ID."""
+        return self.repository.get_by_id(session_id)
+
+    def list_sessions(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+        """List all chat session (single-user system)."""
+        return self.repository.get_all(skip, limit)
+
+    def update_session(self, session_id: int, title: str | None = None) -> ChatSession | None:
+        """Update session title."""
+        logger.info(f"Updating chat session: session_id={session_id}, new_title='{title}'")
+
+        # Validate inputs
+        if title and len(title.strip()) > 255:
+            logger.error(f"Session update failed: title too long (session_id={session_id})")
+            raise ValueError("Session title too long (max 255 characters)")
+
+        updated_session = self.repository.update(session_id, title=title.strip() if title else None)
+
+        if updated_session:
+            logger.info(f"Chat session updated: session_id={session_id}")
+        else:
+            logger.warning(
+                f"Chat session update failed: session not found (session_id={session_id})"
+            )
+
+        return updated_session
+
+    def delete_session(self, session_id: int) -> bool:
+        """Delete a session."""
+        logger.info(f"Deleting chat session: session_id={session_id}")
+
+        deleted = self.repository.delete(session_id)
+
+        if deleted:
+            logger.info(f"Chat session deleted: session_id={session_id}")
+        else:
+            logger.warning(
+                f"Chat session deletion failed: session not found (session_id={session_id})"
+            )
+
+        return deleted
+
+
+    def get_workspace_session(self, workspace_id: int, session_id: int) -> ChatSession | None:
+        """Get session by ID with workspace validation (single-user system)."""
+        session = self.repository.get_by_id(session_id)
+        if session and session.workspace_id == workspace_id:
+            return session
+        return None
+
+    def list_workspace_sessions(
+        self, workspace_id: int, skip: int = 0, limit: int = 50
+    ) -> tuple[list[ChatSession], int]:
+        """List session for a workspace (single-user system)."""
+        # Get all session in workspace
+        all_sessions = self.repository.get_by_workspace(workspace_id)
+
+        # Apply pagination
+        paginated_sessions = all_sessions[skip : skip + limit]
+        total = len(all_sessions)
+
+        return paginated_sessions, total

@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 @dataclass
 class Workspace:
-    """Workspace model for organizing documents and chats sessions."""
+    """Workspace model for organizing document and chat session."""
 
     id: int
     name: str

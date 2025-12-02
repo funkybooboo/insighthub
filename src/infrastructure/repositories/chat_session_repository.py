@@ -10,7 +10,7 @@ from src.infrastructure.models import ChatSession
 
 
 class ChatSessionRepository:
-    """SQL implementation of chat sessions repository."""
+    """SQL implementation of chat session repository."""
 
     def __init__(self, db: SqlDatabase):
         self.db = db
@@ -60,7 +60,7 @@ class ChatSessionRepository:
         return None
 
     def get_all(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
-        """Get all chat sessions (single-user system)."""
+        """Get all chat session (single-user system)."""
         query = """
             SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions
@@ -73,7 +73,7 @@ class ChatSessionRepository:
     def get_by_workspace(
         self, workspace_id: int, skip: int = 0, limit: int = 50
     ) -> list[ChatSession]:
-        """Get sessions by workspace ID with pagination."""
+        """Get session by workspace ID with pagination."""
         query = """
             SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions WHERE workspace_id = %s

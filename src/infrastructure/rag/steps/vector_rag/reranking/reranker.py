@@ -162,7 +162,7 @@ class BM25Reranker(Reranker):
             except LookupError:
                 nltk.download("punkt", quiet=True)
 
-            # Tokenize query and documents
+            # Tokenize query and document
             query_tokens = word_tokenize(query.lower())
             doc_tokens = [word_tokenize(text.lower()) for text in texts]
 

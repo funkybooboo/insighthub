@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.domains.workspaces.service import WorkspaceService
+from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.repositories.workspaces.in_memory_workspace_repository import (
     InMemoryWorkspaceRepository,
 )
@@ -116,8 +116,8 @@ class TestWorkspaceService:
         assert workspace is None
 
     def test_list_user_workspaces(self, workspace_service):
-        """Test listing workspaces for a user."""
-        # Create workspaces for different users
+        """Test listing workspace for a user."""
+        # Create workspace for different users
         workspace_service.create_workspace(user_id=1, name="User1 WS1")
         workspace_service.create_workspace(user_id=1, name="User1 WS2")
         workspace_service.create_workspace(user_id=2, name="User2 WS1")

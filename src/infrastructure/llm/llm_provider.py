@@ -27,11 +27,11 @@ class LlmProvider(ABC):
     @abstractmethod
     def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
         """
-        Generate a chats response with optional conversation history.
+        Generate a chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
                                  Each message is {"role": "users"|"assistant", "content": "..."}
 
         Returns:
@@ -44,11 +44,11 @@ class LlmProvider(ABC):
         self, message: str, conversation_history: list[dict[str, str]] | None = None
     ) -> Generator[str, None, None]:
         """
-        Generate a streaming chats response with optional conversation history.
+        Generate a streaming chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
                                  Each message is {"role": "users"|"assistant", "content": "..."}
 
         Yields:

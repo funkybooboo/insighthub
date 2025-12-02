@@ -25,7 +25,7 @@ class DefaultRagConfigRepository:
                    vector_chunk_size, vector_chunk_overlap, vector_top_k,
                    graph_entity_extraction_algorithm, graph_relationship_extraction_algorithm, graph_clustering_algorithm,
                    created_at, updated_at
-            FROM default_rag_configs WHERE id = 1
+            FROM default_rag_config WHERE id = 1
         """
         result = self.db.fetch_one(query, ())
         if result:
@@ -57,7 +57,7 @@ class DefaultRagConfigRepository:
     def update(self, config: DefaultRagConfig) -> DefaultRagConfig:
         """Update the default RAG config (single row, id=1)."""
         query = """
-            UPDATE default_rag_configs
+            UPDATE default_rag_config
             SET rag_type = %s,
                 vector_embedding_algorithm = %s, vector_chunking_algorithm = %s, vector_rerank_algorithm = %s,
                 vector_chunk_size = %s, vector_chunk_overlap = %s, vector_top_k = %s,

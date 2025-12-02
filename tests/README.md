@@ -47,7 +47,7 @@ def test_vector_rag_add_documents():
     count = rag.add_documents([{"text": "test document"}])
 
     # Assert: Verify output, not internal state
-    assert count > 0  # Tests the contract: documents were added
+    assert count > 0  # Tests the contract: document were added
 ```
 
 ## Integration Tests (`tests/integration/`)

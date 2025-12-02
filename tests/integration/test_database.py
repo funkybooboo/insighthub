@@ -152,7 +152,7 @@ class TestDatabaseIntegration:
         # Create tables
         db.execute(
             """
-            CREATE TABLE workspaces (
+            CREATE TABLE workspace (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
@@ -184,7 +184,7 @@ class TestDatabaseIntegration:
         assert retrieved is not None
         assert retrieved.name == "Test Workspace"
 
-        # Test getting workspaces by user
+        # Test getting workspace by user
         user_workspaces = repo.get_by_user(1)
         assert len(user_workspaces) == 1
         assert user_workspaces[0].name == "Test Workspace"

@@ -46,7 +46,7 @@ class QdrantVectorDatabase(VectorDatabase):
     Example:
         db = QdrantVectorDatabase(
             url="http://localhost:6333",
-            collection_name="documents",
+            collection_name="document",
             vector_size=384
         )
         db.upsert("chunk_1", [0.1, 0.2, ...], {"source": "doc.pdf"})
@@ -56,7 +56,7 @@ class QdrantVectorDatabase(VectorDatabase):
     def __init__(
         self,
         url: str = "http://localhost:6333",
-        collection_name: str = "documents",
+        collection_name: str = "document",
         vector_size: int = 384,
         distance: str = "cosine",
         api_key: str | None = None,

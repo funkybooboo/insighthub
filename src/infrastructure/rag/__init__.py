@@ -24,8 +24,11 @@ from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_database impor
 from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_store import VectorStore
 
 # Workflows
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow, ConsumeWorkflowError
-from src.infrastructure.rag.workflows.query_workflow import QueryWorkflow, QueryWorkflowError
+from src.infrastructure.rag.workflows.add_document import (
+    AddDocumentWorkflow,
+    AddDocumentWorkflowError,
+)
+from src.infrastructure.rag.workflows.query import QueryWorkflow, QueryWorkflowError
 
 __all__ = [
     # Parsing
@@ -47,8 +50,8 @@ __all__ = [
     "Reranker",
     "RerankerFactory",
     # Workflows
-    "ConsumeWorkflow",
-    "ConsumeWorkflowError",
+    "AddDocumentWorkflow",
+    "AddDocumentWorkflowError",
     "QueryWorkflow",
     "QueryWorkflowError",
 ]

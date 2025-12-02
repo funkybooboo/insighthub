@@ -4,11 +4,11 @@ import argparse
 import sys
 
 from src.context import AppContext
-from src.domains.default_rag_configs import commands as default_rag_config_commands
-from src.domains.workspaces import commands as workspace_commands
-from src.domains.workspaces.chats.messages import commands as chat_message_commands
-from src.domains.workspaces.chats.sessions import commands as chat_session_commands
-from src.domains.workspaces.documents import commands as document_commands
+from src.domains.default_rag_config import commands as default_rag_config_commands
+from src.domains.workspace import commands as workspace_commands
+from src.domains.workspace.chat.message import commands as chat_message_commands
+from src.domains.workspace.chat.session import commands as chat_session_commands
+from src.domains.workspace.document import commands as document_commands
 
 
 def main() -> None:
@@ -17,22 +17,23 @@ def main() -> None:
     epilog = """
 Examples:
   # Workspace management
-  python -m src.main workspace list              List all workspaces
+  python -m src.main workspace list              List all workspace
   python -m src.main workspace new               Create a new workspace (interactive)
   python -m src.main workspace select 1          Select workspace with ID 1
 
   # Document management
-  python -m src.main document list               List documents in current workspace
-  python -m src.main document upload file.pdf    Upload a document
-  python -m src.main document remove file.pdf    Remove a document
+  python -m src.main document list               List document in current workspace
+  python -m src.main document show 1             Show detailed information about document with ID 1
+  python -m src.main document upload file.pdf    Upload a document to current workspace
+  python -m src.main document remove file.pdf    Remove a document from current workspace
 
   # Chat operations
-  python -m src.main chat list                   List chat sessions
-  python -m src.main chat new                    Create a new chat session
-  python -m src.main chat select 1               Select chat session with ID 1
+  python -m src.main chat list                   List chat session in current workspace
+  python -m src.main chat new                    Create a new chat session in current workspace
+  python -m src.main chat select 1               Select chat session with ID 1 in current workspace
   python -m src.main chat send "Hello"           Send a message to current session
   python -m src.main chat history                Show message history for current session
-  python -m src.main chat delete 1               Delete a chat session
+  python -m src.main chat delete 1               Delete a chat session in current workspace
 
   # Configuration
   python -m src.main default-rag-config list     Show default RAG configuration
@@ -55,11 +56,11 @@ For help on a specific resource, use:
     ws_parser = subparsers.add_parser(
         "workspace",
         help="Workspace operations",
-        description="Manage workspaces for organizing documents and chat sessions",
+        description="Manage workspace for organizing document and chat session",
     )
     ws_subparsers = ws_parser.add_subparsers(dest="action", help="Workspace action")
 
-    ws_list = ws_subparsers.add_parser("list", help="List all workspaces")
+    ws_list = ws_subparsers.add_parser("list", help="List all workspace")
     ws_show = ws_subparsers.add_parser("show", help="Show detailed workspace information")
     ws_show.add_argument("workspace_id", type=int, help="Workspace ID")
     ws_new = ws_subparsers.add_parser("new", help="Create new workspace (interactive)")
@@ -74,11 +75,13 @@ For help on a specific resource, use:
     doc_parser = subparsers.add_parser(
         "document",
         help="Document operations",
-        description="Manage documents within the current workspace",
+        description="Manage document within the current workspace",
     )
     doc_subparsers = doc_parser.add_subparsers(dest="action", help="Document action")
 
-    doc_list = doc_subparsers.add_parser("list", help="List documents in current workspace")
+    doc_list = doc_subparsers.add_parser("list", help="List document in current workspace")
+    doc_show = doc_subparsers.add_parser("show", help="Show detailed document information")
+    doc_show.add_argument("document_id", type=int, help="Document ID")
     doc_upload = doc_subparsers.add_parser("upload", help="Upload a document")
     doc_upload.add_argument("file", help="Path to document file")
     doc_remove = doc_subparsers.add_parser("remove", help="Remove a document")
@@ -88,12 +91,14 @@ For help on a specific resource, use:
     chat_parser = subparsers.add_parser(
         "chat",
         help="Chat operations",
-        description="Manage chat sessions and messages within the current workspace",
+        description="Manage chat session and message in the current workspace",
     )
     chat_subparsers = chat_parser.add_subparsers(dest="action", help="Chat action")
 
-    chat_list = chat_subparsers.add_parser("list", help="List chat sessions in current workspace")
+    chat_list = chat_subparsers.add_parser("list", help="List chat session in workspace")
+    chat_list.add_argument("workspace_id", type=int, help="Workspace ID")
     chat_new = chat_subparsers.add_parser("new", help="Create new chat session (interactive)")
+    chat_new.add_argument("workspace_id", type=int, help="Workspace ID")
     chat_select = chat_subparsers.add_parser("select", help="Select a chat session")
     chat_select.add_argument("session_id", type=int, help="Chat session ID")
     chat_delete = chat_subparsers.add_parser("delete", help="Delete a chat session")
@@ -158,6 +163,8 @@ For help on a specific resource, use:
             sys.exit(0)
         elif args.action == "list":
             document_commands.cmd_list(ctx, args)
+        elif args.action == "show":
+            document_commands.cmd_show(ctx, args)
         elif args.action == "upload":
             document_commands.cmd_upload(ctx, args)
         elif args.action == "remove":

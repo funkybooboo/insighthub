@@ -93,17 +93,19 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
         """
         try:
             response = requests.post(
-                f"{self._base_url}/api/embeddings",
+                f"{self._base_url}/api/embed",
                 json={
                     "model": self._model,
-                    "prompt": text,
+                    "input": text,
                 },
                 timeout=self._timeout,
             )
             response.raise_for_status()
 
             result = response.json()
-            embedding: list[float] = result.get("embedding", [])
+            # Ollama 0.13+ returns embeddings as array of arrays
+            embeddings_list = result.get("embeddings", result.get("embedding", []))
+            embedding: list[float] = embeddings_list[0] if embeddings_list and isinstance(embeddings_list[0], list) else embeddings_list
 
             if self._dimension is None and embedding:
                 self._dimension = len(embedding)

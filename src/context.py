@@ -1,11 +1,11 @@
 """Application context containing all services and repositories."""
 
 from src.config import config
-from src.domains.default_rag_configs.service import DefaultRagConfigService
-from src.domains.workspaces.chats.messages.service import ChatMessageService
-from src.domains.workspaces.chats.sessions.service import ChatSessionService
-from src.domains.workspaces.documents.service import DocumentService
-from src.domains.workspaces.service import WorkspaceService
+from src.domains.default_rag_config.service import DefaultRagConfigService
+from src.domains.workspace.chat.message.service import ChatMessageService
+from src.domains.workspace.chat.session.service import ChatSessionService
+from src.domains.workspace.document.service import DocumentService
+from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.sql_database import get_sql_database
 from src.infrastructure.llm.factory import create_llm_provider
 from src.infrastructure.repositories import (
@@ -13,6 +13,7 @@ from src.infrastructure.repositories import (
     ChatSessionRepository,
     DefaultRagConfigRepository,
     DocumentRepository,
+    StateRepository,
     WorkspaceRepository,
 )
 from src.infrastructure.storage.factory import create_blob_storage
@@ -42,11 +43,14 @@ class AppContext:
         self.default_rag_config_repo = DefaultRagConfigRepository(db)
         self.chat_session_repo = ChatSessionRepository(db)
         self.chat_message_repo = ChatMessageRepository(db)
+        self.state_repo = StateRepository(db)
 
         # Services
         self.workspace_service = WorkspaceService(repository=self.workspace_repo)
         self.document_service = DocumentService(
-            repository=self.document_repo, blob_storage=self.blob_storage
+            repository=self.document_repo,
+            workspace_repository=self.workspace_repo,
+            blob_storage=self.blob_storage,
         )
         self.default_rag_config_service = DefaultRagConfigService(
             repository=self.default_rag_config_repo
@@ -68,6 +72,7 @@ class AppContext:
             api_key=api_key,
         )
 
-        # Global state for selected workspace and session
-        self.current_workspace_id: int | None = None
-        self.current_session_id: int | None = None
+        # Load current state from database
+        state = self.state_repo.get()
+        self.current_workspace_id: int | None = state.current_workspace_id if state else None
+        self.current_session_id: int | None = state.current_session_id if state else None

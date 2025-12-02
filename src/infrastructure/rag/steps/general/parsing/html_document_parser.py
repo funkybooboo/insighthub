@@ -28,7 +28,7 @@ class HTMLDocumentParser(DocumentParser):
     """
     HTML document parser using BeautifulSoup.
 
-    Extracts text content from HTML documents, stripping tags and preserving
+    Extracts text content from HTML document, stripping tags and preserving
     structure where possible.
 
     Example:

@@ -10,7 +10,7 @@ from src.infrastructure.models import Document
 
 
 class DocumentRepository:
-    """SQL implementation of documents repository."""
+    """SQL implementation of document repository."""
 
     def __init__(self, db: SqlDatabase):
         self.db = db
@@ -22,8 +22,8 @@ class DocumentRepository:
         file_size: int,
         mime_type: str,
         chunk_count: int = 0,
-        processing_status: str = "processing",
-        processing_error: str | None = None,
+        status: str = "processing",
+        error_message: str | None = None,
         file_path: str | None = None,
         content_hash: str | None = None,
         rag_collection: str | None = None,
@@ -31,8 +31,11 @@ class DocumentRepository:
     ) -> Document:
         """Create a new document."""
         query = """
-            INSERT INTO documents (workspace_id, filename, file_size, mime_type, chunk_count, status, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO documents (
+                workspace_id, filename, original_filename, size_bytes, mime_type,
+                file_hash, storage_path, chunk_count, status, user_id, created_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """
         result = self.db.fetch_one(
@@ -40,10 +43,14 @@ class DocumentRepository:
             (
                 workspace_id,
                 filename,
+                filename,  # original_filename same as filename
                 file_size,
                 mime_type,
+                content_hash or "",  # file_hash
+                file_path or "",  # storage_path
                 chunk_count,
-                processing_status,
+                status,
+                1,  # user_id (placeholder for single-user system)
                 datetime.utcnow(),
             ),
         )
@@ -53,11 +60,12 @@ class DocumentRepository:
                 id=result["id"],
                 workspace_id=workspace_id,
                 filename=filename,
+                original_filename=filename,
                 file_size=file_size,
                 mime_type=mime_type,
                 chunk_count=chunk_count,
-                processing_status=processing_status,
-                processing_error=processing_error,
+                status=status,
+                error_message=error_message,
                 file_path=file_path,
                 content_hash=content_hash,
                 rag_collection=rag_collection,
@@ -69,7 +77,11 @@ class DocumentRepository:
     def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
         query = """
-            SELECT id, workspace_id, filename, file_size, mime_type, chunk_count, status as processing_status, created_at
+            SELECT
+                id, workspace_id, filename, original_filename,
+                size_bytes as file_size, mime_type, chunk_count, status,
+                error_message, file_hash as content_hash, storage_path as file_path,
+                created_at, updated_at
             FROM documents WHERE id = %s
         """
         result = self.db.fetch_one(query, (document_id,))
@@ -80,15 +92,19 @@ class DocumentRepository:
     def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """Get document by content hash."""
         # Note: content_hash is not stored in DB yet, this is a placeholder
-        # TODO: Add content_hash column to documents table
+        # TODO: Add content_hash column to document table
         return None
 
     def get_by_workspace(
         self, workspace_id: int, limit: int = 50, offset: int = 0
     ) -> list[Document]:
-        """Get documents for a workspace."""
+        """Get document for a workspace."""
         query = """
-            SELECT id, workspace_id, filename, file_size, mime_type, chunk_count, status as processing_status, created_at
+            SELECT
+                id, workspace_id, filename, original_filename,
+                size_bytes as file_size, mime_type, chunk_count, status,
+                error_message, file_hash as content_hash, storage_path as file_path,
+                created_at, updated_at
             FROM documents WHERE workspace_id = %s
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s
@@ -111,7 +127,7 @@ class DocumentRepository:
         # Update in database (only DB fields)
         query = """
             UPDATE documents
-            SET filename = %s, file_size = %s, mime_type = %s, chunk_count = %s, status = %s
+            SET filename = %s, size_bytes = %s, mime_type = %s, chunk_count = %s, status = %s
             WHERE id = %s
         """
         self.db.execute(
@@ -121,7 +137,7 @@ class DocumentRepository:
                 document.file_size,
                 document.mime_type,
                 document.chunk_count,
-                document.processing_status,
+                document.status,
                 document_id,
             ),
         )
@@ -145,7 +161,7 @@ class DocumentRepository:
         return affected_rows > 0
 
     def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
-        """Count documents in workspace with optional status filter."""
+        """Count document in workspace with optional status filter."""
         if status_filter:
             query = (
                 "SELECT COUNT(*) as count FROM documents WHERE workspace_id = %s AND status = %s"

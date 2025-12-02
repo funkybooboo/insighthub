@@ -22,22 +22,22 @@ class ParserFactory:
         "pdf": {
             "class": PDFDocumentParser,
             "label": "PDF",
-            "description": "Parse PDF documents",
+            "description": "Parse PDF document",
         },
         "docx": {
             "class": DocxDocumentParser,
             "label": "DOCX",
-            "description": "Parse Microsoft Word documents",
+            "description": "Parse Microsoft Word document",
         },
         "html": {
             "class": HTMLDocumentParser,
             "label": "HTML",
-            "description": "Parse HTML documents",
+            "description": "Parse HTML document",
         },
         "text": {
             "class": TextDocumentParser,
             "label": "Text",
-            "description": "Parse plain text documents",
+            "description": "Parse plain text document",
         },
     }
 

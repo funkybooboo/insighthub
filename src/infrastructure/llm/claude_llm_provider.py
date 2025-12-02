@@ -72,11 +72,11 @@ class ClaudeLlmProvider(LlmProvider):
 
     def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
         """
-        Generate a chats response with optional conversation history.
+        Generate a chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
 
         Returns:
             Generated response text
@@ -88,12 +88,12 @@ class ClaudeLlmProvider(LlmProvider):
             return "Anthropic API key not configured. Please set ANTHROPIC_API_KEY in environment."
 
         try:
-            # Build messages array
+            # Build message array
             messages: list[MessageParam] = []
 
             # Add conversation history
             if conversation_history:
-                for msg in conversation_history[-10:]:  # Keep last 10 messages
+                for msg in conversation_history[-10:]:  # Keep last 10 message
                     role_str = msg.get("role", "users")
                     content_str = msg.get("content", "")
                     if role_str in ("users", "assistant"):
@@ -168,11 +168,11 @@ class ClaudeLlmProvider(LlmProvider):
         self, message: str, conversation_history: list[dict[str, str]] | None = None
     ) -> Generator[str, None, None]:
         """
-        Generate a streaming chats response with optional conversation history.
+        Generate a streaming chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
 
         Yields:
             Chunks of generated response text
@@ -186,7 +186,7 @@ class ClaudeLlmProvider(LlmProvider):
             return
 
         try:
-            # Build messages array
+            # Build message array
             messages: list[MessageParam] = []
 
             # Add conversation history

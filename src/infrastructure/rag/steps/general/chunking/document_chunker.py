@@ -1,4 +1,4 @@
-"""Text chunking interfaces for splitting documents into semantic segments."""
+"""Text chunking interfaces for splitting document into semantic segments."""
 
 from abc import ABC, abstractmethod
 
@@ -7,7 +7,7 @@ from src.infrastructure.types.document import Chunk, Document
 
 class Chunker(ABC):
     """
-    Interface for splitting documents into smaller, meaningful chunks.
+    Interface for splitting document into smaller, meaningful chunks.
 
     Implementations should use different strategies:
     - Fixed-size character chunking

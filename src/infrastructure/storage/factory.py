@@ -25,7 +25,7 @@ def create_blob_storage(storage_type: str = "filesystem", **kwargs) -> BlobStora
         endpoint = kwargs.get("endpoint")
         access_key = kwargs.get("access_key")
         secret_key = kwargs.get("secret_key")
-        bucket_name = kwargs.get("bucket_name", "documents")
+        bucket_name = kwargs.get("bucket_name", "document")
         secure = kwargs.get("secure", True)
         region = kwargs.get("region")
 

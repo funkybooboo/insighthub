@@ -6,7 +6,7 @@ from datetime import datetime
 
 @dataclass
 class ChatSession:
-    """Chat session model for grouping related chats messages."""
+    """Chat session model for grouping related chat message."""
 
     id: int
     workspace_id: int | None = None

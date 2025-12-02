@@ -10,7 +10,7 @@ from src.infrastructure.models import ChatMessage
 
 
 class ChatMessageRepository:
-    """SQL implementation of chat messages repository."""
+    """SQL implementation of chat message repository."""
 
     def __init__(self, db: SqlDatabase):
         self.db = db
@@ -24,7 +24,7 @@ class ChatMessageRepository:
     ) -> ChatMessage:
         """Create a new chat message."""
         query = """
-            INSERT INTO chat_messages (session_id, role, content, created_at)
+            INSERT INTO chat_messages (chat_session_id, role, content, created_at)
             VALUES (%s, %s, %s, %s)
             RETURNING id
         """
@@ -52,7 +52,7 @@ class ChatMessageRepository:
     def get_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """Get message by ID."""
         query = """
-            SELECT id, session_id, role, content, created_at
+            SELECT id, chat_session_id as session_id, role, content, created_at
             FROM chat_messages WHERE id = %s
         """
         result = self.db.fetch_one(query, (message_id,))
@@ -61,10 +61,10 @@ class ChatMessageRepository:
         return None
 
     def get_by_session(self, session_id: int, skip: int = 0, limit: int = 50) -> list[ChatMessage]:
-        """Get messages for a session with pagination."""
+        """Get message for a session with pagination."""
         query = """
-            SELECT id, session_id, role, content, created_at
-            FROM chat_messages WHERE session_id = %s
+            SELECT id, chat_session_id as session_id, role, content, created_at
+            FROM chat_messages WHERE chat_session_id = %s
             ORDER BY created_at ASC
             LIMIT %s OFFSET %s
         """

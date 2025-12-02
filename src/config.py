@@ -81,7 +81,7 @@ class StorageConfig(BaseModel):
     s3_endpoint_url: Optional[str] = Field(default=None, description="S3 endpoint URL")
     s3_access_key: Optional[str] = Field(default=None, description="S3 access key")
     s3_secret_key: Optional[str] = Field(default=None, description="S3 secret key")
-    s3_bucket_name: str = Field(default="documents", description="S3 bucket name")
+    s3_bucket_name: str = Field(default="document", description="S3 bucket name")
 
 
 class VectorStoreConfig(BaseModel):
@@ -180,7 +180,7 @@ class AppConfig(BaseSettings):
     )
     s3_access_key: Optional[str] = Field(default="minioadmin", description="S3 access key")
     s3_secret_key: Optional[str] = Field(default="minioadmin", description="S3 secret key")
-    s3_bucket_name: str = Field(default="documents", description="S3 bucket name")
+    s3_bucket_name: str = Field(default="document", description="S3 bucket name")
 
     # Vector Store
     qdrant_host: str = Field(default="localhost", description="Qdrant host")

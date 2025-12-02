@@ -10,7 +10,7 @@ from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig
 
 
 class WorkspaceRepository:
-    """SQL implementation of workspaces repository."""
+    """SQL implementation of workspace repository."""
 
     def __init__(self, db: SqlDatabase):
         self.db = db
@@ -73,7 +73,7 @@ class WorkspaceRepository:
         return None
 
     def get_all(self) -> list[Workspace]:
-        """Get all workspaces (single-user system)."""
+        """Get all workspace (single-user system)."""
         query = """
             SELECT id, name, description, rag_type, status, created_at, updated_at
             FROM workspaces
@@ -99,7 +99,7 @@ class WorkspaceRepository:
         # Update in database
         query = """
             UPDATE workspaces
-            SET name = %s, description = %s, rag_type = %s, updated_at = %s
+            SET name = %s, description = %s, rag_type = %s, status = %s, updated_at = %s
             WHERE id = %s
         """
         self.db.execute(
@@ -108,6 +108,7 @@ class WorkspaceRepository:
                 workspace.name,
                 workspace.description,
                 workspace.rag_type,
+                workspace.status,
                 workspace.updated_at,
                 workspace_id,
             ),

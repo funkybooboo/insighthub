@@ -76,11 +76,11 @@ class HuggingFaceLlmProvider(LlmProvider):
 
     def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
         """
-        Generate a chats response with optional conversation history.
+        Generate a chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
 
         Returns:
             Generated response text
@@ -88,7 +88,7 @@ class HuggingFaceLlmProvider(LlmProvider):
         # Build prompt with conversation history
         if conversation_history:
             prompt_parts = []
-            for msg in conversation_history[-10:]:  # Keep last 10 messages
+            for msg in conversation_history[-10:]:  # Keep last 10 message
                 role = msg.get("role", "users")
                 content = msg.get("content", "")
                 if role == "users":
@@ -143,11 +143,11 @@ class HuggingFaceLlmProvider(LlmProvider):
         self, message: str, conversation_history: list[dict[str, str]] | None = None
     ) -> Generator[str, None, None]:
         """
-        Generate a streaming chats response with optional conversation history.
+        Generate a streaming chat response with optional conversation history.
 
         Args:
             message: Current users message
-            conversation_history: Optional list of previous messages
+            conversation_history: Optional list of previous message
 
         Yields:
             Chunks of generated response text

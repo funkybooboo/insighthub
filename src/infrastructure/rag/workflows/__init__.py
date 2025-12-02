@@ -1,61 +1,78 @@
-"""RAG workflow interfaces and implementations."""
+"""RAG workflows organized by workflow type.
 
-# Base interfaces
-from src.infrastructure.rag.workflows.add_document_workflow import (
+Each workflow type has its own directory containing:
+- Base workflow class (e.g., add_document_workflow.py)
+- Vector RAG implementation (e.g., vector_rag_add_document_workflow.py)
+- Graph RAG implementation (e.g., graph_rag_add_document_workflow.py)
+- Factory for creating workflows (factory.py)
+"""
+
+# Add document workflows
+from src.infrastructure.rag.workflows.add_document import (
     AddDocumentWorkflow,
     AddDocumentWorkflowError,
-)
-from src.infrastructure.rag.workflows.consume_workflow import ConsumeWorkflow, ConsumeWorkflowError
-from src.infrastructure.rag.workflows.create_rag_resources_workflow import (
-    CreateRagResourcesWorkflow,
-    CreateRagResourcesWorkflowError,
-)
-from src.infrastructure.rag.workflows.factory import (
-    WorkflowFactory,
-    create_default_vector_rag_config,
-)
-from src.infrastructure.rag.workflows.query_workflow import QueryWorkflow, QueryWorkflowError
-from src.infrastructure.rag.workflows.remove_document_workflow import (
-    RemoveDocumentWorkflow,
-    RemoveDocumentWorkflowError,
-)
-from src.infrastructure.rag.workflows.remove_rag_resources_workflow import (
-    RemoveRagResourcesWorkflow,
-    RemoveRagResourcesWorkflowError,
+    AddDocumentWorkflowFactory,
+    VectorRagAddDocumentWorkflow,
 )
 
-# Vector RAG implementations
-from src.infrastructure.rag.workflows.vector_rag import (
-    VectorRagAddDocumentWorkflow,
-    VectorRagConsumeWorkflow,
+# Create resources workflows
+from src.infrastructure.rag.workflows.create_resources import (
+    CreateRagResourcesWorkflow,
+    CreateRagResourcesWorkflowError,
+    CreateResourcesWorkflowFactory,
     VectorRagCreateRagResourcesWorkflow,
+)
+
+# Query workflows
+from src.infrastructure.rag.workflows.query import (
+    GraphRagQueryWorkflow,
+    QueryWorkflow,
+    QueryWorkflowError,
+    QueryWorkflowFactory,
     VectorRagQueryWorkflow,
+)
+
+# Remove document workflows
+from src.infrastructure.rag.workflows.remove_document import (
+    RemoveDocumentWorkflow,
+    RemoveDocumentWorkflowError,
+    RemoveDocumentWorkflowFactory,
     VectorRagRemoveDocumentWorkflow,
+)
+
+# Remove resources workflows
+from src.infrastructure.rag.workflows.remove_resources import (
+    RemoveRagResourcesWorkflow,
+    RemoveRagResourcesWorkflowError,
+    RemoveResourcesWorkflowFactory,
     VectorRagRemoveRagResourcesWorkflow,
 )
 
 __all__ = [
-    # Base interfaces
+    # Add document
     "AddDocumentWorkflow",
     "AddDocumentWorkflowError",
-    "ConsumeWorkflow",
-    "ConsumeWorkflowError",
+    "AddDocumentWorkflowFactory",
+    "VectorRagAddDocumentWorkflow",
+    # Create resources
     "CreateRagResourcesWorkflow",
     "CreateRagResourcesWorkflowError",
+    "CreateResourcesWorkflowFactory",
+    "VectorRagCreateRagResourcesWorkflow",
+    # Query
     "QueryWorkflow",
     "QueryWorkflowError",
+    "QueryWorkflowFactory",
+    "VectorRagQueryWorkflow",
+    "GraphRagQueryWorkflow",
+    # Remove document
     "RemoveDocumentWorkflow",
     "RemoveDocumentWorkflowError",
+    "RemoveDocumentWorkflowFactory",
+    "VectorRagRemoveDocumentWorkflow",
+    # Remove resources
     "RemoveRagResourcesWorkflow",
     "RemoveRagResourcesWorkflowError",
-    # Factory
-    "WorkflowFactory",
-    "create_default_vector_rag_config",
-    # Vector RAG implementations
-    "VectorRagAddDocumentWorkflow",
-    "VectorRagConsumeWorkflow",
-    "VectorRagCreateRagResourcesWorkflow",
-    "VectorRagQueryWorkflow",
-    "VectorRagRemoveDocumentWorkflow",
+    "RemoveResourcesWorkflowFactory",
     "VectorRagRemoveRagResourcesWorkflow",
 ]

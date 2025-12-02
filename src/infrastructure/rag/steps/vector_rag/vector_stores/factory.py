@@ -24,7 +24,7 @@ class VectorStoreFactory:
         return create_vector_store(
             db_type=store_type,
             url=kwargs.get("url") or kwargs.get("host", "localhost"),
-            collection_name=kwargs.get("collection_name", "documents"),
+            collection_name=kwargs.get("collection_name", "document"),
             vector_size=kwargs.get("vector_size", 768),
             api_key=kwargs.get("api_key"),
         )
@@ -119,7 +119,7 @@ def create_vector_store(
         store = create_vector_store(
             db_type="qdrant",
             url="http://localhost:6333",
-            collection_name="documents",
+            collection_name="document",
             vector_size=384
         )
         store.add(chunks)
