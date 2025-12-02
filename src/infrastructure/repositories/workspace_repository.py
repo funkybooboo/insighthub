@@ -1,15 +1,15 @@
-"""SQL implementation of WorkspaceRepository."""
+"""PostgreSQL implementation of WorkspaceRepository."""
 
 from datetime import UTC, datetime
 from typing import Optional
 
-from src.infrastructure.database import SqlDatabase
+from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
 
-from .workspace_repository import WorkspaceRepository
 
 
-class SqlWorkspaceRepository(WorkspaceRepository):
+
+class WorkspaceRepository:
     """SQL implementation of workspaces repository."""
 
     def __init__(self, db: SqlDatabase):
@@ -17,23 +17,21 @@ class SqlWorkspaceRepository(WorkspaceRepository):
 
     def create(
         self,
-        user_id: int,
         name: str,
         description: str | None = None,
         rag_type: str = "vector",
         rag_config: dict | None = None,
         status: str = "ready",
     ) -> Workspace:
-        """Create a new workspace."""
+        """Create a new workspace (single-user system)."""
         query = """
-            INSERT INTO workspaces (user_id, name, description, rag_type, status, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO workspaces (name, description, rag_type, status, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
         """
         result = self.db.fetch_one(
             query,
             (
-                user_id,
                 name,
                 description,
                 rag_type,
@@ -46,7 +44,6 @@ class SqlWorkspaceRepository(WorkspaceRepository):
         if result:
             workspace = Workspace(
                 id=result["id"],
-                user_id=user_id,
                 name=name,
                 description=description,
                 rag_type=rag_type,
@@ -67,7 +64,7 @@ class SqlWorkspaceRepository(WorkspaceRepository):
     def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
         """Get workspace by ID."""
         query = """
-            SELECT id, user_id, name, description, rag_type, created_at, updated_at
+            SELECT id, name, description, rag_type, status, created_at, updated_at
             FROM workspaces WHERE id = %s
         """
         result = self.db.fetch_one(query, (workspace_id,))
@@ -75,14 +72,14 @@ class SqlWorkspaceRepository(WorkspaceRepository):
             return Workspace(**result)
         return None
 
-    def get_by_user(self, user_id: int) -> list[Workspace]:
-        """Get all workspaces for a user."""
+    def get_all(self) -> list[Workspace]:
+        """Get all workspaces (single-user system)."""
         query = """
-            SELECT id, user_id, name, description, rag_type, created_at, updated_at
-            FROM workspaces WHERE user_id = %s
+            SELECT id, name, description, rag_type, status, created_at, updated_at
+            FROM workspaces
             ORDER BY created_at DESC
         """
-        results = self.db.fetch_all(query, (user_id,))
+        results = self.db.fetch_all(query, ())
         return [Workspace(**result) for result in results]
 
     def update(self, workspace_id: int, **kwargs) -> Optional[Workspace]:

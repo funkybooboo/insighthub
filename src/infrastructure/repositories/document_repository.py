@@ -3,13 +3,13 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.database import SqlDatabase
+from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import Document
 
-from .document_repository import DocumentRepository
 
 
-class SqlDocumentRepository(DocumentRepository):
+
+class DocumentRepository:
     """SQL implementation of documents repository."""
 
     def __init__(self, db: SqlDatabase):
@@ -82,19 +82,6 @@ class SqlDocumentRepository(DocumentRepository):
         # Note: content_hash is not stored in DB yet, this is a placeholder
         # TODO: Add content_hash column to documents table
         return None
-
-    def get_by_user(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
-        """Get documents by user ID with pagination."""
-        query = """
-            SELECT d.id, d.workspace_id, d.filename, d.file_size, d.mime_type, d.chunk_count, d.status as processing_status, d.created_at
-            FROM documents d
-            JOIN workspaces w ON d.workspace_id = w.id
-            WHERE w.user_id = %s
-            ORDER BY d.created_at DESC
-            LIMIT %s OFFSET %s
-        """
-        results = self.db.fetch_all(query, (user_id, limit, skip))
-        return [Document(**result) for result in results]
 
     def get_by_workspace(
         self, workspace_id: int, limit: int = 50, offset: int = 0

@@ -3,13 +3,14 @@
 import argparse
 import sys
 
+from src.context import AppContext
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows.factory import create_provision_workflow
+from src.infrastructure.rag.workflows.factory import WorkflowFactory
 
 logger = create_logger(__name__)
 
 
-def cmd_list(ctx: object, args: argparse.Namespace) -> None:
+def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List all workspaces."""
     try:
         workspaces = ctx.workspace_repo.get_all()
@@ -29,25 +30,25 @@ def cmd_list(ctx: object, args: argparse.Namespace) -> None:
             print("-" * 80)
 
     except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to list workspaces: {e}")
-        print(f"Error: {e}")
         sys.exit(1)
 
 
-def cmd_new(ctx: object, args: argparse.Namespace) -> None:
+def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create a new workspace (interactive)."""
     try:
         # Interactive prompts
         name = input("Workspace name: ").strip()
         if not name:
-            print("Error: Name cannot be empty")
+            print("Error: Name cannot be empty", file=sys.stderr)
             sys.exit(1)
 
         description = input("Description (optional): ").strip() or None
 
         rag_type = input("RAG type (vector/graph) [vector]: ").strip() or "vector"
         if rag_type not in ["vector", "graph"]:
-            print("Error: RAG type must be 'vector' or 'graph'")
+            print("Error: RAG type must be 'vector' or 'graph'", file=sys.stderr)
             sys.exit(1)
 
         # Create workspace
@@ -64,8 +65,8 @@ def cmd_new(ctx: object, args: argparse.Namespace) -> None:
 
         # Provision RAG resources
         print("Provisioning RAG resources...")
-        provision_workflow = create_provision_workflow(
-            rag_type=rag_type, rag_config=workspace.rag_config or {}
+        provision_workflow = WorkflowFactory.create_create_rag_resources_workflow(
+            rag_config=workspace.rag_config or {}
         )
 
         result = provision_workflow.execute(
@@ -83,31 +84,31 @@ def cmd_new(ctx: object, args: argparse.Namespace) -> None:
         else:
             ctx.workspace_repo.update(workspace.id, status="failed")
             error = result.unwrap_err()
+            print(f"Error: Provisioning failed - {error}", file=sys.stderr)
             logger.error(f"Provisioning failed: {error}")
-            print(f"Error: Provisioning failed - {error}")
             sys.exit(1)
 
     except KeyboardInterrupt:
         print("\nCancelled")
         sys.exit(0)
     except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to create workspace: {e}", exc_info=True)
-        print(f"Error: {e}")
         sys.exit(1)
 
 
-def cmd_select(ctx: object, args: argparse.Namespace) -> None:
+def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
     """Select a workspace as the current workspace."""
     try:
         workspace = ctx.workspace_repo.get_by_id(args.workspace_id)
         if not workspace:
-            print(f"Error: Workspace {args.workspace_id} not found")
+            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
             sys.exit(1)
 
         ctx.current_workspace_id = workspace.id
         print(f"Selected workspace: [{workspace.id}] {workspace.name}")
 
     except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to select workspace: {e}")
-        print(f"Error: {e}")
         sys.exit(1)

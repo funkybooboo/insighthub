@@ -5,17 +5,19 @@ import sys
 from io import BytesIO
 from pathlib import Path
 
+from src.context import AppContext
 from src.infrastructure.logger import create_logger
+from src.infrastructure.models import Workspace
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
 )
-from src.infrastructure.rag.workflows.factory import create_consume_workflow
+from src.infrastructure.rag.workflows.factory import WorkflowFactory
 
 logger = create_logger(__name__)
 
 
-def _build_rag_config(workspace: object) -> dict:
+def _build_rag_config(workspace: Workspace) -> dict:
     """Build RAG configuration dictionary from workspace model with defaults."""
     return {
         "rag_type": getattr(workspace, "rag_type", "vector"),
@@ -44,11 +46,11 @@ def _build_rag_config(workspace: object) -> dict:
     }
 
 
-def cmd_list(ctx: object, args: argparse.Namespace) -> None:
+def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List documents in the current workspace."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first")
+            logger.error(f"Error: No workspace selected. Use 'workspace select <id>' first")
             sys.exit(1)
 
         documents = ctx.document_repo.get_by_workspace(ctx.current_workspace_id)
@@ -67,20 +69,20 @@ def cmd_list(ctx: object, args: argparse.Namespace) -> None:
 
     except Exception as e:
         logger.error(f"Failed to list documents: {e}")
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         sys.exit(1)
 
 
-def cmd_upload(ctx: object, args: argparse.Namespace) -> None:
+def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
     """Upload a document to the current workspace."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first")
+            logger.error(f"Error: No workspace selected. Use 'workspace select <id>' first")
             sys.exit(1)
 
         file_path = Path(args.file)
         if not file_path.exists():
-            print(f"Error: File not found: {file_path}")
+            logger.error(f"Error: File not found: {file_path}")
             sys.exit(1)
 
         # Read file
@@ -111,8 +113,8 @@ def cmd_upload(ctx: object, args: argparse.Namespace) -> None:
         rag_config = _build_rag_config(workspace)
 
         print("Processing (parsing, chunking, embedding, indexing)...")
-        consume_workflow = create_consume_workflow(
-            rag_type=rag_config["rag_type"], rag_config=rag_config
+        consume_workflow = WorkflowFactory.create_consume_workflow(
+            rag_config=rag_config
         )
 
         blob_key = f"{content_hash}/{file_path.name}"
@@ -138,20 +140,20 @@ def cmd_upload(ctx: object, args: argparse.Namespace) -> None:
         else:
             ctx.document_repo.update(document.id, status="failed")
             error = result.unwrap_err()
-            print(f"Error: Processing failed - {error}")
+            logger.error(f"Error: Processing failed - {error}")
             sys.exit(1)
 
     except Exception as e:
         logger.error(f"Failed to upload document: {e}", exc_info=True)
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         sys.exit(1)
 
 
-def cmd_remove(ctx: object, args: argparse.Namespace) -> None:
+def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
     """Remove a document by filename."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first")
+            logger.error(f"Error: No workspace selected. Use 'workspace select <id>' first")
             sys.exit(1)
 
         # Find document by filename
@@ -163,7 +165,7 @@ def cmd_remove(ctx: object, args: argparse.Namespace) -> None:
                 break
 
         if not doc_to_remove:
-            print(f"Error: Document '{args.filename}' not found in workspace")
+            logger.error(f"Error: Document '{args.filename}' not found in workspace")
             sys.exit(1)
 
         # Confirm deletion
@@ -180,5 +182,5 @@ def cmd_remove(ctx: object, args: argparse.Namespace) -> None:
         print("\nCancelled")
     except Exception as e:
         logger.error(f"Failed to remove document: {e}")
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         sys.exit(1)

@@ -8,13 +8,13 @@ from src.infrastructure.models import (
     DefaultRagConfig,
     DefaultVectorRagConfig,
 )
-from src.infrastructure.repositories.default_rag_configs import DefaultRagConfigRepository
+from src.infrastructure.repositories import DefaultRagConfigRepository
 
 logger = create_logger(__name__)
 
 
 class DefaultRagConfigService:
-    """Service for managing default RAG configurations."""
+    """Service for managing default RAG configuration (single-user system)."""
 
     def __init__(self, repository: DefaultRagConfigRepository):
         """
@@ -25,42 +25,40 @@ class DefaultRagConfigService:
         """
         self.repository = repository
 
-    def get_user_config(self, user_id: int) -> Optional[DefaultRagConfig]:
+    def get_config(self) -> Optional[DefaultRagConfig]:
         """
-        Get default RAG config for a users.
-
-        Args:
-            user_id: User ID
+        Get the default RAG config (single row, id=1).
 
         Returns:
             DefaultRagConfig if found, None otherwise
         """
-        return self.repository.get_by_user_id(user_id)
+        return self.repository.get()
 
     def create_or_update_config(
         self,
-        user_id: int,
+        rag_type: str = "vector",
         vector_config: dict | None = None,
         graph_config: dict | None = None,
     ) -> DefaultRagConfig:
         """
-        Create or update default RAG config for a users.
+        Create or update default RAG config (single-user system).
 
         Args:
-            user_id: User ID
+            rag_type: RAG type ("vector" or "graph")
             vector_config: Vector RAG configuration
             graph_config: Graph RAG configuration
 
         Returns:
             Created or updated config
         """
-        logger.info(f"Creating/updating default RAG config: user_id={user_id}")
+        logger.info("Creating/updating default RAG config")
 
-        existing_config = self.repository.get_by_user_id(user_id)
+        existing_config = self.repository.get()
 
         if existing_config:
-            logger.info(f"Updating existing RAG config: user_id={user_id}")
+            logger.info("Updating existing RAG config")
             # Update existing config
+            existing_config.rag_type = rag_type
             if vector_config:
                 for key, value in vector_config.items():
                     if hasattr(existing_config.vector_config, key):
@@ -71,11 +69,11 @@ class DefaultRagConfigService:
                         setattr(existing_config.graph_config, key, value)
 
             updated_config = self.repository.update(existing_config)
-            logger.info(f"RAG config updated: user_id={user_id}")
+            logger.info("RAG config updated")
             return updated_config
         else:
-            logger.info(f"Creating new RAG config: user_id={user_id}")
-            # Create new config
+            logger.info("Creating new RAG config")
+            # Create new config (should only happen once on first run)
             vector_cfg = DefaultVectorRagConfig()
             if vector_config:
                 for key, value in vector_config.items():
@@ -89,32 +87,11 @@ class DefaultRagConfigService:
                         setattr(graph_cfg, key, value)
 
             new_config = DefaultRagConfig(
-                id=0,
-                user_id=user_id,
+                id=1,  # Always id=1 for single-row table
+                rag_type=rag_type,
                 vector_config=vector_cfg,
                 graph_config=graph_cfg,
             )
-            created_config = self.repository.create(new_config)
-            logger.info(f"RAG config created: user_id={user_id}")
-            return created_config
-
-    def delete_config(self, user_id: int) -> bool:
-        """
-        Delete default RAG config for a users.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            True if deleted, False if not found
-        """
-        logger.info(f"Deleting default RAG config: user_id={user_id}")
-
-        deleted = self.repository.delete_by_user_id(user_id)
-
-        if deleted:
-            logger.info(f"RAG config deleted: user_id={user_id}")
-        else:
-            logger.warning(f"RAG config deletion failed: config not found (user_id={user_id})")
-
-        return deleted
+            updated_config = self.repository.update(new_config)
+            logger.info("RAG config created")
+            return updated_config

@@ -3,13 +3,13 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.database import SqlDatabase
+from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import ChatSession
 
-from .chat_session_repository import ChatSessionRepository
 
 
-class SqlChatSessionRepository(ChatSessionRepository):
+
+class ChatSessionRepository:
     """SQL implementation of chat sessions repository."""
 
     def __init__(self, db: SqlDatabase):
@@ -17,21 +17,19 @@ class SqlChatSessionRepository(ChatSessionRepository):
 
     def create(
         self,
-        user_id: int,
         title: str | None = None,
         workspace_id: int | None = None,
         rag_type: str = "vector",
     ) -> ChatSession:
-        """Create a new chat session."""
+        """Create a new chat session (single-user system)."""
         query = """
-            INSERT INTO chat_sessions (user_id, workspace_id, title, rag_type, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO chat_sessions (workspace_id, title, rag_type, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
         """
         result = self.db.fetch_one(
             query,
             (
-                user_id,
                 workspace_id,
                 title,
                 rag_type,
@@ -43,7 +41,6 @@ class SqlChatSessionRepository(ChatSessionRepository):
         if result:
             return ChatSession(
                 id=result["id"],
-                user_id=user_id,
                 workspace_id=workspace_id,
                 title=title,
                 rag_type=rag_type,
@@ -54,7 +51,7 @@ class SqlChatSessionRepository(ChatSessionRepository):
     def get_by_id(self, session_id: int) -> Optional[ChatSession]:
         """Get session by ID."""
         query = """
-            SELECT id, user_id, workspace_id, title, rag_type, created_at, updated_at
+            SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions WHERE id = %s
         """
         result = self.db.fetch_one(query, (session_id,))
@@ -62,15 +59,15 @@ class SqlChatSessionRepository(ChatSessionRepository):
             return ChatSession(**result)
         return None
 
-    def get_by_user(self, user_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
-        """Get sessions by user ID with pagination."""
+    def get_all(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+        """Get all chat sessions (single-user system)."""
         query = """
-            SELECT id, user_id, workspace_id, title, rag_type, created_at, updated_at
-            FROM chat_sessions WHERE user_id = %s
+            SELECT id, workspace_id, title, rag_type, created_at, updated_at
+            FROM chat_sessions
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s
         """
-        results = self.db.fetch_all(query, (user_id, limit, skip))
+        results = self.db.fetch_all(query, (limit, skip))
         return [ChatSession(**result) for result in results]
 
     def get_by_workspace(
@@ -78,7 +75,7 @@ class SqlChatSessionRepository(ChatSessionRepository):
     ) -> list[ChatSession]:
         """Get sessions by workspace ID with pagination."""
         query = """
-            SELECT id, user_id, workspace_id, title, rag_type, created_at, updated_at
+            SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions WHERE workspace_id = %s
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s

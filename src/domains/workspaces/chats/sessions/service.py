@@ -2,7 +2,7 @@
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatSession
-from src.infrastructure.repositories.chat_sessions import ChatSessionRepository
+from src.infrastructure.repositories import ChatSessionRepository
 
 logger = create_logger(__name__)
 
@@ -16,32 +16,25 @@ class ChatSessionService:
 
     def create_session(
         self,
-        user_id: int,
         title: str | None = None,
         workspace_id: int | None = None,
         rag_type: str = "vector",
     ) -> ChatSession:
-        """Create a new chats session."""
-        logger.info(
-            f"Creating chat session: user_id={user_id}, workspace_id={workspace_id}, rag_type='{rag_type}'"
-        )
+        """Create a new chat session (single-user system)."""
+        logger.info(f"Creating chat session: workspace_id={workspace_id}, rag_type='{rag_type}'")
 
         # Validate inputs
         if title and len(title.strip()) > 255:
-            logger.error(f"Session creation failed: title too long (user_id={user_id})")
+            logger.error("Session creation failed: title too long")
             raise ValueError("Session title too long (max 255 characters)")
 
         if rag_type not in ["vector", "graph"]:
-            logger.error(
-                f"Session creation failed: invalid rag_type '{rag_type}' (user_id={user_id})"
-            )
+            logger.error(f"Session creation failed: invalid rag_type '{rag_type}'")
             raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
-        session = self.repository.create(
-            user_id, title.strip() if title else None, workspace_id, rag_type
-        )
+        session = self.repository.create(title.strip() if title else None, workspace_id, rag_type)
 
-        logger.info(f"Chat session created: session_id={session.id}, user_id={user_id}")
+        logger.info(f"Chat session created: session_id={session.id}")
 
         return session
 
@@ -49,9 +42,9 @@ class ChatSessionService:
         """Get session by ID."""
         return self.repository.get_by_id(session_id)
 
-    def list_user_sessions(self, user_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
-        """List sessions for a users."""
-        return self.repository.get_by_user(user_id, skip, limit)
+    def list_sessions(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+        """List all chat sessions (single-user system)."""
+        return self.repository.get_all(skip, limit)
 
     def update_session(self, session_id: int, title: str | None = None) -> ChatSession | None:
         """Update session title."""
@@ -88,37 +81,23 @@ class ChatSessionService:
 
         return deleted
 
-    def validate_session_access(self, session_id: int, user_id: int) -> bool:
-        """Validate that users has access to session."""
-        session = self.repository.get_by_id(session_id)
-        return session is not None and session.user_id == user_id
 
-    def get_user_session(self, session_id: int, user_id: int) -> ChatSession | None:
-        """Get session by ID for specific users."""
+    def get_workspace_session(self, workspace_id: int, session_id: int) -> ChatSession | None:
+        """Get session by ID with workspace validation (single-user system)."""
         session = self.repository.get_by_id(session_id)
-        if session and session.user_id == user_id:
-            return session
-        return None
-
-    def get_workspace_session(
-        self, workspace_id: int, session_id: int, user_id: int
-    ) -> ChatSession | None:
-        """Get session by ID with workspace and user validation."""
-        session = self.repository.get_by_id(session_id)
-        if session and session.user_id == user_id and session.workspace_id == workspace_id:
+        if session and session.workspace_id == workspace_id:
             return session
         return None
 
     def list_workspace_sessions(
-        self, workspace_id: int, user_id: int, skip: int = 0, limit: int = 50
+        self, workspace_id: int, skip: int = 0, limit: int = 50
     ) -> tuple[list[ChatSession], int]:
-        """List sessions for a workspace (filtered by users access)."""
-        # Get all sessions in workspace and filter by user
+        """List sessions for a workspace (single-user system)."""
+        # Get all sessions in workspace
         all_sessions = self.repository.get_by_workspace(workspace_id)
-        user_sessions = [s for s in all_sessions if s.user_id == user_id]
 
         # Apply pagination
-        paginated_sessions = user_sessions[skip : skip + limit]
-        total = len(user_sessions)
+        paginated_sessions = all_sessions[skip : skip + limit]
+        total = len(all_sessions)
 
         return paginated_sessions, total

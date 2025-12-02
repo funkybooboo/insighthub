@@ -9,7 +9,7 @@ from src.infrastructure.rag.steps.general.parsing.utils import (
     determine_mime_type,
     extract_text,
 )
-from src.infrastructure.repositories.documents import DocumentRepository
+from src.infrastructure.repositories import DocumentRepository
 from src.infrastructure.storage import BlobStorage
 
 from .dtos import DocumentListResponse, DocumentUploadResult
@@ -53,14 +53,12 @@ class DocumentService:
         mime_type: str,
         content_hash: str,
         file_size: int,
-        user_id: int,
         rag_collection: str | None = None,
     ) -> Document:
         """
-        Upload a document to blob storage and create database record.
+        Upload a document to blob storage and create database record (single-user system).
 
         Args:
-            user_id: ID of the user uploading the document
             workspace_id: Workspace ID for the document
             filename: Original filename
             file_obj: File-like object to upload
@@ -76,7 +74,7 @@ class DocumentService:
             DocumentProcessingError: If blob storage upload fails
         """
         logger.info(
-            f"Starting document upload: filename='{filename}', workspace_id={workspace_id}, user_id={user_id}, size={file_size} bytes"
+            f"Starting document upload: filename='{filename}', workspace_id={workspace_id}, size={file_size} bytes"
         )
 
         try:
@@ -124,7 +122,7 @@ class DocumentService:
             from src.workers import get_add_document_worker
 
             worker = get_add_document_worker()
-            worker.start_processing(document, user_id)
+            worker.start_processing(document)
 
             logger.info(f"Background processing started for document {document.id}")
 
@@ -166,7 +164,6 @@ class DocumentService:
     def _create_document_upload_result(
         self,
         workspace_id: int,
-        user_id: int,
         filename: str,
         file_obj: BinaryIO,
         mime_type: str,
@@ -175,11 +172,10 @@ class DocumentService:
         text_length: int,
     ) -> DocumentUploadResult:
         """
-        Create and upload document, returning the result.
+        Create and upload document, returning the result (single-user system).
 
         Args:
             workspace_id: ID of the workspace
-            user_id: ID of the user
             filename: Name of the file
             file_obj: File object
             mime_type: MIME type of the file
@@ -198,7 +194,6 @@ class DocumentService:
             mime_type=mime_type,
             content_hash=content_hash,
             file_size=file_size,
-            user_id=user_id,
         )
 
         return DocumentUploadResult(
@@ -208,17 +203,16 @@ class DocumentService:
         )
 
     def _upload_document_to_workspace_internal(
-        self, workspace_id: int, user_id: int, filename: str, file_obj: BinaryIO
+        self, workspace_id: int, filename: str, file_obj: BinaryIO
     ) -> DocumentUploadResult:
         """
-        High-level orchestration method for document upload.
+        High-level orchestration method for document upload (single-user system).
 
         This method handles the complete document upload workflow including
         MIME type determination, duplicate detection, text extraction, and upload.
 
         Args:
             workspace_id: ID of the workspace to upload to
-            user_id: ID of the users uploading the document
             filename: Name of the file
             file_obj: File object (must support seek)
 
@@ -240,7 +234,7 @@ class DocumentService:
 
         # Create and upload document
         return self._create_document_upload_result(
-            workspace_id, user_id, filename, file_obj, mime_type, file_size, content_hash, len(text)
+            workspace_id, filename, file_obj, mime_type, file_size, content_hash, len(text)
         )
 
     def download_document(self, document_id: int) -> bytes | None:
@@ -278,11 +272,11 @@ class DocumentService:
         """Get document by content hash."""
         return self.repository.get_by_content_hash(content_hash)
 
-    def list_user_documents(self, user_id: int, skip: int = 0, limit: int = 100) -> list[Document]:
-        """List all documents for a users with pagination."""
-        # Note: This is a simplified implementation - in a real system,
-        # we'd need to join with workspaces to filter by user access
-        return self.repository.get_by_user(user_id, skip, limit)
+    def list_documents_by_workspace(
+        self, workspace_id: int, skip: int = 0, limit: int = 100
+    ) -> list[Document]:
+        """List all documents for a workspace with pagination (single-user system)."""
+        return self.repository.get_by_workspace(workspace_id, limit, skip)
 
     def update_document(self, document_id: int, **kwargs) -> Document | None:
         """Update document fields."""
@@ -329,17 +323,17 @@ class DocumentService:
         # we have an orphaned file in storage - this should be handled by cleanup jobs
         return db_deleted
 
-    def list_user_documents_as_dto(self, user_id: int) -> DocumentListResponse:
+    def list_documents_by_workspace_as_dto(self, workspace_id: int) -> DocumentListResponse:
         """
-        List all documents for a users as a DTO.
+        List all documents for a workspace as a DTO (single-user system).
 
         Args:
-            user_id: The users ID
+            workspace_id: The workspace ID
 
         Returns:
             DocumentListResponse DTO ready for JSON serialization
         """
-        documents = self.list_user_documents(user_id)
+        documents = self.list_documents_by_workspace(workspace_id)
         document_dtos = DocumentMapper.documents_to_dtos(documents)
 
         return DocumentListResponse(
@@ -348,34 +342,29 @@ class DocumentService:
             total=len(document_dtos),
         )
 
-    def delete_document_with_validation(self, document_id: int, user_id: int) -> None:
+    def delete_document_with_validation(self, document_id: int) -> None:
         """
-        Delete a document with validation.
+        Delete a document with validation (single-user system).
 
         Args:
             document_id: The document ID to delete
-            user_id: ID of the user performing the deletion
 
         Raises:
             DocumentNotFoundError: If document does not exist
         """
-        logger.info(
-            f"Starting validated document deletion: document_id={document_id}, user_id={user_id}"
-        )
+        logger.info(f"Starting validated document deletion: document_id={document_id}")
 
         # Check if document exists
         document = self.get_document_by_id(document_id)
         if not document:
-            logger.warning(
-                f"Document deletion failed: document not found (document_id={document_id}, user_id={user_id})"
-            )
+            logger.warning(f"Document deletion failed: document not found (document_id={document_id})")
             raise DocumentNotFoundError(document_id)
 
         # Launch RemoveDocumentWorker in background
         from src.workers import get_remove_document_worker
 
         cleanup_worker = get_remove_document_worker()
-        cleanup_worker.start_cleanup(document, user_id)
+        cleanup_worker.start_cleanup(document)
 
         logger.info(f"Background cleanup started for document {document_id}")
 
@@ -427,17 +416,16 @@ class DocumentService:
 
     @staticmethod
     def fetch_wikipedia_article(
-        workspace_id: int, user_id: int, query: str, language: str = "en"
+        workspace_id: int, query: str, language: str = "en"
     ) -> DocumentUploadResult:
         """
-        Fetch a Wikipedia article and add it to the workspace.
+        Fetch a Wikipedia article and add it to the workspace (single-user system).
 
         This method starts a background worker to fetch the article and process it.
         The actual document creation and RAG processing happens asynchronously.
 
         Args:
             workspace_id: ID of the workspace to add the article to
-            user_id: ID of the user performing the fetch
             query: Article title or search query
             language: Language code (default: "en")
 
@@ -452,7 +440,7 @@ class DocumentService:
             from src.workers import get_fetch_wikipedia_worker
 
             fetch_worker = get_fetch_wikipedia_worker()
-            fetch_worker.start_fetch(workspace_id, user_id, query, language)
+            fetch_worker.start_fetch(workspace_id, query, language)
 
             # Return placeholder result - actual document will be created by worker
             # The worker will broadcast status updates via WebSocket

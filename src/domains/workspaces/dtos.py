@@ -6,10 +6,9 @@ from typing import List, Optional
 
 @dataclass
 class WorkspaceDTO:
-    """DTO for workspace responses."""
+    """DTO for workspace responses (single-user system)."""
 
     id: int
-    user_id: int
     name: str
     description: Optional[str]
     rag_type: str

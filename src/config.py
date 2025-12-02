@@ -172,12 +172,14 @@ class AppConfig(BaseSettings):
     chunk_overlap: int = Field(default=200, description="Document chunk overlap")
     batch_size: int = Field(default=32, description="Batch processing size")
 
-    # Storage
+    # Storage (default: S3/MinIO for production)
     blob_storage_type: str = Field(default="s3", description="Blob storage type")
     file_system_storage_path: str = Field(default="uploads", description="File system storage path")
-    s3_endpoint_url: Optional[str] = Field(default=None, description="S3 endpoint URL")
-    s3_access_key: Optional[str] = Field(default=None, description="S3 access key")
-    s3_secret_key: Optional[str] = Field(default=None, description="S3 secret key")
+    s3_endpoint_url: Optional[str] = Field(
+        default="http://localhost:9000", description="S3 endpoint URL (MinIO default)"
+    )
+    s3_access_key: Optional[str] = Field(default="minioadmin", description="S3 access key")
+    s3_secret_key: Optional[str] = Field(default="minioadmin", description="S3 secret key")
     s3_bucket_name: str = Field(default="documents", description="S3 bucket name")
 
     # Vector Store
@@ -294,11 +296,73 @@ class AppConfig(BaseSettings):
             neo4j_password=self.neo4j_password,
         )
 
-    @staticmethod
-    def validate_config() -> None:
+    def validate_config(self) -> None:
         """Validate configuration and raise errors for invalid configurations."""
-        # Skip validation during container startup - let the app handle connection issues gracefully
-        print("Configuration validation skipped - app will handle connections gracefully")
+        errors: list[str] = []
+
+        # Validate database URL
+        if not self.database_url:
+            errors.append("DATABASE_URL is required")
+        elif not self.database_url.startswith("postgresql://"):
+            errors.append("DATABASE_URL must start with 'postgresql://'")
+
+        # Validate blob storage configuration
+        if self.blob_storage_type not in ["filesystem", "s3"]:
+            errors.append(f"Invalid BLOB_STORAGE_TYPE: {self.blob_storage_type}. Must be 'filesystem' or 's3'")
+
+        if self.blob_storage_type == "s3":
+            if not self.s3_endpoint_url:
+                errors.append("S3_ENDPOINT_URL is required when using S3 storage")
+            if not self.s3_access_key:
+                errors.append("S3_ACCESS_KEY is required when using S3 storage")
+            if not self.s3_secret_key:
+                errors.append("S3_SECRET_KEY is required when using S3 storage")
+            if not self.s3_bucket_name:
+                errors.append("S3_BUCKET_NAME is required when using S3 storage")
+
+        # Validate LLM provider configuration
+        if self.llm_provider not in ["ollama", "openai", "claude", "huggingface"]:
+            errors.append(f"Invalid LLM_PROVIDER: {self.llm_provider}. Must be 'ollama', 'openai', 'claude', or 'huggingface'")
+
+        if self.llm_provider == "ollama":
+            if not self.ollama_base_url:
+                errors.append("OLLAMA_BASE_URL is required when using Ollama")
+            if not self.ollama_llm_model:
+                errors.append("OLLAMA_LLM_MODEL is required when using Ollama")
+
+        if self.llm_provider == "openai" and not self.openai_api_key:
+            errors.append("OPENAI_API_KEY is required when using OpenAI")
+
+        if self.llm_provider == "claude" and not self.anthropic_api_key:
+            errors.append("ANTHROPIC_API_KEY is required when using Claude")
+
+        if self.llm_provider == "huggingface" and not self.huggingface_api_key:
+            errors.append("HUGGINGFACE_API_KEY is required when using HuggingFace")
+
+        # Validate numeric ranges
+        if self.chunk_size <= 0:
+            errors.append(f"CHUNK_SIZE must be positive, got {self.chunk_size}")
+
+        if self.chunk_overlap < 0:
+            errors.append(f"CHUNK_OVERLAP must be non-negative, got {self.chunk_overlap}")
+
+        if self.chunk_overlap >= self.chunk_size:
+            errors.append(f"CHUNK_OVERLAP ({self.chunk_overlap}) must be less than CHUNK_SIZE ({self.chunk_size})")
+
+        if self.batch_size <= 0:
+            errors.append(f"BATCH_SIZE must be positive, got {self.batch_size}")
+
+        # Validate security settings
+        if len(self.secret_key) < 32:
+            errors.append(f"SECRET_KEY must be at least 32 characters, got {len(self.secret_key)}")
+
+        if len(self.jwt_secret_key) < 32:
+            errors.append(f"JWT_SECRET_KEY must be at least 32 characters, got {len(self.jwt_secret_key)}")
+
+        # Raise all errors if any
+        if errors:
+            error_message = "Configuration validation failed:\n  - " + "\n  - ".join(errors)
+            raise ValueError(error_message)
 
 
 def load_config(env_file_path: Optional[str] = None) -> AppConfig:

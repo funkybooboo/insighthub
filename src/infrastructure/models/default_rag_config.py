@@ -6,7 +6,7 @@ from datetime import datetime
 
 @dataclass
 class DefaultVectorRagConfig:
-    """Default vector RAG configuration per users."""
+    """Default vector RAG configuration (single-user system)."""
 
     embedding_algorithm: str = "ollama"
     chunking_algorithm: str = "sentence"
@@ -18,7 +18,7 @@ class DefaultVectorRagConfig:
 
 @dataclass
 class DefaultGraphRagConfig:
-    """Default graph RAG configuration per users."""
+    """Default graph RAG configuration (single-user system)."""
 
     entity_extraction_algorithm: str = "spacy"
     relationship_extraction_algorithm: str = "dependency-parsing"
@@ -27,10 +27,10 @@ class DefaultGraphRagConfig:
 
 @dataclass
 class DefaultRagConfig:
-    """Default RAG configuration per users (used when creating new workspaces)."""
+    """Default RAG configuration (single-user system, used when creating new workspaces)."""
 
     id: int
-    user_id: int
+    rag_type: str = "vector"  # "vector" or "graph"
     # Default configurations for different RAG types
     vector_config: DefaultVectorRagConfig = field(default_factory=DefaultVectorRagConfig)
     graph_config: DefaultGraphRagConfig = field(default_factory=DefaultGraphRagConfig)
@@ -38,4 +38,4 @@ class DefaultRagConfig:
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
     def __repr__(self) -> str:
-        return f"<DefaultRagConfig(id={self.id}, user_id={self.user_id})>"
+        return f"<DefaultRagConfig(id={self.id}, rag_type={self.rag_type})>"

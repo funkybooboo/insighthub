@@ -14,7 +14,7 @@ class DefaultRagConfigMapper:
     @staticmethod
     def to_dto(config: DefaultRagConfig) -> DefaultRagConfigDTO:
         """
-        Convert DefaultRagConfig model to DTO.
+        Convert DefaultRagConfig model to DTO (single-user system).
 
         Args:
             config: DefaultRagConfig model instance
@@ -24,7 +24,6 @@ class DefaultRagConfigMapper:
         """
         return DefaultRagConfigDTO(
             id=config.id,
-            user_id=config.user_id,
             vector_config=VectorRagConfigDTO(
                 embedding_algorithm=config.vector_config.embedding_algorithm,
                 chunking_algorithm=config.vector_config.chunking_algorithm,
@@ -45,7 +44,7 @@ class DefaultRagConfigMapper:
     @staticmethod
     def to_response_dict(config_dto: DefaultRagConfigDTO) -> dict:
         """
-        Convert DefaultRagConfigDTO to response dictionary for API.
+        Convert DefaultRagConfigDTO to response dictionary for API (single-user system).
 
         Args:
             config_dto: DefaultRagConfigDTO instance
@@ -55,7 +54,6 @@ class DefaultRagConfigMapper:
         """
         return {
             "id": config_dto.id,
-            "user_id": config_dto.user_id,
             "vector_config": {
                 "embedding_algorithm": config_dto.vector_config.embedding_algorithm,
                 "chunking_algorithm": config_dto.vector_config.chunking_algorithm,

@@ -1,18 +1,19 @@
+from src.context import AppContext
 """Chat message CLI commands."""
 
 import argparse
 
 
-def cmd_list(ctx: object, args: argparse.Namespace) -> None:
+def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List messages in the current chat session."""
     # Require a selected session
     if not hasattr(ctx, "current_session_id") or not ctx.current_session_id:
-        print("Error: No chat session selected. Use 'chat select <id>' first.")
+        logger.error(f"Error: No chat session selected. Use 'chat select <id>' first.")
         return
 
     session = ctx.chat_session_service.get_session(ctx.current_session_id)
     if not session:
-        print(f"Error: Chat session {ctx.current_session_id} not found.")
+        logger.error(f"Error: Chat session {ctx.current_session_id} not found.")
         return
 
     # List messages for the session
@@ -21,10 +22,12 @@ def cmd_list(ctx: object, args: argparse.Namespace) -> None:
     )
 
     if not messages:
-        print(f"No messages found in session '{session.title or f'Session {session.id'}'.")
+        session_name = session.title or f"Session {session.id}"
+        print(f"No messages found in session '{session_name}'.")
         return
 
-    print(f"\nMessages in session '{session.title or f'Session {session.id}'}' ({total} total):\n")
+    session_name = session.title or f"Session {session.id}"
+    print(f"\nMessages in session '{session_name}' ({total} total):\n")
     for message in messages:
         role_label = message.role.upper()
         print(f"  [{message.id}] {role_label}:")
@@ -33,16 +36,16 @@ def cmd_list(ctx: object, args: argparse.Namespace) -> None:
         print()
 
 
-def cmd_send(ctx: object, args: argparse.Namespace) -> None:
+def cmd_send(ctx: AppContext, args: argparse.Namespace) -> None:
     """Send a message in the current chat session."""
     # Require a selected session
     if not hasattr(ctx, "current_session_id") or not ctx.current_session_id:
-        print("Error: No chat session selected. Use 'chat select <id>' first.")
+        logger.error(f"Error: No chat session selected. Use 'chat select <id>' first.")
         return
 
     session = ctx.chat_session_service.get_session(ctx.current_session_id)
     if not session:
-        print(f"Error: Chat session {ctx.current_session_id} not found.")
+        logger.error(f"Error: Chat session {ctx.current_session_id} not found.")
         return
 
     # Get the message content
@@ -62,12 +65,12 @@ def cmd_send(ctx: object, args: argparse.Namespace) -> None:
     print("\n(Assistant response generation not yet implemented)")
 
 
-def cmd_delete(ctx: object, args: argparse.Namespace) -> None:
+def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
     """Delete a message."""
     message = ctx.chat_message_service.get_message(args.message_id)
 
     if not message:
-        print(f"Error: Message {args.message_id} not found.")
+        logger.error(f"Error: Message {args.message_id} not found.")
         return
 
     # Confirm deletion

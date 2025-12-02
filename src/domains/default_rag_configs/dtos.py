@@ -27,10 +27,9 @@ class GraphRagConfigDTO:
 
 @dataclass
 class DefaultRagConfigDTO:
-    """DTO for default RAG configuration response."""
+    """DTO for default RAG configuration response (single-user system)."""
 
     id: int
-    user_id: int
     vector_config: VectorRagConfigDTO
     graph_config: GraphRagConfigDTO
     created_at: str
@@ -47,10 +46,9 @@ class CreateUpdateDefaultRagConfigDTO:
 
 @dataclass
 class DefaultRagConfigResponseDTO:
-    """DTO for default RAG configuration API response."""
+    """DTO for default RAG configuration API response (single-user system)."""
 
     id: int
-    user_id: int
     vector_config: dict
     graph_config: dict
     created_at: str

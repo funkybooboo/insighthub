@@ -1,20 +1,20 @@
-"""S3-compatible blob storage implementation using MinIO."""
+"""S3-compatible blob storage implementation using boto3."""
 
 from typing import Optional
 
 try:
-    from minio import Minio
-    from minio.error import S3Error
+    import boto3
+    from botocore.exceptions import ClientError
 
-    MINIO_AVAILABLE = True
+    BOTO3_AVAILABLE = True
 except ImportError:
-    MINIO_AVAILABLE = False
+    BOTO3_AVAILABLE = False
 
 from .storage import BlobStorage
 
 
 class S3BlobStorage(BlobStorage):
-    """S3-compatible blob storage using MinIO client."""
+    """S3-compatible blob storage using boto3 client."""
 
     def __init__(
         self,
@@ -34,36 +34,67 @@ class S3BlobStorage(BlobStorage):
             secret_key: S3 secret key
             bucket_name: S3 bucket name
             secure: Whether to use HTTPS (default: True)
-            region: S3 region (optional)
+            region: S3 region (optional, defaults to us-east-1)
         """
-        if not MINIO_AVAILABLE:
-            raise ImportError("minio package is required for S3BlobStorage")
+        if not BOTO3_AVAILABLE:
+            raise ImportError("boto3 package is required for S3BlobStorage")
 
         self.endpoint = endpoint
         self.bucket_name = bucket_name
         self.secure = secure
 
-        # Initialize MinIO client
-        self.client = Minio(
-            endpoint=endpoint,
-            access_key=access_key,
-            secret_key=secret_key,
-            secure=secure,
-            region=region,
-        )
+        # Build endpoint URL with protocol
+        protocol = "https" if secure else "http"
+        endpoint_url = f"{protocol}://{endpoint}"
 
-        # Ensure bucket exists
-        self._ensure_bucket()
+        # Initialize boto3 client (lazy - connection happens on first use)
+        self._client: Optional[boto3.client] = None
+        self._endpoint_url = endpoint_url
+        self._access_key = access_key
+        self._secret_key = secret_key
+        self._region = region or "us-east-1"
+
+    @property
+    def client(self) -> boto3.client:
+        """Lazy initialization of boto3 S3 client."""
+        if self._client is None:
+            self._client = boto3.client(
+                "s3",
+                endpoint_url=self._endpoint_url,
+                aws_access_key_id=self._access_key,
+                aws_secret_access_key=self._secret_key,
+                region_name=self._region,
+            )
+            self._ensure_bucket()
+        return self._client
 
     def _ensure_bucket(self) -> None:
         """Ensure the bucket exists, create it if it doesn't."""
         try:
-            if not self.client.bucket_exists(self.bucket_name):
-                self.client.make_bucket(self.bucket_name)
-        except S3Error as e:
-            raise RuntimeError(f"Failed to create/access bucket {self.bucket_name}: {e}")
+            if self._client:
+                self._client.head_bucket(Bucket=self.bucket_name)
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "404":
+                # Bucket doesn't exist, create it
+                try:
+                    if self._region == "us-east-1":
+                        self._client.create_bucket(Bucket=self.bucket_name)
+                    else:
+                        self._client.create_bucket(
+                            Bucket=self.bucket_name,
+                            CreateBucketConfiguration={"LocationConstraint": self._region},
+                        )
+                except ClientError as create_error:
+                    raise RuntimeError(
+                        f"Failed to create bucket {self.bucket_name}: {create_error}"
+                    )
+            else:
+                raise RuntimeError(f"Failed to access bucket {self.bucket_name}: {e}")
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """
         Upload data to S3 storage.
 
@@ -81,17 +112,16 @@ class S3BlobStorage(BlobStorage):
             # Upload data
             data_stream = BytesIO(data)
             self.client.put_object(
-                bucket_name=self.bucket_name,
-                object_name=key,
-                data=data_stream,
-                length=len(data),
-                content_type=content_type,
+                Bucket=self.bucket_name,
+                Key=key,
+                Body=data_stream,
+                ContentType=content_type,
             )
 
             # Return the URL
             return self.get_url(key)
 
-        except S3Error as e:
+        except ClientError as e:
             raise RuntimeError(f"Failed to upload {key}: {e}")
 
     def download(self, key: str) -> bytes:
@@ -108,11 +138,12 @@ class S3BlobStorage(BlobStorage):
             FileNotFoundError: If blob doesn't exist
         """
         try:
-            response = self.client.get_object(self.bucket_name, key)
-            return response.read()
+            response = self.client.get_object(Bucket=self.bucket_name, Key=key)
+            return response["Body"].read()
 
-        except S3Error as e:
-            if e.code == "NoSuchKey":
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "NoSuchKey":
                 raise FileNotFoundError(f"Blob {key} not found")
             raise RuntimeError(f"Failed to download {key}: {e}")
 
@@ -127,11 +158,12 @@ class S3BlobStorage(BlobStorage):
             bool: True if deleted successfully, False otherwise
         """
         try:
-            self.client.remove_object(self.bucket_name, key)
+            self.client.delete_object(Bucket=self.bucket_name, Key=key)
             return True
 
-        except S3Error as e:
-            if e.code == "NoSuchKey":
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "NoSuchKey":
                 return False  # Already doesn't exist
             raise RuntimeError(f"Failed to delete {key}: {e}")
 
@@ -146,11 +178,12 @@ class S3BlobStorage(BlobStorage):
             bool: True if blob exists, False otherwise
         """
         try:
-            self.client.stat_object(self.bucket_name, key)
+            self.client.head_object(Bucket=self.bucket_name, Key=key)
             return True
 
-        except S3Error as e:
-            if e.code == "NoSuchKey":
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "404":
                 return False
             raise RuntimeError(f"Failed to check existence of {key}: {e}")
 
@@ -166,12 +199,12 @@ class S3BlobStorage(BlobStorage):
             str: Signed URL for blob access
         """
         try:
-            url = self.client.presigned_get_object(
-                bucket_name=self.bucket_name,
-                object_name=key,
-                expires=expires_in,
+            url = self.client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": self.bucket_name, "Key": key},
+                ExpiresIn=expires_in,
             )
             return url
 
-        except S3Error as e:
+        except ClientError as e:
             raise RuntimeError(f"Failed to generate URL for {key}: {e}")

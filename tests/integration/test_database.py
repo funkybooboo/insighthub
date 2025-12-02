@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.infrastructure.database.factory import create_database
+from src.infrastructure.sql_database.factory import create_database
 from src.infrastructure.models import User
 from src.infrastructure.repositories.users.sql_user_repository import SqlUserRepository
 from src.infrastructure.repositories.workspaces.sql_workspace_repository import (

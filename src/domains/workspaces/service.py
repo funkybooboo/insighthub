@@ -2,7 +2,7 @@
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
-from src.infrastructure.repositories.workspaces import WorkspaceRepository
+from src.infrastructure.repositories import WorkspaceRepository
 
 logger = create_logger(__name__)
 
@@ -16,34 +16,29 @@ class WorkspaceService:
 
     def create_workspace(
         self,
-        user_id: int,
         name: str,
         description: str | None = None,
         rag_type: str = "vector",
         rag_config: dict[str, str | int | float | bool] | None = None,
     ) -> Workspace:
-        """Create a new workspace with optional RAG configuration."""
-        logger.info(f"Creating workspace: name='{name}', user_id={user_id}, rag_type='{rag_type}'")
+        """Create a new workspace with optional RAG configuration (single-user system)."""
+        logger.info(f"Creating workspace: name='{name}', rag_type='{rag_type}'")
 
         # Validate inputs
         if not name or not name.strip():
-            logger.error(f"Workspace creation failed: empty name (user_id={user_id})")
+            logger.error("Workspace creation failed: empty name")
             raise ValueError("Workspace name cannot be empty")
 
         if len(name.strip()) > 255:
-            logger.error(
-                f"Workspace creation failed: name too long '{name[:50]}...' (user_id={user_id})"
-            )
+            logger.error(f"Workspace creation failed: name too long '{name[:50]}...'")
             raise ValueError("Workspace name too long (max 255 characters)")
 
         if description and len(description) > 1000:
-            logger.error(f"Workspace creation failed: description too long (user_id={user_id})")
+            logger.error("Workspace creation failed: description too long")
             raise ValueError("Workspace description too long (max 1000 characters)")
 
         if rag_type not in ["vector", "graph"]:
-            logger.error(
-                f"Workspace creation failed: invalid rag_type '{rag_type}' (user_id={user_id})"
-            )
+            logger.error(f"Workspace creation failed: invalid rag_type '{rag_type}'")
             raise ValueError("Invalid rag_type. Must be 'vector' or 'graph'")
 
         # Validate RAG config if provided
@@ -52,7 +47,7 @@ class WorkspaceService:
 
         # Create workspace in database with status='provisioning'
         workspace = self.repository.create(
-            user_id, name.strip(), description, rag_type, rag_config, status="provisioning"
+            name.strip(), description, rag_type, rag_config, status="provisioning"
         )
 
         logger.info(
@@ -64,7 +59,7 @@ class WorkspaceService:
             from src.workers import get_create_workspace_worker
 
             provision_worker = get_create_workspace_worker()
-            provision_worker.start_provisioning(workspace, user_id)
+            provision_worker.start_provisioning(workspace)
         except Exception:
             # Skip worker initialization in unit tests or when dependencies unavailable
             pass
@@ -80,9 +75,9 @@ class WorkspaceService:
         workspace = self.repository.get_by_id(workspace_id)
         return workspace
 
-    def list_user_workspaces(self, user_id: int) -> list[Workspace]:
-        """List all workspaces for a users."""
-        return self.repository.get_by_user(user_id)
+    def list_workspaces(self) -> list[Workspace]:
+        """List all workspaces (single-user system)."""
+        return self.repository.get_all()
 
     def update_workspace(
         self, workspace_id: int, name: str | None = None, description: str | None = None
@@ -106,24 +101,21 @@ class WorkspaceService:
 
         return self.repository.update(workspace_id, **updates)
 
-    def delete_workspace(self, workspace_id: int, user_id: int) -> bool:
-        """Delete workspace.
+    def delete_workspace(self, workspace_id: int) -> bool:
+        """Delete workspace (single-user system).
 
         Args:
             workspace_id: ID of the workspace to delete
-            user_id: ID of the user performing the deletion
 
         Returns:
             bool: True if deletion was started, False if workspace not found
         """
-        logger.info(f"Starting workspace deletion: workspace_id={workspace_id}, user_id={user_id}")
+        logger.info(f"Starting workspace deletion: workspace_id={workspace_id}")
 
         # Get workspace
         workspace = self.repository.get_by_id(workspace_id)
         if not workspace:
-            logger.warning(
-                f"Workspace deletion failed: workspace not found (workspace_id={workspace_id}, user_id={user_id})"
-            )
+            logger.warning(f"Workspace deletion failed: workspace not found (workspace_id={workspace_id})")
             return False
 
         # Update status to 'deleting'
@@ -135,7 +127,7 @@ class WorkspaceService:
             from src.workers import get_remove_workspace_worker
 
             cleanup_worker = get_remove_workspace_worker()
-            cleanup_worker.start_cleanup(workspace, user_id)
+            cleanup_worker.start_cleanup(workspace)
         except Exception:
             # Skip worker initialization in unit tests or when dependencies unavailable
             pass
@@ -250,17 +242,6 @@ class WorkspaceService:
             if isinstance(value, str) and not value.strip():
                 raise ValueError(f"Field '{key}' cannot be empty")
 
-    def validate_workspace_access(self, workspace_id: int, user_id: int) -> bool:
-        """Validate that users has access to workspace."""
-        workspace = self.repository.get_by_id(workspace_id)
-        return workspace is not None and workspace.user_id == user_id
-
-    def get_user_workspace(self, workspace_id: int, user_id: int) -> Workspace | None:
-        """Get workspace by ID for specific users."""
-        workspace = self.repository.get_by_id(workspace_id)
-        if workspace and workspace.user_id == user_id:
-            return workspace
-        return None
 
     def create_vector_rag_config(
         self,

@@ -1,12 +1,12 @@
+"""PostgreSQL database module - single database implementation."""
+
 from typing import Any, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from .sql_database import SqlDatabase
 
-
-class PostgresSqlDatabase(SqlDatabase):
+class SqlDatabase:
     """PostgreSQL database implementation."""
 
     def __init__(self, db_url: str):
@@ -46,3 +46,21 @@ class PostgresSqlDatabase(SqlDatabase):
         """Close the database connection."""
         if self.conn:
             self.conn.close()
+
+
+# Singleton instance (single-threaded application)
+_db_instance: SqlDatabase | None = None
+
+
+def get_sql_database() -> SqlDatabase:
+    """
+    Get the singleton PostgreSQL database connection.
+
+    Returns:
+        SqlDatabase instance
+    """
+    global _db_instance
+    if _db_instance is None:
+        from src.config import config
+        _db_instance = SqlDatabase(config.database_url)
+    return _db_instance

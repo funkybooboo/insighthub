@@ -4,19 +4,16 @@
 -- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Workspaces table
+-- Workspaces table (single-user system, no user_id needed)
 CREATE TABLE IF NOT EXISTS workspaces (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    user_id INTEGER NOT NULL,
     rag_type VARCHAR(50) NOT NULL CHECK (rag_type IN ('vector', 'graph')),
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE INDEX IF NOT EXISTS ix_workspaces_user_id ON workspaces(user_id);
 
 -- Vector RAG configurations table
 CREATE TABLE IF NOT EXISTS vector_rag_configs (
@@ -60,7 +57,7 @@ CREATE TABLE IF NOT EXISTS graph_rag_configs (
 
 CREATE INDEX IF NOT EXISTS ix_graph_rag_configs_workspace_id ON graph_rag_configs(workspace_id);
 
--- Documents table
+-- Documents table (single-user system, no user_id needed)
 CREATE TABLE IF NOT EXISTS documents (
     id SERIAL PRIMARY KEY,
     filename VARCHAR(255) NOT NULL,
@@ -70,7 +67,6 @@ CREATE TABLE IF NOT EXISTS documents (
     file_hash VARCHAR(64) NOT NULL,
     storage_path VARCHAR(512) NOT NULL,
     workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     error_message TEXT,
     metadata JSONB,
@@ -79,20 +75,17 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 CREATE INDEX IF NOT EXISTS ix_documents_workspace_id ON documents(workspace_id);
-CREATE INDEX IF NOT EXISTS ix_documents_user_id ON documents(user_id);
 CREATE INDEX IF NOT EXISTS ix_documents_file_hash ON documents(file_hash);
 
--- Chat sessions table
+-- Chat sessions table (single-user system, no user_id needed)
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255),
-    user_id INTEGER NOT NULL,
     workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS ix_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS ix_chat_sessions_workspace_id ON chat_sessions(workspace_id);
 
 -- Chat messages table
@@ -107,18 +100,25 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 CREATE INDEX IF NOT EXISTS ix_chat_messages_chat_session_id ON chat_messages(chat_session_id);
 
--- Default RAG configurations table
+-- Default RAG configurations table (single-user system, only one row allowed)
 CREATE TABLE IF NOT EXISTS default_rag_configs (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    vector_config JSONB,
-    graph_config JSONB,
+    vector_embedding_algorithm VARCHAR(50) NOT NULL DEFAULT 'ollama',
+    vector_chunking_algorithm VARCHAR(50) NOT NULL DEFAULT 'sentence',
+    vector_rerank_algorithm VARCHAR(50) NOT NULL DEFAULT 'none',
+    vector_chunk_size INTEGER NOT NULL DEFAULT 1000,
+    vector_chunk_overlap INTEGER NOT NULL DEFAULT 200,
+    vector_top_k INTEGER NOT NULL DEFAULT 5,
+    graph_entity_extraction_algorithm VARCHAR(50) NOT NULL DEFAULT 'spacy',
+    graph_relationship_extraction_algorithm VARCHAR(50) NOT NULL DEFAULT 'dependency-parsing',
+    graph_clustering_algorithm VARCHAR(50) NOT NULL DEFAULT 'leiden',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id)
+    CHECK (id = 1)
 );
 
-CREATE INDEX IF NOT EXISTS ix_default_rag_configs_user_id ON default_rag_configs(user_id);
+-- Insert default configuration
+INSERT INTO default_rag_configs (id) VALUES (1) ON CONFLICT DO NOTHING;
 
 -- Create trigger function for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()

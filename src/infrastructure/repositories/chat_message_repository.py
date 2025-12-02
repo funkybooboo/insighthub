@@ -3,13 +3,13 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.database import SqlDatabase
+from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import ChatMessage
 
-from .chat_message_repository import ChatMessageRepository
 
 
-class SqlChatMessageRepository(ChatMessageRepository):
+
+class ChatMessageRepository:
     """SQL implementation of chat messages repository."""
 
     def __init__(self, db: SqlDatabase):

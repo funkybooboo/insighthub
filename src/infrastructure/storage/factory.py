@@ -32,6 +32,14 @@ def create_blob_storage(storage_type: str = "filesystem", **kwargs) -> BlobStora
         if not endpoint or not access_key or not secret_key:
             raise ValueError("S3 storage requires endpoint, access_key, and secret_key")
 
+        # Strip protocol from endpoint if present (MinIO expects host:port only)
+        if endpoint.startswith("https://"):
+            endpoint = endpoint[8:]
+            secure = True
+        elif endpoint.startswith("http://"):
+            endpoint = endpoint[7:]
+            secure = False
+
         return S3BlobStorage(
             endpoint=endpoint,
             access_key=access_key,

@@ -19,7 +19,7 @@ class WorkspaceMapper:
     @staticmethod
     def to_dto(workspace: Workspace) -> WorkspaceDTO:
         """
-        Convert Workspace model to DTO.
+        Convert Workspace model to DTO (single-user system).
 
         Args:
             workspace: Workspace model instance
@@ -29,7 +29,6 @@ class WorkspaceMapper:
         """
         return WorkspaceDTO(
             id=workspace.id,
-            user_id=workspace.user_id,
             name=workspace.name,
             description=workspace.description,
             rag_type=workspace.rag_type,
@@ -54,7 +53,7 @@ class WorkspaceMapper:
     @staticmethod
     def dto_to_dict(dto: WorkspaceDTO) -> dict:
         """
-        Convert WorkspaceDTO to dictionary for JSON response.
+        Convert WorkspaceDTO to dictionary for JSON response (single-user system).
 
         Args:
             dto: WorkspaceDTO instance
@@ -64,7 +63,6 @@ class WorkspaceMapper:
         """
         return {
             "id": dto.id,
-            "user_id": dto.user_id,
             "name": dto.name,
             "description": dto.description,
             "rag_type": dto.rag_type,

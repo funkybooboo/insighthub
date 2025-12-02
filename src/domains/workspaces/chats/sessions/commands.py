@@ -1,18 +1,19 @@
+from src.context import AppContext
 """Chat session CLI commands."""
 
 import argparse
 
 
-def cmd_list(ctx: object, args: argparse.Namespace) -> None:
+def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List chat sessions in the current workspace."""
     # Require a selected workspace
     if not ctx.current_workspace_id:
-        print("Error: No workspace selected. Use 'workspace select <id>' first.")
+        logger.error(f"Error: No workspace selected. Use 'workspace select <id>' first.")
         return
 
     workspace = ctx.workspace_repo.get_by_id(ctx.current_workspace_id)
     if not workspace:
-        print(f"Error: Workspace {ctx.current_workspace_id} not found.")
+        logger.error(f"Error: Workspace {ctx.current_workspace_id} not found.")
         return
 
     # List sessions for the workspace
@@ -32,16 +33,16 @@ def cmd_list(ctx: object, args: argparse.Namespace) -> None:
         print()
 
 
-def cmd_new(ctx: object, args: argparse.Namespace) -> None:
+def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create a new chat session (interactive)."""
     # Require a selected workspace
     if not ctx.current_workspace_id:
-        print("Error: No workspace selected. Use 'workspace select <id>' first.")
+        logger.error(f"Error: No workspace selected. Use 'workspace select <id>' first.")
         return
 
     workspace = ctx.workspace_repo.get_by_id(ctx.current_workspace_id)
     if not workspace:
-        print(f"Error: Workspace {ctx.current_workspace_id} not found.")
+        logger.error(f"Error: Workspace {ctx.current_workspace_id} not found.")
         return
 
     # Interactive prompts
@@ -60,24 +61,24 @@ def cmd_new(ctx: object, args: argparse.Namespace) -> None:
     print(f"  RAG type: {session.rag_type if hasattr(session, 'rag_type') else workspace.rag_type}")
 
 
-def cmd_select(ctx: object, args: argparse.Namespace) -> None:
+def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
     """Select a chat session as the current session."""
     session = ctx.chat_session_service.get_session(args.session_id)
 
     if not session:
-        print(f"Error: Chat session {args.session_id} not found.")
+        logger.error(f"Error: Chat session {args.session_id} not found.")
         return
 
     ctx.current_session_id = session.id
     print(f"Selected chat session: {session.title or f'Session {session.id}'}")
 
 
-def cmd_delete(ctx: object, args: argparse.Namespace) -> None:
+def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
     """Delete a chat session."""
     session = ctx.chat_session_service.get_session(args.session_id)
 
     if not session:
-        print(f"Error: Chat session {args.session_id} not found.")
+        logger.error(f"Error: Chat session {args.session_id} not found.")
         return
 
     # Confirm deletion

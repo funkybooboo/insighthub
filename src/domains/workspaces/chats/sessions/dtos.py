@@ -23,10 +23,9 @@ class UpdateSessionRequest:
 
 @dataclass
 class SessionResponse:
-    """Response data for a single chats session."""
+    """Response data for a single chat session (single-user system)."""
 
     id: int
-    user_id: int
     workspace_id: Optional[int]
     title: Optional[str]
     rag_type: str
@@ -37,7 +36,6 @@ class SessionResponse:
         """Convert to dictionary for JSON serialization."""
         return {
             "id": self.id,
-            "user_id": self.user_id,
             "workspace_id": self.workspace_id,
             "title": self.title,
             "rag_type": self.rag_type,

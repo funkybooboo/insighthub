@@ -9,7 +9,6 @@ class Workspace:
     """Workspace model for organizing documents and chats sessions."""
 
     id: int
-    user_id: int
     name: str
     description: str | None = None
     rag_type: str = "vector"  # "vector" or "graph"
@@ -18,7 +17,7 @@ class Workspace:
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __repr__(self) -> str:
-        return f"<Workspace(id={self.id}, name={self.name}, user_id={self.user_id})>"
+        return f"<Workspace(id={self.id}, name={self.name})>"
 
 
 @dataclass

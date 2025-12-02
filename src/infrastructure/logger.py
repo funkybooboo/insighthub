@@ -212,7 +212,16 @@ class Logger:
     def _configure_logger(self) -> None:
         """Configure the underlying Python logger with secrets filtering and JSON formatter."""
         if not Logger._configured:
-            log_handler = logging.StreamHandler(sys.stdout)
+            import os
+            from pathlib import Path
+
+            # Create logs directory if it doesn't exist
+            log_dir = Path("logs")
+            log_dir.mkdir(exist_ok=True)
+
+            # Use FileHandler to write logs to file
+            log_file = log_dir / "insighthub.log"
+            log_handler = logging.FileHandler(log_file, mode="a")
             formatter = JsonFormatter(
                 "%(asctime)s %(name)s %(levelname)s %(filename)s %(lineno)d %(message)s"
             )

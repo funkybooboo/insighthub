@@ -11,7 +11,7 @@ class SessionMapper:
     @staticmethod
     def session_to_dto(session: ChatSession) -> SessionResponse:
         """
-        Convert a ChatSession model to SessionResponse DTO.
+        Convert a ChatSession model to SessionResponse DTO (single-user system).
 
         Args:
             session: ChatSession model instance
@@ -21,7 +21,6 @@ class SessionMapper:
         """
         return SessionResponse(
             id=session.id,
-            user_id=session.user_id,
             workspace_id=session.workspace_id,
             title=session.title,
             rag_type=session.rag_type,

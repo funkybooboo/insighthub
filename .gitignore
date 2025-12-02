@@ -80,3 +80,4 @@ GEMINI.md
 *.bak
 *~
 .DS_Store
+logs/
