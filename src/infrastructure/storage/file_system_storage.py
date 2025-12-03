@@ -2,7 +2,28 @@
 
 from pathlib import Path
 
+from src.infrastructure.logger import create_logger
+
 from .storage import BlobStorage
+
+logger = create_logger(__name__)
+
+
+class StorageException(Exception):
+    """Exception raised when storage operations fail."""
+
+    def __init__(self, message: str, operation: str, key: str | None = None):
+        """Initialize storage exception.
+
+        Args:
+            message: Error message
+            operation: Storage operation that failed (upload, download, delete, etc.)
+            key: Blob key involved in the operation
+        """
+        self.message = message
+        self.operation = operation
+        self.key = key
+        super().__init__(f"Storage {operation} failed: {message}")
 
 
 class FileSystemBlobStorage(BlobStorage):
@@ -48,17 +69,31 @@ class FileSystemBlobStorage(BlobStorage):
 
         Returns:
             str: File path to access the uploaded blob
+
+        Raises:
+            StorageException: If upload fails
         """
-        file_path = self._get_file_path(key)
+        try:
+            file_path = self._get_file_path(key)
 
-        # Ensure parent directory exists
-        file_path.parent.mkdir(parents=True, exist_ok=True)
+            # Ensure parent directory exists
+            file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Write data to file
-        with open(file_path, "wb") as f:
-            f.write(data)
+            # Write data to file
+            with open(file_path, "wb") as f:
+                f.write(data)
 
-        return str(file_path)
+            return str(file_path)
+        except ValueError as e:
+            # Path traversal or invalid key
+            logger.error(f"Invalid storage key: {key} - {e}")
+            raise StorageException(str(e), operation="upload", key=key) from e
+        except OSError as e:
+            logger.error(f"Filesystem error during upload: {e}")
+            raise StorageException(str(e), operation="upload", key=key) from e
+        except Exception as e:
+            logger.error(f"Unexpected error during upload: {e}")
+            raise StorageException(str(e), operation="upload", key=key) from e
 
     def download(self, key: str) -> bytes:
         """
@@ -71,15 +106,28 @@ class FileSystemBlobStorage(BlobStorage):
             bytes: Binary data from storage
 
         Raises:
-            FileNotFoundError: If blob doesn't exist
+            StorageException: If download fails or blob doesn't exist
         """
-        file_path = self._get_file_path(key)
+        try:
+            file_path = self._get_file_path(key)
 
-        if not file_path.exists():
-            raise FileNotFoundError(f"Blob {key} not found")
+            if not file_path.exists():
+                raise FileNotFoundError(f"Blob {key} not found")
 
-        with open(file_path, "rb") as f:
-            return f.read()
+            with open(file_path, "rb") as f:
+                return f.read()
+        except ValueError as e:
+            logger.error(f"Invalid storage key: {key} - {e}")
+            raise StorageException(str(e), operation="download", key=key) from e
+        except FileNotFoundError as e:
+            logger.error(f"Blob not found: {key}")
+            raise StorageException(str(e), operation="download", key=key) from e
+        except OSError as e:
+            logger.error(f"Filesystem error during download: {e}")
+            raise StorageException(str(e), operation="download", key=key) from e
+        except Exception as e:
+            logger.error(f"Unexpected error during download: {e}")
+            raise StorageException(str(e), operation="download", key=key) from e
 
     def delete(self, key: str) -> bool:
         """

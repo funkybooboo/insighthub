@@ -2,6 +2,8 @@
 
 from typing import BinaryIO, Optional
 
+from returns.result import Failure, Result
+
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
     DocumentParser,
     ParsingError,
@@ -12,7 +14,6 @@ from src.infrastructure.rag.steps.general.parsing.pdf_document_parser import PDF
 from src.infrastructure.rag.steps.general.parsing.text_document_parser import TextDocumentParser
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Err, Result
 
 
 class ParserFactory:
@@ -93,7 +94,7 @@ class ParserFactory:
         """
         parser = self.get_parser(filename)
         if parser is None:
-            return Err(
+            return Failure(
                 ParsingError(
                     f"No parser available for file: {filename}",
                     code="UNSUPPORTED_FORMAT",
@@ -127,24 +128,44 @@ class ParserFactory:
         return [
             {
                 "value": key,
-                "label": info["label"],
-                "description": info["description"],
+                "label": str(info["label"]),
+                "description": str(info["description"]),
             }
             for key, info in ParserFactory._AVAILABLE_PARSERS.items()
         ]
 
     @staticmethod
-    def create_parser(parser_type: str) -> Optional[DocumentParser]:
-        """Create a parser instance based on type."""
+    def create_parser(parser_type: str) -> DocumentParser:
+        """Create a parser instance based on type.
+
+        Args:
+            parser_type: Type of parser to create
+
+        Returns:
+            DocumentParser instance
+
+        Raises:
+            ValueError: If parser_type is not supported
+        """
         parser_info = ParserFactory._AVAILABLE_PARSERS.get(parser_type)
         if parser_info is None:
-            return None
+            available = list(ParserFactory._AVAILABLE_PARSERS.keys())
+            raise ValueError(
+                f"Unsupported parser type: {parser_type}. "
+                f"Available parsers: {', '.join(available)}"
+            )
 
         parser_class = parser_info["class"]
         if parser_class == HTMLDocumentParser:
             return HTMLDocumentParser(parser_type="html.parser")
+        elif parser_class == PDFDocumentParser:
+            return PDFDocumentParser()
+        elif parser_class == DocxDocumentParser:
+            return DocxDocumentParser()
+        elif parser_class == TextDocumentParser:
+            return TextDocumentParser()
         else:
-            return parser_class()
+            raise ValueError(f"Unknown parser class: {parser_class}")
 
 
 parser_factory = ParserFactory()

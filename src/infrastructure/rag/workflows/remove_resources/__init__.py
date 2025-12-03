@@ -1,8 +1,6 @@
 """Remove RAG resources workflows."""
 
-from src.infrastructure.rag.workflows.remove_resources.factory import (
-    RemoveResourcesWorkflowFactory,
-)
+from src.infrastructure.rag.workflows.remove_resources.factory import RemoveResourcesWorkflowFactory
 from src.infrastructure.rag.workflows.remove_resources.remove_rag_resources_workflow import (
     RemoveRagResourcesWorkflow,
     RemoveRagResourcesWorkflowError,

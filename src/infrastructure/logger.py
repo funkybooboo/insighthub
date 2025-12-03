@@ -2,7 +2,6 @@
 
 import logging
 import re
-import sys
 from enum import Enum
 from typing import Any
 
@@ -212,7 +211,6 @@ class Logger:
     def _configure_logger(self) -> None:
         """Configure the underlying Python logger with secrets filtering and JSON formatter."""
         if not Logger._configured:
-            import os
             from pathlib import Path
 
             # Create logs directory if it doesn't exist

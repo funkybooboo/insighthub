@@ -5,13 +5,14 @@ import tempfile
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
     DocumentParser,
     ParsingError,
 )
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Err, Ok, Result
 
 if TYPE_CHECKING:
     from docx import Document as DocxDocumentType
@@ -42,7 +43,7 @@ class DocxDocumentParser(DocumentParser):
             Result containing Document on success, or ParsingError on failure
         """
         if not DOCX_AVAILABLE or DocxDocument is None:
-            return Err(
+            return Failure(
                 ParsingError(
                     "python-docx library not available. Install: pip install python-docx",
                     code="DEPENDENCY_ERROR",
@@ -68,7 +69,7 @@ class DocxDocumentParser(DocumentParser):
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, docx_metadata) or "Untitled Document"
-            return Ok(
+            return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
@@ -83,7 +84,7 @@ class DocxDocumentParser(DocumentParser):
             )
 
         except Exception as e:
-            return Err(ParsingError(f"Failed to parse DOCX: {e}", code="PARSE_ERROR"))
+            return Failure(ParsingError(f"Failed to parse DOCX: {e}", code="PARSE_ERROR"))
         finally:
             if temp_file_path:
                 try:

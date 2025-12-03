@@ -308,7 +308,9 @@ class AppConfig(BaseSettings):
 
         # Validate blob storage configuration
         if self.blob_storage_type not in ["filesystem", "s3"]:
-            errors.append(f"Invalid BLOB_STORAGE_TYPE: {self.blob_storage_type}. Must be 'filesystem' or 's3'")
+            errors.append(
+                f"Invalid BLOB_STORAGE_TYPE: {self.blob_storage_type}. Must be 'filesystem' or 's3'"
+            )
 
         if self.blob_storage_type == "s3":
             if not self.s3_endpoint_url:
@@ -322,7 +324,9 @@ class AppConfig(BaseSettings):
 
         # Validate LLM provider configuration
         if self.llm_provider not in ["ollama", "openai", "claude", "huggingface"]:
-            errors.append(f"Invalid LLM_PROVIDER: {self.llm_provider}. Must be 'ollama', 'openai', 'claude', or 'huggingface'")
+            errors.append(
+                f"Invalid LLM_PROVIDER: {self.llm_provider}. Must be 'ollama', 'openai', 'claude', or 'huggingface'"
+            )
 
         if self.llm_provider == "ollama":
             if not self.ollama_base_url:
@@ -347,7 +351,9 @@ class AppConfig(BaseSettings):
             errors.append(f"CHUNK_OVERLAP must be non-negative, got {self.chunk_overlap}")
 
         if self.chunk_overlap >= self.chunk_size:
-            errors.append(f"CHUNK_OVERLAP ({self.chunk_overlap}) must be less than CHUNK_SIZE ({self.chunk_size})")
+            errors.append(
+                f"CHUNK_OVERLAP ({self.chunk_overlap}) must be less than CHUNK_SIZE ({self.chunk_size})"
+            )
 
         if self.batch_size <= 0:
             errors.append(f"BATCH_SIZE must be positive, got {self.batch_size}")
@@ -357,7 +363,9 @@ class AppConfig(BaseSettings):
             errors.append(f"SECRET_KEY must be at least 32 characters, got {len(self.secret_key)}")
 
         if len(self.jwt_secret_key) < 32:
-            errors.append(f"JWT_SECRET_KEY must be at least 32 characters, got {len(self.jwt_secret_key)}")
+            errors.append(
+                f"JWT_SECRET_KEY must be at least 32 characters, got {len(self.jwt_secret_key)}"
+            )
 
         # Raise all errors if any
         if errors:

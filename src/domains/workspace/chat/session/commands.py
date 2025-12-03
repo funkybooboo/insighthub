@@ -3,6 +3,8 @@
 import argparse
 import sys
 
+from returns.result import Failure
+
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
 
@@ -48,12 +50,18 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         title = input("Session title (optional): ").strip() or None
 
         # Create session
-        session = ctx.chat_session_service.create_session(
+        result = ctx.chat_session_service.create_session(
             title=title,
             workspace_id=workspace.id,
             rag_type=workspace.rag_type,
         )
 
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        session = result.unwrap()
         print(f"Created chat session [{session.id}] {session.title or '(No title)'}")
 
     except KeyboardInterrupt:
@@ -93,7 +101,9 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
             sys.exit(1)
 
         # Confirm deletion
-        confirm = input(f"Delete '{session.title or f'Session {session.id}'}? (yes/no): ").strip().lower()
+        confirm = (
+            input(f"Delete '{session.title or f'Session {session.id}'}? (yes/no): ").strip().lower()
+        )
         if confirm not in ["yes", "y"]:
             print("Cancelled")
             return

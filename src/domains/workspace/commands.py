@@ -3,6 +3,8 @@
 import argparse
 import sys
 
+from returns.result import Failure
+
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
 
@@ -52,26 +54,31 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         description = input("Description (optional): ").strip() or None
 
-        rag_type = input(f"RAG type (vector/graph) [{default_rag_type}]: ").strip() or default_rag_type
+        rag_type = (
+            input(f"RAG type (vector/graph) [{default_rag_type}]: ").strip() or default_rag_type
+        )
         if rag_type not in ["vector", "graph"]:
             print("Error: RAG type must be 'vector' or 'graph'", file=sys.stderr)
             sys.exit(1)
 
         # Create workspace using service
-        workspace = ctx.workspace_service.create_workspace(
+        result = ctx.workspace_service.create_workspace(
             name=name,
             description=description,
             rag_type=rag_type,
         )
 
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        workspace = result.unwrap()
         print(f"Created workspace [{workspace.id}] {workspace.name}")
 
     except KeyboardInterrupt:
         print("\nCancelled")
         sys.exit(0)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to create workspace: {e}", exc_info=True)
@@ -111,34 +118,33 @@ def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Show current values and prompt for new ones
         print(f"Current name: {workspace.name}")
-        name = input(f"New name (press Enter to keep): ").strip()
+        name = input("New name (press Enter to keep): ").strip()
 
         print(f"Current description: {workspace.description or '(none)'}")
-        description = input(f"New description (press Enter to keep): ").strip()
+        description = input("New description (press Enter to keep): ").strip()
 
         # Only update if values were provided
         if not name and not description:
             print("No changes made")
             return
 
-        updated = ctx.workspace_service.update_workspace(
+        result = ctx.workspace_service.update_workspace(
             args.workspace_id,
             name=name if name else None,
             description=description if description else None,
         )
 
-        if updated:
-            print(f"Updated [{updated.id}] {updated.name}")
-        else:
-            print(f"Error: Failed to update workspace", file=sys.stderr)
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
+
+        updated = result.unwrap()
+        print(f"Updated [{updated.id}] {updated.name}")
 
     except KeyboardInterrupt:
         print("\nCancelled")
         sys.exit(0)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to update workspace: {e}")
@@ -154,7 +160,9 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
             sys.exit(1)
 
         # Confirm deletion
-        confirm = input(f"Delete workspace [{workspace.id}] {workspace.name}? (yes/no): ").strip().lower()
+        confirm = (
+            input(f"Delete workspace [{workspace.id}] {workspace.name}? (yes/no): ").strip().lower()
+        )
         if confirm not in ["yes", "y"]:
             print("Cancelled")
             return
@@ -163,7 +171,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
         if deleted:
             print(f"Deleted [{workspace.id}] {workspace.name}")
         else:
-            print(f"Error: Failed to delete workspace", file=sys.stderr)
+            print("Error: Failed to delete workspace", file=sys.stderr)
             sys.exit(1)
 
     except KeyboardInterrupt:

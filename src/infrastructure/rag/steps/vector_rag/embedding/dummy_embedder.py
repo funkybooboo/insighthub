@@ -2,8 +2,9 @@
 
 from collections.abc import Iterable
 
+from returns.result import Success
+
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
-from src.infrastructure.types.result import Ok
 
 
 class DummyEmbeddingEncoder(VectorEmbeddingEncoder):
@@ -13,13 +14,13 @@ class DummyEmbeddingEncoder(VectorEmbeddingEncoder):
         """Initialize with fixed dimension."""
         self._dimension = dimension
 
-    def encode(self, texts: Iterable[str]) -> Ok[list[list[float]]]:
+    def encode(self, texts: Iterable[str]) -> Success[list[list[float]]]:
         """Return fixed vectors for each text."""
-        return Ok([[0.1] * self._dimension for _ in texts])
+        return Success([[0.1] * self._dimension for _ in texts])
 
-    def encode_one(self, text: str) -> Ok[list[float]]:
+    def encode_one(self, text: str) -> Success[list[float]]:
         """Return fixed vector for single text."""
-        return Ok([0.1] * self._dimension)
+        return Success([0.1] * self._dimension)
 
     def get_dimension(self) -> int:
         """Return the fixed dimension."""

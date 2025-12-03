@@ -9,6 +9,8 @@ This workflow orchestrates the full Vector RAG document ingestion process:
 
 from typing import BinaryIO
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
 from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
@@ -19,7 +21,6 @@ from src.infrastructure.rag.workflows.add_document.add_document_workflow import 
     AddDocumentWorkflowError,
 )
 from src.infrastructure.types.common import MetadataDict
-from src.infrastructure.types.result import Err, Ok, Result
 
 logger = create_logger(__name__)
 
@@ -76,10 +77,10 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
         logger.info(f"[ConsumeWorkflow] Parsing document {document_id}")
         parse_result = self.parser.parse(raw_document, metadata)
 
-        if parse_result.is_err():
-            return Err(
+        if isinstance(parse_result, Failure):
+            return Failure(
                 AddDocumentWorkflowError(
-                    f"Failed to parse document: {parse_result.err()}",
+                    f"Failed to parse document: {parse_result.failure()}",
                     step="parse",
                 )
             )
@@ -97,7 +98,7 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
                 f"[ConsumeWorkflow] Created {len(chunks)} chunks for document {document_id}"
             )
         except Exception as e:
-            return Err(
+            return Failure(
                 AddDocumentWorkflowError(
                     f"Failed to chunk document: {e}",
                     step="chunk",
@@ -106,25 +107,25 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
 
         if not chunks:
             logger.warning(f"[ConsumeWorkflow] No chunks created for document {document_id}")
-            return Ok(0)
+            return Success(0)
 
         # Step 3: Embed chunks
         logger.info(f"[ConsumeWorkflow] Embedding {len(chunks)} chunks")
         try:
             chunk_texts = [chunk.text for chunk in chunks]
             result = self.embedder.encode(chunk_texts)
-            if result.is_err():
-                error = result.err()
-                return Err(
+            if isinstance(result, Failure):
+                error = result.failure()
+                return Failure(
                     AddDocumentWorkflowError(
                         f"Failed to embed chunks: {error.message}",
                         step="embed",
                     )
                 )
-            embeddings = result.ok()
+            embeddings = result.unwrap()
             logger.info(f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings")
         except Exception as e:
-            return Err(
+            return Failure(
                 AddDocumentWorkflowError(
                     f"Failed to embed chunks: {e}",
                     step="embed",
@@ -155,10 +156,10 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
             logger.info(
                 f"[ConsumeWorkflow] Successfully indexed {len(chunks)} chunks for document {document_id}"
             )
-            return Ok(len(chunks))
+            return Success(len(chunks))
 
         except Exception as e:
-            return Err(
+            return Failure(
                 AddDocumentWorkflowError(
                     f"Failed to index chunks: {e}",
                     step="index",

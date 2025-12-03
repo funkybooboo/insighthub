@@ -1,39 +1,38 @@
 """Qdrant vector database implementation."""
 
 import uuid
+from typing import TYPE_CHECKING
 
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.retrieval import RetrievalResult
 
 from .vector_database import VectorDatabase
 
+if TYPE_CHECKING:
+    from qdrant_client import QdrantClient
+    from qdrant_client.http.models import Filter
+
 logger = create_logger(__name__)
 
+
+class VectorStoreException(Exception):
+    """Exception raised when vector store operations fail."""
+
+    def __init__(self, message: str, operation: str, original_error: Exception | None = None):
+        self.message = message
+        self.operation = operation
+        self.original_error = original_error
+        super().__init__(f"Vector store operation '{operation}' failed: {message}")
+
+
 try:
-    from qdrant_client import QdrantClient
-    from qdrant_client.http import models
-    from qdrant_client.http.models import (
-        Distance,
-        FieldCondition,
-        Filter,
-        MatchValue,
-        PointIdsList,
-        PointStruct,
-        VectorParams,
-    )
+    import qdrant_client
+    import qdrant_client.http.models as qdrant_models
 
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    QdrantClient = None
-    models = None
-    Distance = None
-    VectorParams = None
-    PointStruct = None
-    Filter = None
-    FieldCondition = None
-    MatchValue = None
-    PointIdsList = None
 
 
 class QdrantVectorDatabase(VectorDatabase):
@@ -81,14 +80,14 @@ class QdrantVectorDatabase(VectorDatabase):
 
         # Map distance string to Qdrant Distance enum
         distance_map = {
-            "cosine": Distance.COSINE,
-            "euclidean": Distance.EUCLID,
-            "dot": Distance.DOT,
+            "cosine": qdrant_models.Distance.COSINE,
+            "euclidean": qdrant_models.Distance.EUCLID,
+            "dot": qdrant_models.Distance.DOT,
         }
-        self._distance = distance_map.get(distance.lower(), Distance.COSINE)
+        self._distance = distance_map.get(distance.lower(), qdrant_models.Distance.COSINE)
 
         # Initialize client
-        self._client = QdrantClient(url=url, api_key=api_key)
+        self._client: QdrantClient = qdrant_client.QdrantClient(url=url, api_key=api_key)
 
         # Ensure collection exists
         self._ensure_collection()
@@ -97,18 +96,24 @@ class QdrantVectorDatabase(VectorDatabase):
 
     def _ensure_collection(self) -> None:
         """Create collection if it doesn't exist."""
-        collections = self._client.get_collections().collections
-        collection_names = [c.name for c in collections]
+        try:
+            collections = self._client.get_collections().collections
+            collection_names = [c.name for c in collections]
 
-        if self.collection_name not in collection_names:
-            self._client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=self.vector_size,
-                    distance=self._distance,
-                ),
-            )
-            logger.info(f"Created collection: {self.collection_name}")
+            if self.collection_name not in collection_names:
+                self._client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config=qdrant_models.VectorParams(
+                        size=self.vector_size,
+                        distance=self._distance,
+                    ),
+                )
+                logger.info(f"Created collection: {self.collection_name}")
+        except Exception as e:
+            logger.error(f"Failed to ensure collection exists: {e}")
+            raise VectorStoreException(
+                str(e), operation="ensure_collection", original_error=e
+            ) from e
 
     def _string_to_uuid(self, string_id: str) -> str:
         """
@@ -119,7 +124,7 @@ class QdrantVectorDatabase(VectorDatabase):
         """
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, string_id))
 
-    def _build_filter(self, filters: dict[str, str | int | float | bool] | None) -> Filter | None:
+    def _build_filter(self, filters: FilterDict | None) -> "Filter | None":
         """
         Build a Qdrant filter from a dictionary.
 
@@ -132,22 +137,43 @@ class QdrantVectorDatabase(VectorDatabase):
         if not filters:
             return None
 
-        conditions = []
+        # Create list with broader type to satisfy Filter.must
+        conditions: list[
+            qdrant_models.FieldCondition
+            | qdrant_models.IsEmptyCondition
+            | qdrant_models.IsNullCondition
+            | qdrant_models.HasIdCondition
+            | qdrant_models.HasVectorCondition
+            | qdrant_models.NestedCondition
+            | qdrant_models.Filter
+        ] = []
         for key, value in filters.items():
-            if isinstance(value, (str, int, float, bool)):
+            # Skip None and list values
+            if value is None or isinstance(value, list):
+                continue
+            # MatchValue only accepts bool, int, str (not float)
+            if isinstance(value, (str, int, bool)):
                 conditions.append(
-                    FieldCondition(
+                    qdrant_models.FieldCondition(
                         key=key,
-                        match=MatchValue(value=value),
+                        match=qdrant_models.MatchValue(value=value),
+                    )
+                )
+            elif isinstance(value, float):
+                # Convert float to string for MatchValue
+                conditions.append(
+                    qdrant_models.FieldCondition(
+                        key=key,
+                        match=qdrant_models.MatchValue(value=str(value)),
                     )
                 )
 
         if not conditions:
             return None
 
-        return Filter(must=conditions)
+        return qdrant_models.Filter(must=conditions)
 
-    def upsert(self, id: str, vector: list[float], metadata: dict[str]) -> None:
+    def upsert(self, id: str, vector: list[float], metadata: MetadataDict) -> None:
         """
         Insert or update a vector.
 
@@ -155,62 +181,76 @@ class QdrantVectorDatabase(VectorDatabase):
             id: Unique identifier for the vector
             vector: Vector embedding
             metadata: Associated metadata
+
+        Raises:
+            VectorStoreException: If upsert fails
         """
-        point_id = self._string_to_uuid(id)
+        try:
+            point_id = self._string_to_uuid(id)
 
-        # Store original ID in metadata for retrieval
-        payload = {**metadata, "_original_id": id}
+            # Store original ID in metadata for retrieval
+            payload = {**metadata, "_original_id": id}
 
-        self._client.upsert(
-            collection_name=self.collection_name,
-            points=[
-                PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload=payload,
-                )
-            ],
-        )
-        logger.debug(f"Upserted vector: {id}")
+            self._client.upsert(
+                collection_name=self.collection_name,
+                points=[
+                    qdrant_models.PointStruct(
+                        id=point_id,
+                        vector=vector,
+                        payload=payload,
+                    )
+                ],
+            )
+            logger.debug(f"Upserted vector: {id}")
+        except Exception as e:
+            logger.error(f"Failed to upsert vector {id}: {e}")
+            raise VectorStoreException(str(e), operation="upsert", original_error=e) from e
 
-    def upsert_batch(self, items: list[tuple[str, list[float], dict[str]]]) -> None:
+    def upsert_batch(self, items: list[tuple[str, list[float], MetadataDict]]) -> None:
         """
         Batch upsert multiple vectors.
 
         Args:
             items: List of (id, vector, metadata) tuples
+
+        Raises:
+            VectorStoreException: If batch upsert fails
         """
         if not items:
             return
 
-        points = []
-        for id, vector, metadata in items:
-            point_id = self._string_to_uuid(id)
-            payload = {**metadata, "_original_id": id}
-            points.append(
-                PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload=payload,
+        try:
+            points = []
+            for id, vector, metadata in items:
+                point_id = self._string_to_uuid(id)
+                payload = {**metadata, "_original_id": id}
+                points.append(
+                    qdrant_models.PointStruct(
+                        id=point_id,
+                        vector=vector,
+                        payload=payload,
+                    )
                 )
-            )
 
-        # Batch upsert in chunks of 100
-        batch_size = 100
-        for i in range(0, len(points), batch_size):
-            batch = points[i : i + batch_size]
-            self._client.upsert(
-                collection_name=self.collection_name,
-                points=batch,
-            )
+            # Batch upsert in chunks of 100
+            batch_size = 100
+            for i in range(0, len(points), batch_size):
+                batch = points[i : i + batch_size]
+                self._client.upsert(
+                    collection_name=self.collection_name,
+                    points=batch,
+                )
 
-        logger.info(f"Batch upserted {len(items)} vectors")
+            logger.info(f"Batch upserted {len(items)} vectors")
+        except Exception as e:
+            logger.error(f"Failed to batch upsert {len(items)} vectors: {e}")
+            raise VectorStoreException(str(e), operation="upsert_batch", original_error=e) from e
 
     def similarity_search(
         self,
         vector: list[float],
         top_k: int = 10,
-        filters: dict[str] | None = None,
+        filters: FilterDict | None = None,
     ) -> list[RetrievalResult]:
         """
         Retrieve top-k most similar vectors.
@@ -222,33 +262,42 @@ class QdrantVectorDatabase(VectorDatabase):
 
         Returns:
             List of retrieval results with scores
+
+        Raises:
+            VectorStoreException: If similarity search fails
         """
-        qdrant_filter = self._build_filter(filters)
+        try:
+            qdrant_filter = self._build_filter(filters)
 
-        results = self._client.search(
-            collection_name=self.collection_name,
-            query_vector=vector,
-            limit=top_k,
-            query_filter=qdrant_filter,
-            with_payload=True,
-            with_vectors=False,
-        )
+            results = self._client.query_points(
+                collection_name=self.collection_name,
+                query=vector,
+                limit=top_k,
+                query_filter=qdrant_filter,
+                with_payload=True,
+                with_vectors=False,
+            ).points
 
-        retrieval_results: list[RetrievalResult] = []
-        for result in results:
-            payload = result.payload or {}
-            original_id = payload.pop("_original_id", str(result.id))
+            retrieval_results: list[RetrievalResult] = []
+            for result in results:
+                payload = result.payload or {}
+                original_id = payload.pop("_original_id", str(result.id))
 
-            retrieval_results.append(
-                RetrievalResult(
-                    id=original_id,
-                    score=result.score,
-                    source="vector",
-                    payload=payload,
+                retrieval_results.append(
+                    RetrievalResult(
+                        id=original_id,
+                        score=result.score,
+                        source="vector",
+                        payload=payload,
+                    )
                 )
-            )
 
-        return retrieval_results
+            return retrieval_results
+        except Exception as e:
+            logger.error(f"Failed to perform similarity search: {e}")
+            raise VectorStoreException(
+                str(e), operation="similarity_search", original_error=e
+            ) from e
 
     def delete(self, id: str) -> bool:
         """
@@ -274,7 +323,7 @@ class QdrantVectorDatabase(VectorDatabase):
 
             self._client.delete(
                 collection_name=self.collection_name,
-                points_selector=PointIdsList(points=[point_id]),
+                points_selector=qdrant_models.PointIdsList(points=[point_id]),
             )
             logger.debug(f"Deleted vector: {id}")
             return True
@@ -296,6 +345,8 @@ class QdrantVectorDatabase(VectorDatabase):
         if not ids:
             return 0
 
+        from uuid import UUID
+
         point_ids = [self._string_to_uuid(id) for id in ids]
 
         # Check which exist
@@ -303,14 +354,15 @@ class QdrantVectorDatabase(VectorDatabase):
             collection_name=self.collection_name,
             ids=point_ids,
         )
-        existing_ids = [str(p.id) for p in existing]
+        # Create list with broader type to satisfy PointIdsList
+        existing_ids: list[int | str | UUID] = [str(p.id) for p in existing]
 
         if not existing_ids:
             return 0
 
         self._client.delete(
             collection_name=self.collection_name,
-            points_selector=PointIdsList(points=existing_ids),
+            points_selector=qdrant_models.PointIdsList(points=existing_ids),
         )
 
         deleted_count = len(existing_ids)
@@ -339,7 +391,7 @@ class QdrantVectorDatabase(VectorDatabase):
         except Exception:
             return False
 
-    def get(self, id: str) -> tuple[list[float], dict[str]] | None:
+    def get(self, id: str) -> tuple[list[float], MetadataDict] | None:
         """
         Retrieve a vector and its metadata by ID.
 
@@ -363,10 +415,25 @@ class QdrantVectorDatabase(VectorDatabase):
                 return None
 
             point = result[0]
-            payload = dict(point.payload) if point.payload else {}
-            payload.pop("_original_id", None)  # Remove internal field
+            payload: MetadataDict = {}
+            if point.payload:
+                for key, val in point.payload.items():
+                    if key != "_original_id" and isinstance(
+                        val, (str, int, float, bool, type(None))
+                    ):
+                        payload[key] = val
 
-            vector = point.vector if isinstance(point.vector, list) else list(point.vector)
+            # Extract vector - only handle single list[float] case
+            # Qdrant returns vectors as list[float] in most cases
+            vector: list[float] = []
+            if isinstance(point.vector, list) and point.vector:
+                # Check if first element is a number (not a list)
+                first_elem = point.vector[0]
+                if isinstance(first_elem, (int, float)):
+                    # It's list[float], rebuild it to satisfy type checker
+                    vector = [
+                        float(v) if isinstance(v, (int, float)) else 0.0 for v in point.vector
+                    ]
 
             return (vector, payload)
 
@@ -375,11 +442,19 @@ class QdrantVectorDatabase(VectorDatabase):
             return None
 
     def clear(self) -> None:
-        """Delete all vectors from the collection."""
-        # Recreate the collection to clear all data
-        self._client.delete_collection(collection_name=self.collection_name)
-        self._ensure_collection()
-        logger.info(f"Cleared collection: {self.collection_name}")
+        """Delete all vectors from the collection.
+
+        Raises:
+            VectorStoreException: If clearing collection fails
+        """
+        try:
+            # Recreate the collection to clear all data
+            self._client.delete_collection(collection_name=self.collection_name)
+            self._ensure_collection()
+            logger.info(f"Cleared collection: {self.collection_name}")
+        except Exception as e:
+            logger.error(f"Failed to clear collection: {e}")
+            raise VectorStoreException(str(e), operation="clear", original_error=e) from e
 
     def count(self) -> int:
         """
@@ -391,7 +466,7 @@ class QdrantVectorDatabase(VectorDatabase):
         collection_info = self._client.get_collection(collection_name=self.collection_name)
         return collection_info.points_count or 0
 
-    def get_collection_info(self) -> dict[str]:
+    def get_collection_info(self) -> dict[str, str | int]:
         """
         Get information about the collection.
 
@@ -401,9 +476,8 @@ class QdrantVectorDatabase(VectorDatabase):
         info = self._client.get_collection(collection_name=self.collection_name)
         return {
             "name": self.collection_name,
-            "points_count": info.points_count,
-            "vectors_count": info.vectors_count,
-            "indexed_vectors_count": info.indexed_vectors_count,
+            "points_count": info.points_count or 0,
+            "indexed_vectors_count": info.indexed_vectors_count or 0,
             "status": str(info.status),
         }
 
@@ -412,7 +486,7 @@ class QdrantVectorDatabase(VectorDatabase):
         vector: list[float],
         top_k: int = 10,
         score_threshold: float = 0.0,
-        filters: dict[str] | None = None,
+        filters: FilterDict | None = None,
     ) -> list[RetrievalResult]:
         """
         Search with a minimum score threshold.
@@ -428,15 +502,16 @@ class QdrantVectorDatabase(VectorDatabase):
         """
         qdrant_filter = self._build_filter(filters)
 
-        results = self._client.search(
+        # Use query_points instead of search (modern qdrant-client API)
+        results = self._client.query_points(
             collection_name=self.collection_name,
-            query_vector=vector,
+            query=vector,
             limit=top_k,
             query_filter=qdrant_filter,
             score_threshold=score_threshold,
             with_payload=True,
             with_vectors=False,
-        )
+        ).points
 
         retrieval_results: list[RetrievalResult] = []
         for result in results:

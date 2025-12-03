@@ -3,9 +3,10 @@
 from abc import ABC, abstractmethod
 from typing import BinaryIO
 
+from returns.result import Result
+
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Result
 
 
 class ParsingError(Exception):

@@ -86,7 +86,7 @@ tasks:
   cli:
     desc: Run CLI command (usage - task cli -- workspace list)
     cmds:
-      - poetry run python -m src.main {{.CLI_ARGS}}
+      - poetry run python -m src.cli {{.CLI_ARGS}}
     silent: true
 
   # ==================== Database ====================

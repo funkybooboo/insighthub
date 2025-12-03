@@ -7,6 +7,8 @@ This workflow orchestrates the full Vector RAG query process:
 4. Return context
 """
 
+from returns.result import Failure, Success
+
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
@@ -68,10 +70,10 @@ class VectorRagQueryWorkflow(QueryWorkflow):
         logger.info(f"[QueryWorkflow] Embedding query: {query_text[:50]}...")
         try:
             result = self.embedder.encode([query_text])
-            if result.is_err():
-                error = result.err()
+            if isinstance(result, Failure):
+                error = result.failure()
                 raise QueryWorkflowError(f"Failed to embed query: {error.message}", step="embed")
-            query_embeddings = result.ok()
+            query_embeddings = result.unwrap()
             if not query_embeddings:
                 raise QueryWorkflowError("Embedder returned empty results", step="embed")
             query_vector = query_embeddings[0]
@@ -88,7 +90,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
             search_k = top_k * 3 if self.reranker else top_k
 
             results = self.vector_store.search(
-                query_vector=query_vector,
+                query_embedding=query_vector,
                 top_k=search_k,
                 filters=filters,
             )
@@ -100,12 +102,33 @@ class VectorRagQueryWorkflow(QueryWorkflow):
         if self.reranker and results:
             logger.info(f"[QueryWorkflow] Reranking {len(results)} results")
             try:
-                results = self.reranker.rerank(
+                # Extract texts and scores from chunk tuples
+                texts = [chunk.text for chunk, _ in results]
+                scores = [score for _, score in results]
+
+                # Rerank and get back (text, score) tuples
+                rerank_result = self.reranker.rerank(
                     query=query_text,
-                    chunks=results,
-                    top_k=top_k,
+                    texts=texts,
+                    scores=scores,
                 )
-                logger.info(f"[QueryWorkflow] Reranked to {len(results)} results")
+
+                if isinstance(rerank_result, Success):
+                    reranked_pairs = rerank_result.unwrap()[:top_k]
+                    # Convert back to (Chunk, score) tuples
+                    # Match reranked texts back to original chunks
+                    text_to_chunk = {chunk.text: chunk for chunk, _ in results}
+                    results = [
+                        (text_to_chunk[text], score)
+                        for text, score in reranked_pairs
+                        if text in text_to_chunk
+                    ]
+                    logger.info(f"[QueryWorkflow] Reranked to {len(results)} results")
+                else:
+                    logger.warning(
+                        f"[QueryWorkflow] Reranking failed: {rerank_result.failure()}, using original results"
+                    )
+                    results = results[:top_k]
             except Exception as e:
                 logger.warning(f"[QueryWorkflow] Reranking failed, using original results: {e}")
                 results = results[:top_k]
@@ -114,14 +137,14 @@ class VectorRagQueryWorkflow(QueryWorkflow):
 
         # Step 4: Convert to ChunkData
         chunk_data: list[ChunkData] = []
-        for result in results:
+        for chunk, score in results:
             chunk_data.append(
                 ChunkData(
-                    chunk_id=result.id,
-                    document_id=result.payload.get("document_id", "unknown"),
-                    text=result.payload.get("text", ""),
-                    score=result.score,
-                    metadata=result.payload,
+                    chunk_id=chunk.id,
+                    document_id=chunk.document_id,
+                    text=chunk.text,
+                    score=score,
+                    metadata=chunk.metadata or {},
                 )
             )
 

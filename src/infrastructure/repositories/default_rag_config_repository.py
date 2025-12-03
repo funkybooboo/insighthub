@@ -3,12 +3,12 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import (
     DefaultGraphRagConfig,
     DefaultRagConfig,
     DefaultVectorRagConfig,
 )
+from src.infrastructure.sql_database import SqlDatabase
 
 
 class DefaultRagConfigRepository:

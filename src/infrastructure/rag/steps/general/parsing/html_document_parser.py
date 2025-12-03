@@ -4,24 +4,24 @@ import re
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
     DocumentParser,
     ParsingError,
 )
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Err, Ok, Result
 
 if TYPE_CHECKING:
     from bs4 import BeautifulSoup as BS4Type
 
 try:
-    from bs4 import BeautifulSoup
+    import bs4
 
     BS4_AVAILABLE = True
 except ImportError:
     BS4_AVAILABLE = False
-    BeautifulSoup = None
 
 
 class HTMLDocumentParser(DocumentParser):
@@ -61,8 +61,8 @@ class HTMLDocumentParser(DocumentParser):
         Returns:
             Result containing Document on success, or ParsingError on failure
         """
-        if not BS4_AVAILABLE or BeautifulSoup is None:
-            return Err(
+        if not BS4_AVAILABLE:
+            return Failure(
                 ParsingError(
                     "BeautifulSoup library not available. Install: pip install beautifulsoup4",
                     code="DEPENDENCY_ERROR",
@@ -74,7 +74,7 @@ class HTMLDocumentParser(DocumentParser):
             content = raw.read()
 
             html_text = self._decode_content(content)
-            soup = BeautifulSoup(html_text, self._parser_type)
+            soup = bs4.BeautifulSoup(html_text, self._parser_type)
 
             for script_or_style in soup(["script", "style", "noscript"]):
                 script_or_style.decompose()
@@ -87,7 +87,7 @@ class HTMLDocumentParser(DocumentParser):
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, html_metadata) or "Untitled Document"
 
-            return Ok(
+            return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
@@ -102,7 +102,7 @@ class HTMLDocumentParser(DocumentParser):
             )
 
         except Exception as e:
-            return Err(ParsingError(f"Failed to parse HTML: {e}", code="PARSE_ERROR"))
+            return Failure(ParsingError(f"Failed to parse HTML: {e}", code="PARSE_ERROR"))
 
     def supports_format(self, filename: str) -> bool:
         """Check if parser supports the file format."""
@@ -111,14 +111,14 @@ class HTMLDocumentParser(DocumentParser):
 
     def extract_metadata(self, raw: BinaryIO) -> MetadataDict:
         """Extract metadata from raw HTML bytes."""
-        if not BS4_AVAILABLE or BeautifulSoup is None:
+        if not BS4_AVAILABLE:
             return {}
 
         try:
             raw.seek(0)
             content = raw.read()
             html_text = self._decode_content(content)
-            soup = BeautifulSoup(html_text, self._parser_type)
+            soup = bs4.BeautifulSoup(html_text, self._parser_type)
             return self._extract_html_metadata(soup, None)
         except Exception:
             return {}
@@ -152,8 +152,10 @@ class HTMLDocumentParser(DocumentParser):
             metadata["title"] = title_tag.string.strip()
 
         for meta in soup.find_all("meta"):
-            name = meta.get("name", "").lower()
-            content = meta.get("content", "")
+            name_val = meta.get("name", "")
+            name = str(name_val).lower() if name_val else ""
+            content_val = meta.get("content", "")
+            content = str(content_val) if content_val else ""
 
             if name and content:
                 if name == "description":
@@ -163,7 +165,8 @@ class HTMLDocumentParser(DocumentParser):
                 elif name == "author":
                     metadata["author"] = content
 
-            property_name = meta.get("property", "").lower()
+            property_val = meta.get("property", "")
+            property_name = str(property_val).lower() if property_val else ""
             if property_name and content:
                 if property_name == "og:title":
                     metadata["og_title"] = content

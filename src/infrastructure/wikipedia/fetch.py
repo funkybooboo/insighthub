@@ -7,8 +7,7 @@ from urllib.parse import quote
 
 import requests
 from bs4 import BeautifulSoup
-
-from src.infrastructure.types.result import Err, Ok, Result
+from returns.result import Failure, Result, Success
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +80,7 @@ class WikipediaFetcher:
             List of article summaries with title, url, and description
         """
         try:
-            params = {
+            params: dict[str, str | int] = {
                 "action": "opensearch",
                 "search": query,
                 "limit": limit,
@@ -95,7 +94,7 @@ class WikipediaFetcher:
 
             data = response.json()
             if len(data) < 4:
-                return Err("Invalid search response format")
+                return Failure("Invalid search response format")
 
             titles = data[1]
             descriptions = data[2]
@@ -111,14 +110,14 @@ class WikipediaFetcher:
                     }
                 )
 
-            return Ok(results)
+            return Success(results)
 
         except requests.RequestException as e:
             logger.error(f"Wikipedia search failed for query '{query}': {e}")
-            return Err(f"Search request failed: {str(e)}")
+            return Failure(f"Search request failed: {str(e)}")
         except Exception as e:
             logger.error(f"Unexpected error during Wikipedia search: {e}")
-            return Err(f"Search failed: {str(e)}")
+            return Failure(f"Search failed: {str(e)}")
 
     def fetch_article(
         self, title_or_query: str, language: str = "en"
@@ -135,18 +134,18 @@ class WikipediaFetcher:
         """
         # First try to fetch directly by title
         result = self._fetch_by_title(title_or_query, language)
-        if result.is_ok():
+        if isinstance(result, Success):
             return result
 
         # If direct fetch fails, search and try the best match
         logger.info(f"Direct fetch failed for '{title_or_query}', trying search...")
         search_result = self.search_articles(title_or_query, language, limit=1)
-        if search_result.is_err():
-            return Err(f"Both direct fetch and search failed: {result.err()}")
+        if isinstance(search_result, Failure):
+            return Failure(f"Both direct fetch and search failed: {result.failure()}")
 
         articles = search_result.unwrap()
         if not articles:
-            return Err(f"No articles found for query: {title_or_query}")
+            return Failure(f"No articles found for query: {title_or_query}")
 
         best_match = articles[0]
         best_title = best_match["title"]
@@ -168,7 +167,7 @@ class WikipediaFetcher:
 
             # Check if article exists
             if "title" not in data:
-                return Err(f"Article '{title}' not found")
+                return Failure(f"Article '{title}' not found")
 
             # Extract content
             title = data["title"]
@@ -177,7 +176,7 @@ class WikipediaFetcher:
 
             # Try to get full HTML content for better parsing
             html_content = self._fetch_full_content(title, language)
-            if html_content.is_ok():
+            if isinstance(html_content, Success):
                 content = self._parse_html_content(html_content.unwrap())
             else:
                 # Fallback to summary
@@ -196,17 +195,17 @@ class WikipediaFetcher:
                 categories=category_names,
             )
 
-            return Ok(article)
+            return Success(article)
 
         except requests.HTTPError as e:
             if e.response.status_code == 404:
-                return Err(f"Article '{title}' not found")
-            return Err(f"HTTP error: {e.response.status_code}")
+                return Failure(f"Article '{title}' not found")
+            return Failure(f"HTTP error: {e.response.status_code}")
         except requests.RequestException as e:
-            return Err(f"Request failed: {str(e)}")
+            return Failure(f"Request failed: {str(e)}")
         except Exception as e:
             logger.error(f"Unexpected error fetching article '{title}': {e}")
-            return Err(f"Failed to fetch article: {str(e)}")
+            return Failure(f"Failed to fetch article: {str(e)}")
 
     def _fetch_full_content(self, title: str, language: str) -> Result[str, str]:
         """Fetch full HTML content of the article."""
@@ -217,10 +216,10 @@ class WikipediaFetcher:
             response = self.session.get(url, timeout=self.timeout)
             response.raise_for_status()
 
-            return Ok(response.text)
+            return Success(response.text)
 
         except requests.RequestException as e:
-            return Err(f"Failed to fetch full content: {str(e)}")
+            return Failure(f"Failed to fetch full content: {str(e)}")
 
     def _parse_html_content(self, html: str) -> str:
         """Parse HTML content and extract clean text."""

@@ -3,13 +3,14 @@
 import uuid
 from typing import BinaryIO
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
     DocumentParser,
     ParsingError,
 )
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Err, Ok, Result
 
 
 class TextDocumentParser(DocumentParser):
@@ -36,7 +37,7 @@ class TextDocumentParser(DocumentParser):
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, content) or "Untitled Document"
-            return Ok(
+            return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
@@ -52,9 +53,9 @@ class TextDocumentParser(DocumentParser):
             )
 
         except UnicodeDecodeError as e:
-            return Err(ParsingError(f"Failed to decode text: {e}", code="ENCODING_ERROR"))
+            return Failure(ParsingError(f"Failed to decode text: {e}", code="ENCODING_ERROR"))
         except Exception as e:
-            return Err(ParsingError(f"Failed to parse text: {e}", code="PARSE_ERROR"))
+            return Failure(ParsingError(f"Failed to parse text: {e}", code="PARSE_ERROR"))
 
     def supports_format(self, filename: str) -> bool:
         """Check if parser supports the file format."""

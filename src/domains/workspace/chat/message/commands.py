@@ -3,6 +3,8 @@
 import argparse
 import sys
 
+from returns.result import Failure
+
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
 
@@ -42,64 +44,37 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 
 
 def cmd_send(ctx: AppContext, args: argparse.Namespace) -> None:
-    """Send a message and get streaming response from LLM."""
+    """Send a message and get streaming response from LLM with RAG context."""
     try:
         if not ctx.current_session_id:
             print("Error: No chat session selected. Use 'chat select <id>' first", file=sys.stderr)
             sys.exit(1)
 
-        session = ctx.chat_session_service.get_session(ctx.current_session_id)
-        if not session:
-            print(f"Error: Chat session {ctx.current_session_id} not found", file=sys.stderr)
-            sys.exit(1)
-
         # Get the message content
         message_content = args.message
 
-        # Create user message
-        user_message = ctx.chat_message_service.create_message(
-            session_id=session.id,
-            role="user",
-            content=message_content,
-        )
+        # Print user message
+        print(f"\nYou: {message_content}\n")
 
-        print(f"\nYou: {user_message.content}\n")
-
-        # Get conversation history for context
-        messages, _ = ctx.chat_message_service.get_session_messages(
-            session_id=session.id, skip=0, limit=50
-        )
-
-        # Build conversation history (excluding the message we just created)
-        conversation_history = []
-        for msg in messages[:-1]:  # Exclude last message (the one we just created)
-            conversation_history.append({
-                "role": msg.role,
-                "content": msg.content
-            })
-
-        # Stream response from LLM
+        # Stream callback to print chunks
         print("Assistant: ", end="", flush=True)
-        response_chunks = []
 
-        try:
-            for chunk in ctx.llm_provider.chat_stream(message_content, conversation_history):
-                print(chunk, end="", flush=True)
-                response_chunks.append(chunk)
-            print()  # New line after streaming completes
+        def print_chunk(chunk: str) -> None:
+            print(chunk, end="", flush=True)
 
-            # Save assistant response
-            full_response = "".join(response_chunks)
-            if full_response.strip():
-                ctx.chat_message_service.create_message(
-                    session_id=session.id,
-                    role="assistant",
-                    content=full_response.strip(),
-                )
+        # Send message with RAG and streaming (all logic in service)
+        result = ctx.chat_message_service.send_message_with_rag(
+            session_id=ctx.current_session_id,
+            message_content=message_content,
+            stream_callback=print_chunk,
+        )
 
-        except Exception as e:
-            print(f"\nError generating response: {e}", file=sys.stderr)
-            logger.error(f"Failed to generate LLM response: {e}")
+        print()  # New line after streaming completes
+
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"\nError: {error.message}", file=sys.stderr)
+            sys.exit(1)
 
     except KeyboardInterrupt:
         print("\n\nCancelled")

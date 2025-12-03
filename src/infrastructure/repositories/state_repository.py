@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.models import State
+from src.infrastructure.sql_database import SqlDatabase
 
 
 class StateRepository:

@@ -1,14 +1,29 @@
 """Vector RAG implementation of remove document workflow."""
 
+from typing import TYPE_CHECKING
+
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_database import VectorDatabase
+from src.infrastructure.rag.steps.vector_rag.vector_stores.qdrant_vector_database import (
+    QdrantVectorDatabase,
+)
 from src.infrastructure.rag.workflows.remove_document.remove_document_workflow import (
     RemoveDocumentWorkflow,
     RemoveDocumentWorkflowError,
 )
-from src.infrastructure.types.result import Err, Ok, Result
+
+if TYPE_CHECKING:
+    from qdrant_client.http.models import Filter
 
 logger = create_logger(__name__)
+
+try:
+    import qdrant_client.http.models as qdrant_models
+
+    QDRANT_AVAILABLE = True
+except ImportError:
+    QDRANT_AVAILABLE = False
 
 
 class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
@@ -21,11 +36,11 @@ class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
     3. Return count of deleted chunks
     """
 
-    def __init__(self, vector_database: VectorDatabase):
-        """Initialize workflow with vector database.
+    def __init__(self, vector_database: QdrantVectorDatabase):
+        """Initialize workflow with Qdrant vector database.
 
         Args:
-            vector_database: Vector database for chunk storage (Qdrant, etc.)
+            vector_database: Qdrant vector database for chunk storage
         """
         self.vector_database = vector_database
 
@@ -52,11 +67,11 @@ class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
 
             logger.info(f"Removed {chunks_deleted} chunks for document {document_id}")
 
-            return Ok(chunks_deleted)
+            return Success(chunks_deleted)
 
         except Exception as e:
             logger.error(f"Document removal failed: {e}", exc_info=True)
-            return Err(
+            return Failure(
                 RemoveDocumentWorkflowError(
                     message=f"Failed to remove document: {str(e)}",
                     step="document_removal",
@@ -74,75 +89,60 @@ class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
             Number of chunks deleted
         """
         try:
-            # For Qdrant, we need to use scroll API to find all matching points
-            # then delete them. Since VectorDatabase interface doesn't expose this,
-            # we'll access the underlying Qdrant client if available.
+            # Build filter for document_id and workspace_id using Qdrant models
+            filter_conditions: Filter = qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="document_id",
+                        match=qdrant_models.MatchValue(value=document_id),
+                    ),
+                    qdrant_models.FieldCondition(
+                        key="workspace_id",
+                        match=qdrant_models.MatchValue(value=workspace_id),
+                    ),
+                ]
+            )
 
-            # Check if this is a Qdrant database
-            if hasattr(self.vector_database, "_client"):
-                from qdrant_client.http.models import FieldCondition, Filter, MatchValue
+            # Use scroll API to get all matching points
+            collection_name = self.vector_database.collection_name
+            client = self.vector_database._client
 
-                # Build filter for document_id and workspace_id
-                filter_conditions = Filter(
-                    must=[
-                        FieldCondition(
-                            key="document_id",
-                            match=MatchValue(value=document_id),
-                        ),
-                        FieldCondition(
-                            key="workspace_id",
-                            match=MatchValue(value=workspace_id),
-                        ),
-                    ]
+            # Scroll through all matching points
+            offset = None
+            deleted_count = 0
+            batch_size = 100
+
+            while True:
+                scroll_result = client.scroll(
+                    collection_name=collection_name,
+                    scroll_filter=filter_conditions,
+                    limit=batch_size,
+                    offset=offset,
+                    with_payload=False,
+                    with_vectors=False,
                 )
 
-                # Use scroll API to get all matching points
-                collection_name = self.vector_database.collection_name
-                client = self.vector_database._client
+                points, next_offset = scroll_result
 
-                # Scroll through all matching points
-                offset = None
-                deleted_count = 0
-                batch_size = 100
+                if not points:
+                    break
 
-                while True:
-                    scroll_result = client.scroll(
+                # Delete this batch of points
+                point_ids = [point.id for point in points]
+                if point_ids:
+                    client.delete(
                         collection_name=collection_name,
-                        scroll_filter=filter_conditions,
-                        limit=batch_size,
-                        offset=offset,
-                        with_payload=False,
-                        with_vectors=False,
+                        points_selector=qdrant_models.PointIdsList(points=point_ids),
                     )
+                    deleted_count += len(point_ids)
 
-                    points, next_offset = scroll_result
+                # Check if there are more results
+                if next_offset is None:
+                    break
 
-                    if not points:
-                        break
+                offset = next_offset
 
-                    # Delete this batch of points
-                    point_ids = [point.id for point in points]
-                    if point_ids:
-                        client.delete(
-                            collection_name=collection_name,
-                            points_selector={"points": point_ids},
-                        )
-                        deleted_count += len(point_ids)
-
-                    # Check if there are more results
-                    if next_offset is None:
-                        break
-
-                    offset = next_offset
-
-                return deleted_count
-
-            else:
-                # Fallback: VectorDatabase doesn't support metadata-based deletion
-                logger.warning(
-                    "VectorDatabase implementation doesn't support metadata-based deletion"
-                )
-                return 0
+            return deleted_count
 
         except Exception as e:
             logger.error(f"Failed to delete chunks by metadata: {e}")

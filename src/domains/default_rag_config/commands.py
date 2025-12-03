@@ -36,7 +36,9 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
             print(f"Rerank Algorithm: {config_obj.vector_config.rerank_algorithm}")
         elif config_obj.rag_type == "graph":
             print(f"Entity Extraction: {config_obj.graph_config.entity_extraction_algorithm}")
-            print(f"Relationship Extraction: {config_obj.graph_config.relationship_extraction_algorithm}")
+            print(
+                f"Relationship Extraction: {config_obj.graph_config.relationship_extraction_algorithm}"
+            )
             print(f"Clustering Algorithm: {config_obj.graph_config.clustering_algorithm}")
 
     except Exception as e:
@@ -77,7 +79,10 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         else:  # graph
             # Prompt for graph RAG configuration
             entity_extraction = input("Entity extraction algorithm [spacy]: ").strip() or "spacy"
-            relationship_extraction = input("Relationship extraction algorithm [dependency-parsing]: ").strip() or "dependency-parsing"
+            relationship_extraction = (
+                input("Relationship extraction algorithm [dependency-parsing]: ").strip()
+                or "dependency-parsing"
+            )
             clustering = input("Clustering algorithm [leiden]: ").strip() or "leiden"
 
             graph_config = {
@@ -87,7 +92,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
             }
 
         # Create/update config
-        config_obj = ctx.default_rag_config_service.create_or_update_config(
+        ctx.default_rag_config_service.create_or_update_config(
             rag_type=rag_type,
             vector_config=vector_config,
             graph_config=graph_config,

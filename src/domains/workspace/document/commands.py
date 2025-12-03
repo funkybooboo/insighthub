@@ -2,8 +2,9 @@
 
 import argparse
 import sys
-from io import BytesIO
 from pathlib import Path
+
+from returns.result import Failure
 
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
@@ -15,7 +16,9 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List documents in the current workspace."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr)
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+            )
             sys.exit(1)
 
         documents = ctx.document_service.list_documents_by_workspace(ctx.current_workspace_id)
@@ -36,7 +39,9 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
     """Show detailed information about a document."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr)
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+            )
             sys.exit(1)
 
         document = ctx.document_service.get_document_by_id(args.document_id)
@@ -68,7 +73,9 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
     """Upload a document to the current workspace."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr)
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+            )
             sys.exit(1)
 
         file_path = Path(args.file)
@@ -83,12 +90,18 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
             file_content = f.read()
 
         # Upload and process document through service
-        document = ctx.document_service.upload_and_process_document(
+        result = ctx.document_service.upload_and_process_document(
             workspace_id=ctx.current_workspace_id,
             filename=file_path.name,
             file_content=file_content,
         )
 
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        document = result.unwrap()
         print(f"Uploaded [{document.id}] {document.filename}")
 
     except KeyboardInterrupt:
@@ -104,7 +117,9 @@ def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
     """Remove a document by filename."""
     try:
         if not ctx.current_workspace_id:
-            print("Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr)
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+            )
             sys.exit(1)
 
         # Find document by filename
@@ -130,7 +145,7 @@ def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
         if deleted:
             print(f"Deleted [{doc_to_remove.id}] {doc_to_remove.filename}")
         else:
-            print(f"Error: Failed to delete document", file=sys.stderr)
+            print("Error: Failed to delete document", file=sys.stderr)
             sys.exit(1)
 
     except KeyboardInterrupt:

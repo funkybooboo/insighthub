@@ -1,7 +1,10 @@
 """Factory for creating remove document workflows."""
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
+from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import create_vector_database
+from src.infrastructure.rag.steps.vector_rag.vector_stores.qdrant_vector_database import (
+    QdrantVectorDatabase,
+)
 from src.infrastructure.rag.workflows.remove_document.remove_document_workflow import (
     RemoveDocumentWorkflow,
 )
@@ -48,9 +51,19 @@ class RemoveDocumentWorkflowFactory:
         # Create vector database (needed for querying/deleting chunks)
         vector_store_type = config.get("vector_store_type", "qdrant")
         vector_store_config = config.get("vector_store_config", {})
-        vector_database = VectorStoreFactory.create_vector_store(
-            vector_store_type, **vector_store_config
+
+        # Use create_vector_database to get VectorDatabase instance (not VectorStore)
+        vector_database = create_vector_database(
+            db_type=vector_store_type,
+            url=vector_store_config.get("url") or vector_store_config.get("host", "localhost"),
+            collection_name=vector_store_config.get("collection_name", "document"),
+            vector_size=vector_store_config.get("vector_size", 768),
+            api_key=vector_store_config.get("api_key"),
         )
+
+        # Type narrow: we know create_vector_database returns QdrantVectorDatabase for "qdrant" type
+        if not isinstance(vector_database, QdrantVectorDatabase):
+            raise TypeError(f"Expected QdrantVectorDatabase but got {type(vector_database)}")
 
         workflow = VectorRagRemoveDocumentWorkflow(vector_database=vector_database)
         logger.info("Vector RAG remove document workflow created successfully")

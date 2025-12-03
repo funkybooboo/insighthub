@@ -3,10 +3,14 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.sql_database import SqlDatabase
+from returns.result import Failure, Result, Success
+
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatSession
+from src.infrastructure.sql_database import DatabaseException, SqlDatabase
+from src.infrastructure.types import DatabaseError
 
-
+logger = create_logger(__name__)
 
 
 class ChatSessionRepository:
@@ -20,33 +24,41 @@ class ChatSessionRepository:
         title: str | None = None,
         workspace_id: int | None = None,
         rag_type: str = "vector",
-    ) -> ChatSession:
+    ) -> Result[ChatSession, DatabaseError]:
         """Create a new chat session (single-user system)."""
         query = """
             INSERT INTO chat_sessions (workspace_id, title, rag_type, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
         """
-        result = self.db.fetch_one(
-            query,
-            (
-                workspace_id,
-                title,
-                rag_type,
-                datetime.utcnow(),
-                datetime.utcnow(),
-            ),
-        )
+        try:
+            result = self.db.fetch_one(
+                query,
+                (
+                    workspace_id,
+                    title,
+                    rag_type,
+                    datetime.utcnow(),
+                    datetime.utcnow(),
+                ),
+            )
+        except DatabaseException as e:
+            logger.error(f"Database error creating chat session: {e}")
+            return Failure(DatabaseError(e.message, operation="create_chat_session"))
 
-        if result:
-            return ChatSession(
+        if not result:
+            return Failure(
+                DatabaseError("Insert returned no result", operation="create_chat_session")
+            )
+
+        return Success(
+            ChatSession(
                 id=result["id"],
                 workspace_id=workspace_id,
                 title=title,
                 rag_type=rag_type,
             )
-
-        raise RuntimeError("Failed to create chat session")
+        )
 
     def get_by_id(self, session_id: int) -> Optional[ChatSession]:
         """Get session by ID."""

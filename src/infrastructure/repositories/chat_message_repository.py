@@ -3,10 +3,14 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.sql_database import SqlDatabase
+from returns.result import Failure, Result, Success
+
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatMessage
+from src.infrastructure.sql_database import DatabaseException, SqlDatabase
+from src.infrastructure.types import DatabaseError
 
-
+logger = create_logger(__name__)
 
 
 class ChatMessageRepository:
@@ -21,33 +25,41 @@ class ChatMessageRepository:
         role: str,
         content: str,
         extra_metadata: str | None = None,
-    ) -> ChatMessage:
+    ) -> Result[ChatMessage, DatabaseError]:
         """Create a new chat message."""
         query = """
             INSERT INTO chat_messages (chat_session_id, role, content, created_at)
             VALUES (%s, %s, %s, %s)
             RETURNING id
         """
-        result = self.db.fetch_one(
-            query,
-            (
-                session_id,
-                role,
-                content,
-                datetime.utcnow(),
-            ),
-        )
+        try:
+            result = self.db.fetch_one(
+                query,
+                (
+                    session_id,
+                    role,
+                    content,
+                    datetime.utcnow(),
+                ),
+            )
+        except DatabaseException as e:
+            logger.error(f"Database error creating chat message: {e}")
+            return Failure(DatabaseError(e.message, operation="create_chat_message"))
 
-        if result:
-            return ChatMessage(
+        if not result:
+            return Failure(
+                DatabaseError("Insert returned no result", operation="create_chat_message")
+            )
+
+        return Success(
+            ChatMessage(
                 id=result["id"],
                 session_id=session_id,
                 role=role,
                 content=content,
                 extra_metadata=extra_metadata,
             )
-
-        raise RuntimeError("Failed to create chat message")
+        )
 
     def get_by_id(self, message_id: int) -> Optional[ChatMessage]:
         """Get message by ID."""
@@ -55,7 +67,12 @@ class ChatMessageRepository:
             SELECT id, chat_session_id as session_id, role, content, created_at
             FROM chat_messages WHERE id = %s
         """
-        result = self.db.fetch_one(query, (message_id,))
+        try:
+            result = self.db.fetch_one(query, (message_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error getting chat message: {e}")
+            return None
+
         if result:
             return ChatMessage(**result)
         return None
@@ -68,11 +85,21 @@ class ChatMessageRepository:
             ORDER BY created_at ASC
             LIMIT %s OFFSET %s
         """
-        results = self.db.fetch_all(query, (session_id, limit, skip))
+        try:
+            results = self.db.fetch_all(query, (session_id, limit, skip))
+        except DatabaseException as e:
+            logger.error(f"Database error getting chat messages: {e}")
+            return []
+
         return [ChatMessage(**result) for result in results]
 
     def delete(self, message_id: int) -> bool:
         """Delete message by ID."""
         query = "DELETE FROM chat_messages WHERE id = %s"
-        affected_rows = self.db.execute(query, (message_id,))
+        try:
+            affected_rows = self.db.execute(query, (message_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error deleting chat message: {e}")
+            return False
+
         return affected_rows > 0

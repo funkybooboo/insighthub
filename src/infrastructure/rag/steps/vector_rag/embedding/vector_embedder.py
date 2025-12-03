@@ -3,8 +3,9 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from returns.result import Result
+
 from src.infrastructure.types.common import HealthStatus
-from src.infrastructure.types.result import Result
 
 
 class EmbeddingError(Exception):

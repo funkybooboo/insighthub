@@ -1,7 +1,6 @@
 """Factory for creating vector database instances."""
 
 from enum import Enum
-from typing import Optional
 
 from .qdrant_vector_database import QdrantVectorDatabase
 from .qdrant_vector_store import QdrantVectorStore
@@ -19,8 +18,19 @@ class VectorStoreFactory:
     """Factory class for creating vector stores."""
 
     @staticmethod
-    def create_vector_store(store_type: str, **kwargs) -> Optional[VectorStore]:
-        """Create a vector store instance. Alias for create_vector_store function."""
+    def create_vector_store(store_type: str, **kwargs) -> VectorStore:
+        """Create a vector store instance. Alias for create_vector_store function.
+
+        Args:
+            store_type: Type of vector store to create
+            **kwargs: Additional configuration (url, collection_name, vector_size, api_key)
+
+        Returns:
+            VectorStore instance
+
+        Raises:
+            ValueError: If store_type is not supported or required parameters are missing
+        """
         return create_vector_store(
             db_type=store_type,
             url=kwargs.get("url") or kwargs.get("host", "localhost"),
@@ -56,7 +66,7 @@ def create_vector_database(
     collection_name: str | None = None,
     vector_size: int | None = None,
     api_key: str | None = None,
-) -> Optional[VectorDatabase]:
+) -> VectorDatabase:
     """
     Create a vector database instance based on configuration.
 
@@ -68,7 +78,10 @@ def create_vector_database(
         api_key: API key for authentication (optional)
 
     Returns:
-        VectorDatabase if creation succeeds, None if type unknown or params missing
+        VectorDatabase instance
+
+    Raises:
+        ValueError: If db_type is not supported or required parameters are missing
 
     Note:
         Additional vector database providers (Pinecone, Weaviate, FAISS) can be
@@ -77,11 +90,20 @@ def create_vector_database(
     try:
         db_enum = VectorDatabaseType(db_type)
     except ValueError:
-        return None
+        available = [e.value for e in VectorDatabaseType]
+        raise ValueError(
+            f"Unsupported vector database type: {db_type}. "
+            f"Available types: {', '.join(available)}"
+        )
 
     if db_enum == VectorDatabaseType.QDRANT:
-        if url is None or collection_name is None or vector_size is None:
-            return None
+        if url is None:
+            raise ValueError("url is required for Qdrant vector database")
+        if collection_name is None:
+            raise ValueError("collection_name is required for Qdrant vector database")
+        if vector_size is None:
+            raise ValueError("vector_size is required for Qdrant vector database")
+
         return QdrantVectorDatabase(
             url=url,
             collection_name=collection_name,
@@ -89,7 +111,7 @@ def create_vector_database(
             api_key=api_key,
         )
 
-    return None
+    raise ValueError(f"Unsupported vector database type: {db_type}")
 
 
 def create_vector_store(
@@ -98,7 +120,7 @@ def create_vector_store(
     collection_name: str | None = None,
     vector_size: int | None = None,
     api_key: str | None = None,
-) -> Optional[VectorStore]:
+) -> VectorStore:
     """
     Create a vector store instance (high-level interface).
 
@@ -113,7 +135,10 @@ def create_vector_store(
         api_key: API key for authentication (optional)
 
     Returns:
-        VectorStore if creation succeeds, None if type unknown or params missing
+        VectorStore instance
+
+    Raises:
+        ValueError: If db_type is not supported or required parameters are missing
 
     Example:
         store = create_vector_store(
@@ -125,7 +150,7 @@ def create_vector_store(
         store.add(chunks)
         results = store.search(query_embedding, top_k=5)
     """
-    # Create underlying database
+    # Create underlying database (raises ValueError if invalid)
     database = create_vector_database(
         db_type=db_type,
         url=url,
@@ -134,16 +159,20 @@ def create_vector_store(
         api_key=api_key,
     )
 
-    if database is None:
-        return None
-
     # Wrap in VectorStore adapter
     try:
         db_enum = VectorDatabaseType(db_type)
     except ValueError:
-        return None
+        available = [e.value for e in VectorDatabaseType]
+        raise ValueError(
+            f"Unsupported vector database type: {db_type}. "
+            f"Available types: {', '.join(available)}"
+        )
 
     if db_enum == VectorDatabaseType.QDRANT:
-        return QdrantVectorStore(database)  # type: ignore  # database is QdrantVectorDatabase
+        # database is guaranteed to be QdrantVectorDatabase since we created it above
+        if not isinstance(database, QdrantVectorDatabase):
+            raise TypeError("Expected QdrantVectorDatabase but got different type")
+        return QdrantVectorStore(database)
 
-    return None
+    raise ValueError(f"Unsupported vector database type: {db_type}")

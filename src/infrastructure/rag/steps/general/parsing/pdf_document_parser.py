@@ -3,13 +3,14 @@
 import uuid
 from typing import TYPE_CHECKING, BinaryIO
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
     DocumentParser,
     ParsingError,
 )
 from src.infrastructure.types.common import MetadataDict
 from src.infrastructure.types.document import Document
-from src.infrastructure.types.result import Err, Ok, Result
 
 if TYPE_CHECKING:
     import pypdf as pypdf_module
@@ -19,7 +20,6 @@ try:
 
     PYPDF_AVAILABLE = True
 except ImportError:
-    pypdf = None
     PYPDF_AVAILABLE = False
 
 
@@ -40,7 +40,7 @@ class PDFDocumentParser(DocumentParser):
             Result containing Document on success, or ParsingError on failure
         """
         if not PYPDF_AVAILABLE or pypdf is None:
-            return Err(
+            return Failure(
                 ParsingError(
                     "pypdf library not available for PDF parsing",
                     code="DEPENDENCY_ERROR",
@@ -63,7 +63,7 @@ class PDFDocumentParser(DocumentParser):
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, pdf_metadata) or "Untitled Document"
 
-            return Ok(
+            return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
@@ -78,7 +78,7 @@ class PDFDocumentParser(DocumentParser):
             )
 
         except Exception as e:
-            return Err(ParsingError(f"Failed to parse PDF: {e}", code="PARSE_ERROR"))
+            return Failure(ParsingError(f"Failed to parse PDF: {e}", code="PARSE_ERROR"))
 
     def supports_format(self, filename: str) -> bool:
         """Check if parser supports the file format."""

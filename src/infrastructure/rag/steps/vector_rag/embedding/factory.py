@@ -1,7 +1,6 @@
 """Factory for creating embedding encoder instances."""
 
 from enum import Enum
-from typing import Optional
 
 from .ollama_vector_embedder import OllamaVectorEmbeddingEncoder
 from .vector_embedder import VectorEmbeddingEncoder
@@ -17,8 +16,16 @@ class EmbedderFactory:
     """Factory class for creating embedders."""
 
     @staticmethod
-    def create_embedder(embedder_type: str, **kwargs) -> Optional[VectorEmbeddingEncoder]:
-        """Create an embedder instance. Alias for create_embedder_from_config."""
+    def create_embedder(embedder_type: str, **kwargs) -> VectorEmbeddingEncoder:
+        """Create an embedder instance. Alias for create_embedder_from_config.
+
+        Args:
+            embedder_type: Type of embedder to create
+            **kwargs: Additional configuration (base_url, timeout)
+
+        Returns:
+            VectorEmbeddingEncoder instance
+        """
         base_url = kwargs.get("base_url", "http://localhost:11434")
         timeout = kwargs.get("timeout", 30)
         return create_embedder_from_config(embedder_type, base_url, timeout)
@@ -56,7 +63,7 @@ def create_embedder_from_config(
     embedding_algorithm: str,
     base_url: str,
     timeout: int = 30,
-) -> Optional[VectorEmbeddingEncoder]:
+) -> VectorEmbeddingEncoder:
     """
     Create an embedding encoder instance based on algorithm configuration.
 
@@ -66,7 +73,7 @@ def create_embedder_from_config(
         timeout: Request timeout in seconds (default 30)
 
     Returns:
-        VectorEmbeddingEncoder if creation succeeds, None if algorithm unknown
+        VectorEmbeddingEncoder instance
     """
     # All embedding algorithms currently use Ollama infrastructure
     return OllamaVectorEmbeddingEncoder(

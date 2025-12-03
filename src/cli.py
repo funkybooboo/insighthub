@@ -1,6 +1,8 @@
 """InsightHub CLI - Main entry point and routing."""
 
 import argparse
+import atexit
+import signal
 import sys
 
 from src.context import AppContext
@@ -9,6 +11,28 @@ from src.domains.workspace import commands as workspace_commands
 from src.domains.workspace.chat.message import commands as chat_message_commands
 from src.domains.workspace.chat.session import commands as chat_session_commands
 from src.domains.workspace.document import commands as document_commands
+from src.infrastructure.logger import create_logger
+
+logger = create_logger(__name__)
+
+# Global context for cleanup
+_app_context: AppContext | None = None
+
+
+def cleanup_handler() -> None:
+    """Handle cleanup on application exit."""
+    global _app_context
+    if _app_context is not None:
+        logger.info("Application shutting down...")
+        _app_context.cleanup()
+
+
+def signal_handler(signum: int, frame: object) -> None:
+    """Handle interrupt signals for graceful shutdown."""
+    signal_name = signal.Signals(signum).name
+    logger.info(f"Received signal {signal_name}, shutting down gracefully...")
+    cleanup_handler()
+    sys.exit(0)
 
 
 def main() -> None:
@@ -17,30 +41,30 @@ def main() -> None:
     epilog = """
 Examples:
   # Workspace management
-  python -m src.main workspace list              List all workspace
-  python -m src.main workspace new               Create a new workspace (interactive)
-  python -m src.main workspace select 1          Select workspace with ID 1
+  python -m src.cli workspace list              List all workspace
+  python -m src.cli workspace new               Create a new workspace (interactive)
+  python -m src.cli workspace select 1          Select workspace with ID 1
 
   # Document management
-  python -m src.main document list               List document in current workspace
-  python -m src.main document show 1             Show detailed information about document with ID 1
-  python -m src.main document upload file.pdf    Upload a document to current workspace
-  python -m src.main document remove file.pdf    Remove a document from current workspace
+  python -m src.cli document list               List document in current workspace
+  python -m src.cli document show 1             Show detailed information about document with ID 1
+  python -m src.cli document upload file.pdf    Upload a document to current workspace
+  python -m src.cli document remove file.pdf    Remove a document from current workspace
 
   # Chat operations
-  python -m src.main chat list                   List chat session in current workspace
-  python -m src.main chat new                    Create a new chat session in current workspace
-  python -m src.main chat select 1               Select chat session with ID 1 in current workspace
-  python -m src.main chat send "Hello"           Send a message to current session
-  python -m src.main chat history                Show message history for current session
-  python -m src.main chat delete 1               Delete a chat session in current workspace
+  python -m src.cli chat list                   List chat session in current workspace
+  python -m src.cli chat new                    Create a new chat session in current workspace
+  python -m src.cli chat select 1               Select chat session with ID 1 in current workspace
+  python -m src.cli chat send "Hello"           Send a message to current session
+  python -m src.cli chat history                Show message history for current session
+  python -m src.cli chat delete 1               Delete a chat session in current workspace
 
   # Configuration
-  python -m src.main default-rag-config list     Show default RAG configuration
-  python -m src.main default-rag-config new      Create/update default RAG config
+  python -m src.cli default-rag-config list     Show default RAG configuration
+  python -m src.cli default-rag-config new      Create/update default RAG config
 
 For help on a specific resource, use:
-  python -m src.main <resource> --help
+  python -m src.cli <resource> --help
 """
 
     parser = argparse.ArgumentParser(
@@ -60,10 +84,10 @@ For help on a specific resource, use:
     )
     ws_subparsers = ws_parser.add_subparsers(dest="action", help="Workspace action")
 
-    ws_list = ws_subparsers.add_parser("list", help="List all workspace")
+    ws_subparsers.add_parser("list", help="List all workspace")
     ws_show = ws_subparsers.add_parser("show", help="Show detailed workspace information")
     ws_show.add_argument("workspace_id", type=int, help="Workspace ID")
-    ws_new = ws_subparsers.add_parser("new", help="Create new workspace (interactive)")
+    ws_subparsers.add_parser("new", help="Create new workspace (interactive)")
     ws_update = ws_subparsers.add_parser("update", help="Update workspace (interactive)")
     ws_update.add_argument("workspace_id", type=int, help="Workspace ID")
     ws_delete = ws_subparsers.add_parser("delete", help="Delete workspace")
@@ -79,7 +103,7 @@ For help on a specific resource, use:
     )
     doc_subparsers = doc_parser.add_subparsers(dest="action", help="Document action")
 
-    doc_list = doc_subparsers.add_parser("list", help="List document in current workspace")
+    doc_subparsers.add_parser("list", help="List document in current workspace")
     doc_show = doc_subparsers.add_parser("show", help="Show detailed document information")
     doc_show.add_argument("document_id", type=int, help="Document ID")
     doc_upload = doc_subparsers.add_parser("upload", help="Upload a document")
@@ -105,9 +129,7 @@ For help on a specific resource, use:
     chat_delete.add_argument("session_id", type=int, help="Chat session ID to delete")
     chat_send = chat_subparsers.add_parser("send", help="Send a message in current session")
     chat_send.add_argument("message", help="Message text to send")
-    chat_history = chat_subparsers.add_parser(
-        "history", help="Show message history for current session"
-    )
+    chat_subparsers.add_parser("history", help="Show message history for current session")
 
     # ==================== DEFAULT RAG CONFIG ====================
     rag_config_parser = subparsers.add_parser(
@@ -119,10 +141,8 @@ For help on a specific resource, use:
         dest="action", help="RAG config action"
     )
 
-    rag_config_list = rag_config_subparsers.add_parser("list", help="Show default RAG config")
-    rag_config_new = rag_config_subparsers.add_parser(
-        "new", help="Create/update default RAG config (interactive)"
-    )
+    rag_config_subparsers.add_parser("list", help="Show default RAG config")
+    rag_config_subparsers.add_parser("new", help="Create/update default RAG config (interactive)")
 
     # Parse arguments, but handle help specially
     args = parser.parse_args()
@@ -132,10 +152,52 @@ For help on a specific resource, use:
         parser.print_help()
         sys.exit(0)
 
-    # Initialize context
-    ctx = AppContext()
+    # Register cleanup handlers
+    atexit.register(cleanup_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-    # Route to command handlers
+    # Initialize context
+    global _app_context
+    try:
+        logger.info("Initializing InsightHub application...")
+        ctx = AppContext()
+        _app_context = ctx
+        logger.info("Application initialized successfully")
+
+        # Run startup health checks
+        if not ctx.startup_checks():
+            logger.error("Startup health checks failed")
+            print("Error: Critical startup checks failed. Check logs for details.")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.error(f"Failed to initialize application: {e}")
+        print(f"Error: Failed to initialize application: {e}")
+        sys.exit(1)
+
+    # Route to command handlers (wrapped in try-catch for proper cleanup)
+    try:
+        route_command(ctx, args, parser, ws_parser, doc_parser, chat_parser, rag_config_parser)
+    except KeyboardInterrupt:
+        logger.info("Operation interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Unexpected error during command execution: {e}", exc_info=True)
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
+def route_command(
+    ctx: AppContext,
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+    ws_parser: argparse.ArgumentParser,
+    doc_parser: argparse.ArgumentParser,
+    chat_parser: argparse.ArgumentParser,
+    rag_config_parser: argparse.ArgumentParser,
+) -> None:
+    """Route commands to appropriate handlers."""
     if args.resource == "workspace":
         if not args.action:
             ws_parser.print_help()

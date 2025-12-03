@@ -105,7 +105,6 @@ class QdrantVectorStore(VectorStore):
                 document_id=document_id,
                 text=text,
                 metadata=original_metadata,  # type: ignore  # Metadata types are flexible
-                vector=None,  # Vector not needed for retrieval results
             )
 
             chunk_results.append((chunk, result.score))
@@ -125,11 +124,9 @@ class QdrantVectorStore(VectorStore):
         logger.warning(f"Clearing all vectors from collection: {self.db.collection_name}")
 
         # Get all vector IDs and delete them
-        # QdrantVectorDatabase doesn't have a clear() method, so we need to
-        # recreate the collection via the client
+        # Use the clear() method from VectorDatabase interface
         try:
-            self.db.client.delete_collection(collection_name=self.db.collection_name)
-            self.db._ensure_collection_exists()
+            self.db.clear()
             logger.info("Vector store cleared successfully")
         except Exception as e:
             logger.error(f"Failed to clear vector store: {e}")

@@ -6,7 +6,7 @@ for workspace resource deletion workflows.
 
 from abc import ABC, abstractmethod
 
-from src.infrastructure.types.result import Result
+from returns.result import Result
 
 
 class RemoveRagResourcesWorkflowError(Exception):

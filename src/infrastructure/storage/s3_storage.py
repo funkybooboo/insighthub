@@ -70,9 +70,11 @@ class S3BlobStorage(BlobStorage):
 
     def _ensure_bucket(self) -> None:
         """Ensure the bucket exists, create it if it doesn't."""
+        if not self._client:
+            return
+
         try:
-            if self._client:
-                self._client.head_bucket(Bucket=self.bucket_name)
+            self._client.head_bucket(Bucket=self.bucket_name)
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "")
             if error_code == "404":
@@ -92,9 +94,7 @@ class S3BlobStorage(BlobStorage):
             else:
                 raise RuntimeError(f"Failed to access bucket {self.bucket_name}: {e}")
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         """
         Upload data to S3 storage.
 

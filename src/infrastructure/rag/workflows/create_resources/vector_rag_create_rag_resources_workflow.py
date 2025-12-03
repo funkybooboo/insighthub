@@ -1,24 +1,28 @@
 """Vector RAG implementation of create RAG resources workflow."""
 
+from typing import TYPE_CHECKING
+
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.create_resources.create_rag_resources_workflow import (
     CreateRagResourcesWorkflow,
     CreateRagResourcesWorkflowError,
 )
-from src.infrastructure.types.result import Err, Ok, Result
+
+if TYPE_CHECKING:
+    from qdrant_client import QdrantClient
+    from qdrant_client.http.models import Distance
 
 logger = create_logger(__name__)
 
 try:
-    from qdrant_client import QdrantClient
-    from qdrant_client.http.models import Distance, VectorParams
+    import qdrant_client
+    import qdrant_client.http.models as qdrant_models
 
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    QdrantClient = None
-    VectorParams = None
-    Distance = None
 
 
 class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
@@ -48,11 +52,11 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
 
         # Map distance string to Qdrant Distance enum
         distance_map = {
-            "cosine": Distance.COSINE,
-            "euclidean": Distance.EUCLID,
-            "dot": Distance.DOT,
+            "cosine": qdrant_models.Distance.COSINE,
+            "euclidean": qdrant_models.Distance.EUCLID,
+            "dot": qdrant_models.Distance.DOT,
         }
-        self.distance = distance_map.get(distance.lower(), Distance.COSINE)
+        self.distance = distance_map.get(distance.lower(), qdrant_models.Distance.COSINE)
 
     def execute(
         self,
@@ -93,11 +97,11 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
 
             logger.info(f"Workspace {workspace_id} provisioned successfully")
 
-            return Ok(True)
+            return Success(True)
 
         except Exception as e:
             logger.error(f"Workspace provisioning failed: {e}", exc_info=True)
-            return Err(
+            return Failure(
                 CreateRagResourcesWorkflowError(
                     message=f"Failed to provision workspace: {str(e)}",
                     step="workspace_provisioning",
@@ -108,7 +112,7 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
         self,
         collection_name: str,
         vector_size: int,
-        distance: Distance,
+        distance: "Distance",
     ) -> None:
         """Create Qdrant collection with specified parameters.
 
@@ -122,7 +126,7 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
         """
         try:
             # Initialize Qdrant client
-            client = QdrantClient(url=self.qdrant_url)
+            client: QdrantClient = qdrant_client.QdrantClient(url=self.qdrant_url)
 
             # Check if collection already exists
             collections = client.get_collections().collections
@@ -135,7 +139,7 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
             # Create collection
             client.create_collection(
                 collection_name=collection_name,
-                vectors_config=VectorParams(
+                vectors_config=qdrant_models.VectorParams(
                     size=vector_size,
                     distance=distance,
                 ),

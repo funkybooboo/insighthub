@@ -3,10 +3,14 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.sql_database import SqlDatabase
+from returns.result import Failure, Result, Success
+
+from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document
+from src.infrastructure.sql_database import DatabaseException, SqlDatabase
+from src.infrastructure.types import DatabaseError
 
-
+logger = create_logger(__name__)
 
 
 class DocumentRepository:
@@ -28,7 +32,7 @@ class DocumentRepository:
         content_hash: str | None = None,
         rag_collection: str | None = None,
         parsed_text: str | None = None,
-    ) -> Document:
+    ) -> Result[Document, DatabaseError]:
         """Create a new document."""
         query = """
             INSERT INTO documents (
@@ -38,25 +42,32 @@ class DocumentRepository:
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """
-        result = self.db.fetch_one(
-            query,
-            (
-                workspace_id,
-                filename,
-                filename,  # original_filename same as filename
-                file_size,
-                mime_type,
-                content_hash or "",  # file_hash
-                file_path or "",  # storage_path
-                chunk_count,
-                status,
-                1,  # user_id (placeholder for single-user system)
-                datetime.utcnow(),
-            ),
-        )
+        try:
+            result = self.db.fetch_one(
+                query,
+                (
+                    workspace_id,
+                    filename,
+                    filename,  # original_filename same as filename
+                    file_size,
+                    mime_type,
+                    content_hash or "",  # file_hash
+                    file_path or "",  # storage_path
+                    chunk_count,
+                    status,
+                    1,  # user_id (placeholder for single-user system)
+                    datetime.utcnow(),
+                ),
+            )
+        except DatabaseException as e:
+            logger.error(f"Database error creating document: {e}")
+            return Failure(DatabaseError(e.message, operation="create_document"))
 
-        if result:
-            return Document(
+        if not result:
+            return Failure(DatabaseError("Insert returned no result", operation="create_document"))
+
+        return Success(
+            Document(
                 id=result["id"],
                 workspace_id=workspace_id,
                 filename=filename,
@@ -71,8 +82,7 @@ class DocumentRepository:
                 rag_collection=rag_collection,
                 parsed_text=parsed_text,
             )
-
-        raise RuntimeError("Failed to create document")
+        )
 
     def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
@@ -84,7 +94,12 @@ class DocumentRepository:
                 created_at, updated_at
             FROM documents WHERE id = %s
         """
-        result = self.db.fetch_one(query, (document_id,))
+        try:
+            result = self.db.fetch_one(query, (document_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error getting document: {e}")
+            return None
+
         if result:
             return Document(**result)
         return None
@@ -109,7 +124,12 @@ class DocumentRepository:
             ORDER BY created_at DESC
             LIMIT %s OFFSET %s
         """
-        results = self.db.fetch_all(query, (workspace_id, limit, offset))
+        try:
+            results = self.db.fetch_all(query, (workspace_id, limit, offset))
+        except DatabaseException as e:
+            logger.error(f"Database error getting documents by workspace: {e}")
+            return []
+
         return [Document(**result) for result in results]
 
     def update(self, document_id: int, **kwargs) -> Optional[Document]:
@@ -130,17 +150,21 @@ class DocumentRepository:
             SET filename = %s, size_bytes = %s, mime_type = %s, chunk_count = %s, status = %s
             WHERE id = %s
         """
-        self.db.execute(
-            query,
-            (
-                document.filename,
-                document.file_size,
-                document.mime_type,
-                document.chunk_count,
-                document.status,
-                document_id,
-            ),
-        )
+        try:
+            self.db.execute(
+                query,
+                (
+                    document.filename,
+                    document.file_size,
+                    document.mime_type,
+                    document.chunk_count,
+                    document.status,
+                    document_id,
+                ),
+            )
+        except DatabaseException as e:
+            logger.error(f"Database error updating document: {e}")
+            return None
 
         return document
 
@@ -176,5 +200,10 @@ class DocumentRepository:
     def delete(self, document_id: int) -> bool:
         """Delete a document."""
         query = "DELETE FROM documents WHERE id = %s"
-        affected_rows = self.db.execute(query, (document_id,))
+        try:
+            affected_rows = self.db.execute(query, (document_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error deleting document: {e}")
+            return False
+
         return affected_rows > 0

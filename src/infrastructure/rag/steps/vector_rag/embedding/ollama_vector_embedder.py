@@ -3,10 +3,10 @@
 from collections.abc import Iterable
 
 import requests
+from returns.result import Failure, Result, Success
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.types.common import HealthStatus
-from src.infrastructure.types.result import Err, Ok, Result
 
 from .vector_embedder import EmbeddingError, VectorEmbeddingEncoder
 
@@ -69,17 +69,17 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
         """
         texts_list = list(texts)
         if not texts_list:
-            return Ok([])
+            return Success([])
 
         embeddings: list[list[float]] = []
 
         for text in texts_list:
             result = self.encode_one(text)
-            if result.is_err():
-                return Err(result.err())
+            if isinstance(result, Failure):
+                return Failure(result.failure())
             embeddings.append(result.unwrap())
 
-        return Ok(embeddings)
+        return Success(embeddings)
 
     def encode_one(self, text: str) -> Result[list[float], EmbeddingError]:
         """
@@ -105,25 +105,31 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
             result = response.json()
             # Ollama 0.13+ returns embeddings as array of arrays
             embeddings_list = result.get("embeddings", result.get("embedding", []))
-            embedding: list[float] = embeddings_list[0] if embeddings_list and isinstance(embeddings_list[0], list) else embeddings_list
+            embedding: list[float] = (
+                embeddings_list[0]
+                if embeddings_list and isinstance(embeddings_list[0], list)
+                else embeddings_list
+            )
 
             if self._dimension is None and embedding:
                 self._dimension = len(embedding)
 
-            return Ok(embedding)
+            return Success(embedding)
 
         except requests.exceptions.ConnectionError as e:
             logger.error("Connection failed to Ollama", extra={"error": str(e)})
-            return Err(EmbeddingError(f"Connection failed to Ollama: {e}", code="CONNECTION_ERROR"))
+            return Failure(
+                EmbeddingError(f"Connection failed to Ollama: {e}", code="CONNECTION_ERROR")
+            )
         except requests.exceptions.Timeout as e:
             logger.error("Request timeout to Ollama", extra={"error": str(e)})
-            return Err(EmbeddingError(f"Request timeout: {e}", code="TIMEOUT_ERROR"))
+            return Failure(EmbeddingError(f"Request timeout: {e}", code="TIMEOUT_ERROR"))
         except requests.exceptions.HTTPError as e:
             logger.error("HTTP error from Ollama", extra={"error": str(e)})
-            return Err(EmbeddingError(f"HTTP error: {e}", code="HTTP_ERROR"))
+            return Failure(EmbeddingError(f"HTTP error: {e}", code="HTTP_ERROR"))
         except requests.exceptions.RequestException as e:
             logger.error("Failed to get embedding from Ollama", extra={"error": str(e)})
-            return Err(EmbeddingError(f"Ollama embedding failed: {e}", code="REQUEST_ERROR"))
+            return Failure(EmbeddingError(f"Ollama embedding failed: {e}", code="REQUEST_ERROR"))
 
     def get_dimension(self) -> int:
         """

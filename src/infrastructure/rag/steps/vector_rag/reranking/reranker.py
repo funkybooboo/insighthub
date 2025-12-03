@@ -3,7 +3,15 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
-from src.infrastructure.types.result import Err, Ok, Result
+from returns.result import Failure, Result, Success
+
+try:
+    from sentence_transformers import CrossEncoder
+
+    SENTENCE_TRANSFORMERS_AVAILABLE = True
+except ImportError:
+    CrossEncoder = None
+    SENTENCE_TRANSFORMERS_AVAILABLE = False
 
 
 class Reranker(ABC):
@@ -43,7 +51,7 @@ class NoReranker(Reranker):
         self, query: str, texts: List[str], scores: List[float]
     ) -> Result[List[Tuple[str, float]], str]:
         """Return texts and scores unchanged."""
-        return Ok(list(zip(texts, scores)))
+        return Success(list(zip(texts, scores)))
 
 
 class CrossEncoderReranker(Reranker):
@@ -61,22 +69,19 @@ class CrossEncoderReranker(Reranker):
         Args:
             model_name: HuggingFace model name for cross-encoder
         """
+        if not SENTENCE_TRANSFORMERS_AVAILABLE or CrossEncoder is None:
+            raise ImportError(
+                "sentence-transformers is required for CrossEncoderReranker. "
+                "Install with: pip install sentence-transformers"
+            )
+
         self.model_name = model_name
-        self._model = None
-        self._tokenizer = None
+        self._model: CrossEncoder | None = None
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         """Lazy load the cross-encoder model."""
-        if self._model is None:
-            try:
-                from sentence_transformers import CrossEncoder
-
-                self._model = CrossEncoder(self.model_name)
-            except ImportError:
-                raise ImportError(
-                    "sentence-transformers is required for CrossEncoderReranker. "
-                    "Install with: pip install sentence-transformers"
-                )
+        if self._model is None and CrossEncoder is not None:
+            self._model = CrossEncoder(self.model_name)
 
     def rerank(
         self, query: str, texts: List[str], scores: List[float]
@@ -95,6 +100,9 @@ class CrossEncoderReranker(Reranker):
         try:
             self._load_model()
 
+            if self._model is None:
+                return Failure("Cross-encoder model not loaded")
+
             # Create query-document pairs
             pairs = [[query, text] for text in texts]
 
@@ -112,10 +120,10 @@ class CrossEncoderReranker(Reranker):
             scored_items = list(zip(texts, combined_scores))
             scored_items.sort(key=lambda x: x[1], reverse=True)
 
-            return Ok(scored_items)
+            return Success(scored_items)
 
         except Exception as e:
-            return Err(f"Cross-encoder reranking failed: {str(e)}")
+            return Failure(f"Cross-encoder reranking failed: {str(e)}")
 
 
 class BM25Reranker(Reranker):
@@ -189,15 +197,15 @@ class BM25Reranker(Reranker):
             scored_items = list(zip(texts, combined_scores))
             scored_items.sort(key=lambda x: x[1], reverse=True)
 
-            return Ok(scored_items)
+            return Success(scored_items)
 
         except ImportError:
-            return Err(
+            return Failure(
                 "rank-bm25 and nltk are required for BM25Reranker. "
                 "Install with: pip install rank-bm25 nltk"
             )
         except Exception as e:
-            return Err(f"BM25 reranking failed: {str(e)}")
+            return Failure(f"BM25 reranking failed: {str(e)}")
 
 
 class ReciprocalRankFusionReranker(Reranker):
@@ -241,7 +249,7 @@ class ReciprocalRankFusionReranker(Reranker):
             scored_items = list(zip(texts, scores))
             scored_items.sort(key=lambda x: x[1], reverse=True)
 
-            return Ok(scored_items)
+            return Success(scored_items)
 
         except Exception as e:
-            return Err(f"RRF reranking failed: {str(e)}")
+            return Failure(f"RRF reranking failed: {str(e)}")

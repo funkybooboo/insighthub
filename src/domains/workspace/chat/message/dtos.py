@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Callable
 
 
 @dataclass
@@ -9,7 +10,16 @@ class CreateMessageRequest:
     """Request data for creating a chat message."""
 
     content: str
-    role: str = "users"  # 'users', 'assistant', 'system'
+    role: str = "user"  # 'user', 'assistant', 'system'
+
+
+@dataclass
+class SendMessageRequest:
+    """Request data for sending a message with RAG and streaming."""
+
+    session_id: int
+    content: str
+    stream_callback: Callable[[str], None] | None = None
 
 
 @dataclass

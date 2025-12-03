@@ -1,6 +1,6 @@
 """Storage infrastructure for file operations."""
 
-from .file_system_storage import FileSystemBlobStorage
+from .file_system_storage import FileSystemBlobStorage, StorageException
 from .storage import BlobStorage
 
 try:
@@ -8,12 +8,33 @@ try:
 
     S3_AVAILABLE = True
 except ImportError:
-    S3BlobStorage = None
+    # Create a placeholder class that raises an error if instantiated
+    class S3BlobStorage(BlobStorage):  # type: ignore[no-redef]
+        """Placeholder when boto3 is not installed."""
+
+        def __init__(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            raise ImportError("boto3 is required for S3BlobStorage")
+
+        def upload(
+            self, key: str, data: bytes, content_type: str = "application/octet-stream"
+        ) -> str:
+            raise NotImplementedError
+
+        def download(self, key: str) -> bytes:
+            raise NotImplementedError
+
+        def delete(self, key: str) -> bool:
+            raise NotImplementedError
+
+        def exists(self, key: str) -> bool:
+            raise NotImplementedError
+
     S3_AVAILABLE = False
 
 __all__ = [
     "BlobStorage",
     "FileSystemBlobStorage",
+    "StorageException",
     "S3_AVAILABLE",
 ]
 

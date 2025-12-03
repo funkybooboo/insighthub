@@ -1,21 +1,26 @@
 """Vector RAG implementation of remove RAG resources workflow."""
 
+from typing import TYPE_CHECKING
+
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.remove_resources.remove_rag_resources_workflow import (
     RemoveRagResourcesWorkflow,
     RemoveRagResourcesWorkflowError,
 )
-from src.infrastructure.types.result import Err, Ok, Result
+
+if TYPE_CHECKING:
+    from qdrant_client import QdrantClient
 
 logger = create_logger(__name__)
 
 try:
-    from qdrant_client import QdrantClient
+    import qdrant_client
 
     QDRANT_AVAILABLE = True
 except ImportError:
     QDRANT_AVAILABLE = False
-    QdrantClient = None
 
 
 class VectorRagRemoveRagResourcesWorkflow(RemoveRagResourcesWorkflow):
@@ -60,11 +65,11 @@ class VectorRagRemoveRagResourcesWorkflow(RemoveRagResourcesWorkflow):
 
             logger.info(f"Workspace {workspace_id} RAG resources removed successfully")
 
-            return Ok(True)
+            return Success(True)
 
         except Exception as e:
             logger.error(f"Workspace resource removal failed: {e}", exc_info=True)
-            return Err(
+            return Failure(
                 RemoveRagResourcesWorkflowError(
                     message=f"Failed to remove workspace resources: {str(e)}",
                     step="workspace_resource_removal",
@@ -82,7 +87,7 @@ class VectorRagRemoveRagResourcesWorkflow(RemoveRagResourcesWorkflow):
         """
         try:
             # Initialize Qdrant client
-            client = QdrantClient(url=self.qdrant_url)
+            client: QdrantClient = qdrant_client.QdrantClient(url=self.qdrant_url)
 
             # Check if collection exists before deleting
             collections = client.get_collections().collections

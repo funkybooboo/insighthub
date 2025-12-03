@@ -2,6 +2,8 @@
 
 from io import BytesIO
 
+from returns.result import Failure, Result, Success
+
 from src.config import config
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document, Workspace
@@ -13,6 +15,7 @@ from src.infrastructure.rag.workflows.add_document import AddDocumentWorkflowFac
 from src.infrastructure.rag.workflows.remove_document import RemoveDocumentWorkflowFactory
 from src.infrastructure.repositories import DocumentRepository, WorkspaceRepository
 from src.infrastructure.storage import BlobStorage
+from src.infrastructure.types import DatabaseError, NotFoundError, StorageError, WorkflowError
 
 logger = create_logger(__name__)
 
@@ -42,7 +45,7 @@ class DocumentService:
         workspace_id: int,
         filename: str,
         file_content: bytes,
-    ) -> Document:
+    ) -> Result[Document, NotFoundError | StorageError | WorkflowError | DatabaseError]:
         """Upload and process a document synchronously (CLI system).
 
         Args:
@@ -51,17 +54,14 @@ class DocumentService:
             file_content: File content as bytes
 
         Returns:
-            Document: Created document record with status 'ready' or 'failed'
-
-        Raises:
-            ValueError: If workspace not found or processing fails
+            Result containing Document with status 'ready' or 'failed', or error
         """
         logger.info(f"Uploading document: filename='{filename}', workspace_id={workspace_id}")
 
         # Get workspace
         workspace = self.workspace_repository.get_by_id(workspace_id)
         if not workspace:
-            raise ValueError(f"Workspace {workspace_id} not found")
+            return Failure(NotFoundError("workspace", workspace_id))
 
         # Calculate hash and determine MIME type
         file_obj = BytesIO(file_content)
@@ -75,10 +75,10 @@ class DocumentService:
             logger.info(f"Document uploaded to blob storage: blob_key='{blob_key}'")
         except Exception as e:
             logger.error(f"Blob storage upload failed: {e}")
-            raise ValueError(f"Failed to upload to blob storage: {e}")
+            return Failure(StorageError(str(e), operation="upload"))
 
         # Create database record
-        document = self.repository.create(
+        create_result = self.repository.create(
             workspace_id=workspace_id,
             filename=filename,
             file_path=blob_key,
@@ -89,41 +89,42 @@ class DocumentService:
             status="processing",
         )
 
-        if not document:
+        if isinstance(create_result, Failure):
             # Clean up blob storage
             try:
                 self.blob_storage.delete(blob_key)
             except Exception:
                 pass
-            raise ValueError("Failed to create database record")
+            return Failure(create_result.failure())
 
+        document = create_result.unwrap()
         logger.info(f"Document record created: document_id={document.id}")
 
         # Process document through RAG workflow
-        try:
-            self._process_document(workspace, document, file_content)
-            # Update status to ready
-            self.repository.update(document.id, status="ready")
-            logger.info(f"Document processed successfully: document_id={document.id}")
-        except Exception as e:
+        process_result = self._process_document(workspace, document, file_content)
+        if isinstance(process_result, Failure):
             # Update status to failed
             self.repository.update(document.id, status="failed")
-            logger.error(f"Document processing failed: {e}", exc_info=True)
-            raise ValueError(f"Failed to process document: {e}")
+            logger.error(f"Document processing failed: {process_result.failure().message}")
+            return Failure(process_result.failure())
+
+        # Update status to ready
+        self.repository.update(document.id, status="ready")
+        logger.info(f"Document processed successfully: document_id={document.id}")
 
         # Reload document with updated status
-        document = self.repository.get_by_id(document.id)
-        if not document:
-            raise ValueError("Failed to reload document after processing")
+        reloaded_document = self.repository.get_by_id(document.id)
+        if not reloaded_document:
+            return Failure(NotFoundError("document", document.id))
 
-        return document
+        return Success(reloaded_document)
 
     def _process_document(
         self,
         workspace: Workspace,
         document: Document,
         file_content: bytes,
-    ) -> None:
+    ) -> Result[int, WorkflowError]:
         """Process document through RAG workflow.
 
         Args:
@@ -131,8 +132,8 @@ class DocumentService:
             document: Document record
             file_content: File content as bytes
 
-        Raises:
-            Exception: If processing fails
+        Returns:
+            Result containing number of chunks indexed, or error
         """
         logger.info(f"Processing document {document.id} through RAG workflow")
 
@@ -152,15 +153,21 @@ class DocumentService:
             },
         )
 
-        if result.is_err():
-            error = result.err()
-            raise Exception(f"Workflow execution failed: {error.message}")
+        if isinstance(result, Failure):
+            error = result.failure()
+            return Failure(
+                WorkflowError(
+                    f"Workflow execution failed: {error.message}", workflow="process_document"
+                )
+            )
 
-        chunks_indexed = result.ok()
+        chunks_indexed = result.unwrap()
         logger.info(f"Document processed: {chunks_indexed} chunks indexed")
 
         # Update chunk count
         self.repository.update(document.id, chunk_count=chunks_indexed)
+
+        return Success(chunks_indexed)
 
     def _build_rag_config(self, workspace: Workspace) -> dict:
         """Build RAG configuration from workspace."""
@@ -228,15 +235,17 @@ class DocumentService:
 
         return deleted
 
-    def _remove_from_rag_index(self, workspace: Workspace, document: Document) -> None:
+    def _remove_from_rag_index(
+        self, workspace: Workspace, document: Document
+    ) -> Result[None, WorkflowError]:
         """Remove document from RAG index.
 
         Args:
             workspace: Workspace the document belongs to
             document: Document to remove
 
-        Raises:
-            Exception: If removal fails
+        Returns:
+            Result containing None on success, or error
         """
         logger.info(f"Removing document {document.id} from RAG index")
 
@@ -250,11 +259,16 @@ class DocumentService:
             workspace_id=str(workspace.id),
         )
 
-        if result.is_err():
-            error = result.err()
-            raise Exception(f"Removal workflow failed: {error.message}")
+        if isinstance(result, Failure):
+            error = result.failure()
+            return Failure(
+                WorkflowError(
+                    f"Removal workflow failed: {error.message}", workflow="remove_document_from_rag"
+                )
+            )
 
         logger.info(f"Document removed from RAG index: document_id={document.id}")
+        return Success(None)
 
     def list_documents_by_workspace(self, workspace_id: int) -> list[Document]:
         """List all documents for a workspace.
