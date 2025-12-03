@@ -5,13 +5,11 @@ from typing import TYPE_CHECKING
 from returns.result import Failure, Result, Success
 
 from src.infrastructure.logger import create_logger
-from infrastructure.vector_stores import (
-    QdrantVectorDatabase,
-)
 from src.infrastructure.rag.workflows.remove_document.remove_document_workflow import (
     RemoveDocumentWorkflow,
     RemoveDocumentWorkflowError,
 )
+from src.infrastructure.vector_stores import QdrantVectorDatabase
 
 if TYPE_CHECKING:
     from qdrant_client.http.models import Filter

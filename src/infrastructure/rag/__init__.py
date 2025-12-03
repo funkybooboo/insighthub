@@ -2,6 +2,7 @@
 
 # Parsing
 # Chunking
+# Vector RAG - Vector Stores
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker, MetadataEnricher
 from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
 from src.infrastructure.rag.steps.general.parsing.document_parser import (
@@ -17,11 +18,6 @@ from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFa
 
 # Vector RAG - Reranking
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
-from infrastructure.vector_stores import VectorStoreFactory
-from infrastructure.vector_stores import VectorDatabase
-
-# Vector RAG - Vector Stores
-from infrastructure.vector_stores import VectorStore
 
 # Workflows
 from src.infrastructure.rag.workflows.add_document import (
@@ -29,6 +25,7 @@ from src.infrastructure.rag.workflows.add_document import (
     AddDocumentWorkflowError,
 )
 from src.infrastructure.rag.workflows.query import QueryWorkflow, QueryWorkflowError
+from src.infrastructure.vector_stores import VectorDatabase, VectorStore, VectorStoreFactory
 
 __all__ = [
     # Parsing

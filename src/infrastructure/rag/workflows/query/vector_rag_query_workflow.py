@@ -12,10 +12,10 @@ from returns.result import Failure, Success
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
-from infrastructure.vector_stores import VectorStore
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow, QueryWorkflowError
 from src.infrastructure.types.common import FilterDict
 from src.infrastructure.types.rag import ChunkData
+from src.infrastructure.vector_stores import VectorStore
 
 logger = create_logger(__name__)
 

@@ -60,7 +60,10 @@ class TestWorkspaceCLI:
         assert "Show Test Workspace" in result.stdout
         assert "vector" in result.stdout.lower()
         # Should display RAG configuration
-        assert "rag configuration" in result.stdout.lower() or "chunking algorithm" in result.stdout.lower()
+        assert (
+            "rag configuration" in result.stdout.lower()
+            or "chunking algorithm" in result.stdout.lower()
+        )
 
     def test_workspace_update_interactive(self):
         """Test workspace update command."""

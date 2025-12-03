@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime
-from typing import Any, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from src.infrastructure.cache.cache import Cache
 

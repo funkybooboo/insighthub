@@ -3,9 +3,9 @@
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
-from infrastructure.vector_stores import VectorStoreFactory
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
+from src.infrastructure.vector_stores import VectorStoreFactory
 
 logger = create_logger(__name__)
 

@@ -15,12 +15,12 @@ from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
 from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
-from infrastructure.vector_stores import VectorStore
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import (
     AddDocumentWorkflow,
     AddDocumentWorkflowError,
 )
 from src.infrastructure.types.common import MetadataDict
+from src.infrastructure.vector_stores import VectorStore
 
 logger = create_logger(__name__)
 

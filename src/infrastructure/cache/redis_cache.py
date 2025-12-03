@@ -1,6 +1,17 @@
-from typing import Any, Optional
+from typing import Any, Optional, Protocol, cast
 
 from src.infrastructure.cache.cache import Cache
+
+
+class RedisClient(Protocol):
+    """Protocol for Redis client interface."""
+
+    def ping(self) -> object: ...
+    def get(self, key: str) -> Optional[str]: ...
+    def setex(self, key: str, time: int, value: str) -> object: ...
+    def delete(self, key: str) -> int: ...
+    def exists(self, key: str) -> int: ...
+    def flushdb(self) -> object: ...
 
 
 class RedisCache(Cache):
@@ -14,13 +25,15 @@ class RedisCache(Cache):
         password: Optional[str] = None,
         default_ttl: int = 3600,
     ):
+        self._client: Optional[RedisClient] = None
         try:
             import redis
 
-            self._client = redis.Redis(
+            client = redis.Redis(
                 host=host, port=port, db=db, password=password, decode_responses=True
             )
-            self._client.ping()  # Test connection
+            client.ping()  # Test connection
+            self._client = cast(RedisClient, client)
             self._available = True
         except (ImportError, Exception):
             self._client = None

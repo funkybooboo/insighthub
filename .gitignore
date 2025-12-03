@@ -59,6 +59,7 @@ Thumbs.db
 coverage/
 htmlcov/
 .coverage
+.coverage.*
 *.lcov
 lcov.info
 .pytest_cache/
@@ -81,3 +82,5 @@ GEMINI.md
 *~
 .DS_Store
 logs/
+
+

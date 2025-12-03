@@ -29,7 +29,9 @@ class CacheConfig(BaseModel):
     redis_port: int = Field(default=6379, description="Redis port")
     redis_db: int = Field(default=0, description="Redis database number")
     redis_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
-    redis_url: Optional[str] = Field(default=None, description="Redis connection URL (optional override)")
+    redis_url: Optional[str] = Field(
+        default=None, description="Redis connection URL (optional override)"
+    )
 
 
 class LLMConfig(BaseModel):
@@ -131,7 +133,9 @@ class AppConfig(BaseSettings):
     redis_port: int = Field(default=6379, description="Redis port")
     redis_db: int = Field(default=0, description="Redis database number")
     redis_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
-    redis_url: Optional[str] = Field(default=None, description="Redis connection URL (optional override)")
+    redis_url: Optional[str] = Field(
+        default=None, description="Redis connection URL (optional override)"
+    )
 
     # LLM
     llm_provider: str = Field(default="ollama", description="LLM provider to use")

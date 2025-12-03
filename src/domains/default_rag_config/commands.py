@@ -168,7 +168,8 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
             default_clustering = get_default_clustering_algorithm()
             clustering = (
-                input(f"Clustering algorithm [{default_clustering}]: ").strip() or default_clustering
+                input(f"Clustering algorithm [{default_clustering}]: ").strip()
+                or default_clustering
             )
 
             graph_config = {

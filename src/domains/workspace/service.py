@@ -268,15 +268,17 @@ class WorkspaceService:
         if not self.cache:
             return
         key = f"workspace:{workspace.id}"
-        value = json.dumps({
-            "id": workspace.id,
-            "name": workspace.name,
-            "description": workspace.description,
-            "rag_type": workspace.rag_type,
-            "status": workspace.status,
-            "created_at": workspace.created_at.isoformat(),
-            "updated_at": workspace.updated_at.isoformat(),
-        })
+        value = json.dumps(
+            {
+                "id": workspace.id,
+                "name": workspace.name,
+                "description": workspace.description,
+                "rag_type": workspace.rag_type,
+                "status": workspace.status,
+                "created_at": workspace.created_at.isoformat(),
+                "updated_at": workspace.updated_at.isoformat(),
+            }
+        )
         self.cache.set(key, value, ttl=300)  # Cache for 5 minutes
 
     def _get_cached_workspace(self, workspace_id: int) -> Workspace | None:
@@ -289,6 +291,7 @@ class WorkspaceService:
             return None
         try:
             from datetime import datetime
+
             data = json.loads(cached)
             return Workspace(
                 id=data["id"],

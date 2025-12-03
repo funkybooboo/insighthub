@@ -2,7 +2,7 @@
 
 import json
 from io import BytesIO
-from typing import Optional
+from typing import Any, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -185,9 +185,9 @@ class DocumentService:
 
         return Success(chunks_indexed)
 
-    def _build_rag_config(self, workspace: Workspace) -> dict:
+    def _build_rag_config(self, workspace: Workspace) -> dict[str, Any]:
         """Build RAG configuration from workspace's stored configuration."""
-        base_config = {
+        base_config: dict[str, Any] = {
             "rag_type": workspace.rag_type,
             "parser_type": "text",  # Auto-detect based on file type
         }
@@ -197,55 +197,61 @@ class DocumentService:
             vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
 
             if vector_config:
-                base_config.update({
-                    "chunker_type": vector_config.chunking_algorithm,
-                    "chunker_config": {
-                        "chunk_size": vector_config.chunk_size,
-                        "overlap": vector_config.chunk_overlap,
-                    },
-                    "embedder_type": vector_config.embedding_algorithm,
-                    "embedder_config": {
-                        "base_url": config.llm.ollama_base_url,
-                    },
-                    "vector_store_type": "qdrant",
-                    "vector_store_config": {
-                        "host": config.vector_store.qdrant_host,
-                        "port": config.vector_store.qdrant_port,
-                        "collection_name": f"workspace_{workspace.id}",
-                    },
-                    "enable_reranking": vector_config.rerank_algorithm != "none",
-                    "reranker_type": vector_config.rerank_algorithm,
-                })
+                base_config.update(
+                    {
+                        "chunker_type": vector_config.chunking_algorithm,
+                        "chunker_config": {
+                            "chunk_size": vector_config.chunk_size,
+                            "overlap": vector_config.chunk_overlap,
+                        },
+                        "embedder_type": vector_config.embedding_algorithm,
+                        "embedder_config": {
+                            "base_url": config.llm.ollama_base_url,
+                        },
+                        "vector_store_type": "qdrant",
+                        "vector_store_config": {
+                            "host": config.vector_store.qdrant_host,
+                            "port": config.vector_store.qdrant_port,
+                            "collection_name": f"workspace_{workspace.id}",
+                        },
+                        "enable_reranking": vector_config.rerank_algorithm != "none",
+                        "reranker_type": vector_config.rerank_algorithm,
+                    }
+                )
             else:
                 # Fallback to defaults if no config found
-                base_config.update({
-                    "chunker_type": get_default_chunking_algorithm(),
-                    "chunker_config": {
-                        "chunk_size": 500,
-                        "overlap": 50,
-                    },
-                    "embedder_type": get_default_embedding_algorithm(),
-                    "embedder_config": {
-                        "base_url": config.llm.ollama_base_url,
-                    },
-                    "vector_store_type": "qdrant",
-                    "vector_store_config": {
-                        "host": config.vector_store.qdrant_host,
-                        "port": config.vector_store.qdrant_port,
-                        "collection_name": f"workspace_{workspace.id}",
-                    },
-                    "enable_reranking": False,
-                })
+                base_config.update(
+                    {
+                        "chunker_type": get_default_chunking_algorithm(),
+                        "chunker_config": {
+                            "chunk_size": 500,
+                            "overlap": 50,
+                        },
+                        "embedder_type": get_default_embedding_algorithm(),
+                        "embedder_config": {
+                            "base_url": config.llm.ollama_base_url,
+                        },
+                        "vector_store_type": "qdrant",
+                        "vector_store_config": {
+                            "host": config.vector_store.qdrant_host,
+                            "port": config.vector_store.qdrant_port,
+                            "collection_name": f"workspace_{workspace.id}",
+                        },
+                        "enable_reranking": False,
+                    }
+                )
         elif workspace.rag_type == "graph":
             # Get workspace-specific graph RAG config
             graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
 
             if graph_config:
-                base_config.update({
-                    "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
-                    "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
-                    "clustering_algorithm": graph_config.clustering_algorithm,
-                })
+                base_config.update(
+                    {
+                        "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
+                        "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
+                        "clustering_algorithm": graph_config.clustering_algorithm,
+                    }
+                )
             # Note: Graph RAG workflow not fully implemented yet
 
         return base_config
@@ -388,19 +394,21 @@ class DocumentService:
         if not self.cache:
             return
         key = f"document:{document.id}"
-        value = json.dumps({
-            "id": document.id,
-            "workspace_id": document.workspace_id,
-            "filename": document.filename,
-            "file_path": document.file_path,
-            "file_size": document.file_size,
-            "mime_type": document.mime_type,
-            "content_hash": document.content_hash,
-            "chunk_count": document.chunk_count,
-            "status": document.status,
-            "created_at": document.created_at.isoformat(),
-            "updated_at": document.updated_at.isoformat(),
-        })
+        value = json.dumps(
+            {
+                "id": document.id,
+                "workspace_id": document.workspace_id,
+                "filename": document.filename,
+                "file_path": document.file_path,
+                "file_size": document.file_size,
+                "mime_type": document.mime_type,
+                "content_hash": document.content_hash,
+                "chunk_count": document.chunk_count,
+                "status": document.status,
+                "created_at": document.created_at.isoformat(),
+                "updated_at": document.updated_at.isoformat(),
+            }
+        )
         self.cache.set(key, value, ttl=300)  # Cache for 5 minutes
 
     def _get_cached_document(self, document_id: int) -> Document | None:
@@ -413,6 +421,7 @@ class DocumentService:
             return None
         try:
             from datetime import datetime
+
             data = json.loads(cached)
             return Document(
                 id=data["id"],

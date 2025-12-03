@@ -7,11 +7,7 @@ from returns.result import Failure
 
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.options import (
-    get_default_rag_type,
-    get_rag_type_options,
-    get_valid_rag_types,
-)
+from src.infrastructure.rag.options import get_rag_type_options, get_valid_rag_types
 
 logger = create_logger(__name__)
 
@@ -66,9 +62,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
             print(f"  - {opt['value']}: {opt['description']}")
         print()
 
-        rag_type = (
-            input(f"RAG type [{default_rag_type}]: ").strip() or default_rag_type
-        )
+        rag_type = input(f"RAG type [{default_rag_type}]: ").strip() or default_rag_type
         valid_types = get_valid_rag_types()
         if rag_type not in valid_types:
             print(f"Error: RAG type must be one of: {', '.join(valid_types)}", file=sys.stderr)
@@ -134,7 +128,9 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
             if graph_config:
                 print("Graph RAG Configuration:")
                 print(f"  Entity Extraction: {graph_config.entity_extraction_algorithm}")
-                print(f"  Relationship Extraction: {graph_config.relationship_extraction_algorithm}")
+                print(
+                    f"  Relationship Extraction: {graph_config.relationship_extraction_algorithm}"
+                )
                 print(f"  Clustering Algorithm: {graph_config.clustering_algorithm}")
             else:
                 print("Graph RAG Configuration: Not configured")
