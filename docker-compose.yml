@@ -96,6 +96,20 @@ services:
       timeout: 5s
       retries: 5
 
+  # Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
     name: insighthub_postgres_data
@@ -107,6 +121,8 @@ volumes:
     name: insighthub_neo4j_data
   minio_data:
     name: insighthub_minio_data
+  redis_data:
+    name: insighthub_redis_data
 
 networks:
   default:

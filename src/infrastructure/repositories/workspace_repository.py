@@ -151,14 +151,60 @@ class WorkspaceRepository:
 
     def get_vector_rag_config(self, workspace_id: int) -> Optional[VectorRagConfig]:
         """Get vector RAG config for workspace."""
-        # For now, return None as the table might not exist yet
-        # TODO: Implement when vector_rag_configs table is created
+        query = """
+            SELECT workspace_id, chunk_size, chunk_overlap, chunker_type as chunking_algorithm,
+                   embedding_model as embedding_algorithm, top_k,
+                   COALESCE(score_threshold, 0) as score_threshold,
+                   created_at, updated_at
+            FROM vector_rag_configs
+            WHERE workspace_id = %s
+        """
+        try:
+            result = self.db.fetch_one(query, (workspace_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error getting vector RAG config: {e}")
+            return None
+
+        if result:
+            return VectorRagConfig(
+                workspace_id=result["workspace_id"],
+                chunking_algorithm=result["chunking_algorithm"],
+                chunk_size=result["chunk_size"],
+                chunk_overlap=result["chunk_overlap"],
+                embedding_algorithm=result["embedding_algorithm"],
+                top_k=result["top_k"],
+                rerank_algorithm="none",  # Not stored in DB yet
+                created_at=result["created_at"],
+                updated_at=result["updated_at"],
+            )
         return None
 
     def get_graph_rag_config(self, workspace_id: int) -> Optional[GraphRagConfig]:
         """Get graph RAG config for workspace."""
-        # For now, return None as the table might not exist yet
-        # TODO: Implement when graph_rag_configs table is created
+        query = """
+            SELECT workspace_id,
+                   entity_extraction_model as entity_extraction_algorithm,
+                   relationship_extraction_model as relationship_extraction_algorithm,
+                   clustering_algorithm,
+                   created_at, updated_at
+            FROM graph_rag_configs
+            WHERE workspace_id = %s
+        """
+        try:
+            result = self.db.fetch_one(query, (workspace_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error getting graph RAG config: {e}")
+            return None
+
+        if result:
+            return GraphRagConfig(
+                workspace_id=result["workspace_id"],
+                entity_extraction_algorithm=result["entity_extraction_algorithm"],
+                relationship_extraction_algorithm=result["relationship_extraction_algorithm"],
+                clustering_algorithm=result["clustering_algorithm"],
+                created_at=result["created_at"],
+                updated_at=result["updated_at"],
+            )
         return None
 
     def get_rag_config(self, workspace_id: int) -> Optional[RagConfig]:

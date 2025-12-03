@@ -9,8 +9,8 @@ from src.infrastructure.logger import create_logger
 logger = create_logger(__name__)
 
 
-def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
-    """List default RAG configuration (single-user system)."""
+def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
+    """Show default RAG configuration (single-user system)."""
     try:
         config_obj = ctx.default_rag_config_service.get_config()
 

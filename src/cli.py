@@ -60,7 +60,7 @@ Examples:
   python -m src.cli chat delete 1               Delete a chat session in current workspace
 
   # Configuration
-  python -m src.cli default-rag-config list     Show default RAG configuration
+  python -m src.cli default-rag-config show     Show default RAG configuration
   python -m src.cli default-rag-config new      Create/update default RAG config
 
 For help on a specific resource, use:
@@ -141,7 +141,7 @@ For help on a specific resource, use:
         dest="action", help="RAG config action"
     )
 
-    rag_config_subparsers.add_parser("list", help="Show default RAG config")
+    rag_config_subparsers.add_parser("show", help="Show default RAG config")
     rag_config_subparsers.add_parser("new", help="Create/update default RAG config (interactive)")
 
     # Parse arguments, but handle help specially
@@ -261,8 +261,8 @@ def route_command(
         if not args.action:
             rag_config_parser.print_help()
             sys.exit(0)
-        elif args.action == "list":
-            default_rag_config_commands.cmd_list(ctx, args)
+        elif args.action == "show":
+            default_rag_config_commands.cmd_show(ctx, args)
         elif args.action == "new":
             default_rag_config_commands.cmd_new(ctx, args)
         else:

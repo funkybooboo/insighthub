@@ -102,6 +102,30 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
         print(f"Created: {workspace.created_at}")
         print(f"Updated: {workspace.updated_at}")
 
+        # Display RAG configuration
+        print()
+        if workspace.rag_type == "vector":
+            vector_config = ctx.workspace_repo.get_vector_rag_config(workspace.id)
+            if vector_config:
+                print("Vector RAG Configuration:")
+                print(f"  Chunking Algorithm: {vector_config.chunking_algorithm}")
+                print(f"  Chunk Size: {vector_config.chunk_size}")
+                print(f"  Chunk Overlap: {vector_config.chunk_overlap}")
+                print(f"  Embedding Algorithm: {vector_config.embedding_algorithm}")
+                print(f"  Top K: {vector_config.top_k}")
+                print(f"  Rerank Algorithm: {vector_config.rerank_algorithm}")
+            else:
+                print("Vector RAG Configuration: Not configured")
+        elif workspace.rag_type == "graph":
+            graph_config = ctx.workspace_repo.get_graph_rag_config(workspace.id)
+            if graph_config:
+                print("Graph RAG Configuration:")
+                print(f"  Entity Extraction: {graph_config.entity_extraction_algorithm}")
+                print(f"  Relationship Extraction: {graph_config.relationship_extraction_algorithm}")
+                print(f"  Clustering Algorithm: {graph_config.clustering_algorithm}")
+            else:
+                print("Graph RAG Configuration: Not configured")
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         logger.error(f"Failed to show workspace: {e}")
