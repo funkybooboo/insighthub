@@ -49,12 +49,12 @@ Options:
   --help             Show this help message
 
 Examples:
-  ./migrate.sh up                    # Apply all migrations locally
-  ./migrate.sh up 001                # Apply specific migration locally
-  ./migrate.sh down                  # Rollback latest migration locally
-  ./migrate.sh down 001              # Rollback specific migration locally
-  ./migrate.sh up --docker           # Apply migrations in Docker
-  ./migrate.sh down --docker         # Rollback migrations in Docker
+  ./migrate.sh up                              # Apply all migrations locally
+  ./migrate.sh up 001_initial_schema.sql       # Apply specific migration locally
+  ./migrate.sh down                            # Rollback all migrations locally
+  ./migrate.sh down 006_add_cli_state_table.sql  # Rollback specific migration locally
+  ./migrate.sh up --docker                     # Apply migrations in Docker
+  ./migrate.sh down --docker                   # Rollback migrations in Docker
 
 Environment Variables:
   POSTGRES_USER      PostgreSQL user (default: insighthub)
@@ -135,34 +135,82 @@ execute_sql() {
 
 # Apply migrations
 migrate_up() {
-    local migration_file
-
     if [ -n "$MIGRATION" ]; then
         # Apply specific migration
-        migration_file="${MIGRATION_DIR}/${MIGRATION}_initial_schema.sql"
-    else
-        # Apply all migrations (for now just 001)
-        migration_file="${MIGRATION_DIR}/001_initial_schema.sql"
-    fi
+        local migration_file="${MIGRATION_DIR}/up/${MIGRATION}"
+        if [ ! -f "$migration_file" ]; then
+            migration_file="${MIGRATION_DIR}/up/${MIGRATION}.sql"
+        fi
 
-    print_info "Applying migrations..."
-    execute_sql "$migration_file"
+        if [ ! -f "$migration_file" ]; then
+            print_error "Migration file not found: $MIGRATION"
+            exit 1
+        fi
+
+        print_info "Applying migration: $MIGRATION"
+        execute_sql "$migration_file"
+    else
+        # Apply all migrations in order
+        print_info "Applying all migrations..."
+
+        local migration_files=(
+            "${MIGRATION_DIR}/up/001_initial_schema.sql"
+            "${MIGRATION_DIR}/up/002_add_rag_type_to_default_config.sql"
+            "${MIGRATION_DIR}/up/003_remove_user_id_from_workspaces.sql"
+            "${MIGRATION_DIR}/up/004_add_chunk_count_to_documents.sql"
+            "${MIGRATION_DIR}/up/005_fix_chat_sessions_schema.sql"
+            "${MIGRATION_DIR}/up/006_add_cli_state_table.sql"
+        )
+
+        for migration_file in "${migration_files[@]}"; do
+            if [ -f "$migration_file" ]; then
+                execute_sql "$migration_file"
+            else
+                print_error "Migration file not found: $migration_file"
+                exit 1
+            fi
+        done
+    fi
 }
 
 # Rollback migrations
 migrate_down() {
-    local migration_file
-
     if [ -n "$MIGRATION" ]; then
         # Rollback specific migration
-        migration_file="${MIGRATION_DIR}/down/${MIGRATION}_initial_schema.sql"
-    else
-        # Rollback latest migration (for now just 001)
-        migration_file="${MIGRATION_DIR}/down/001_initial_schema.sql"
-    fi
+        local migration_file="${MIGRATION_DIR}/down/${MIGRATION}"
+        if [ ! -f "$migration_file" ]; then
+            migration_file="${MIGRATION_DIR}/down/${MIGRATION}.sql"
+        fi
 
-    print_info "Rolling back migrations..."
-    execute_sql "$migration_file"
+        if [ ! -f "$migration_file" ]; then
+            print_error "Migration file not found: $MIGRATION"
+            exit 1
+        fi
+
+        print_info "Rolling back migration: $MIGRATION"
+        execute_sql "$migration_file"
+    else
+        # Rollback all migrations in reverse order
+        print_info "Rolling back all migrations..."
+
+        local migration_files=(
+            "${MIGRATION_DIR}/down/006_add_cli_state_table.sql"
+            "${MIGRATION_DIR}/down/005_fix_chat_sessions_schema.sql"
+            "${MIGRATION_DIR}/down/004_add_chunk_count_to_documents.sql"
+            "${MIGRATION_DIR}/down/003_remove_user_id_from_workspaces.sql"
+            "${MIGRATION_DIR}/down/002_add_rag_type_to_default_config.sql"
+            "${MIGRATION_DIR}/down/001_initial_schema.sql"
+        )
+
+        for migration_file in "${migration_files[@]}"; do
+            if [ -f "$migration_file" ]; then
+                execute_sql "$migration_file"
+            else
+                print_error "Migration file not found: $migration_file"
+                exit 1
+            fi
+        done
+    fi
 }
 
 # Show migration status
