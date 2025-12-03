@@ -71,7 +71,7 @@ jobs:
               run: task type-check
 
             - name: Run tests with coverage
-              run: task test
+              run: task unit-test && task integraion-test
 
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v4
