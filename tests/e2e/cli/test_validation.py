@@ -372,7 +372,7 @@ class TestCLIValidation:
 
     def test_rag_config_invalid_chunk_size(self):
         """Test RAG config with invalid chunk sizes."""
-        invalid_sizes = ["abc", "-100", "0", "1.5", ""]
+        invalid_sizes = ["abc", "-100", "0", "1.5"]
 
         for size in invalid_sizes:
             result = subprocess.run(
@@ -384,9 +384,18 @@ class TestCLIValidation:
             # Should validate and reject
             assert result.returncode != 0
 
+        # Empty string should use default value and succeed
+        result = subprocess.run(
+            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            input="vector\nsentence\n\n\nnomic-embed-text\n\nnone\n",
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+
     def test_rag_config_invalid_overlap(self):
         """Test RAG config with invalid overlap values."""
-        invalid_overlaps = ["abc", "-50", "1.5", ""]
+        invalid_overlaps = ["abc", "-50", "1.5"]
 
         for overlap in invalid_overlaps:
             result = subprocess.run(
@@ -397,6 +406,15 @@ class TestCLIValidation:
             )
             # Should validate and reject
             assert result.returncode != 0
+
+        # Empty string should use default value and succeed
+        result = subprocess.run(
+            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            input="vector\nsentence\n512\n\nnomic-embed-text\n\nnone\n",
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
 
     def test_rag_config_overlap_greater_than_chunk_size(self):
         """Test RAG config where overlap is greater than chunk size."""
@@ -412,7 +430,7 @@ class TestCLIValidation:
 
     def test_rag_config_invalid_top_k(self):
         """Test RAG config with invalid top_k values."""
-        invalid_top_k = ["abc", "-1", "0", "1.5", ""]
+        invalid_top_k = ["abc", "-1", "0", "1.5"]
 
         for top_k in invalid_top_k:
             result = subprocess.run(
@@ -423,6 +441,15 @@ class TestCLIValidation:
             )
             # Should validate and reject
             assert result.returncode != 0
+
+        # Empty string should use default value and succeed
+        result = subprocess.run(
+            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            input="vector\nsentence\n\n\nnomic-embed-text\n\nnone\n",
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
 
     def test_rag_config_invalid_entity_extraction(self):
         """Test graph RAG config with invalid entity extraction."""

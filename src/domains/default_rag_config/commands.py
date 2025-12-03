@@ -120,7 +120,9 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
                 print(f"Error: Invalid chunking algorithm '{chunking_algorithm}'", file=sys.stderr)
                 sys.exit(1)
 
-            chunk_size_str = input("Chunk size [1000]: ").strip() or "1000"
+            chunk_size_str = input("Chunk size [1000]: ").strip()
+            if not chunk_size_str:
+                chunk_size_str = "1000"
             try:
                 chunk_size = int(chunk_size_str)
                 if chunk_size <= 0:
@@ -132,7 +134,9 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
                 )
                 sys.exit(1)
 
-            chunk_overlap_str = input("Chunk overlap [200]: ").strip() or "200"
+            chunk_overlap_str = input("Chunk overlap [200]: ").strip()
+            if not chunk_overlap_str:
+                chunk_overlap_str = "200"
             try:
                 chunk_overlap = int(chunk_overlap_str)
                 if chunk_overlap < 0:
@@ -155,7 +159,9 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
                 )
                 sys.exit(1)
 
-            top_k_str = input("Top K [5]: ").strip() or "5"
+            top_k_str = input("Top K [5]: ").strip()
+            if not top_k_str:
+                top_k_str = "5"
             try:
                 top_k = int(top_k_str)
                 if top_k <= 0:
