@@ -6,6 +6,7 @@ from src.domains.workspace.chat.message.service import ChatMessageService
 from src.domains.workspace.chat.session.service import ChatSessionService
 from src.domains.workspace.document.service import DocumentService
 from src.domains.workspace.service import WorkspaceService
+from src.infrastructure.cache.factory import create_cache
 from src.infrastructure.llm.factory import create_llm_provider
 from src.infrastructure.repositories import (
     ChatMessageRepository,
@@ -27,6 +28,22 @@ class AppContext:
         # Database
         db = get_sql_database()
 
+        # Cache
+        cache_config = config.cache
+        if cache_config.cache_type == "redis":
+            self.cache = create_cache(
+                cache_type="redis",
+                host=cache_config.redis_host,
+                port=cache_config.redis_port,
+                db=cache_config.redis_db,
+                default_ttl=cache_config.redis_ttl,
+            )
+        else:
+            self.cache = create_cache(
+                cache_type="memory",
+                default_ttl=cache_config.redis_ttl,
+            )
+
         # Storage
         self.blob_storage = create_blob_storage(
             storage_type=config.blob_storage_type,
@@ -46,16 +63,24 @@ class AppContext:
         self.state_repo = StateRepository(db)
 
         # Services
-        self.workspace_service = WorkspaceService(repository=self.workspace_repo)
+        self.workspace_service = WorkspaceService(
+            repository=self.workspace_repo,
+            cache=self.cache,
+        )
         self.document_service = DocumentService(
             repository=self.document_repo,
             workspace_repository=self.workspace_repo,
             blob_storage=self.blob_storage,
+            cache=self.cache,
         )
         self.default_rag_config_service = DefaultRagConfigService(
-            repository=self.default_rag_config_repo
+            repository=self.default_rag_config_repo,
+            cache=self.cache,
         )
-        self.chat_session_service = ChatSessionService(repository=self.chat_session_repo)
+        self.chat_session_service = ChatSessionService(
+            repository=self.chat_session_repo,
+            cache=self.cache,
+        )
 
         # LLM Provider
         api_key = None
@@ -77,6 +102,7 @@ class AppContext:
             session_repository=self.chat_session_repo,
             workspace_repository=self.workspace_repo,
             llm_provider=self.llm_provider,
+            cache=self.cache,
         )
 
         # Load current state from database

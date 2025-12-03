@@ -1,14 +1,12 @@
 """Reranking algorithms for Vector RAG."""
 
+from .bm25_reranker import BM25Reranker
+from .cross_encoder_reranker import CrossEncoderReranker
 from .dummy_reranker import DummyReranker
 from .factory import create_reranker, get_available_rerankers
-from .reranker import (
-    BM25Reranker,
-    CrossEncoderReranker,
-    NoReranker,
-    ReciprocalRankFusionReranker,
-    Reranker,
-)
+from .no_reranker import NoReranker
+from .reranker import Reranker
+from .rrf_reranker import ReciprocalRankFusionReranker
 
 __all__ = [
     "Reranker",

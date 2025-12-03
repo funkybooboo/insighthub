@@ -1,9 +1,13 @@
 """Chat session service."""
 
+from typing import Optional
+
 from returns.result import Failure, Result, Success
 
+from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatSession
+from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
 from src.infrastructure.repositories import ChatSessionRepository
 from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
 
@@ -13,9 +17,10 @@ logger = create_logger(__name__)
 class ChatSessionService:
     """Service for managing chat session."""
 
-    def __init__(self, repository: ChatSessionRepository):
-        """Initialize service with repository."""
+    def __init__(self, repository: ChatSessionRepository, cache: Optional[Cache] = None):
+        """Initialize service with repository and cache."""
         self.repository = repository
+        self.cache = cache
 
     def create_session(
         self,
@@ -33,10 +38,13 @@ class ChatSessionService:
                 ValidationError("Session title too long (max 255 characters)", field="title")
             )
 
-        if rag_type not in ["vector", "graph"]:
+        if not is_valid_rag_type(rag_type):
+            valid_types = get_valid_rag_types()
             logger.error(f"Session creation failed: invalid rag_type '{rag_type}'")
             return Failure(
-                ValidationError("Invalid rag_type. Must be 'vector' or 'graph'", field="rag_type")
+                ValidationError(
+                    f"Invalid rag_type. Must be one of: {', '.join(valid_types)}", field="rag_type"
+                )
             )
 
         create_result = self.repository.create(

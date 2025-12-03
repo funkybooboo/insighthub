@@ -17,11 +17,11 @@ from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFa
 
 # Vector RAG - Reranking
 from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
-from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
-from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_database import VectorDatabase
+from infrastructure.vector_stores import VectorStoreFactory
+from infrastructure.vector_stores import VectorDatabase
 
 # Vector RAG - Vector Stores
-from src.infrastructure.rag.steps.vector_rag.vector_stores.vector_store import VectorStore
+from infrastructure.vector_stores import VectorStore
 
 # Workflows
 from src.infrastructure.rag.workflows.add_document import (

@@ -7,6 +7,11 @@ from returns.result import Failure
 
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
+from src.infrastructure.rag.options import (
+    get_default_rag_type,
+    get_rag_type_options,
+    get_valid_rag_types,
+)
 
 logger = create_logger(__name__)
 
@@ -54,11 +59,19 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         description = input("Description (optional): ").strip() or None
 
+        # Show available RAG types
+        rag_type_opts = get_rag_type_options()
+        print("\nAvailable RAG types:")
+        for opt in rag_type_opts:
+            print(f"  - {opt['value']}: {opt['description']}")
+        print()
+
         rag_type = (
-            input(f"RAG type (vector/graph) [{default_rag_type}]: ").strip() or default_rag_type
+            input(f"RAG type [{default_rag_type}]: ").strip() or default_rag_type
         )
-        if rag_type not in ["vector", "graph"]:
-            print("Error: RAG type must be 'vector' or 'graph'", file=sys.stderr)
+        valid_types = get_valid_rag_types()
+        if rag_type not in valid_types:
+            print(f"Error: RAG type must be one of: {', '.join(valid_types)}", file=sys.stderr)
             sys.exit(1)
 
         # Create workspace using service

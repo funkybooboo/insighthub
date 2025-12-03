@@ -1,8 +1,8 @@
 """Factory for creating remove document workflows."""
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import create_vector_database
-from src.infrastructure.rag.steps.vector_rag.vector_stores.qdrant_vector_database import (
+from infrastructure.vector_stores import create_vector_database
+from infrastructure.vector_stores import (
     QdrantVectorDatabase,
 )
 from src.infrastructure.rag.workflows.remove_document.remove_document_workflow import (

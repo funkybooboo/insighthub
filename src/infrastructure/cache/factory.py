@@ -5,12 +5,12 @@ from src.infrastructure.cache.in_memory_cache import InMemoryCache
 from src.infrastructure.cache.redis_cache import RedisCache
 
 
-def create_cache(cache_type: str = "in_memory", **kwargs) -> Cache:
+def create_cache(cache_type: str = "memory", **kwargs) -> Cache:
     """
     Factory function to create cache instances.
 
     Args:
-        cache_type: Type of cache ("in_memory" or "redis")
+        cache_type: Type of cache ("memory" or "redis")
         **kwargs: Additional arguments for cache initialization
 
     Returns:

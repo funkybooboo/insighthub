@@ -5,6 +5,23 @@ import sys
 
 from src.context import AppContext
 from src.infrastructure.logger import create_logger
+from src.infrastructure.rag.options import (
+    get_chunking_options,
+    get_default_chunking_algorithm,
+    get_default_clustering_algorithm,
+    get_default_embedding_algorithm,
+    get_default_entity_extraction_algorithm,
+    get_default_rag_type,
+    get_default_relationship_extraction_algorithm,
+    get_default_reranking_algorithm,
+    get_embedding_options,
+    get_graph_clustering_options,
+    get_graph_entity_extraction_options,
+    get_graph_relationship_extraction_options,
+    get_rag_type_options,
+    get_reranking_options,
+    get_valid_rag_types,
+)
 
 logger = create_logger(__name__)
 
@@ -50,23 +67,64 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create or update default RAG configuration (interactive, single-user system)."""
     try:
+        # Show available RAG types
+        rag_type_opts = get_rag_type_options()
+        print("\nAvailable RAG types:")
+        for opt in rag_type_opts:
+            print(f"  - {opt['value']}: {opt['description']}")
+        print()
+
         # Prompt for RAG type
-        rag_type = input("RAG type (vector/graph) [vector]: ").strip().lower() or "vector"
-        if rag_type not in ["vector", "graph"]:
-            print("Error: RAG type must be 'vector' or 'graph'", file=sys.stderr)
+        default_rag = get_default_rag_type()
+        rag_type = input(f"RAG type [{default_rag}]: ").strip().lower() or default_rag
+        valid_types = get_valid_rag_types()
+        if rag_type not in valid_types:
+            print(f"Error: RAG type must be one of: {', '.join(valid_types)}", file=sys.stderr)
             sys.exit(1)
 
         vector_config = {}
         graph_config = {}
 
         if rag_type == "vector":
+            # Get available options from factories
+            chunking_opts = get_chunking_options()
+            embedding_opts = get_embedding_options()
+            reranking_opts = get_reranking_options()
+
+            # Show available options
+            print("\nAvailable chunking algorithms:")
+            for opt in chunking_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+
+            print("\nAvailable embedding algorithms:")
+            for opt in embedding_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+
+            print("\nAvailable reranking algorithms:")
+            for opt in reranking_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+            print()
+
             # Prompt for vector RAG configuration in pipeline order
-            chunking_algorithm = input("Chunking algorithm [sentence]: ").strip() or "sentence"
+            default_chunking = get_default_chunking_algorithm()
+            chunking_algorithm = (
+                input(f"Chunking algorithm [{default_chunking}]: ").strip() or default_chunking
+            )
+
             chunk_size = input("Chunk size [1000]: ").strip() or "1000"
             chunk_overlap = input("Chunk overlap [200]: ").strip() or "200"
-            embedding_algorithm = input("Embedding algorithm [ollama]: ").strip() or "ollama"
+
+            default_embedding = get_default_embedding_algorithm()
+            embedding_algorithm = (
+                input(f"Embedding algorithm [{default_embedding}]: ").strip() or default_embedding
+            )
+
             top_k = input("Top K [5]: ").strip() or "5"
-            rerank_algorithm = input("Rerank algorithm [none]: ").strip() or "none"
+
+            default_reranking = get_default_reranking_algorithm()
+            rerank_algorithm = (
+                input(f"Rerank algorithm [{default_reranking}]: ").strip() or default_reranking
+            )
 
             vector_config = {
                 "chunking_algorithm": chunking_algorithm,
@@ -77,13 +135,41 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
                 "rerank_algorithm": rerank_algorithm,
             }
         else:  # graph
+            # Get available options from factories
+            entity_opts = get_graph_entity_extraction_options()
+            relationship_opts = get_graph_relationship_extraction_options()
+            clustering_opts = get_graph_clustering_options()
+
+            # Show available options
+            print("\nAvailable entity extraction algorithms:")
+            for opt in entity_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+
+            print("\nAvailable relationship extraction algorithms:")
+            for opt in relationship_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+
+            print("\nAvailable clustering algorithms:")
+            for opt in clustering_opts:
+                print(f"  - {opt['value']}: {opt['description']}")
+            print()
+
             # Prompt for graph RAG configuration
-            entity_extraction = input("Entity extraction algorithm [spacy]: ").strip() or "spacy"
-            relationship_extraction = (
-                input("Relationship extraction algorithm [dependency-parsing]: ").strip()
-                or "dependency-parsing"
+            default_entity = get_default_entity_extraction_algorithm()
+            entity_extraction = (
+                input(f"Entity extraction algorithm [{default_entity}]: ").strip() or default_entity
             )
-            clustering = input("Clustering algorithm [leiden]: ").strip() or "leiden"
+
+            default_relationship = get_default_relationship_extraction_algorithm()
+            relationship_extraction = (
+                input(f"Relationship extraction algorithm [{default_relationship}]: ").strip()
+                or default_relationship
+            )
+
+            default_clustering = get_default_clustering_algorithm()
+            clustering = (
+                input(f"Clustering algorithm [{default_clustering}]: ").strip() or default_clustering
+            )
 
             graph_config = {
                 "entity_extraction_algorithm": entity_extraction,

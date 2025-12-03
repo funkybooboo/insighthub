@@ -4,7 +4,7 @@ from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
 from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
-from src.infrastructure.rag.steps.vector_rag.vector_stores.factory import VectorStoreFactory
+from infrastructure.vector_stores import VectorStoreFactory
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import AddDocumentWorkflow
 from src.infrastructure.rag.workflows.add_document.vector_rag_add_document_workflow import (
     VectorRagAddDocumentWorkflow,

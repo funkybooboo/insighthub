@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import (
     DefaultGraphRagConfig,
@@ -16,14 +17,16 @@ logger = create_logger(__name__)
 class DefaultRagConfigService:
     """Service for managing default RAG configuration (single-user system)."""
 
-    def __init__(self, repository: DefaultRagConfigRepository):
+    def __init__(self, repository: DefaultRagConfigRepository, cache: Optional[Cache] = None):
         """
         Initialize the service.
 
         Args:
             repository: Repository for default RAG configs
+            cache: Optional cache implementation
         """
         self.repository = repository
+        self.cache = cache
 
     def get_config(self) -> Optional[DefaultRagConfig]:
         """

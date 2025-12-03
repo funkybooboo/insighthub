@@ -1,12 +1,14 @@
 """Factory functions for creating reranking algorithms."""
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.vector_rag.reranking.reranker import (
-    BM25Reranker,
+from src.infrastructure.rag.steps.vector_rag.reranking.bm25_reranker import BM25Reranker
+from src.infrastructure.rag.steps.vector_rag.reranking.cross_encoder_reranker import (
     CrossEncoderReranker,
-    NoReranker,
+)
+from src.infrastructure.rag.steps.vector_rag.reranking.no_reranker import NoReranker
+from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
+from src.infrastructure.rag.steps.vector_rag.reranking.rrf_reranker import (
     ReciprocalRankFusionReranker,
-    Reranker,
 )
 
 logger = create_logger(__name__)

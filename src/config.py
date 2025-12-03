@@ -21,11 +21,15 @@ class DatabaseConfig(BaseModel):
     url: str = Field(description="Database connection URL")
 
 
-class RedisConfig(BaseModel):
-    """Redis configuration."""
+class CacheConfig(BaseModel):
+    """Cache configuration."""
 
-    url: Optional[str] = Field(default=None, description="Redis connection URL")
-    default_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
+    cache_type: str = Field(default="memory", description="Cache type (memory or redis)")
+    redis_host: str = Field(default="localhost", description="Redis host")
+    redis_port: int = Field(default=6379, description="Redis port")
+    redis_db: int = Field(default=0, description="Redis database number")
+    redis_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
+    redis_url: Optional[str] = Field(default=None, description="Redis connection URL (optional override)")
 
 
 class LLMConfig(BaseModel):
@@ -121,10 +125,13 @@ class AppConfig(BaseSettings):
         description="Database connection URL",
     )
 
-    # Redis
-    redis_url: Optional[str] = Field(default=None, description="Redis connection URL")
-    redis_default_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
-    cache_type: str = Field(default="in_memory", description="Cache type (in_memory or redis)")
+    # Cache
+    cache_type: str = Field(default="memory", description="Cache type (memory or redis)")
+    redis_host: str = Field(default="localhost", description="Redis host")
+    redis_port: int = Field(default=6379, description="Redis port")
+    redis_db: int = Field(default=0, description="Redis database number")
+    redis_ttl: int = Field(default=3600, description="Default cache TTL in seconds")
+    redis_url: Optional[str] = Field(default=None, description="Redis connection URL (optional override)")
 
     # LLM
     llm_provider: str = Field(default="ollama", description="LLM provider to use")
@@ -224,9 +231,16 @@ class AppConfig(BaseSettings):
         return DatabaseConfig(url=self.database_url)
 
     @property
-    def redis(self) -> RedisConfig:
-        """Get Redis configuration."""
-        return RedisConfig(url=self.redis_url, default_ttl=self.redis_default_ttl)
+    def cache(self) -> CacheConfig:
+        """Get cache configuration."""
+        return CacheConfig(
+            cache_type=self.cache_type,
+            redis_host=self.redis_host,
+            redis_port=self.redis_port,
+            redis_db=self.redis_db,
+            redis_ttl=self.redis_ttl,
+            redis_url=self.redis_url,
+        )
 
     @property
     def llm(self) -> LLMConfig:

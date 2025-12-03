@@ -1,10 +1,15 @@
 """Workspace service for business logic."""
 
+import json
+from typing import Optional
+
 from returns.result import Failure, Result, Success
 
 from src.config import config
+from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Workspace
+from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
 from src.infrastructure.rag.workflows.create_resources import CreateResourcesWorkflowFactory
 from src.infrastructure.rag.workflows.remove_resources import RemoveResourcesWorkflowFactory
 from src.infrastructure.repositories import WorkspaceRepository
@@ -16,9 +21,10 @@ logger = create_logger(__name__)
 class WorkspaceService:
     """Service for workspace-related business logic."""
 
-    def __init__(self, repository: WorkspaceRepository):
-        """Initialize service with repository."""
+    def __init__(self, repository: WorkspaceRepository, cache: Optional[Cache] = None):
+        """Initialize service with repository and cache."""
         self.repository = repository
+        self.cache = cache
 
     def create_workspace(
         self,
@@ -48,10 +54,13 @@ class WorkspaceService:
                 )
             )
 
-        if rag_type not in ["vector", "graph"]:
+        if not is_valid_rag_type(rag_type):
+            valid_types = get_valid_rag_types()
             logger.error(f"Workspace creation failed: invalid rag_type '{rag_type}'")
             return Failure(
-                ValidationError("Invalid rag_type. Must be 'vector' or 'graph'", field="rag_type")
+                ValidationError(
+                    f"Invalid rag_type. Must be one of: {', '.join(valid_types)}", field="rag_type"
+                )
             )
 
         # Create workspace in database (status will be 'ready' after provisioning)
@@ -84,6 +93,10 @@ class WorkspaceService:
                     "Failed to reload workspace after provisioning", workflow="create_workspace"
                 )
             )
+
+        # Cache the workspace
+        if self.cache:
+            self._cache_workspace(reloaded_workspace)
 
         return Success(reloaded_workspace)
 
@@ -123,8 +136,20 @@ class WorkspaceService:
         return Success(None)
 
     def get_workspace(self, workspace_id: int) -> Workspace | None:
-        """Get workspace by ID."""
-        return self.repository.get_by_id(workspace_id)
+        """Get workspace by ID with caching."""
+        # Try cache first
+        if self.cache:
+            cached = self._get_cached_workspace(workspace_id)
+            if cached:
+                logger.debug(f"Cache hit for workspace {workspace_id}")
+                return cached
+
+        # Cache miss, fetch from database
+        workspace = self.repository.get_by_id(workspace_id)
+        if workspace and self.cache:
+            self._cache_workspace(workspace)
+
+        return workspace
 
     def list_workspaces(self) -> list[Workspace]:
         """List all workspace (single-user system)."""
@@ -162,6 +187,11 @@ class WorkspaceService:
         if not updated:
             return Failure(NotFoundError("workspace", workspace_id))
 
+        # Invalidate cache
+        if self.cache:
+            self._invalidate_workspace_cache(workspace_id)
+            self._cache_workspace(updated)
+
         return Success(updated)
 
     def delete_workspace(self, workspace_id: int) -> bool:
@@ -193,6 +223,10 @@ class WorkspaceService:
         # Delete from database
         self.repository.delete(workspace_id)
         logger.info(f"Workspace deleted: workspace_id={workspace_id}")
+
+        # Invalidate cache
+        if self.cache:
+            self._invalidate_workspace_cache(workspace_id)
 
         return True
 
@@ -228,3 +262,49 @@ class WorkspaceService:
 
         logger.info(f"RAG resources deallocated for workspace {workspace.id}")
         return Success(None)
+
+    def _cache_workspace(self, workspace: Workspace) -> None:
+        """Cache a workspace object."""
+        if not self.cache:
+            return
+        key = f"workspace:{workspace.id}"
+        value = json.dumps({
+            "id": workspace.id,
+            "name": workspace.name,
+            "description": workspace.description,
+            "rag_type": workspace.rag_type,
+            "status": workspace.status,
+            "created_at": workspace.created_at.isoformat(),
+            "updated_at": workspace.updated_at.isoformat(),
+        })
+        self.cache.set(key, value, ttl=300)  # Cache for 5 minutes
+
+    def _get_cached_workspace(self, workspace_id: int) -> Workspace | None:
+        """Get workspace from cache."""
+        if not self.cache:
+            return None
+        key = f"workspace:{workspace_id}"
+        cached = self.cache.get(key)
+        if not cached:
+            return None
+        try:
+            from datetime import datetime
+            data = json.loads(cached)
+            return Workspace(
+                id=data["id"],
+                name=data["name"],
+                description=data["description"],
+                rag_type=data["rag_type"],
+                status=data["status"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+                updated_at=datetime.fromisoformat(data["updated_at"]),
+            )
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
+
+    def _invalidate_workspace_cache(self, workspace_id: int) -> None:
+        """Invalidate workspace cache."""
+        if not self.cache:
+            return
+        key = f"workspace:{workspace_id}"
+        self.cache.delete(key)

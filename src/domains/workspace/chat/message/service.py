@@ -1,13 +1,15 @@
 """Chat message service."""
 
-from typing import Callable
+from typing import Callable, Optional
 
 from returns.result import Failure, Result, Success
 
 from src.config import config
+from src.infrastructure.cache.cache import Cache
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import ChatMessage
+from src.infrastructure.rag.options import get_default_embedding_algorithm
 from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
 from src.infrastructure.repositories import (
     ChatMessageRepository,
@@ -28,10 +30,12 @@ class ChatMessageService:
         session_repository: ChatSessionRepository,
         workspace_repository: WorkspaceRepository,
         llm_provider: LlmProvider,
+        cache: Optional[Cache] = None,
     ):
-        """Initialize service with repository."""
+        """Initialize service with repository and cache."""
         self.repository = repository
         self.session_repository = session_repository
+        self.cache = cache
         self.workspace_repository = workspace_repository
         self.llm_provider = llm_provider
 
@@ -80,8 +84,6 @@ class ChatMessageService:
                     "Invalid message role. Must be 'user', 'assistant', or 'system'", field="role"
                 )
             )
-
-        # Validation is performed at the route level
 
         # Serialize extra_metadata to JSON string if provided
         extra_metadata_str = None
@@ -222,25 +224,61 @@ class ChatMessageService:
         if not workspace:
             return ""
 
-        # Build RAG configuration
+        # Build RAG configuration from workspace's stored configuration
         rag_config = {
             "rag_type": workspace.rag_type,
-            "embedder_type": "nomic-embed-text",
-            "embedder_config": {"base_url": config.llm.ollama_base_url},
-            "vector_store_type": "qdrant",
-            "vector_store_config": {
-                "host": config.vector_store.qdrant_host,
-                "port": config.vector_store.qdrant_port,
-                "collection_name": f"workspace_{workspace.id}",
-            },
-            "enable_reranking": False,
         }
+
+        if workspace.rag_type == "vector":
+            # Get workspace-specific vector RAG config
+            vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
+
+            if vector_config:
+                rag_config.update({
+                    "embedder_type": vector_config.embedding_algorithm,
+                    "embedder_config": {"base_url": config.llm.ollama_base_url},
+                    "vector_store_type": "qdrant",
+                    "vector_store_config": {
+                        "host": config.vector_store.qdrant_host,
+                        "port": config.vector_store.qdrant_port,
+                        "collection_name": f"workspace_{workspace.id}",
+                    },
+                    "enable_reranking": vector_config.rerank_algorithm != "none",
+                    "reranker_type": vector_config.rerank_algorithm,
+                    "top_k": vector_config.top_k,
+                })
+            else:
+                # Fallback to defaults if no config found
+                rag_config.update({
+                    "embedder_type": get_default_embedding_algorithm(),
+                    "embedder_config": {"base_url": config.llm.ollama_base_url},
+                    "vector_store_type": "qdrant",
+                    "vector_store_config": {
+                        "host": config.vector_store.qdrant_host,
+                        "port": config.vector_store.qdrant_port,
+                        "collection_name": f"workspace_{workspace.id}",
+                    },
+                    "enable_reranking": False,
+                    "top_k": 5,
+                })
+        elif workspace.rag_type == "graph":
+            # Get workspace-specific graph RAG config
+            graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
+
+            if graph_config:
+                rag_config.update({
+                    "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
+                    "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
+                    "clustering_algorithm": graph_config.clustering_algorithm,
+                })
+            # Note: Graph RAG workflow not fully implemented yet
 
         # Create and execute query workflow
         workflow = QueryWorkflowFactory.create(rag_config)
+        top_k = rag_config.get("top_k", 5)
         chunks = workflow.execute(
             query_text=query_text,
-            top_k=5,
+            top_k=top_k,
             filters={"workspace_id": str(workspace.id)},
         )
 

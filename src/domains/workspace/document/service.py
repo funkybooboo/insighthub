@@ -1,12 +1,19 @@
 """Document service implementation."""
 
+import json
 from io import BytesIO
+from typing import Optional
 
 from returns.result import Failure, Result, Success
 
 from src.config import config
+from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 from src.infrastructure.models import Document, Workspace
+from src.infrastructure.rag.options import (
+    get_default_chunking_algorithm,
+    get_default_embedding_algorithm,
+)
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
@@ -28,6 +35,7 @@ class DocumentService:
         repository: DocumentRepository,
         workspace_repository: WorkspaceRepository,
         blob_storage: BlobStorage,
+        cache: Optional[Cache] = None,
     ):
         """Initialize service with repositories and storage.
 
@@ -35,10 +43,12 @@ class DocumentService:
             repository: Document repository implementation
             workspace_repository: Workspace repository implementation
             blob_storage: Blob storage implementation
+            cache: Optional cache implementation
         """
         self.repository = repository
         self.workspace_repository = workspace_repository
         self.blob_storage = blob_storage
+        self.cache = cache
 
     def upload_and_process_document(
         self,
@@ -117,6 +127,12 @@ class DocumentService:
         if not reloaded_document:
             return Failure(NotFoundError("document", document.id))
 
+        # Cache the document
+        if self.cache:
+            self._cache_document(reloaded_document)
+            # Invalidate workspace documents list cache
+            self._invalidate_workspace_documents_cache(workspace_id)
+
         return Success(reloaded_document)
 
     def _process_document(
@@ -170,27 +186,69 @@ class DocumentService:
         return Success(chunks_indexed)
 
     def _build_rag_config(self, workspace: Workspace) -> dict:
-        """Build RAG configuration from workspace."""
-        return {
+        """Build RAG configuration from workspace's stored configuration."""
+        base_config = {
             "rag_type": workspace.rag_type,
             "parser_type": "text",  # Auto-detect based on file type
-            "chunker_type": "sentence",
-            "chunker_config": {
-                "chunk_size": 500,
-                "overlap": 50,
-            },
-            "embedder_type": "nomic-embed-text",  # Model name is the embedder type
-            "embedder_config": {
-                "base_url": config.llm.ollama_base_url,
-            },
-            "vector_store_type": "qdrant",
-            "vector_store_config": {
-                "host": config.vector_store.qdrant_host,
-                "port": config.vector_store.qdrant_port,
-                "collection_name": f"workspace_{workspace.id}",
-            },
-            "enable_reranking": False,
         }
+
+        if workspace.rag_type == "vector":
+            # Get workspace-specific vector RAG config
+            vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
+
+            if vector_config:
+                base_config.update({
+                    "chunker_type": vector_config.chunking_algorithm,
+                    "chunker_config": {
+                        "chunk_size": vector_config.chunk_size,
+                        "overlap": vector_config.chunk_overlap,
+                    },
+                    "embedder_type": vector_config.embedding_algorithm,
+                    "embedder_config": {
+                        "base_url": config.llm.ollama_base_url,
+                    },
+                    "vector_store_type": "qdrant",
+                    "vector_store_config": {
+                        "host": config.vector_store.qdrant_host,
+                        "port": config.vector_store.qdrant_port,
+                        "collection_name": f"workspace_{workspace.id}",
+                    },
+                    "enable_reranking": vector_config.rerank_algorithm != "none",
+                    "reranker_type": vector_config.rerank_algorithm,
+                })
+            else:
+                # Fallback to defaults if no config found
+                base_config.update({
+                    "chunker_type": get_default_chunking_algorithm(),
+                    "chunker_config": {
+                        "chunk_size": 500,
+                        "overlap": 50,
+                    },
+                    "embedder_type": get_default_embedding_algorithm(),
+                    "embedder_config": {
+                        "base_url": config.llm.ollama_base_url,
+                    },
+                    "vector_store_type": "qdrant",
+                    "vector_store_config": {
+                        "host": config.vector_store.qdrant_host,
+                        "port": config.vector_store.qdrant_port,
+                        "collection_name": f"workspace_{workspace.id}",
+                    },
+                    "enable_reranking": False,
+                })
+        elif workspace.rag_type == "graph":
+            # Get workspace-specific graph RAG config
+            graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
+
+            if graph_config:
+                base_config.update({
+                    "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
+                    "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
+                    "clustering_algorithm": graph_config.clustering_algorithm,
+                })
+            # Note: Graph RAG workflow not fully implemented yet
+
+        return base_config
 
     def remove_document(self, document_id: int) -> bool:
         """Remove document and its RAG data.
@@ -230,6 +288,10 @@ class DocumentService:
         deleted = self.repository.delete(document_id)
         if deleted:
             logger.info(f"Document deleted: document_id={document_id}")
+            # Invalidate cache
+            if self.cache:
+                self._invalidate_document_cache(document_id)
+                self._invalidate_workspace_documents_cache(document.workspace_id)
         else:
             logger.error(f"Failed to delete document: document_id={document_id}")
 
@@ -271,7 +333,7 @@ class DocumentService:
         return Success(None)
 
     def list_documents_by_workspace(self, workspace_id: int) -> list[Document]:
-        """List all documents for a workspace.
+        """List all documents for a workspace with caching.
 
         Args:
             workspace_id: Workspace ID
@@ -279,10 +341,27 @@ class DocumentService:
         Returns:
             list[Document]: List of documents
         """
-        return self.repository.get_by_workspace(workspace_id)
+        # Try cache first
+        if self.cache:
+            cached = self._get_cached_workspace_documents(workspace_id)
+            if cached is not None:
+                logger.debug(f"Cache hit for workspace {workspace_id} documents")
+                return cached
+
+        # Cache miss, fetch from database
+        documents = self.repository.get_by_workspace(workspace_id)
+
+        # Cache the result
+        if self.cache:
+            self._cache_workspace_documents(workspace_id, documents)
+            # Also cache individual documents
+            for doc in documents:
+                self._cache_document(doc)
+
+        return documents
 
     def get_document_by_id(self, document_id: int) -> Document | None:
-        """Get document by ID.
+        """Get document by ID with caching.
 
         Args:
             document_id: Document ID
@@ -290,4 +369,106 @@ class DocumentService:
         Returns:
             Optional[Document]: Document if found, None otherwise
         """
-        return self.repository.get_by_id(document_id)
+        # Try cache first
+        if self.cache:
+            cached = self._get_cached_document(document_id)
+            if cached:
+                logger.debug(f"Cache hit for document {document_id}")
+                return cached
+
+        # Cache miss, fetch from database
+        document = self.repository.get_by_id(document_id)
+        if document and self.cache:
+            self._cache_document(document)
+
+        return document
+
+    def _cache_document(self, document: Document) -> None:
+        """Cache a document object."""
+        if not self.cache:
+            return
+        key = f"document:{document.id}"
+        value = json.dumps({
+            "id": document.id,
+            "workspace_id": document.workspace_id,
+            "filename": document.filename,
+            "file_path": document.file_path,
+            "file_size": document.file_size,
+            "mime_type": document.mime_type,
+            "content_hash": document.content_hash,
+            "chunk_count": document.chunk_count,
+            "status": document.status,
+            "created_at": document.created_at.isoformat(),
+            "updated_at": document.updated_at.isoformat(),
+        })
+        self.cache.set(key, value, ttl=300)  # Cache for 5 minutes
+
+    def _get_cached_document(self, document_id: int) -> Document | None:
+        """Get document from cache."""
+        if not self.cache:
+            return None
+        key = f"document:{document_id}"
+        cached = self.cache.get(key)
+        if not cached:
+            return None
+        try:
+            from datetime import datetime
+            data = json.loads(cached)
+            return Document(
+                id=data["id"],
+                workspace_id=data["workspace_id"],
+                filename=data["filename"],
+                file_path=data["file_path"],
+                file_size=data["file_size"],
+                mime_type=data["mime_type"],
+                content_hash=data["content_hash"],
+                chunk_count=data["chunk_count"],
+                status=data["status"],
+                created_at=datetime.fromisoformat(data["created_at"]),
+                updated_at=datetime.fromisoformat(data["updated_at"]),
+            )
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
+
+    def _invalidate_document_cache(self, document_id: int) -> None:
+        """Invalidate document cache."""
+        if not self.cache:
+            return
+        key = f"document:{document_id}"
+        self.cache.delete(key)
+
+    def _cache_workspace_documents(self, workspace_id: int, documents: list[Document]) -> None:
+        """Cache workspace documents list."""
+        if not self.cache:
+            return
+        key = f"workspace:{workspace_id}:documents"
+        value = json.dumps([doc.id for doc in documents])
+        self.cache.set(key, value, ttl=180)  # Cache for 3 minutes
+
+    def _get_cached_workspace_documents(self, workspace_id: int) -> list[Document] | None:
+        """Get workspace documents from cache."""
+        if not self.cache:
+            return None
+        key = f"workspace:{workspace_id}:documents"
+        cached = self.cache.get(key)
+        if not cached:
+            return None
+        try:
+            doc_ids = json.loads(cached)
+            documents = []
+            for doc_id in doc_ids:
+                doc = self._get_cached_document(doc_id)
+                if not doc:
+                    # If any document is missing from cache, invalidate the whole list
+                    return None
+                documents.append(doc)
+            return documents
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
+
+    def _invalidate_workspace_documents_cache(self, workspace_id: int) -> None:
+        """Invalidate workspace documents list cache."""
+        if not self.cache:
+            return
+        key = f"workspace:{workspace_id}:documents"
+        self.cache.delete(key)
