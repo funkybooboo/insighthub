@@ -22,6 +22,8 @@ class TestChatCLI:
 
     def create_workspace(self, name="Chat Test Workspace"):
         """Helper to create a workspace."""
+        import re
+
         create_result = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "new"],
             input=f"{name}\nTest workspace for chat\nvector\n",
@@ -33,7 +35,9 @@ class TestChatCLI:
         # Extract workspace ID
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         return workspace_id
 
@@ -110,9 +114,13 @@ class TestChatCLI:
         assert create_result.returncode == 0
 
         # Extract session ID
+        import re
+
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created chat session" in line.lower()][0]
-        session_id = created_line.split("[")[1].split("]")[0]
+        match = re.search(r"Created chat session \[(\d+)\]", created_line)
+        session_id = match.group(1) if match else None
+        assert session_id is not None, f"Could not extract session ID from: {created_line}"
 
         # Select the session
         result = self.run_cli("chat", "select", session_id)
@@ -140,9 +148,13 @@ class TestChatCLI:
         assert create_result.returncode == 0
 
         # Extract and select session ID
+        import re
+
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created chat session" in line.lower()][0]
-        session_id = created_line.split("[")[1].split("]")[0]
+        match = re.search(r"Created chat session \[(\d+)\]", created_line)
+        session_id = match.group(1) if match else None
+        assert session_id is not None, f"Could not extract session ID from: {created_line}"
 
         subprocess.run(
             [sys.executable, "-m", "src.cli", "chat", "select", session_id],
@@ -176,9 +188,13 @@ class TestChatCLI:
         assert create_result.returncode == 0
 
         # Extract session ID
+        import re
+
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created chat session" in line.lower()][0]
-        session_id = created_line.split("[")[1].split("]")[0]
+        match = re.search(r"Created chat session \[(\d+)\]", created_line)
+        session_id = match.group(1) if match else None
+        assert session_id is not None, f"Could not extract session ID from: {created_line}"
 
         # Delete the session (confirm with "yes")
         delete_result = subprocess.run(

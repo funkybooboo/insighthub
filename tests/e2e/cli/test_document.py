@@ -24,6 +24,8 @@ class TestDocumentCLI:
 
     def create_workspace_and_select(self, name="Document Test Workspace"):
         """Helper to create and select a workspace."""
+        import re
+
         create_result = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "new"],
             input=f"{name}\nTest workspace for documents\nvector\n",
@@ -35,7 +37,9 @@ class TestDocumentCLI:
         # Extract workspace ID
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         # Select the workspace
         select_result = subprocess.run(
@@ -103,9 +107,15 @@ class TestDocumentCLI:
             assert upload_result.returncode == 0
 
             # Extract document ID
+            import re
+
             output_lines = upload_result.stdout.strip().split("\n")
-            uploaded_line = [line for line in output_lines if "uploaded" in line.lower()][0]
-            document_id = uploaded_line.split("[")[1].split("]")[0]
+            uploaded_line = [
+                line for line in output_lines if "uploaded" in line.lower() and "[" in line
+            ][0]
+            match = re.search(r"Uploaded \[(\d+)\]", uploaded_line)
+            document_id = match.group(1) if match else None
+            assert document_id is not None, f"Could not extract document ID from: {uploaded_line}"
 
             # Show the document
             show_result = self.run_cli("document", "show", document_id)

@@ -52,7 +52,12 @@ class TestWorkspaceCLI:
         # Extract workspace ID from output (format: "Created workspace [ID] Name")
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        # Find the workspace ID by looking for pattern "Created workspace [ID]"
+        import re
+
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         # Show the workspace
         result = self.run_cli("workspace", "show", workspace_id)
@@ -79,7 +84,11 @@ class TestWorkspaceCLI:
         # Extract workspace ID
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        import re
+
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         # Update the workspace
         update_result = subprocess.run(
@@ -105,7 +114,11 @@ class TestWorkspaceCLI:
         # Extract workspace ID
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        import re
+
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         # Select the workspace
         result = self.run_cli("workspace", "select", workspace_id)
@@ -126,7 +139,11 @@ class TestWorkspaceCLI:
         # Extract workspace ID
         output_lines = create_result.stdout.strip().split("\n")
         created_line = [line for line in output_lines if "created workspace" in line.lower()][0]
-        workspace_id = created_line.split("[")[1].split("]")[0]
+        import re
+
+        match = re.search(r"Created workspace \[(\d+)\]", created_line)
+        workspace_id = match.group(1) if match else None
+        assert workspace_id is not None, f"Could not extract workspace ID from: {created_line}"
 
         # Delete the workspace (confirm with "yes")
         delete_result = subprocess.run(
