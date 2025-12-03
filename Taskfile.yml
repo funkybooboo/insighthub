@@ -34,6 +34,44 @@ tasks:
     cmds:
       - docker compose ps -a
 
+  health-check:
+    desc: Check if all backing services are healthy
+    cmds:
+      - |
+        echo "Checking health of backing services..."
+
+        # Check if services are running
+        SERVICES="postgres ollama qdrant neo4j minio redis"
+        ALL_HEALTHY=true
+
+        for service in $SERVICES; do
+          echo -n "Checking $service... "
+
+          # Get container health status
+          HEALTH=$(docker compose ps $service --format json | jq -r '.Health // "unknown"')
+          STATE=$(docker compose ps $service --format json | jq -r '.State // "unknown"')
+
+          if [ "$STATE" != "running" ]; then
+            echo "[FAIL] NOT RUNNING (state: $STATE)"
+            ALL_HEALTHY=false
+          elif [ "$HEALTH" = "healthy" ] || [ "$HEALTH" = "unknown" ]; then
+            echo "[OK] healthy"
+          else
+            echo "[FAIL] unhealthy (status: $HEALTH)"
+            ALL_HEALTHY=false
+          fi
+        done
+
+        if [ "$ALL_HEALTHY" = false ]; then
+          echo ""
+          echo "[FAIL] Some services are not healthy. Run 'task up' to start services."
+          echo "       Then wait for all services to become healthy before running e2e tests."
+          exit 1
+        else
+          echo ""
+          echo "[OK] All backing services are healthy and ready!"
+        fi
+
   clean-docker:
     desc: DESTRUCTIVE - Remove all containers, volumes, and data
     prompt: This will delete all data including databases. Continue?
@@ -69,18 +107,36 @@ tasks:
     cmds:
       - poetry run mypy src tests
 
-  test:
-    desc: Run tests with pytest
+  unit-test:
+    desc: Run unit tests with pytest
     cmds:
-      - poetry run pytest tests/ -v --cov=src
+      - poetry run pytest tests/unit -v --cov=src
+
+  integration-test:
+    desc: Run integration tests with pytest
+    cmds:
+      - poetry run pytest tests/integration -v
+
+  e2e-test:
+    desc: Run e2e tests with pytest (auto-starts backing services if needed)
+    cmds:
+      - poetry run pytest tests/e2e -v --cov=src
+
+  test:
+    desc: Run all tests with pytest
+    cmds:
+      - task: unit-test
+      - task: integration-test
+      - task: e2e-test
 
   check:
-    desc: Run all quality checks (format, lint, type-check, test)
+    desc: Run all quality checks (format, lint, type-check, unit-test, integration-test)
     cmds:
       - task: format
       - task: lint
       - task: type-check
-      - task: test
+      - task: unit-test
+      - task: integration-test
 
   # ==================== CLI ====================
   cli:
@@ -115,6 +171,7 @@ tasks:
       - find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
       - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
       - find . -type d -name ".coverage" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name ".coverage.*" -exec rm -rf {} + 2>/dev/null || true
       - find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
       - rm -rf dist/ build/ 2>/dev/null || true
       - echo "Python cache and build artifacts removed"
