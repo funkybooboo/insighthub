@@ -164,7 +164,7 @@ class TestCLIWorkflow:
         # Set default vector RAG config
         set_config = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-            input="vector\nsentence\n800\n150\nollama\n3\nnone\n",
+            input="vector\nsentence\n800\n150\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
         )

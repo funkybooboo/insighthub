@@ -1,20 +1,21 @@
 #!/bin/bash
 
 # Database migration script for InsightHub
-# Usage: ./migrate.sh [up|down] [migration_number] [--docker]
+# Usage: ./migrate.sh [up|down] [migration_number]
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Load environment variables from .env file
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | grep -v '^[[:space:]]*$' | xargs)
+fi
+
 # Default values
 MIGRATION_DIR="${SCRIPT_DIR}"
-USE_DOCKER=false
-DB_USER="${POSTGRES_USER:-insighthub}"
-DB_NAME="${POSTGRES_DB:-insighthub}"
-DB_HOST="${POSTGRES_HOST:-localhost}"
-DB_PORT="${POSTGRES_PORT:-5432}"
+DATABASE_URL="${DATABASE_URL:-postgresql://insighthub:insighthub_dev@localhost:5432/insighthub}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,30 +38,56 @@ print_info() {
 
 print_usage() {
     cat << EOF
-Usage: ./migrate.sh [COMMAND] [OPTIONS]
+Database Migration Script for InsightHub
 
-Commands:
-  up [migration]     Apply migration (default: all pending migrations)
-  down [migration]   Rollback migration (default: latest migration)
-  status             Show migration status (not implemented)
+USAGE:
+    ./migrate.sh [COMMAND] [MIGRATION_NUMBER]
 
-Options:
-  --docker           Use Docker container for PostgreSQL
-  --help             Show this help message
+COMMANDS:
+    up [migration]      Apply database migrations
+                        - Without migration number: applies all migrations in /up folder
+                        - With migration number: applies specific migration (e.g., 001)
 
-Examples:
-  ./migrate.sh up                              # Apply all migrations locally
-  ./migrate.sh up 001_initial_schema.sql       # Apply specific migration locally
-  ./migrate.sh down                            # Rollback all migrations locally
-  ./migrate.sh down 006_add_cli_state_table.sql  # Rollback specific migration locally
-  ./migrate.sh up --docker                     # Apply migrations in Docker
-  ./migrate.sh down --docker                   # Rollback migrations in Docker
+    down [migration]    Rollback database migrations
+                        - Without migration number: rolls back all migrations in reverse order
+                        - With migration number: rolls back specific migration (e.g., 006)
 
-Environment Variables:
-  POSTGRES_USER      PostgreSQL user (default: insighthub)
-  POSTGRES_DB        PostgreSQL database (default: insighthub)
-  POSTGRES_HOST      PostgreSQL host (default: localhost)
-  POSTGRES_PORT      PostgreSQL port (default: 5432)
+    status              Show migration status (not yet implemented)
+
+    --help, -h          Show this help message
+
+EXAMPLES:
+    ./migrate.sh up                    Apply all pending migrations in numerical order
+    ./migrate.sh up 001                Apply migration 001_*.sql only
+    ./migrate.sh down                  Rollback all migrations in reverse order
+    ./migrate.sh down 006              Rollback migration 006_*.sql only
+
+MIGRATION FILES:
+    Migrations are automatically discovered from the /up and /down directories.
+    Files must follow the naming pattern: NNN_description.sql
+
+    Example:
+        migrations/up/001_initial_schema.sql
+        migrations/up/002_add_users_table.sql
+        migrations/down/001_initial_schema.sql
+        migrations/down/002_add_users_table.sql
+
+CONFIGURATION:
+    Database connection is read from the .env file in the project root.
+
+    Required variable:
+        DATABASE_URL    PostgreSQL connection string
+                        Format: postgresql://user:password@host:port/database
+                        Example: postgresql://insighthub:insighthub_dev@localhost:5432/insighthub
+
+    The script works with any PostgreSQL instance (Docker, localhost, remote)
+    as long as the DATABASE_URL is correctly configured.
+
+NOTES:
+    - Migrations in /up are applied in ascending numerical order (001, 002, 003...)
+    - Migrations in /down are applied in descending numerical order (006, 005, 004...)
+    - The script requires psql (PostgreSQL client) to be installed
+    - All migrations are executed with set -e (exit on first error)
 
 EOF
 }
@@ -75,29 +102,21 @@ while [[ $# -gt 0 ]]; do
             COMMAND="$1"
             shift
             ;;
-        --docker)
-            USE_DOCKER=true
-            shift
-            ;;
         --help|-h)
             print_usage
             exit 0
             ;;
-        [0-9]*)
+        *)
             MIGRATION="$1"
             shift
-            ;;
-        *)
-            print_error "Unknown option: $1"
-            print_usage
-            exit 1
             ;;
     esac
 done
 
-# Default command
+# Default command - show help if no command provided
 if [ -z "$COMMAND" ]; then
-    COMMAND="up"
+    print_usage
+    exit 0
 fi
 
 # Execute SQL file
@@ -109,67 +128,82 @@ execute_sql() {
         exit 1
     fi
 
-    print_info "Executing: $sql_file"
+    print_info "Executing: $(basename $sql_file)"
 
-    if [ "$USE_DOCKER" = true ]; then
-        # Use Docker container
-        docker compose -f "${PROJECT_ROOT}/docker-compose.yml" exec -T postgres \
-            psql -U "$DB_USER" -d "$DB_NAME" < "$sql_file"
-    else
-        # Use local psql
-        if ! command -v psql &> /dev/null; then
-            print_error "psql not found. Install PostgreSQL client or use --docker flag."
-            exit 1
-        fi
-
-        PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" < "$sql_file"
+    # Use psql with DATABASE_URL
+    if ! command -v psql &> /dev/null; then
+        print_error "psql not found. Install PostgreSQL client."
+        exit 1
     fi
 
+    psql "$DATABASE_URL" < "$sql_file"
+
     if [ $? -eq 0 ]; then
-        print_success "Migration executed successfully!"
+        print_success "✓ Migration executed successfully!"
     else
         print_error "Migration failed!"
         exit 1
     fi
 }
 
+# Get all migration files in numerical order
+get_migration_files() {
+    local direction="$1"
+    local dir="${MIGRATION_DIR}/${direction}"
+
+    if [ ! -d "$dir" ]; then
+        print_error "Migration directory not found: $dir"
+        exit 1
+    fi
+
+    # Find all .sql files and sort them numerically
+    find "$dir" -maxdepth 1 -name "*.sql" -type f | sort
+}
+
+# Get all migration files in reverse numerical order
+get_migration_files_reverse() {
+    local direction="$1"
+    local dir="${MIGRATION_DIR}/${direction}"
+
+    if [ ! -d "$dir" ]; then
+        print_error "Migration directory not found: $dir"
+        exit 1
+    fi
+
+    # Find all .sql files and sort them in reverse numerical order
+    find "$dir" -maxdepth 1 -name "*.sql" -type f | sort -r
+}
+
 # Apply migrations
 migrate_up() {
     if [ -n "$MIGRATION" ]; then
         # Apply specific migration
-        local migration_file="${MIGRATION_DIR}/up/${MIGRATION}"
-        if [ ! -f "$migration_file" ]; then
-            migration_file="${MIGRATION_DIR}/up/${MIGRATION}.sql"
-        fi
+        # Look for files starting with the migration number
+        local migration_file=$(find "${MIGRATION_DIR}/up" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
 
-        if [ ! -f "$migration_file" ]; then
-            print_error "Migration file not found: $MIGRATION"
+        if [ -z "$migration_file" ]; then
+            print_error "Migration file not found matching: $MIGRATION"
             exit 1
         fi
 
-        print_info "Applying migration: $MIGRATION"
+        print_info "Applying migration: $(basename $migration_file)"
         execute_sql "$migration_file"
     else
         # Apply all migrations in order
         print_info "Applying all migrations..."
 
-        local migration_files=(
-            "${MIGRATION_DIR}/up/001_initial_schema.sql"
-            "${MIGRATION_DIR}/up/002_add_rag_type_to_default_config.sql"
-            "${MIGRATION_DIR}/up/003_remove_user_id_from_workspaces.sql"
-            "${MIGRATION_DIR}/up/004_add_chunk_count_to_documents.sql"
-            "${MIGRATION_DIR}/up/005_fix_chat_sessions_schema.sql"
-            "${MIGRATION_DIR}/up/006_add_cli_state_table.sql"
-        )
+        local migration_files=$(get_migration_files "up")
 
-        for migration_file in "${migration_files[@]}"; do
-            if [ -f "$migration_file" ]; then
-                execute_sql "$migration_file"
-            else
-                print_error "Migration file not found: $migration_file"
-                exit 1
-            fi
-        done
+        if [ -z "$migration_files" ]; then
+            print_info "No migration files found in ${MIGRATION_DIR}/up"
+            exit 0
+        fi
+
+        while IFS= read -r migration_file; do
+            execute_sql "$migration_file"
+        done <<< "$migration_files"
+
+        print_success "All migrations applied successfully!"
     fi
 }
 
@@ -177,39 +211,32 @@ migrate_up() {
 migrate_down() {
     if [ -n "$MIGRATION" ]; then
         # Rollback specific migration
-        local migration_file="${MIGRATION_DIR}/down/${MIGRATION}"
-        if [ ! -f "$migration_file" ]; then
-            migration_file="${MIGRATION_DIR}/down/${MIGRATION}.sql"
-        fi
+        # Look for files starting with the migration number
+        local migration_file=$(find "${MIGRATION_DIR}/down" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
 
-        if [ ! -f "$migration_file" ]; then
-            print_error "Migration file not found: $MIGRATION"
+        if [ -z "$migration_file" ]; then
+            print_error "Migration file not found matching: $MIGRATION"
             exit 1
         fi
 
-        print_info "Rolling back migration: $MIGRATION"
+        print_info "Rolling back migration: $(basename $migration_file)"
         execute_sql "$migration_file"
     else
         # Rollback all migrations in reverse order
         print_info "Rolling back all migrations..."
 
-        local migration_files=(
-            "${MIGRATION_DIR}/down/006_add_cli_state_table.sql"
-            "${MIGRATION_DIR}/down/005_fix_chat_sessions_schema.sql"
-            "${MIGRATION_DIR}/down/004_add_chunk_count_to_documents.sql"
-            "${MIGRATION_DIR}/down/003_remove_user_id_from_workspaces.sql"
-            "${MIGRATION_DIR}/down/002_add_rag_type_to_default_config.sql"
-            "${MIGRATION_DIR}/down/001_initial_schema.sql"
-        )
+        local migration_files=$(get_migration_files_reverse "down")
 
-        for migration_file in "${migration_files[@]}"; do
-            if [ -f "$migration_file" ]; then
-                execute_sql "$migration_file"
-            else
-                print_error "Migration file not found: $migration_file"
-                exit 1
-            fi
-        done
+        if [ -z "$migration_files" ]; then
+            print_info "No migration files found in ${MIGRATION_DIR}/down"
+            exit 0
+        fi
+
+        while IFS= read -r migration_file; do
+            execute_sql "$migration_file"
+        done <<< "$migration_files"
+
+        print_success "All migrations rolled back successfully!"
     fi
 }
 

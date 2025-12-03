@@ -78,9 +78,48 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
-        file_path = Path(args.file)
+        file_path = Path(args.file).resolve()  # Resolve to absolute path
         if not file_path.exists():
             print(f"Error: File not found: {file_path}", file=sys.stderr)
+            sys.exit(1)
+
+        # Security: Prevent uploading system files or files from sensitive directories
+        sensitive_paths = [
+            "/etc",
+            "/sys",
+            "/proc",
+            "/dev",
+            "/boot",
+            "/root",
+            "/var/log",
+        ]
+
+        # Check if file is in a sensitive directory
+        for sensitive in sensitive_paths:
+            try:
+                if file_path.is_relative_to(sensitive):
+                    print(
+                        f"Error: Cannot upload files from system directory: {sensitive}",
+                        file=sys.stderr,
+                    )
+                    sys.exit(1)
+            except ValueError:
+                # is_relative_to raises ValueError on Windows for incompatible paths
+                pass
+
+        # Check for common system file patterns on Windows
+        if file_path.parts and len(file_path.parts) > 0:
+            first_part = str(file_path.parts[0]).lower()
+            if "windows" in first_part and "system32" in str(file_path).lower():
+                print("Error: Cannot upload files from system directory", file=sys.stderr)
+                sys.exit(1)
+
+        # Must be a regular file, not a directory or special file
+        if not file_path.is_file():
+            print(
+                "Error: Path must be a regular file, not a directory or special file",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         print(f"Uploading {file_path.name}...")

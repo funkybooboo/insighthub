@@ -80,6 +80,18 @@ tasks:
       - docker network prune -f
       - echo "All containers and volumes removed"
 
+  reset:
+    desc: DESTRUCTIVE - Reset everything (remove all data, restart services, run migrations)
+    prompt: This will delete all data, restart services, and run migrations. Continue?
+    cmds:
+      - docker compose down -v --remove-orphans
+      - docker network prune -f
+      - echo "All containers and volumes removed"
+      - docker compose up -d
+      - echo "Waiting for services to be healthy..."
+      - sleep 5
+      - cd migrations && ./migrate.sh up
+
   # ==================== Python Development ====================
   install:
     desc: Install Python dependencies using Poetry
@@ -135,8 +147,7 @@ tasks:
       - task: format
       - task: lint
       - task: type-check
-      - task: unit-test
-      - task: integration-test
+      - task: test
 
   # ==================== CLI ====================
   cli:
@@ -155,11 +166,6 @@ tasks:
     desc: Rollback database migrations
     cmds:
       - cd migrations && ./migrate.sh down
-
-  migrate-docker:
-    desc: Run database migrations in Docker
-    cmds:
-      - cd migrations && ./migrate.sh up --docker
 
   # ==================== Cleanup ====================
   clean:

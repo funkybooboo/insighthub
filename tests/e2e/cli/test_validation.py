@@ -94,8 +94,8 @@ class TestCLIValidation:
     def test_workspace_select_with_extra_arguments(self):
         """Test workspace select with extra arguments."""
         result = self.run_cli("workspace", "select", "1", "extra", "arguments")
-        # Extra arguments should be ignored or cause error
-        assert result.returncode in [0, 1]
+        # Extra arguments should cause argparse error (exit code 2)
+        assert result.returncode == 2
 
     # ==================== DOCUMENT VALIDATION ====================
 
@@ -363,7 +363,7 @@ class TestCLIValidation:
         """Test RAG config with invalid chunking algorithm."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-            input="vector\ninvalid-algorithm\n512\n100\nollama\n3\nnone\n",
+            input="vector\ninvalid-algorithm\n512\n100\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -377,7 +377,7 @@ class TestCLIValidation:
         for size in invalid_sizes:
             result = subprocess.run(
                 [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-                input=f"vector\nsentence\n{size}\n100\nollama\n3\nnone\n",
+                input=f"vector\nsentence\n{size}\n100\nnomic-embed-text\n3\nnone\n",
                 capture_output=True,
                 text=True,
             )
@@ -391,7 +391,7 @@ class TestCLIValidation:
         for overlap in invalid_overlaps:
             result = subprocess.run(
                 [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-                input=f"vector\nsentence\n512\n{overlap}\nollama\n3\nnone\n",
+                input=f"vector\nsentence\n512\n{overlap}\nnomic-embed-text\n3\nnone\n",
                 capture_output=True,
                 text=True,
             )
@@ -402,7 +402,7 @@ class TestCLIValidation:
         """Test RAG config where overlap is greater than chunk size."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-            input="vector\nsentence\n100\n500\nollama\n3\nnone\n",
+            input="vector\nsentence\n100\n500\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -417,7 +417,7 @@ class TestCLIValidation:
         for top_k in invalid_top_k:
             result = subprocess.run(
                 [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-                input=f"vector\nsentence\n512\n100\nollama\n{top_k}\nnone\n",
+                input=f"vector\nsentence\n512\n100\nnomic-embed-text\n{top_k}\nnone\n",
                 capture_output=True,
                 text=True,
             )
@@ -470,9 +470,11 @@ class TestCLIValidation:
                 text=True,
             )
             # Should treat as literal string, not execute
-            # Check that sensitive commands didn't execute
-            assert "passwd" not in result.stdout.lower()
-            assert "root:" not in result.stdout.lower()
+            # The output may echo the title back, which is fine (e.g., "created chat session [1] | cat /etc/passwd")
+            # What we're checking is that actual command execution didn't happen
+            # If command executed, we'd see actual file contents like "root:x:0:0" not just the string "passwd"
+            assert "root:x:0:0" not in result.stdout.lower()
+            assert result.returncode == 0  # Should succeed as a normal title
 
     def test_null_byte_injection(self):
         """Test null byte injection attempts."""

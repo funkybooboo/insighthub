@@ -432,7 +432,7 @@ class TestCLIConcurrency:
             chunk_size = 500 + (index * 100)
             result = self.run_cli_with_input(
                 ["default-rag-config", "new"],
-                f"vector\nsentence\n{chunk_size}\n100\nollama\n{3+index}\nnone\n",
+                f"vector\nsentence\n{chunk_size}\n100\nnomic-embed-text\n{3+index}\nnone\n",
             )
             results.append((index, result))
 

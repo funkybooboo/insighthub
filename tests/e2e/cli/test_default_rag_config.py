@@ -35,7 +35,7 @@ class TestDefaultRagConfigCLI:
         """Test default-rag-config new command with vector type."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-            input="vector\nsentence\n1000\n200\nollama\n5\nnone\n",
+            input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -74,7 +74,7 @@ class TestDefaultRagConfigCLI:
         # First set to vector
         subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
-            input="vector\nsentence\n512\n100\nollama\n3\nnone\n",
+            input="vector\nsentence\n512\n100\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
         )

@@ -21,6 +21,12 @@ from src.infrastructure.rag.options import (
     get_rag_type_options,
     get_reranking_options,
     get_valid_rag_types,
+    is_valid_chunking_algorithm,
+    is_valid_clustering_algorithm,
+    is_valid_embedding_algorithm,
+    is_valid_entity_extraction_algorithm,
+    is_valid_relationship_extraction_algorithm,
+    is_valid_reranking_algorithm,
 )
 
 logger = create_logger(__name__)
@@ -110,28 +116,69 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
             chunking_algorithm = (
                 input(f"Chunking algorithm [{default_chunking}]: ").strip() or default_chunking
             )
+            if not is_valid_chunking_algorithm(chunking_algorithm):
+                print(f"Error: Invalid chunking algorithm '{chunking_algorithm}'", file=sys.stderr)
+                sys.exit(1)
 
-            chunk_size = input("Chunk size [1000]: ").strip() or "1000"
-            chunk_overlap = input("Chunk overlap [200]: ").strip() or "200"
+            chunk_size_str = input("Chunk size [1000]: ").strip() or "1000"
+            try:
+                chunk_size = int(chunk_size_str)
+                if chunk_size <= 0:
+                    print("Error: Chunk size must be a positive integer", file=sys.stderr)
+                    sys.exit(1)
+            except ValueError:
+                print(
+                    f"Error: Chunk size must be an integer, got '{chunk_size_str}'", file=sys.stderr
+                )
+                sys.exit(1)
+
+            chunk_overlap_str = input("Chunk overlap [200]: ").strip() or "200"
+            try:
+                chunk_overlap = int(chunk_overlap_str)
+                if chunk_overlap < 0:
+                    print("Error: Chunk overlap must be a non-negative integer", file=sys.stderr)
+                    sys.exit(1)
+            except ValueError:
+                print(
+                    f"Error: Chunk overlap must be an integer, got '{chunk_overlap_str}'",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
 
             default_embedding = get_default_embedding_algorithm()
             embedding_algorithm = (
                 input(f"Embedding algorithm [{default_embedding}]: ").strip() or default_embedding
             )
+            if not is_valid_embedding_algorithm(embedding_algorithm):
+                print(
+                    f"Error: Invalid embedding algorithm '{embedding_algorithm}'", file=sys.stderr
+                )
+                sys.exit(1)
 
-            top_k = input("Top K [5]: ").strip() or "5"
+            top_k_str = input("Top K [5]: ").strip() or "5"
+            try:
+                top_k = int(top_k_str)
+                if top_k <= 0:
+                    print("Error: Top K must be a positive integer", file=sys.stderr)
+                    sys.exit(1)
+            except ValueError:
+                print(f"Error: Top K must be an integer, got '{top_k_str}'", file=sys.stderr)
+                sys.exit(1)
 
             default_reranking = get_default_reranking_algorithm()
             rerank_algorithm = (
                 input(f"Rerank algorithm [{default_reranking}]: ").strip() or default_reranking
             )
+            if not is_valid_reranking_algorithm(rerank_algorithm):
+                print(f"Error: Invalid reranking algorithm '{rerank_algorithm}'", file=sys.stderr)
+                sys.exit(1)
 
             vector_config = {
                 "chunking_algorithm": chunking_algorithm,
-                "chunk_size": int(chunk_size),
-                "chunk_overlap": int(chunk_overlap),
+                "chunk_size": chunk_size,
+                "chunk_overlap": chunk_overlap,
                 "embedding_algorithm": embedding_algorithm,
-                "top_k": int(top_k),
+                "top_k": top_k,
                 "rerank_algorithm": rerank_algorithm,
             }
         else:  # graph
@@ -159,18 +206,33 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
             entity_extraction = (
                 input(f"Entity extraction algorithm [{default_entity}]: ").strip() or default_entity
             )
+            if not is_valid_entity_extraction_algorithm(entity_extraction):
+                print(
+                    f"Error: Invalid entity extraction algorithm '{entity_extraction}'",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
 
             default_relationship = get_default_relationship_extraction_algorithm()
             relationship_extraction = (
                 input(f"Relationship extraction algorithm [{default_relationship}]: ").strip()
                 or default_relationship
             )
+            if not is_valid_relationship_extraction_algorithm(relationship_extraction):
+                print(
+                    f"Error: Invalid relationship extraction algorithm '{relationship_extraction}'",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
 
             default_clustering = get_default_clustering_algorithm()
             clustering = (
                 input(f"Clustering algorithm [{default_clustering}]: ").strip()
                 or default_clustering
             )
+            if not is_valid_clustering_algorithm(clustering):
+                print(f"Error: Invalid clustering algorithm '{clustering}'", file=sys.stderr)
+                sys.exit(1)
 
             graph_config = {
                 "entity_extraction_algorithm": entity_extraction,

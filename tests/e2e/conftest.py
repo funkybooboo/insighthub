@@ -37,6 +37,7 @@ def check_service_health(service: str) -> Literal["healthy", "unhealthy", "not_r
 
         # Parse state and health from JSON output
         import json
+
         service_info = json.loads(state_result.stdout)
 
         state = service_info.get("State", "unknown")
