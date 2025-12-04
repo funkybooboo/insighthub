@@ -7,6 +7,11 @@ from pathlib import Path
 from returns.result import Failure
 
 from src.context import AppContext
+from src.domains.workspace.document.dtos import (
+    DeleteDocumentRequest,
+    ShowDocumentRequest,
+    UploadDocumentRequest,
+)
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
@@ -21,13 +26,22 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
-        documents = ctx.document_service.list_documents_by_workspace(ctx.current_workspace_id)
-        if not documents:
+        # === Call Orchestrator ===
+        result = ctx.document_orchestrator.list_documents(ctx.current_workspace_id)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        responses = result.unwrap()
+        if not responses:
             print("No documents found")
             return
 
-        for doc in documents:
-            print(f"[{doc.id}] {doc.filename}")
+        for response in responses:
+            print(f"[{response.id}] {response.filename}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -44,24 +58,30 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
-        document = ctx.document_service.get_document_by_id(args.document_id)
-        if not document:
-            print(f"Error: Document {args.document_id} not found", file=sys.stderr)
+        # === Create Request DTO ===
+        request = ShowDocumentRequest(
+            document_id=args.document_id, workspace_id=ctx.current_workspace_id
+        )
+
+        # === Call Orchestrator ===
+        result = ctx.document_orchestrator.show_document(request)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
 
-        # Verify document belongs to current workspace
-        if document.workspace_id != ctx.current_workspace_id:
-            print(f"Error: Document {args.document_id} not in current workspace", file=sys.stderr)
-            sys.exit(1)
+        response = result.unwrap()
 
-        print(f"ID: {document.id}")
-        print(f"Filename: {document.filename}")
-        print(f"Status: {document.status}")
-        print(f"Size: {document.file_size} bytes")
-        print(f"MIME Type: {document.mime_type}")
-        print(f"Chunks: {document.chunk_count if document.chunk_count else 0}")
-        print(f"Hash: {document.content_hash}")
-        print(f"Uploaded: {document.created_at}")
+        print(f"ID: {response.id}")
+        print(f"Filename: {response.filename}")
+        print(f"Status: {response.status}")
+        print(f"Size: {response.file_size} bytes")
+        print(f"MIME Type: {response.mime_type}")
+        print(f"Chunks: {response.chunk_count if response.chunk_count else 0}")
+        print(f"Hash: {response.content_hash}")
+        print(f"Uploaded: {response.created_at}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -78,70 +98,28 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
-        file_path = Path(args.file).resolve()  # Resolve to absolute path
-        if not file_path.exists():
-            print(f"Error: File not found: {file_path}", file=sys.stderr)
-            sys.exit(1)
+        file_path = Path(args.file)
 
-        # Security: Prevent uploading system files or files from sensitive directories
-        sensitive_paths = [
-            "/etc",
-            "/sys",
-            "/proc",
-            "/dev",
-            "/boot",
-            "/root",
-            "/var/log",
-        ]
-
-        # Check if file is in a sensitive directory
-        for sensitive in sensitive_paths:
-            try:
-                if file_path.is_relative_to(sensitive):
-                    print(
-                        f"Error: Cannot upload files from system directory: {sensitive}",
-                        file=sys.stderr,
-                    )
-                    sys.exit(1)
-            except ValueError:
-                # is_relative_to raises ValueError on Windows for incompatible paths
-                pass
-
-        # Check for common system file patterns on Windows
-        if file_path.parts and len(file_path.parts) > 0:
-            first_part = str(file_path.parts[0]).lower()
-            if "windows" in first_part and "system32" in str(file_path).lower():
-                print("Error: Cannot upload files from system directory", file=sys.stderr)
-                sys.exit(1)
-
-        # Must be a regular file, not a directory or special file
-        if not file_path.is_file():
-            print(
-                "Error: Path must be a regular file, not a directory or special file",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        # === Create Request DTO ===
+        request = UploadDocumentRequest(
+            workspace_id=ctx.current_workspace_id,
+            filename=file_path.name,
+            file_path=str(file_path),
+        )
 
         print(f"Uploading {file_path.name}...")
 
-        # Read file content
-        with open(file_path, "rb") as f:
-            file_content = f.read()
+        # === Call Orchestrator ===
+        result = ctx.document_orchestrator.upload_document(request)
 
-        # Upload and process document through service
-        result = ctx.document_service.upload_and_process_document(
-            workspace_id=ctx.current_workspace_id,
-            filename=file_path.name,
-            file_content=file_content,
-        )
-
+        # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
             print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
 
-        document = result.unwrap()
-        print(f"Uploaded [{document.id}] {document.filename}")
+        response = result.unwrap()
+        print(f"Uploaded [{response.id}] {response.filename}")
 
     except KeyboardInterrupt:
         print("\nCancelled")
@@ -179,10 +157,23 @@ def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
             print("Cancelled")
             return
 
-        # Delete through service
-        deleted = ctx.document_service.remove_document(doc_to_remove.id)
+        # === Create Request DTO ===
+        request = DeleteDocumentRequest(
+            document_id=doc_to_remove.id, workspace_id=ctx.current_workspace_id
+        )
+
+        # === Call Orchestrator ===
+        result = ctx.document_orchestrator.delete_document(request)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        deleted = result.unwrap()
         if deleted:
-            print(f"Deleted [{doc_to_remove.id}] {doc_to_remove.filename}")
+            print(f"Deleted [{doc_to_remove.id}] {args.filename}")
         else:
             print("Error: Failed to delete document", file=sys.stderr)
             sys.exit(1)

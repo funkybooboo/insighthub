@@ -25,6 +25,8 @@ class VectorRagConfig:
     """Vector RAG configuration for a workspace."""
 
     workspace_id: int
+    embedding_model_vector_size: int = 768
+    distance_metric: str = "cosine"
     embedding_algorithm: str = "ollama"
     chunking_algorithm: str = "sentence"
     rerank_algorithm: str = "none"

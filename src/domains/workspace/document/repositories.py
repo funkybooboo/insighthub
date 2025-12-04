@@ -5,8 +5,8 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
+from src.domains.workspace.document.models import Document
 from src.infrastructure.logger import create_logger
-from src.infrastructure.models import Document
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
 from src.infrastructure.types import DatabaseError
 

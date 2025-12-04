@@ -3,11 +3,40 @@
 from dataclasses import dataclass
 from typing import Optional
 
+# ============================================================================
+# Request DTOs (User Input)
+# ============================================================================
+
 
 @dataclass
-class VectorRagConfigDTO:
-    """DTO for vector RAG configuration."""
+class CreateUpdateDefaultRagConfigRequest:
+    """Request DTO for creating/updating default RAG configuration."""
 
+    rag_type: Optional[str] = None
+    # Vector config fields
+    chunking_algorithm: Optional[str] = None
+    chunk_size: Optional[int] = None
+    chunk_overlap: Optional[int] = None
+    embedding_algorithm: Optional[str] = None
+    top_k: Optional[int] = None
+    rerank_algorithm: Optional[str] = None
+    # Graph config fields
+    entity_extraction_algorithm: Optional[str] = None
+    relationship_extraction_algorithm: Optional[str] = None
+    clustering_algorithm: Optional[str] = None
+
+
+# ============================================================================
+# Response DTOs (Service Output)
+# ============================================================================
+
+
+@dataclass
+class VectorRagConfigResponse:
+    """Response DTO for vector RAG configuration."""
+
+    embedding_model_vector_size: int
+    distance_metric: str
     embedding_algorithm: str
     chunking_algorithm: str
     rerank_algorithm: str
@@ -17,8 +46,8 @@ class VectorRagConfigDTO:
 
 
 @dataclass
-class GraphRagConfigDTO:
-    """DTO for graph RAG configuration."""
+class GraphRagConfigResponse:
+    """Response DTO for graph RAG configuration."""
 
     entity_extraction_algorithm: str
     relationship_extraction_algorithm: str
@@ -26,30 +55,12 @@ class GraphRagConfigDTO:
 
 
 @dataclass
-class DefaultRagConfigDTO:
-    """DTO for default RAG configuration response (single-user system)."""
+class DefaultRagConfigResponse:
+    """Response DTO for default RAG configuration."""
 
     id: int
-    vector_config: VectorRagConfigDTO
-    graph_config: GraphRagConfigDTO
-    created_at: str
-    updated_at: str
-
-
-@dataclass
-class CreateUpdateDefaultRagConfigDTO:
-    """DTO for creating/updating default RAG configuration."""
-
-    vector_config: Optional[VectorRagConfigDTO] = None
-    graph_config: Optional[GraphRagConfigDTO] = None
-
-
-@dataclass
-class DefaultRagConfigResponseDTO:
-    """DTO for default RAG configuration API response (single-user system)."""
-
-    id: int
-    vector_config: dict
-    graph_config: dict
+    rag_type: str
+    vector_config: VectorRagConfigResponse
+    graph_config: GraphRagConfigResponse
     created_at: str
     updated_at: str

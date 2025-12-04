@@ -2,104 +2,74 @@
 
 from typing import List
 
-from src.infrastructure.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
+from src.domains.workspace.models import GraphRagConfig, RagConfig, VectorRagConfig, Workspace
+from src.infrastructure.mappers import map_timestamps
 
 from .dtos import (
-    GraphRagConfigDTO,
-    RagConfigDTO,
-    VectorRagConfigDTO,
-    WorkspaceDTO,
-    WorkspaceListDTO,
+    GraphRagConfigResponse,
+    RagConfigResponse,
+    VectorRagConfigResponse,
+    WorkspaceListResponse,
+    WorkspaceResponse,
 )
 
 
 class WorkspaceMapper:
-    """Mapper for converting between Workspace models and DTOs."""
+    """Mapper for converting between Workspace models and Response DTOs."""
 
     @staticmethod
-    def to_dto(workspace: Workspace) -> WorkspaceDTO:
+    def to_response(workspace: Workspace) -> WorkspaceResponse:
         """
-        Convert Workspace model to DTO (single-user system).
+        Convert Workspace model to Response DTO.
 
         Args:
             workspace: Workspace model instance
 
         Returns:
-            WorkspaceDTO instance
+            WorkspaceResponse instance
         """
-        return WorkspaceDTO(
+        created_at_str, updated_at_str = map_timestamps(workspace.created_at, workspace.updated_at)
+        return WorkspaceResponse(
             id=workspace.id,
             name=workspace.name,
             description=workspace.description,
             rag_type=workspace.rag_type,
             status=workspace.status,
-            created_at=workspace.created_at.isoformat(),
-            updated_at=workspace.updated_at.isoformat(),
+            created_at=created_at_str,
+            updated_at=updated_at_str,
         )
 
     @staticmethod
-    def to_dto_list(workspaces: List[Workspace]) -> WorkspaceListDTO:
+    def to_list_response(workspaces: List[Workspace]) -> WorkspaceListResponse:
         """
-        Convert list of Workspace models to WorkspaceListDTO.
+        Convert list of Workspace models to WorkspaceListResponse.
 
         Args:
             workspaces: List of Workspace model instances
 
         Returns:
-            WorkspaceListDTO instance
+            WorkspaceListResponse instance
         """
-        return WorkspaceListDTO(workspaces=[WorkspaceMapper.to_dto(w) for w in workspaces])
-
-    @staticmethod
-    def dto_to_dict(dto: WorkspaceDTO) -> dict:
-        """
-        Convert WorkspaceDTO to dictionary for JSON response (single-user system).
-
-        Args:
-            dto: WorkspaceDTO instance
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "id": dto.id,
-            "name": dto.name,
-            "description": dto.description,
-            "rag_type": dto.rag_type,
-            "status": dto.status,
-            "created_at": dto.created_at,
-            "updated_at": dto.updated_at,
-        }
-
-    @staticmethod
-    def dto_list_to_dict(dto_list: WorkspaceListDTO) -> List[dict]:
-        """
-        Convert WorkspaceListDTO to list of dictionaries.
-
-        Args:
-            dto_list: WorkspaceListDTO instance
-
-        Returns:
-            List of dictionary representations
-        """
-        return [WorkspaceMapper.dto_to_dict(dto) for dto in dto_list.workspaces]
+        return WorkspaceListResponse(
+            workspaces=[WorkspaceMapper.to_response(w) for w in workspaces]
+        )
 
 
 class VectorRagConfigMapper:
-    """Mapper for VectorRagConfig models and DTOs."""
+    """Mapper for VectorRagConfig models and Response DTOs."""
 
     @staticmethod
-    def to_dto(config: VectorRagConfig) -> VectorRagConfigDTO:
+    def to_response(config: VectorRagConfig) -> VectorRagConfigResponse:
         """
-        Convert VectorRagConfig model to DTO.
+        Convert VectorRagConfig model to Response DTO.
 
         Args:
             config: VectorRagConfig model instance
 
         Returns:
-            VectorRagConfigDTO instance
+            VectorRagConfigResponse instance
         """
-        return VectorRagConfigDTO(
+        return VectorRagConfigResponse(
             embedding_algorithm=config.embedding_algorithm,
             chunking_algorithm=config.chunking_algorithm,
             rerank_algorithm=config.rerank_algorithm,
@@ -108,98 +78,44 @@ class VectorRagConfigMapper:
             top_k=config.top_k,
         )
 
-    @staticmethod
-    def dto_to_dict(dto: VectorRagConfigDTO) -> dict:
-        """
-        Convert VectorRagConfigDTO to dictionary.
-
-        Args:
-            dto: VectorRagConfigDTO instance
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "embedding_algorithm": dto.embedding_algorithm,
-            "chunking_algorithm": dto.chunking_algorithm,
-            "rerank_algorithm": dto.rerank_algorithm,
-            "chunk_size": dto.chunk_size,
-            "chunk_overlap": dto.chunk_overlap,
-            "top_k": dto.top_k,
-        }
-
 
 class GraphRagConfigMapper:
-    """Mapper for GraphRagConfig models and DTOs."""
+    """Mapper for GraphRagConfig models and Response DTOs."""
 
     @staticmethod
-    def to_dto(config: GraphRagConfig) -> GraphRagConfigDTO:
+    def to_response(config: GraphRagConfig) -> GraphRagConfigResponse:
         """
-        Convert GraphRagConfig model to DTO.
+        Convert GraphRagConfig model to Response DTO.
 
         Args:
             config: GraphRagConfig model instance
 
         Returns:
-            GraphRagConfigDTO instance
+            GraphRagConfigResponse instance
         """
-        return GraphRagConfigDTO(
+        return GraphRagConfigResponse(
             entity_extraction_algorithm=config.entity_extraction_algorithm,
             relationship_extraction_algorithm=config.relationship_extraction_algorithm,
             clustering_algorithm=config.clustering_algorithm,
         )
 
-    @staticmethod
-    def dto_to_dict(dto: GraphRagConfigDTO) -> dict:
-        """
-        Convert GraphRagConfigDTO to dictionary.
-
-        Args:
-            dto: GraphRagConfigDTO instance
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "entity_extraction_algorithm": dto.entity_extraction_algorithm,
-            "relationship_extraction_algorithm": dto.relationship_extraction_algorithm,
-            "clustering_algorithm": dto.clustering_algorithm,
-        }
-
 
 class RagConfigMapper:
-    """Mapper for RagConfig models and DTOs."""
+    """Mapper for RagConfig models and Response DTOs."""
 
     @staticmethod
-    def to_dto(config: RagConfig) -> RagConfigDTO:
+    def to_response(config: RagConfig) -> RagConfigResponse:
         """
-        Convert RagConfig model to DTO.
+        Convert RagConfig model to Response DTO.
 
         Args:
             config: RagConfig model instance
 
         Returns:
-            RagConfigDTO instance
+            RagConfigResponse instance
         """
-        return RagConfigDTO(
+        return RagConfigResponse(
             workspace_id=config.workspace_id,
             rag_type=config.rag_type,
             config=config.config,
         )
-
-    @staticmethod
-    def dto_to_dict(dto: RagConfigDTO) -> dict:
-        """
-        Convert RagConfigDTO to dictionary.
-
-        Args:
-            dto: RagConfigDTO instance
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "workspace_id": dto.workspace_id,
-            "rag_type": dto.rag_type,
-            "config": dto.config,
-        }

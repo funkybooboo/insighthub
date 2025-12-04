@@ -5,17 +5,15 @@ from typing import Any, Callable, Optional
 from returns.result import Failure, Result, Success
 
 from src.config import config
+from src.domains.workspace.chat.message.models import ChatMessage
+from src.domains.workspace.chat.message.repositories import ChatMessageRepository
+from src.domains.workspace.chat.session.repositories import ChatSessionRepository
+from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.models import ChatMessage
 from src.infrastructure.rag.options import get_default_embedding_algorithm
 from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
-from src.infrastructure.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    WorkspaceRepository,
-)
 from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
 
 logger = create_logger(__name__)
@@ -32,7 +30,7 @@ class ChatMessageService:
         llm_provider: LlmProvider,
         cache: Optional[Cache] = None,
     ):
-        """Initialize service with repository and cache."""
+        """Initialize service with repository and optional cache."""
         self.repository = repository
         self.session_repository = session_repository
         self.cache = cache

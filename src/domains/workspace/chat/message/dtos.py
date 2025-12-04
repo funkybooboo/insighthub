@@ -1,64 +1,44 @@
 """Message-specific DTOs for chat message."""
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Callable
+from typing import Callable, Optional
 
-
-@dataclass
-class CreateMessageRequest:
-    """Request data for creating a chat message."""
-
-    content: str
-    role: str = "user"  # 'user', 'assistant', 'system'
+# ============================================================================
+# Request DTOs (User Input)
+# ============================================================================
 
 
 @dataclass
 class SendMessageRequest:
-    """Request data for sending a message with RAG and streaming."""
+    """Request DTO for sending a message with RAG."""
 
     session_id: int
     content: str
-    stream_callback: Callable[[str], None] | None = None
+    stream_callback: Optional[Callable[[str], None]] = None
+
+
+@dataclass
+class ListMessagesRequest:
+    """Request DTO for listing messages."""
+
+    session_id: int
+    skip: int = 0
+    limit: int = 50
+
+
+# ============================================================================
+# Response DTOs (Service Output)
+# ============================================================================
 
 
 @dataclass
 class MessageResponse:
-    """Response data for a single chat message."""
+    """Response DTO for a single chat message."""
 
     id: int
     session_id: int
     role: str
     content: str
-    extra_metadata: str | None
-    created_at: datetime
-    updated_at: datetime
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "id": self.id,
-            "session_id": self.session_id,
-            "role": self.role,
-            "content": self.content,
-            "extra_metadata": self.extra_metadata,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-        }
-
-
-@dataclass
-class MessageListResponse:
-    """Response data for listing chat message."""
-
-    messages: list[MessageResponse]
-    count: int
-    total: int
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "message": [message.to_dict() for message in self.messages],
-            "count": self.count,
-            "total": self.total,
-        }
+    extra_metadata: Optional[str]
+    created_at: str
+    updated_at: str

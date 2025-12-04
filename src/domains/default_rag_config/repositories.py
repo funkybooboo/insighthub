@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from src.infrastructure.models import (
+from src.domains.default_rag_config.models import (
     DefaultGraphRagConfig,
     DefaultRagConfig,
     DefaultVectorRagConfig,

@@ -8,6 +8,8 @@ from datetime import datetime
 class DefaultVectorRagConfig:
     """Default vector RAG configuration (single-user system)."""
 
+    embedding_model_vector_size: int = 768
+    distance_metric: str = "cosine"
     embedding_algorithm: str = "ollama"
     chunking_algorithm: str = "sentence"
     rerank_algorithm: str = "none"

@@ -1,12 +1,112 @@
 """DTOs for workspace domain."""
 
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
+
+from pydantic import BaseModel, Field, field_validator
+
+from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
+
+# ============================================================================
+# Request DTOs (User Input) - Pydantic models with validation
+# ============================================================================
 
 
-@dataclass
-class WorkspaceDTO:
-    """DTO for workspace responses (single-user system)."""
+class CreateWorkspaceRequest(BaseModel):
+    """Request DTO for workspace creation with validation."""
+
+    name: str = Field(..., min_length=1, max_length=255, description="Workspace name")
+    description: Optional[str] = Field(None, max_length=1000, description="Workspace description")
+    rag_type: Optional[str] = Field(None, description="RAG type (vector, graph, hybrid)")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Validate and clean name."""
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Workspace name cannot be empty")
+        return cleaned
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and clean description."""
+        if v is None:
+            return None
+        cleaned = v.strip()
+        return cleaned if cleaned else None
+
+    @field_validator("rag_type")
+    @classmethod
+    def validate_rag_type(cls, v: Optional[str]) -> Optional[str]:
+        """Validate RAG type if provided."""
+        if v is None:
+            return None
+        if not is_valid_rag_type(v):
+            valid_types = get_valid_rag_types()
+            raise ValueError(f"Invalid rag_type. Must be one of: {', '.join(valid_types)}")
+        return v
+
+    model_config = {"str_strip_whitespace": True, "validate_assignment": True}
+
+
+class UpdateWorkspaceRequest(BaseModel):
+    """Request DTO for workspace update with validation."""
+
+    workspace_id: int = Field(..., gt=0, description="Workspace ID")
+    name: Optional[str] = Field(
+        None, min_length=1, max_length=255, description="New workspace name"
+    )
+    description: Optional[str] = Field(None, max_length=1000, description="New description")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and clean name if provided."""
+        if v is None:
+            return None
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("Workspace name cannot be empty")
+        return cleaned
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        """Validate and clean description if provided."""
+        if v is None:
+            return None
+        cleaned = v.strip()
+        return cleaned if cleaned else None
+
+    model_config = {"str_strip_whitespace": True, "validate_assignment": True}
+
+
+class DeleteWorkspaceRequest(BaseModel):
+    """Request DTO for workspace deletion with validation."""
+
+    workspace_id: int = Field(..., gt=0, description="Workspace ID to delete")
+
+
+class ShowWorkspaceRequest(BaseModel):
+    """Request DTO for showing workspace details with validation."""
+
+    workspace_id: int = Field(..., gt=0, description="Workspace ID to show")
+
+
+class SelectWorkspaceRequest(BaseModel):
+    """Request DTO for selecting a workspace with validation."""
+
+    workspace_id: int = Field(..., gt=0, description="Workspace ID to select")
+
+
+# ============================================================================
+# Response DTOs (Service Output) - Pydantic models for consistent serialization
+# ============================================================================
+
+
+class WorkspaceResponse(BaseModel):
+    """Response DTO for single workspace."""
 
     id: int
     name: str
@@ -16,17 +116,17 @@ class WorkspaceDTO:
     created_at: str
     updated_at: str
 
-
-@dataclass
-class WorkspaceListDTO:
-    """DTO for workspace list responses."""
-
-    workspaces: List[WorkspaceDTO]
+    model_config = {"from_attributes": True}
 
 
-@dataclass
-class VectorRagConfigDTO:
-    """DTO for vector RAG configuration responses."""
+class WorkspaceListResponse(BaseModel):
+    """Response DTO for workspace list."""
+
+    workspaces: list[WorkspaceResponse]
+
+
+class VectorRagConfigResponse(BaseModel):
+    """Response DTO for vector RAG configuration."""
 
     embedding_algorithm: str
     chunking_algorithm: str
@@ -35,38 +135,24 @@ class VectorRagConfigDTO:
     chunk_overlap: int
     top_k: int
 
+    model_config = {"from_attributes": True}
 
-@dataclass
-class GraphRagConfigDTO:
-    """DTO for graph RAG configuration responses."""
+
+class GraphRagConfigResponse(BaseModel):
+    """Response DTO for graph RAG configuration."""
 
     entity_extraction_algorithm: str
     relationship_extraction_algorithm: str
     clustering_algorithm: str
 
+    model_config = {"from_attributes": True}
 
-@dataclass
-class RagConfigDTO:
-    """DTO for generic RAG configuration responses."""
+
+class RagConfigResponse(BaseModel):
+    """Response DTO for generic RAG configuration."""
 
     workspace_id: int
     rag_type: str
     config: dict
 
-
-@dataclass
-class CreateWorkspaceDTO:
-    """DTO for workspace creation requests."""
-
-    name: str
-    description: Optional[str] = None
-    rag_type: str = "vector"
-    rag_config: Optional[dict] = None
-
-
-@dataclass
-class UpdateWorkspaceDTO:
-    """DTO for workspace update requests."""
-
-    name: Optional[str] = None
-    description: Optional[str] = None
+    model_config = {"from_attributes": True}

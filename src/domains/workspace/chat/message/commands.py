@@ -6,6 +6,7 @@ import sys
 from returns.result import Failure
 
 from src.context import AppContext
+from src.domains.workspace.chat.message.dtos import ListMessagesRequest, SendMessageRequest
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
@@ -18,24 +19,28 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
             print("Error: No chat session selected. Use 'chat select <id>' first", file=sys.stderr)
             sys.exit(1)
 
-        session = ctx.chat_session_service.get_session(ctx.current_session_id)
-        if not session:
-            print(f"Error: Chat session {ctx.current_session_id} not found", file=sys.stderr)
+        # === Create Request DTO ===
+        request = ListMessagesRequest(session_id=ctx.current_session_id, skip=0, limit=50)
+
+        # === Call Orchestrator ===
+        result = ctx.message_orchestrator.list_messages(request)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
 
-        # List message for the session
-        messages, total = ctx.chat_message_service.get_session_messages(
-            session_id=session.id, skip=0, limit=50
-        )
+        responses, total = result.unwrap()
 
-        if not messages:
+        if not responses:
             print("No messages in this session")
             return
 
         print(f"\nChat History ({total} messages):\n")
-        for message in messages:
-            role = "You" if message.role == "user" else "Assistant"
-            print(f"{role}: {message.content}\n")
+        for response in responses:
+            role = "You" if response.role == "user" else "Assistant"
+            print(f"{role}: {response.content}\n")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -50,27 +55,27 @@ def cmd_send(ctx: AppContext, args: argparse.Namespace) -> None:
             print("Error: No chat session selected. Use 'chat select <id>' first", file=sys.stderr)
             sys.exit(1)
 
-        # Get the message content
-        message_content = args.message
-
-        # Print user message
-        print(f"\nYou: {message_content}\n")
-
         # Stream callback to print chunks
-        print("Assistant: ", end="", flush=True)
-
         def print_chunk(chunk: str) -> None:
             print(chunk, end="", flush=True)
 
-        # Send message with RAG and streaming (all logic in service)
-        result = ctx.chat_message_service.send_message_with_rag(
+        # === Create Request DTO ===
+        request = SendMessageRequest(
             session_id=ctx.current_session_id,
-            message_content=message_content,
+            content=args.message,
             stream_callback=print_chunk,
         )
 
+        # Print user message
+        print(f"\nYou: {request.content}\n")
+
+        # === Call Orchestrator ===
+        print("Assistant: ", end="", flush=True)
+        result = ctx.message_orchestrator.send_message(request)
+
         print()  # New line after streaming completes
 
+        # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
             print(f"\nError: {error.message}", file=sys.stderr)

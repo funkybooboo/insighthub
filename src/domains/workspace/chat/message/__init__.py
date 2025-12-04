@@ -1,7 +1,7 @@
 """Chat message domain."""
 
-from src.infrastructure.models import ChatMessage
-from src.infrastructure.repositories import ChatMessageRepository
+from src.domains.workspace.chat.message.models import ChatMessage
+from src.domains.workspace.chat.message.repositories import ChatMessageRepository
 
 from .service import ChatMessageService
 

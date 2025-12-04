@@ -7,9 +7,11 @@ A Python-based CLI application for intelligent document retrieval using advanced
 InsightHub uses a **domain-driven design** architecture with clean separation of concerns:
 
 - **CLI Interface**: Task-based command-line interface for all operations
-- **Domain Layer**: Business logic organized by bounded contexts (workspace, document, chat)
-- **Infrastructure Layer**: RAG workflows, LLM providers, vector/graph databases, storage
+- **Domain Layer**: Business logic organized by bounded contexts (workspace, document, chat, state, rag_options)
+- **Infrastructure Layer**: Generic utilities, RAG workflows, LLM providers, caching
 - **Data Layer**: PostgreSQL with pgvector, Qdrant, Neo4j, Redis cache
+
+Each domain contains its own models, repositories, services, orchestrators, validation, and CLI commands, ensuring true domain isolation and maintainability.
 
 ### Technology Stack
 
@@ -69,29 +71,34 @@ The following services will be available:
 ### Basic Usage
 
 ```bash
-# Create a workspace
-task cli -- workspace create "My Project"
+# Workspace management
+task cli -- workspace new              # Create a workspace (interactive)
+task cli -- workspace list             # List all workspaces
+task cli -- workspace select 1         # Select active workspace
+task cli -- workspace show 1           # Show workspace details
 
-# List workspaces
-task cli -- workspace list
+# Document management
+task cli -- document upload file.pdf   # Upload a document
+task cli -- document list              # List documents in workspace
+task cli -- document show 1            # Show document details
+task cli -- document remove file.pdf   # Remove a document
 
-# Select active workspace
-task cli -- workspace select 1
+# Chat operations
+task cli -- chat new 1                 # Create new chat session
+task cli -- chat list 1                # List sessions in workspace
+task cli -- chat select 1              # Select active session
+task cli -- chat send "Your message"   # Send message to session
+task cli -- chat history               # Show message history
 
-# Add a document
-task cli -- document add path/to/document.pdf
+# Configuration
+task cli -- default-rag-config show    # Show default RAG settings
+task cli -- default-rag-config new     # Configure RAG settings (interactive)
 
-# List documents
-task cli -- document list
+# View current state
+task cli -- state show                 # Show selected workspace/session
 
-# Start a chat session
-task cli -- chat session create "Technical Questions"
-
-# Send a message
-task cli -- chat message send "What does this document say about X?"
-
-# List chat history
-task cli -- chat message list
+# View available RAG options
+task cli -- rag-options list           # List all RAG algorithms
 ```
 
 ## Project Structure
@@ -102,22 +109,73 @@ insighthub/
 │   ├── cli.py                          # CLI entry point
 │   ├── config.py                       # Configuration management
 │   ├── context.py                      # DI container
-│   ├── domains/                        # Business domains
-│   │   ├── default_rag_config/         # RAG configuration
-│   │   └── workspace/                  # Main domain
-│   │       ├── chat/                   # Chat sessions & messages
-│   │       └── document/               # Document management
+│   ├── domains/                        # Business domains (DDD)
+│   │   ├── default_rag_config/         # Default RAG configuration
+│   │   │   ├── models.py               # Domain entities
+│   │   │   ├── repositories.py         # Data persistence
+│   │   │   ├── service.py              # Business logic
+│   │   │   ├── orchestrator.py         # Workflow coordination
+│   │   │   ├── validation.py           # Input validation
+│   │   │   ├── mappers.py              # DTO mappings
+│   │   │   ├── dtos.py                 # Request/Response DTOs
+│   │   │   └── commands.py             # CLI commands
+│   │   ├── rag_options/                # RAG algorithm options (read-only)
+│   │   │   ├── service.py              # Query available algorithms
+│   │   │   ├── orchestrator.py         # Orchestration
+│   │   │   ├── dtos.py                 # Response DTOs
+│   │   │   └── commands.py             # CLI commands
+│   │   ├── state/                      # Application state
+│   │   │   ├── models.py               # State model
+│   │   │   ├── repositories.py         # State repository
+│   │   │   ├── service.py              # State queries
+│   │   │   ├── orchestrator.py         # Orchestration
+│   │   │   ├── dtos.py                 # Response DTOs
+│   │   │   └── commands.py             # CLI commands
+│   │   └── workspace/                  # Workspace domain
+│   │       ├── models.py               # Domain entities
+│   │       ├── repositories.py         # Data persistence
+│   │       ├── data_access.py          # Cache + repository coordination
+│   │       ├── service.py              # Business logic
+│   │       ├── orchestrator.py         # Orchestration
+│   │       ├── validation.py           # Input validation
+│   │       ├── mappers.py              # DTO mappings
+│   │       ├── dtos.py                 # DTOs
+│   │       ├── commands.py             # CLI commands
+│   │       ├── chat/                   # Chat subdomain
+│   │       │   ├── message/            # Messages
+│   │       │   │   ├── models.py
+│   │       │   │   ├── repositories.py
+│   │       │   │   ├── service.py
+│   │       │   │   └── ...
+│   │       │   └── session/            # Sessions
+│   │       │       ├── models.py
+│   │       │       ├── repositories.py
+│   │       │       ├── service.py
+│   │       │       └── ...
+│   │       └── document/               # Document subdomain
+│   │           ├── models.py
+│   │           ├── repositories.py
+│   │           ├── data_access.py      # Cache + repo coordination
+│   │           ├── service.py
+│   │           └── ...
 │   └── infrastructure/                 # Infrastructure layer
-│       ├── models/                     # SQLAlchemy ORM models
-│       ├── repositories/               # Data access layer
+│       ├── cache/                      # Caching implementations
+│       │   ├── cache.py                # Abstract cache interface
+│       │   ├── redis_cache.py          # Redis implementation
+│       │   └── in_memory_cache.py      # In-memory implementation
+│       ├── validation/                 # Generic validation utilities
+│       │   └── utils.py                # Reusable validators
+│       ├── mappers/                    # Generic mapper utilities
+│       │   └── utils.py                # Date formatting, etc.
+│       ├── cli_io.py                   # CLI I/O wrappers
 │       ├── rag/                        # RAG implementation
+│       │   ├── options.py              # RAG algorithm registry
 │       │   ├── steps/                  # RAG processing steps
 │       │   │   ├── general/            # Parsing, chunking
 │       │   │   ├── graph_rag/          # Graph RAG
 │       │   │   └── vector_rag/         # Vector RAG, embedding, reranking
 │       │   └── workflows/              # End-to-end workflows
 │       ├── llm/                        # LLM provider abstractions
-│       ├── vector_stores/              # Vector DB clients
 │       ├── cache/                      # Caching implementations
 │       ├── storage/                    # Blob storage (FS/S3)
 │       └── sql_database.py             # Database connection
@@ -182,10 +240,11 @@ insighthub/
 
 ```bash
 # Code quality
+task compile         # Check Python syntax compilation
 task format          # Format code (Black + isort)
 task lint            # Lint code (Ruff)
 task type-check      # Type checking (mypy)
-task check           # Run all quality checks
+task check           # Run all quality checks (compile, format, lint, type-check, test)
 
 # Testing
 task unit-test       # Run unit tests

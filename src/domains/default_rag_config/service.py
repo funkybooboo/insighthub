@@ -2,14 +2,14 @@
 
 from typing import Optional
 
-from src.infrastructure.cache.cache import Cache
-from src.infrastructure.logger import create_logger
-from src.infrastructure.models import (
+from src.domains.default_rag_config.models import (
     DefaultGraphRagConfig,
     DefaultRagConfig,
     DefaultVectorRagConfig,
 )
-from src.infrastructure.repositories import DefaultRagConfigRepository
+from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
+from src.infrastructure.cache.cache import Cache
+from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
 

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from src.infrastructure.models import State
+from src.domains.state.models import State
 from src.infrastructure.sql_database import SqlDatabase
 
 

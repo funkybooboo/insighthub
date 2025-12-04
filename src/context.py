@@ -1,21 +1,30 @@
 """Application context containing all services and repositories."""
 
 from src.config import config
+from src.domains.default_rag_config.orchestrator import DefaultRagConfigOrchestrator
+from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
 from src.domains.default_rag_config.service import DefaultRagConfigService
+from src.domains.rag_options.orchestrator import RagOptionsOrchestrator
+from src.domains.rag_options.service import RagOptionsService
+from src.domains.state.orchestrator import StateOrchestrator
+from src.domains.state.repositories import StateRepository
+from src.domains.state.service import StateService
+from src.domains.workspace.chat.message.orchestrator import MessageOrchestrator
+from src.domains.workspace.chat.message.repositories import ChatMessageRepository
 from src.domains.workspace.chat.message.service import ChatMessageService
+from src.domains.workspace.chat.session.orchestrator import SessionOrchestrator
+from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.domains.workspace.chat.session.service import ChatSessionService
+from src.domains.workspace.data_access import WorkspaceDataAccess
+from src.domains.workspace.document.data_access import DocumentDataAccess
+from src.domains.workspace.document.orchestrator import DocumentOrchestrator
+from src.domains.workspace.document.repositories import DocumentRepository
 from src.domains.workspace.document.service import DocumentService
+from src.domains.workspace.orchestrator import WorkspaceOrchestrator
+from src.domains.workspace.repositories import WorkspaceRepository
 from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.cache.factory import create_cache
 from src.infrastructure.llm.factory import create_llm_provider
-from src.infrastructure.repositories import (
-    ChatMessageRepository,
-    ChatSessionRepository,
-    DefaultRagConfigRepository,
-    DocumentRepository,
-    StateRepository,
-    WorkspaceRepository,
-)
 from src.infrastructure.sql_database import get_sql_database
 from src.infrastructure.storage.factory import create_blob_storage
 
@@ -31,7 +40,7 @@ class AppContext:
         # Cache
         cache_config = config.cache
         if cache_config.cache_type == "redis":
-            self.cache = create_cache(
+            cache = create_cache(
                 cache_type="redis",
                 host=cache_config.redis_host,
                 port=cache_config.redis_port,
@@ -39,7 +48,7 @@ class AppContext:
                 default_ttl=cache_config.redis_ttl,
             )
         else:
-            self.cache = create_cache(
+            cache = create_cache(
                 cache_type="memory",
                 default_ttl=cache_config.redis_ttl,
             )
@@ -62,24 +71,33 @@ class AppContext:
         self.chat_message_repo = ChatMessageRepository(db)
         self.state_repo = StateRepository(db)
 
-        # Services
-        self.workspace_service = WorkspaceService(
+        # Data Access Layers (coordinates cache + repository)
+        self.workspace_data_access = WorkspaceDataAccess(
             repository=self.workspace_repo,
-            cache=self.cache,
+            cache=cache,
         )
-        self.document_service = DocumentService(
+        self.document_data_access = DocumentDataAccess(
             repository=self.document_repo,
-            workspace_repository=self.workspace_repo,
-            blob_storage=self.blob_storage,
-            cache=self.cache,
+            cache=cache,
         )
+
+        # Services
         self.default_rag_config_service = DefaultRagConfigService(
             repository=self.default_rag_config_repo,
-            cache=self.cache,
+            cache=cache,
+        )
+        self.workspace_service = WorkspaceService(
+            data_access=self.workspace_data_access,
+            default_rag_config_service=self.default_rag_config_service,
+        )
+        self.document_service = DocumentService(
+            data_access=self.document_data_access,
+            workspace_repository=self.workspace_repo,
+            blob_storage=self.blob_storage,
         )
         self.chat_session_service = ChatSessionService(
             repository=self.chat_session_repo,
-            cache=self.cache,
+            cache=cache,
         )
 
         # LLM Provider
@@ -102,7 +120,41 @@ class AppContext:
             session_repository=self.chat_session_repo,
             workspace_repository=self.workspace_repo,
             llm_provider=self.llm_provider,
-            cache=self.cache,
+            cache=cache,
+        )
+
+        # State service
+        self.state_service = StateService(
+            state_repository=self.state_repo,
+            workspace_repository=self.workspace_repo,
+            session_repository=self.chat_session_repo,
+        )
+
+        # RAG Options service (no dependencies)
+        self.rag_options_service = RagOptionsService()
+
+        # Orchestrators
+        self.workspace_orchestrator = WorkspaceOrchestrator(
+            service=self.workspace_service,
+            repository=self.workspace_repo,
+        )
+        self.default_rag_config_orchestrator = DefaultRagConfigOrchestrator(
+            service=self.default_rag_config_service,
+        )
+        self.document_orchestrator = DocumentOrchestrator(
+            service=self.document_service,
+        )
+        self.session_orchestrator = SessionOrchestrator(
+            service=self.chat_session_service,
+        )
+        self.message_orchestrator = MessageOrchestrator(
+            service=self.chat_message_service,
+        )
+        self.state_orchestrator = StateOrchestrator(
+            service=self.state_service,
+        )
+        self.rag_options_orchestrator = RagOptionsOrchestrator(
+            service=self.rag_options_service,
         )
 
         # Load current state from database

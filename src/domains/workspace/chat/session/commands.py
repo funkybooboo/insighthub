@@ -6,31 +6,46 @@ import sys
 from returns.result import Failure
 
 from src.context import AppContext
+from src.domains.workspace.chat.session.dtos import (
+    CreateSessionRequest,
+    DeleteSessionRequest,
+    ListSessionsRequest,
+    SelectSessionRequest,
+)
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
-    """List chat session in the specified workspace."""
+    """List chat sessions in the specified workspace."""
     try:
+        # Check workspace exists
         workspace = ctx.workspace_repo.get_by_id(args.workspace_id)
         if not workspace:
             print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
             sys.exit(1)
 
-        # List session for the workspace
-        sessions, total = ctx.chat_session_service.list_workspace_sessions(
-            workspace_id=workspace.id, skip=0, limit=50
-        )
+        # === Create Request DTO ===
+        request = ListSessionsRequest(workspace_id=args.workspace_id, skip=0, limit=50)
 
-        if not sessions:
+        # === Call Orchestrator ===
+        result = ctx.session_orchestrator.list_sessions(request)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        responses, total = result.unwrap()
+        if not responses:
             print("No chat sessions found")
             return
 
-        for session in sessions:
-            title = session.title or "(No title)"
-            print(f"[{session.id}] {title}")
+        for response in responses:
+            title = response.title or "(No title)"
+            print(f"[{response.id}] {title}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -41,28 +56,33 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create a new chat session (interactive)."""
     try:
+        # Check workspace exists
         workspace = ctx.workspace_repo.get_by_id(args.workspace_id)
         if not workspace:
             print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
             sys.exit(1)
 
-        # Interactive prompts
+        # === CLI Interface: Gather user input ===
         title = input("Session title (optional): ").strip() or None
 
-        # Create session
-        result = ctx.chat_session_service.create_session(
+        # === Create Request DTO ===
+        request = CreateSessionRequest(
+            workspace_id=args.workspace_id,
             title=title,
-            workspace_id=workspace.id,
             rag_type=workspace.rag_type,
         )
 
+        # === Call Orchestrator ===
+        result = ctx.session_orchestrator.create_session(request)
+
+        # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
             print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
 
-        session = result.unwrap()
-        print(f"Created chat session [{session.id}] {session.title or '(No title)'}")
+        response = result.unwrap()
+        print(f"Created chat session [{response.id}] {response.title or '(No title)'}")
 
     except KeyboardInterrupt:
         print("\nCancelled")
@@ -76,14 +96,20 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
     """Select a chat session as the current session."""
     try:
-        session = ctx.chat_session_service.get_session(args.session_id)
+        # === Create Request DTO ===
+        request = SelectSessionRequest(session_id=args.session_id)
 
-        if not session:
-            print(f"Error: Chat session {args.session_id} not found", file=sys.stderr)
+        # === Call Orchestrator ===
+        result = ctx.session_orchestrator.select_session(request, ctx.state_repo)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
             sys.exit(1)
 
-        ctx.state_repo.set_current_session(session.id)
-        print(f"Selected [{session.id}] {session.title or f'Session {session.id}'}")
+        response = result.unwrap()
+        print(f"Selected [{response.id}] {response.title or f'Session {response.id}'}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -94,8 +120,8 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
     """Delete a chat session."""
     try:
+        # Check session exists
         session = ctx.chat_session_service.get_session(args.session_id)
-
         if not session:
             print(f"Error: Chat session {args.session_id} not found", file=sys.stderr)
             sys.exit(1)
@@ -108,7 +134,19 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
             print("Cancelled")
             return
 
-        deleted = ctx.chat_session_service.delete_session(args.session_id)
+        # === Create Request DTO ===
+        request = DeleteSessionRequest(session_id=args.session_id)
+
+        # === Call Orchestrator ===
+        result = ctx.session_orchestrator.delete_session(request)
+
+        # === Handle Result (CLI-specific output) ===
+        if isinstance(result, Failure):
+            error = result.failure()
+            print(f"Error: {error.message}", file=sys.stderr)
+            sys.exit(1)
+
+        deleted = result.unwrap()
         if deleted:
             print(f"Deleted [{session.id}] {session.title or f'Session {session.id}'}")
         else:

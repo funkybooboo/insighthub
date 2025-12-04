@@ -1,61 +1,65 @@
 """Session-specific DTOs for chat session."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional
+
+# ============================================================================
+# Request DTOs (User Input)
+# ============================================================================
 
 
 @dataclass
 class CreateSessionRequest:
-    """Request data for creating a chat session."""
+    """Request DTO for creating a chat session."""
 
+    workspace_id: int
     title: Optional[str] = None
-    workspace_id: Optional[int] = None
-    rag_type: str = "vector"
+    rag_type: Optional[str] = None
 
 
 @dataclass
 class UpdateSessionRequest:
-    """Request data for updating a chat session."""
+    """Request DTO for updating a chat session."""
 
+    session_id: int
     title: Optional[str] = None
 
 
 @dataclass
+class DeleteSessionRequest:
+    """Request DTO for deleting a chat session."""
+
+    session_id: int
+
+
+@dataclass
+class SelectSessionRequest:
+    """Request DTO for selecting a chat session."""
+
+    session_id: int
+
+
+@dataclass
+class ListSessionsRequest:
+    """Request DTO for listing sessions."""
+
+    workspace_id: int
+    skip: int = 0
+    limit: int = 50
+
+
+# ============================================================================
+# Response DTOs (Service Output)
+# ============================================================================
+
+
+@dataclass
 class SessionResponse:
-    """Response data for a single chat session (single-user system)."""
+    """Response DTO for a single chat session."""
 
     id: int
     workspace_id: Optional[int]
     title: Optional[str]
     rag_type: str
-    created_at: datetime
-    updated_at: datetime
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "id": self.id,
-            "workspace_id": self.workspace_id,
-            "title": self.title,
-            "rag_type": self.rag_type,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-        }
-
-
-@dataclass
-class SessionListResponse:
-    """Response data for listing chat session."""
-
-    sessions: list[SessionResponse]
-    count: int
-    total: int
-
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "session": [session.to_dict() for session in self.sessions],
-            "count": self.count,
-            "total": self.total,
-        }
+    created_at: str
+    updated_at: str

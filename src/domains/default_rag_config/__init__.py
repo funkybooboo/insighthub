@@ -1,7 +1,7 @@
 """Default RAG configurations domain."""
 
-from src.infrastructure.models import DefaultRagConfig
-from src.infrastructure.repositories import DefaultRagConfigRepository
+from src.domains.default_rag_config.models import DefaultRagConfig
+from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
 
 from .service import DefaultRagConfigService
 

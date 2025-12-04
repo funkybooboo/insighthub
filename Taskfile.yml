@@ -119,6 +119,14 @@ tasks:
     cmds:
       - poetry run mypy src tests
 
+  compile:
+    desc: Check Python syntax compilation for all source files
+    cmds:
+      - |
+        echo "Checking Python syntax compilation..."
+        python -m py_compile src/**/*.py
+        echo "[OK] All files compile successfully"
+
   unit-test:
     desc: Run unit tests with pytest
     cmds:
@@ -142,8 +150,9 @@ tasks:
       - task: e2e-test
 
   check:
-    desc: Run all quality checks (format, lint, type-check, unit-test, integration-test)
+    desc: Run all quality checks (compile, format, lint, type-check, test)
     cmds:
+      - task: compile
       - task: format
       - task: lint
       - task: type-check

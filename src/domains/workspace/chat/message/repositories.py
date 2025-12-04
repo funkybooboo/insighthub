@@ -5,8 +5,8 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
+from src.domains.workspace.chat.message.models import ChatMessage
 from src.infrastructure.logger import create_logger
-from src.infrastructure.models import ChatMessage
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
 from src.infrastructure.types import DatabaseError
 

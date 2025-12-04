@@ -7,6 +7,8 @@ import sys
 
 from src.context import AppContext
 from src.domains.default_rag_config import commands as default_rag_config_commands
+from src.domains.rag_options import commands as rag_options_commands
+from src.domains.state import commands as state_commands
 from src.domains.workspace import commands as workspace_commands
 from src.domains.workspace.chat.message import commands as chat_message_commands
 from src.domains.workspace.chat.session import commands as chat_session_commands
@@ -62,6 +64,12 @@ Examples:
   # Configuration
   python -m src.cli default-rag-config show     Show default RAG configuration
   python -m src.cli default-rag-config new      Create/update default RAG config
+
+  # State
+  python -m src.cli state show                  Show current state (selected workspace/session)
+
+  # RAG Options
+  python -m src.cli rag-options list            List all available RAG options
 
 For help on a specific resource, use:
   python -m src.cli <resource> --help
@@ -144,6 +152,28 @@ For help on a specific resource, use:
     rag_config_subparsers.add_parser("show", help="Show default RAG config")
     rag_config_subparsers.add_parser("new", help="Create/update default RAG config (interactive)")
 
+    # ==================== STATE ====================
+    state_parser = subparsers.add_parser(
+        "state",
+        help="Application state",
+        description="Query current application state (selected workspace/session)",
+    )
+    state_subparsers = state_parser.add_subparsers(dest="action", help="State action")
+
+    state_subparsers.add_parser("show", help="Show current state")
+
+    # ==================== RAG OPTIONS ====================
+    rag_options_parser = subparsers.add_parser(
+        "rag-options",
+        help="RAG options",
+        description="View available RAG algorithms and configurations",
+    )
+    rag_options_subparsers = rag_options_parser.add_subparsers(
+        dest="action", help="RAG options action"
+    )
+
+    rag_options_subparsers.add_parser("list", help="List all available RAG options")
+
     # Parse arguments, but handle help specially
     args = parser.parse_args()
 
@@ -178,7 +208,17 @@ For help on a specific resource, use:
 
     # Route to command handlers (wrapped in try-catch for proper cleanup)
     try:
-        route_command(ctx, args, parser, ws_parser, doc_parser, chat_parser, rag_config_parser)
+        route_command(
+            ctx,
+            args,
+            parser,
+            ws_parser,
+            doc_parser,
+            chat_parser,
+            rag_config_parser,
+            state_parser,
+            rag_options_parser,
+        )
     except KeyboardInterrupt:
         logger.info("Operation interrupted by user")
         sys.exit(0)
@@ -196,6 +236,8 @@ def route_command(
     doc_parser: argparse.ArgumentParser,
     chat_parser: argparse.ArgumentParser,
     rag_config_parser: argparse.ArgumentParser,
+    state_parser: argparse.ArgumentParser,
+    rag_options_parser: argparse.ArgumentParser,
 ) -> None:
     """Route commands to appropriate handlers."""
     if args.resource == "workspace":
@@ -268,6 +310,28 @@ def route_command(
         else:
             print(f"Error: Unknown default-rag-config action '{args.action}'\n")
             rag_config_parser.print_help()
+            sys.exit(1)
+
+    elif args.resource == "state":
+        if not args.action:
+            state_parser.print_help()
+            sys.exit(0)
+        elif args.action == "show":
+            state_commands.cmd_show(ctx, args)
+        else:
+            print(f"Error: Unknown state action '{args.action}'\n")
+            state_parser.print_help()
+            sys.exit(1)
+
+    elif args.resource == "rag-options":
+        if not args.action:
+            rag_options_parser.print_help()
+            sys.exit(0)
+        elif args.action == "list":
+            rag_options_commands.cmd_list(ctx, args)
+        else:
+            print(f"Error: Unknown rag-options action '{args.action}'\n")
+            rag_options_parser.print_help()
             sys.exit(1)
 
     else:

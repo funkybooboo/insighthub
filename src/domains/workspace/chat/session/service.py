@@ -4,11 +4,11 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
+from src.domains.workspace.chat.session.models import ChatSession
+from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
-from src.infrastructure.models import ChatSession
 from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
-from src.infrastructure.repositories import ChatSessionRepository
 from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
 
 logger = create_logger(__name__)
@@ -18,7 +18,7 @@ class ChatSessionService:
     """Service for managing chat session."""
 
     def __init__(self, repository: ChatSessionRepository, cache: Optional[Cache] = None):
-        """Initialize service with repository and cache."""
+        """Initialize service with repository and optional cache."""
         self.repository = repository
         self.cache = cache
 

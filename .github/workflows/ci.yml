@@ -61,6 +61,9 @@ jobs:
               if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
               run: task install
 
+            - name: Check Python syntax compilation
+              run: task compile
+
             - name: Format code (with auto-fix)
               run: task format
 
