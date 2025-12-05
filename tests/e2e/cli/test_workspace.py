@@ -159,7 +159,7 @@ class TestWorkspaceCLI:
         """Test workspace show with non-existent ID."""
         result = self.run_cli("workspace", "show", "999999")
         assert result.returncode != 0
-        assert "not found" in result.stderr.lower()
+        assert "notfounderror" in result.stderr.lower()
 
     def test_workspace_help(self):
         """Test workspace help command."""
