@@ -4,10 +4,13 @@ import json
 from datetime import datetime
 from typing import Optional
 
+from returns.result import Failure, Result
+
 from src.domains.workspace.models import Workspace
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types import DatabaseError
 
 logger = create_logger(__name__)
 
@@ -71,7 +74,7 @@ class WorkspaceDataAccess:
 
     def create(
         self, name: str, description: Optional[str], rag_type: str, status: str = "provisioning"
-    ) -> Workspace:
+    ) -> Result[Workspace, DatabaseError]:
         """Create a new workspace.
 
         Args:
@@ -81,12 +84,16 @@ class WorkspaceDataAccess:
             status: Initial status
 
         Returns:
-            Created workspace
+            Result with created workspace or database error
         """
-        workspace = self.repository.create(name, description, rag_type, status)
-        if workspace and self.cache:
+        result = self.repository.create(name, description, rag_type, status)
+        if isinstance(result, Failure):
+            return result
+
+        workspace = result.unwrap()
+        if self.cache:
             self._cache_workspace(workspace)
-        return workspace
+        return result
 
     def update(
         self,
@@ -106,10 +113,20 @@ class WorkspaceDataAccess:
         Returns:
             True if updated successfully
         """
-        result = self.repository.update(workspace_id, name, description, status)
+        # Build kwargs dict for only non-None values
+        kwargs = {}
+        if name is not None:
+            kwargs['name'] = name
+        if description is not None:
+            kwargs['description'] = description
+        if status is not None:
+            kwargs['status'] = status
+
+        result = self.repository.update(workspace_id, **kwargs)
         if result:
             self._invalidate_cache(workspace_id)
-        return result
+            return True
+        return False
 
     def delete(self, workspace_id: int) -> bool:
         """Delete workspace.

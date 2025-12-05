@@ -62,7 +62,11 @@ class WorkspaceService:
             return Failure(WorkflowError("Default RAG configuration not found", "create_workspace"))
 
         # Create workspace in database via data access layer
-        workspace = self.data_access.create(name, description, rag_type, status="provisioning")
+        workspace_result = self.data_access.create(name, description, rag_type, status="provisioning")
+        if isinstance(workspace_result, Failure):
+            return workspace_result
+
+        workspace = workspace_result.unwrap()
         logger.info(f"Workspace created in database: workspace_id={workspace.id}")
 
         # Snapshot the default config for this specific workspace
