@@ -3,6 +3,10 @@
 This module ensures backing services (PostgreSQL, Ollama, Qdrant, Neo4j, MinIO, Redis)
 are running before E2E tests execute. If services are not running, it attempts to start
 them once using docker compose. If they still don't start, tests fail with a clear message.
+
+It also provides automatic cleanup fixtures that run after each test to ensure test isolation
+by cleaning up all resources created during tests (database records, Qdrant collections,
+MinIO files, Redis cache, Neo4j nodes).
 """
 
 import subprocess
@@ -150,3 +154,253 @@ def ensure_backing_services():
         )
 
     print("[OK] All backing services are now healthy and ready for E2E tests")
+
+
+@pytest.fixture(scope="function", autouse=True)
+def cleanup_resources():
+    """Clean up ALL resources created during tests.
+
+    This fixture ensures complete test isolation by cleaning up:
+    - Database: workspaces, documents, chat sessions, CLI state
+    - Qdrant: vector collections created for workspaces
+    - MinIO: uploaded document files in S3 storage
+    - Redis: cached data
+    - Neo4j: graph nodes and relationships
+
+    The cleanup happens automatically without requiring tests to track resources manually.
+    """
+    import psycopg2
+    from src.config import config
+
+    # Get database connection
+    conn = psycopg2.connect(config.database_url)
+    cursor = conn.cursor()
+
+    # Record existing resource IDs before test
+    cursor.execute("SELECT id FROM workspaces")
+    existing_workspaces = {row[0] for row in cursor.fetchall()}
+
+    cursor.execute("SELECT id FROM documents")
+    existing_documents = {row[0] for row in cursor.fetchall()}
+
+    cursor.execute("SELECT id FROM chat_sessions")
+    existing_sessions = {row[0] for row in cursor.fetchall()}
+
+    # Get Qdrant collections before test
+    try:
+        from qdrant_client import QdrantClient
+
+        qdrant_client = QdrantClient(host=config.qdrant_host, port=config.qdrant_port)
+        existing_collections = {
+            col.name for col in qdrant_client.get_collections().collections
+        }
+    except Exception:
+        existing_collections = set()
+        qdrant_client = None
+
+    # Get MinIO objects before test
+    try:
+        import boto3
+
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=config.s3_endpoint_url,
+            aws_access_key_id=config.s3_access_key,
+            aws_secret_access_key=config.s3_secret_key,
+        )
+        # List all objects in the bucket
+        try:
+            response = s3_client.list_objects_v2(Bucket=config.s3_bucket_name)
+            existing_objects = {obj["Key"] for obj in response.get("Contents", [])}
+        except Exception:
+            existing_objects = set()
+    except Exception:
+        s3_client = None
+        existing_objects = set()
+
+    # Get Neo4j node count before test
+    try:
+        from neo4j import GraphDatabase
+
+        if config.neo4j_url and config.neo4j_user and config.neo4j_password:
+            neo4j_driver = GraphDatabase.driver(
+                config.neo4j_url,
+                auth=(config.neo4j_user, config.neo4j_password),
+            )
+            with neo4j_driver.session() as session:
+                result = session.run("MATCH (n) RETURN count(n) as count")
+                existing_node_count = result.single()["count"]
+        else:
+            neo4j_driver = None
+            existing_node_count = 0
+    except Exception:
+        neo4j_driver = None
+        existing_node_count = 0
+
+    cursor.close()
+    conn.close()
+
+    # Yield to run the test
+    yield
+
+    # === CLEANUP PHASE ===
+    # Clean up resources in the correct order to respect dependencies
+
+    # 1. Find new resources in database
+    conn = psycopg2.connect(config.database_url)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM chat_sessions")
+    current_sessions = {row[0] for row in cursor.fetchall()}
+    new_sessions = current_sessions - existing_sessions
+
+    cursor.execute("SELECT id FROM documents")
+    current_documents = {row[0] for row in cursor.fetchall()}
+    new_documents = current_documents - existing_documents
+
+    cursor.execute("SELECT id FROM workspaces")
+    current_workspaces = {row[0] for row in cursor.fetchall()}
+    new_workspaces = current_workspaces - existing_workspaces
+
+    cursor.close()
+    conn.close()
+
+    # 2. Delete database resources using CLI (also triggers cascade cleanup)
+    # Order: sessions -> documents -> workspaces
+
+    import sys
+
+    for session_id in new_sessions:
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "src.cli", "chat", "delete", str(session_id)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception:
+            pass
+
+    for document_id in new_documents:
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "src.cli", "document", "remove", str(document_id)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception:
+            pass
+
+    for workspace_id in new_workspaces:
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "src.cli", "workspace", "delete", str(workspace_id)],
+                input="yes\n",  # Confirm deletion
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except Exception:
+            pass  # Best effort cleanup
+
+    # 3. Clean up Qdrant collections
+    if qdrant_client:
+        try:
+            current_collections = {
+                col.name for col in qdrant_client.get_collections().collections
+            }
+            new_collections = current_collections - existing_collections
+            for collection_name in new_collections:
+                try:
+                    qdrant_client.delete_collection(collection_name)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # 4. Clean up MinIO objects
+    if s3_client:
+        try:
+            response = s3_client.list_objects_v2(Bucket=config.s3_bucket_name)
+            current_objects = {obj["Key"] for obj in response.get("Contents", [])}
+            new_objects = current_objects - existing_objects
+            for object_key in new_objects:
+                try:
+                    s3_client.delete_object(Bucket=config.s3_bucket_name, Key=object_key)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # 5. Clean up Neo4j nodes (delete only new nodes)
+    if neo4j_driver:
+        try:
+            with neo4j_driver.session() as session:
+                result = session.run("MATCH (n) RETURN count(n) as count")
+                current_node_count = result.single()["count"]
+                # If nodes were added, delete all workspace-related nodes
+                if current_node_count > existing_node_count:
+                    for workspace_id in new_workspaces:
+                        try:
+                            session.run(
+                                "MATCH (n) WHERE n.workspace_id = $workspace_id DETACH DELETE n",
+                                workspace_id=workspace_id,
+                            )
+                        except Exception:
+                            pass
+            neo4j_driver.close()
+        except Exception:
+            pass
+
+    # 6. Clear Redis cache
+    try:
+        import redis
+
+        redis_client = redis.Redis(
+            host=config.redis_host,
+            port=config.redis_port,
+            db=config.redis_db,
+            decode_responses=True,
+        )
+        # Delete CLI state cache if workspaces were deleted
+        if new_workspaces:
+            try:
+                redis_client.delete("cli_state:1")
+            except Exception:
+                pass
+
+        # Delete cache keys related to workspaces/documents
+        for workspace_id in new_workspaces:
+            try:
+                pattern = f"*workspace*{workspace_id}*"
+                for key in redis_client.scan_iter(match=pattern):
+                    redis_client.delete(key)
+            except Exception:
+                pass
+        for document_id in new_documents:
+            try:
+                pattern = f"*document*{document_id}*"
+                for key in redis_client.scan_iter(match=pattern):
+                    redis_client.delete(key)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # 7. Clear CLI state (only if workspaces were created/deleted during test)
+    # Reset CLI state to NULL if it's pointing to a deleted workspace
+    if new_workspaces:
+        try:
+            conn = psycopg2.connect(config.database_url)
+            cursor = conn.cursor()
+            # Reset workspace selection if pointing to a deleted workspace
+            cursor.execute(
+                "UPDATE cli_state SET current_workspace_id = NULL WHERE current_workspace_id = ANY(%s)",
+                (list(new_workspaces),),
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception:
+            pass
