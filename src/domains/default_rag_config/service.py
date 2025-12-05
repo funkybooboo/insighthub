@@ -2,13 +2,12 @@
 
 from typing import Optional
 
+from src.domains.default_rag_config.data_access import DefaultRagConfigDataAccess
 from src.domains.default_rag_config.models import (
     DefaultGraphRagConfig,
     DefaultRagConfig,
     DefaultVectorRagConfig,
 )
-from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
-from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 
 logger = create_logger(__name__)
@@ -17,16 +16,14 @@ logger = create_logger(__name__)
 class DefaultRagConfigService:
     """Service for managing default RAG configuration (single-user system)."""
 
-    def __init__(self, repository: DefaultRagConfigRepository, cache: Optional[Cache] = None):
+    def __init__(self, data_access: DefaultRagConfigDataAccess):
         """
         Initialize the service.
 
         Args:
-            repository: Repository for default RAG configs
-            cache: Optional cache implementation
+            data_access: Data access layer for default RAG configs
         """
-        self.repository = repository
-        self.cache = cache
+        self.data_access = data_access
 
     def get_config(self) -> Optional[DefaultRagConfig]:
         """
@@ -35,7 +32,7 @@ class DefaultRagConfigService:
         Returns:
             DefaultRagConfig if found, None otherwise
         """
-        return self.repository.get()
+        return self.data_access.get()
 
     def create_or_update_config(
         self,
@@ -56,7 +53,7 @@ class DefaultRagConfigService:
         """
         logger.info("Creating/updating default RAG config")
 
-        existing_config = self.repository.get()
+        existing_config = self.data_access.get()
 
         if existing_config:
             logger.info("Updating existing RAG config")
@@ -71,7 +68,7 @@ class DefaultRagConfigService:
                     if hasattr(existing_config.graph_config, key):
                         setattr(existing_config.graph_config, key, value)
 
-            updated_config = self.repository.update(existing_config)
+            updated_config = self.data_access.update(existing_config)
             logger.info("RAG config updated")
             return updated_config
         else:
@@ -95,6 +92,6 @@ class DefaultRagConfigService:
                 vector_config=vector_cfg,
                 graph_config=graph_cfg,
             )
-            updated_config = self.repository.update(new_config)
+            updated_config = self.data_access.update(new_config)
             logger.info("RAG config created")
             return updated_config

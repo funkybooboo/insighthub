@@ -6,7 +6,7 @@ from typing import Optional
 
 from returns.result import Failure, Result
 
-from src.domains.workspace.models import Workspace
+from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
@@ -65,12 +65,45 @@ class WorkspaceDataAccess:
         return workspace
 
     def get_all(self) -> list[Workspace]:
-        """Get all workspaces.
+        """Get all workspaces with caching.
 
         Returns:
             List of all workspaces
         """
-        return self.repository.get_all()
+        # Try cache first
+        cache_key = "workspaces:all"
+        cached_json = self.cache.get(cache_key) if self.cache else None
+
+        if cached_json:
+            try:
+                workspace_ids = json.loads(cached_json)
+                workspaces = []
+                for ws_id in workspace_ids:
+                    ws = self.get_by_id(ws_id)  # Uses individual workspace cache
+                    if not ws:
+                        # If any workspace is missing, invalidate list and refetch
+                        if self.cache:
+                            self.cache.delete(cache_key)
+                        break
+                    workspaces.append(ws)
+                else:
+                    # All workspaces found in cache
+                    return workspaces
+            except (json.JSONDecodeError, KeyError, ValueError):
+                pass
+
+        # Cache miss - fetch from database
+        workspaces = self.repository.get_all()
+
+        # Cache the result
+        if self.cache and workspaces:
+            cache_value = json.dumps([ws.id for ws in workspaces])
+            self.cache.set(cache_key, cache_value, ttl=180)  # Cache for 3 minutes
+            # Also cache individual workspaces
+            for ws in workspaces:
+                self._cache_workspace(ws)
+
+        return workspaces
 
     def create(
         self, name: str, description: Optional[str], rag_type: str, status: str = "provisioning"
@@ -174,3 +207,130 @@ class WorkspaceDataAccess:
         if self.cache:
             cache_key = f"workspace:{workspace_id}"
             self.cache.delete(cache_key)
+            # Also invalidate the all workspaces list cache
+            self.cache.delete("workspaces:all")
+            # Invalidate RAG configs as well
+            self.cache.delete(f"workspace:{workspace_id}:vector_rag_config")
+            self.cache.delete(f"workspace:{workspace_id}:graph_rag_config")
+
+    def get_vector_rag_config(self, workspace_id: int) -> Optional[VectorRagConfig]:
+        """Get vector RAG config for workspace with caching.
+
+        Args:
+            workspace_id: Workspace ID
+
+        Returns:
+            VectorRagConfig if found, None otherwise
+        """
+        # Try cache first
+        cache_key = f"workspace:{workspace_id}:vector_rag_config"
+        cached_json = self.cache.get(cache_key) if self.cache else None
+
+        if cached_json:
+            try:
+                data = json.loads(cached_json)
+                return VectorRagConfig(
+                    workspace_id=data["workspace_id"],
+                    embedding_model_vector_size=data.get("embedding_model_vector_size", 384),
+                    distance_metric=data.get("distance_metric", "cosine"),
+                    embedding_algorithm=data["embedding_algorithm"],
+                    chunking_algorithm=data["chunking_algorithm"],
+                    rerank_algorithm=data["rerank_algorithm"],
+                    chunk_size=data["chunk_size"],
+                    chunk_overlap=data["chunk_overlap"],
+                    top_k=data["top_k"],
+                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
+                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                )
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                logger.warning(f"Cache deserialization error for vector RAG config {workspace_id}: {e}")
+
+        # Cache miss - fetch from database
+        config = self.repository.get_vector_rag_config(workspace_id)
+
+        if config and self.cache:
+            self._cache_vector_rag_config(workspace_id, config)
+
+        return config
+
+    def get_graph_rag_config(self, workspace_id: int) -> Optional[GraphRagConfig]:
+        """Get graph RAG config for workspace with caching.
+
+        Args:
+            workspace_id: Workspace ID
+
+        Returns:
+            GraphRagConfig if found, None otherwise
+        """
+        # Try cache first
+        cache_key = f"workspace:{workspace_id}:graph_rag_config"
+        cached_json = self.cache.get(cache_key) if self.cache else None
+
+        if cached_json:
+            try:
+                data = json.loads(cached_json)
+                return GraphRagConfig(
+                    workspace_id=data["workspace_id"],
+                    entity_extraction_algorithm=data["entity_extraction_algorithm"],
+                    relationship_extraction_algorithm=data["relationship_extraction_algorithm"],
+                    clustering_algorithm=data["clustering_algorithm"],
+                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
+                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                )
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                logger.warning(f"Cache deserialization error for graph RAG config {workspace_id}: {e}")
+
+        # Cache miss - fetch from database
+        config = self.repository.get_graph_rag_config(workspace_id)
+
+        if config and self.cache:
+            self._cache_graph_rag_config(workspace_id, config)
+
+        return config
+
+    def _cache_vector_rag_config(self, workspace_id: int, config: VectorRagConfig) -> None:
+        """Cache vector RAG config.
+
+        Args:
+            workspace_id: Workspace ID
+            config: VectorRagConfig to cache
+        """
+        if not self.cache:
+            return
+
+        cache_key = f"workspace:{workspace_id}:vector_rag_config"
+        cache_value = json.dumps({
+            "workspace_id": config.workspace_id,
+            "embedding_model_vector_size": config.embedding_model_vector_size,
+            "distance_metric": config.distance_metric,
+            "embedding_algorithm": config.embedding_algorithm,
+            "chunking_algorithm": config.chunking_algorithm,
+            "rerank_algorithm": config.rerank_algorithm,
+            "chunk_size": config.chunk_size,
+            "chunk_overlap": config.chunk_overlap,
+            "top_k": config.top_k,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+        })
+        self.cache.set(cache_key, cache_value, ttl=600)  # Cache for 10 minutes (configs change less frequently)
+
+    def _cache_graph_rag_config(self, workspace_id: int, config: GraphRagConfig) -> None:
+        """Cache graph RAG config.
+
+        Args:
+            workspace_id: Workspace ID
+            config: GraphRagConfig to cache
+        """
+        if not self.cache:
+            return
+
+        cache_key = f"workspace:{workspace_id}:graph_rag_config"
+        cache_value = json.dumps({
+            "workspace_id": config.workspace_id,
+            "entity_extraction_algorithm": config.entity_extraction_algorithm,
+            "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
+            "clustering_algorithm": config.clustering_algorithm,
+            "created_at": config.created_at.isoformat() if config.created_at else None,
+            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+        })
+        self.cache.set(cache_key, cache_value, ttl=600)  # Cache for 10 minutes (configs change less frequently)

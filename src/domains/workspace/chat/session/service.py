@@ -4,9 +4,8 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
+from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.chat.session.models import ChatSession
-from src.domains.workspace.chat.session.repositories import ChatSessionRepository
-from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
 from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
@@ -17,10 +16,9 @@ logger = create_logger(__name__)
 class ChatSessionService:
     """Service for managing chat session."""
 
-    def __init__(self, repository: ChatSessionRepository, cache: Optional[Cache] = None):
-        """Initialize service with repository and optional cache."""
-        self.repository = repository
-        self.cache = cache
+    def __init__(self, data_access: ChatSessionDataAccess):
+        """Initialize service with data access layer."""
+        self.data_access = data_access
 
     def create_session(
         self,
@@ -47,7 +45,7 @@ class ChatSessionService:
                 )
             )
 
-        create_result = self.repository.create(
+        create_result = self.data_access.create(
             title.strip() if title else None, workspace_id, rag_type
         )
         if isinstance(create_result, Failure):
@@ -60,11 +58,11 @@ class ChatSessionService:
 
     def get_session(self, session_id: int) -> ChatSession | None:
         """Get session by ID."""
-        return self.repository.get_by_id(session_id)
+        return self.data_access.get_by_id(session_id)
 
     def list_sessions(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
         """List all chat session (single-user system)."""
-        return self.repository.get_all(skip, limit)
+        return self.data_access.get_all(skip, limit)
 
     def update_session(
         self, session_id: int, title: str | None = None
@@ -79,7 +77,7 @@ class ChatSessionService:
                 ValidationError("Session title too long (max 255 characters)", field="title")
             )
 
-        updated_session = self.repository.update(session_id, title=title.strip() if title else None)
+        updated_session = self.data_access.update(session_id, title=title.strip() if title else None)
 
         if updated_session:
             logger.info(f"Chat session updated: session_id={session_id}")
@@ -94,7 +92,7 @@ class ChatSessionService:
         """Delete a session."""
         logger.info(f"Deleting chat session: session_id={session_id}")
 
-        deleted = self.repository.delete(session_id)
+        deleted = self.data_access.delete(session_id)
 
         if deleted:
             logger.info(f"Chat session deleted: session_id={session_id}")
@@ -107,7 +105,7 @@ class ChatSessionService:
 
     def get_workspace_session(self, workspace_id: int, session_id: int) -> ChatSession | None:
         """Get session by ID with workspace validation (single-user system)."""
-        session = self.repository.get_by_id(session_id)
+        session = self.data_access.get_by_id(session_id)
         if session and session.workspace_id == workspace_id:
             return session
         return None
@@ -117,7 +115,7 @@ class ChatSessionService:
     ) -> tuple[list[ChatSession], int]:
         """List session for a workspace (single-user system)."""
         # Get all session in workspace
-        all_sessions = self.repository.get_by_workspace(workspace_id)
+        all_sessions = self.data_access.get_by_workspace(workspace_id)
 
         # Apply pagination
         paginated_sessions = all_sessions[skip : skip + limit]

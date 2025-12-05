@@ -5,11 +5,10 @@ from typing import Any, Callable, Optional
 from returns.result import Failure, Result, Success
 
 from src.config import config
+from src.domains.workspace.chat.message.data_access import ChatMessageDataAccess
 from src.domains.workspace.chat.message.models import ChatMessage
-from src.domains.workspace.chat.message.repositories import ChatMessageRepository
-from src.domains.workspace.chat.session.repositories import ChatSessionRepository
-from src.domains.workspace.repositories import WorkspaceRepository
-from src.infrastructure.cache.cache import Cache
+from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
+from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.options import get_default_embedding_algorithm
@@ -24,17 +23,15 @@ class ChatMessageService:
 
     def __init__(
         self,
-        repository: ChatMessageRepository,
-        session_repository: ChatSessionRepository,
-        workspace_repository: WorkspaceRepository,
+        data_access: ChatMessageDataAccess,
+        session_data_access: ChatSessionDataAccess,
+        workspace_data_access: WorkspaceDataAccess,
         llm_provider: LlmProvider,
-        cache: Optional[Cache] = None,
     ):
-        """Initialize service with repository and optional cache."""
-        self.repository = repository
-        self.session_repository = session_repository
-        self.cache = cache
-        self.workspace_repository = workspace_repository
+        """Initialize service with data access layers."""
+        self.data_access = data_access
+        self.session_data_access = session_data_access
+        self.workspace_data_access = workspace_data_access
         self.llm_provider = llm_provider
 
     def create_message(
@@ -90,7 +87,7 @@ class ChatMessageService:
 
             extra_metadata_str = json.dumps(extra_metadata)
 
-        create_result = self.repository.create(
+        create_result = self.data_access.create(
             session_id, role, content.strip(), extra_metadata_str
         )
         if isinstance(create_result, Failure):
@@ -103,7 +100,7 @@ class ChatMessageService:
 
     def get_message(self, message_id: int) -> ChatMessage | None:
         """Get message by ID."""
-        return self.repository.get_by_id(message_id)
+        return self.data_access.get_by_id(message_id)
 
     def get_session_messages(
         self, session_id: int, skip: int = 0, limit: int = 50
@@ -114,8 +111,8 @@ class ChatMessageService:
         )
 
         # Validation is performed at the route level
-        messages = self.repository.get_by_session(session_id, skip, limit)
-        total = len(self.repository.get_by_session(session_id))  # Get total count
+        messages = self.data_access.get_by_session(session_id, skip, limit)
+        total = len(self.data_access.get_by_session(session_id))  # Get total count
 
         logger.info(f"Retrieved {len(messages)} message for session {session_id} (total: {total})")
 
@@ -125,7 +122,7 @@ class ChatMessageService:
         """Delete a message."""
         logger.info(f"Deleting chat message: message_id={message_id}")
 
-        deleted = self.repository.delete(message_id)
+        deleted = self.data_access.delete(message_id)
 
         if deleted:
             logger.info(f"Chat message deleted: message_id={message_id}")
@@ -155,7 +152,7 @@ class ChatMessageService:
         logger.info(f"Sending message with RAG: session_id={session_id}")
 
         # Get session
-        session = self.session_repository.get_by_id(session_id)
+        session = self.session_data_access.get_by_id(session_id)
         if not session:
             return Failure(NotFoundError("chat_session", session_id))
 
@@ -167,7 +164,7 @@ class ChatMessageService:
         user_message = user_message_result.unwrap()
 
         # Build conversation history (last 10 messages for context)
-        all_messages = self.repository.get_by_session(session_id)
+        all_messages = self.data_access.get_by_session(session_id)
         history_messages = all_messages[-11:-1] if len(all_messages) > 1 else []
         conversation_history = [
             {"role": msg.role, "content": msg.content} for msg in history_messages
@@ -218,7 +215,7 @@ class ChatMessageService:
             Formatted RAG context string
         """
         # Get workspace
-        workspace = self.workspace_repository.get_by_id(workspace_id)
+        workspace = self.workspace_data_access.get_by_id(workspace_id)
         if not workspace:
             return ""
 
@@ -229,7 +226,7 @@ class ChatMessageService:
 
         if workspace.rag_type == "vector":
             # Get workspace-specific vector RAG config
-            vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
+            vector_config = self.workspace_data_access.get_vector_rag_config(workspace.id)
 
             if vector_config:
                 rag_config.update(
@@ -265,7 +262,7 @@ class ChatMessageService:
                 )
         elif workspace.rag_type == "graph":
             # Get workspace-specific graph RAG config
-            graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
+            graph_config = self.workspace_data_access.get_graph_rag_config(workspace.id)
 
             if graph_config:
                 rag_config.update(

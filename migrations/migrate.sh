@@ -10,7 +10,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Load environment variables from .env file
 if [ -f "${PROJECT_ROOT}/.env" ]; then
-    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | grep -v '^[[:space:]]*$' | xargs)
+  export $(grep -v '^#' "${PROJECT_ROOT}/.env" | grep -v '^[[:space:]]*$' | xargs)
 fi
 
 # Default values
@@ -25,19 +25,19 @@ NC='\033[0m' # No Color
 
 # Helper functions
 print_error() {
-    echo -e "${RED}Error: $1${NC}" >&2
+  echo -e "${RED}Error: $1${NC}" >&2
 }
 
 print_success() {
-    echo -e "${GREEN}$1${NC}"
+  echo -e "${GREEN}$1${NC}"
 }
 
 print_info() {
-    echo -e "${YELLOW}$1${NC}"
+  echo -e "${YELLOW}$1${NC}"
 }
 
 print_usage() {
-    cat << EOF
+  cat <<EOF
 Database Migration Script for InsightHub
 
 USAGE:
@@ -97,169 +97,169 @@ COMMAND=""
 MIGRATION=""
 
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        up|down|status)
-            COMMAND="$1"
-            shift
-            ;;
-        --help|-h)
-            print_usage
-            exit 0
-            ;;
-        *)
-            MIGRATION="$1"
-            shift
-            ;;
-    esac
+  case $1 in
+  up | down | status)
+    COMMAND="$1"
+    shift
+    ;;
+  --help | -h)
+    print_usage
+    exit 0
+    ;;
+  *)
+    MIGRATION="$1"
+    shift
+    ;;
+  esac
 done
 
 # Default command - show help if no command provided
 if [ -z "$COMMAND" ]; then
-    print_usage
-    exit 0
+  print_usage
+  exit 0
 fi
 
 # Execute SQL file
 execute_sql() {
-    local sql_file="$1"
+  local sql_file="$1"
 
-    if [ ! -f "$sql_file" ]; then
-        print_error "Migration file not found: $sql_file"
-        exit 1
-    fi
+  if [ ! -f "$sql_file" ]; then
+    print_error "Migration file not found: $sql_file"
+    exit 1
+  fi
 
-    print_info "Executing: $(basename $sql_file)"
+  print_info "Executing: $(basename $sql_file)"
 
-    # Use psql with DATABASE_URL
-    if ! command -v psql &> /dev/null; then
-        print_error "psql not found. Install PostgreSQL client."
-        exit 1
-    fi
+  # Use psql with DATABASE_URL
+  if ! command -v psql &>/dev/null; then
+    print_error "psql not found. Install PostgreSQL client."
+    exit 1
+  fi
 
-    psql "$DATABASE_URL" < "$sql_file"
+  psql "$DATABASE_URL" <"$sql_file"
 
-    if [ $? -eq 0 ]; then
-        print_success "✓ Migration executed successfully!"
-    else
-        print_error "Migration failed!"
-        exit 1
-    fi
+  if [ $? -eq 0 ]; then
+    print_success "Migration executed successfully!"
+  else
+    print_error "Migration failed!"
+    exit 1
+  fi
 }
 
 # Get all migration files in numerical order
 get_migration_files() {
-    local direction="$1"
-    local dir="${MIGRATION_DIR}/${direction}"
+  local direction="$1"
+  local dir="${MIGRATION_DIR}/${direction}"
 
-    if [ ! -d "$dir" ]; then
-        print_error "Migration directory not found: $dir"
-        exit 1
-    fi
+  if [ ! -d "$dir" ]; then
+    print_error "Migration directory not found: $dir"
+    exit 1
+  fi
 
-    # Find all .sql files and sort them numerically
-    find "$dir" -maxdepth 1 -name "*.sql" -type f | sort
+  # Find all .sql files and sort them numerically
+  find "$dir" -maxdepth 1 -name "*.sql" -type f | sort
 }
 
 # Get all migration files in reverse numerical order
 get_migration_files_reverse() {
-    local direction="$1"
-    local dir="${MIGRATION_DIR}/${direction}"
+  local direction="$1"
+  local dir="${MIGRATION_DIR}/${direction}"
 
-    if [ ! -d "$dir" ]; then
-        print_error "Migration directory not found: $dir"
-        exit 1
-    fi
+  if [ ! -d "$dir" ]; then
+    print_error "Migration directory not found: $dir"
+    exit 1
+  fi
 
-    # Find all .sql files and sort them in reverse numerical order
-    find "$dir" -maxdepth 1 -name "*.sql" -type f | sort -r
+  # Find all .sql files and sort them in reverse numerical order
+  find "$dir" -maxdepth 1 -name "*.sql" -type f | sort -r
 }
 
 # Apply migrations
 migrate_up() {
-    if [ -n "$MIGRATION" ]; then
-        # Apply specific migration
-        # Look for files starting with the migration number
-        local migration_file=$(find "${MIGRATION_DIR}/up" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
+  if [ -n "$MIGRATION" ]; then
+    # Apply specific migration
+    # Look for files starting with the migration number
+    local migration_file=$(find "${MIGRATION_DIR}/up" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
 
-        if [ -z "$migration_file" ]; then
-            print_error "Migration file not found matching: $MIGRATION"
-            exit 1
-        fi
-
-        print_info "Applying migration: $(basename $migration_file)"
-        execute_sql "$migration_file"
-    else
-        # Apply all migrations in order
-        print_info "Applying all migrations..."
-
-        local migration_files=$(get_migration_files "up")
-
-        if [ -z "$migration_files" ]; then
-            print_info "No migration files found in ${MIGRATION_DIR}/up"
-            exit 0
-        fi
-
-        while IFS= read -r migration_file; do
-            execute_sql "$migration_file"
-        done <<< "$migration_files"
-
-        print_success "All migrations applied successfully!"
+    if [ -z "$migration_file" ]; then
+      print_error "Migration file not found matching: $MIGRATION"
+      exit 1
     fi
+
+    print_info "Applying migration: $(basename $migration_file)"
+    execute_sql "$migration_file"
+  else
+    # Apply all migrations in order
+    print_info "Applying all migrations..."
+
+    local migration_files=$(get_migration_files "up")
+
+    if [ -z "$migration_files" ]; then
+      print_info "No migration files found in ${MIGRATION_DIR}/up"
+      exit 0
+    fi
+
+    while IFS= read -r migration_file; do
+      execute_sql "$migration_file"
+    done <<<"$migration_files"
+
+    print_success "All migrations applied successfully!"
+  fi
 }
 
 # Rollback migrations
 migrate_down() {
-    if [ -n "$MIGRATION" ]; then
-        # Rollback specific migration
-        # Look for files starting with the migration number
-        local migration_file=$(find "${MIGRATION_DIR}/down" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
+  if [ -n "$MIGRATION" ]; then
+    # Rollback specific migration
+    # Look for files starting with the migration number
+    local migration_file=$(find "${MIGRATION_DIR}/down" -maxdepth 1 -name "${MIGRATION}*.sql" -type f | head -n 1)
 
-        if [ -z "$migration_file" ]; then
-            print_error "Migration file not found matching: $MIGRATION"
-            exit 1
-        fi
-
-        print_info "Rolling back migration: $(basename $migration_file)"
-        execute_sql "$migration_file"
-    else
-        # Rollback all migrations in reverse order
-        print_info "Rolling back all migrations..."
-
-        local migration_files=$(get_migration_files_reverse "down")
-
-        if [ -z "$migration_files" ]; then
-            print_info "No migration files found in ${MIGRATION_DIR}/down"
-            exit 0
-        fi
-
-        while IFS= read -r migration_file; do
-            execute_sql "$migration_file"
-        done <<< "$migration_files"
-
-        print_success "All migrations rolled back successfully!"
+    if [ -z "$migration_file" ]; then
+      print_error "Migration file not found matching: $MIGRATION"
+      exit 1
     fi
+
+    print_info "Rolling back migration: $(basename $migration_file)"
+    execute_sql "$migration_file"
+  else
+    # Rollback all migrations in reverse order
+    print_info "Rolling back all migrations..."
+
+    local migration_files=$(get_migration_files_reverse "down")
+
+    if [ -z "$migration_files" ]; then
+      print_info "No migration files found in ${MIGRATION_DIR}/down"
+      exit 0
+    fi
+
+    while IFS= read -r migration_file; do
+      execute_sql "$migration_file"
+    done <<<"$migration_files"
+
+    print_success "All migrations rolled back successfully!"
+  fi
 }
 
 # Show migration status
 migration_status() {
-    print_info "Migration status check not implemented yet."
-    print_info "Check the database manually to see which tables exist."
+  print_info "Migration status check not implemented yet."
+  print_info "Check the database manually to see which tables exist."
 }
 
 # Main execution
 case $COMMAND in
-    up)
-        migrate_up
-        ;;
-    down)
-        migrate_down
-        ;;
-    status)
-        migration_status
-        ;;
-    *)
-        print_error "Unknown command: $COMMAND"
-        print_usage
-        exit 1
-        ;;
+up)
+  migrate_up
+  ;;
+down)
+  migrate_down
+  ;;
+status)
+  migration_status
+  ;;
+*)
+  print_error "Unknown command: $COMMAND"
+  print_usage
+  exit 1
+  ;;
 esac

@@ -1,17 +1,21 @@
 """Application context containing all services and repositories."""
 
 from src.config import config
+from src.domains.default_rag_config.data_access import DefaultRagConfigDataAccess
 from src.domains.default_rag_config.orchestrator import DefaultRagConfigOrchestrator
 from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.domains.rag_options.orchestrator import RagOptionsOrchestrator
 from src.domains.rag_options.service import RagOptionsService
+from src.domains.state.data_access import StateDataAccess
 from src.domains.state.orchestrator import StateOrchestrator
 from src.domains.state.repositories import StateRepository
 from src.domains.state.service import StateService
+from src.domains.workspace.chat.message.data_access import ChatMessageDataAccess
 from src.domains.workspace.chat.message.orchestrator import MessageOrchestrator
 from src.domains.workspace.chat.message.repositories import ChatMessageRepository
 from src.domains.workspace.chat.message.service import ChatMessageService
+from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.chat.session.orchestrator import SessionOrchestrator
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.domains.workspace.chat.session.service import ChatSessionService
@@ -80,11 +84,26 @@ class AppContext:
             repository=self.document_repo,
             cache=cache,
         )
+        self.chat_session_data_access = ChatSessionDataAccess(
+            repository=self.chat_session_repo,
+            cache=cache,
+        )
+        self.chat_message_data_access = ChatMessageDataAccess(
+            repository=self.chat_message_repo,
+            cache=cache,
+        )
+        self.state_data_access = StateDataAccess(
+            repository=self.state_repo,
+            cache=cache,
+        )
+        self.default_rag_config_data_access = DefaultRagConfigDataAccess(
+            repository=self.default_rag_config_repo,
+            cache=cache,
+        )
 
         # Services
         self.default_rag_config_service = DefaultRagConfigService(
-            repository=self.default_rag_config_repo,
-            cache=cache,
+            data_access=self.default_rag_config_data_access,
         )
         self.workspace_service = WorkspaceService(
             data_access=self.workspace_data_access,
@@ -96,8 +115,7 @@ class AppContext:
             blob_storage=self.blob_storage,
         )
         self.chat_session_service = ChatSessionService(
-            repository=self.chat_session_repo,
-            cache=cache,
+            data_access=self.chat_session_data_access,
         )
 
         # LLM Provider
@@ -116,18 +134,17 @@ class AppContext:
 
         # Chat message service (depends on llm_provider)
         self.chat_message_service = ChatMessageService(
-            repository=self.chat_message_repo,
-            session_repository=self.chat_session_repo,
-            workspace_repository=self.workspace_repo,
+            data_access=self.chat_message_data_access,
+            session_data_access=self.chat_session_data_access,
+            workspace_data_access=self.workspace_data_access,
             llm_provider=self.llm_provider,
-            cache=cache,
         )
 
         # State service
         self.state_service = StateService(
-            state_repository=self.state_repo,
-            workspace_repository=self.workspace_repo,
-            session_repository=self.chat_session_repo,
+            state_data_access=self.state_data_access,
+            workspace_data_access=self.workspace_data_access,
+            session_data_access=self.chat_session_data_access,
         )
 
         # RAG Options service (no dependencies)
@@ -157,8 +174,8 @@ class AppContext:
             service=self.rag_options_service,
         )
 
-        # Load current state from database
-        state = self.state_repo.get()
+        # Load current state from database (using data access layer with caching)
+        state = self.state_data_access.get()
         self.current_workspace_id: int | None = state.current_workspace_id if state else None
         self.current_session_id: int | None = state.current_session_id if state else None
 
