@@ -4,10 +4,13 @@ import json
 from datetime import datetime
 from typing import Optional
 
+from returns.result import Failure, Result, Success
+
 from src.domains.workspace.document.models import Document
 from src.domains.workspace.document.repositories import DocumentRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types import DatabaseError
 
 logger = create_logger(__name__)
 
@@ -117,7 +120,7 @@ class DocumentDataAccess:
         content_hash: str,
         chunk_count: int,
         status: str,
-    ) -> Document:
+    ) -> Result[Document, DatabaseError]:
         """Create a new document.
 
         Args:
@@ -131,7 +134,7 @@ class DocumentDataAccess:
             status: Initial status
 
         Returns:
-            Created document
+            Result with created document or error
         """
         result = self.repository.create(
             workspace_id=workspace_id,
@@ -144,8 +147,8 @@ class DocumentDataAccess:
             status=status,
         )
 
-        if isinstance(result, Exception):
-            raise result
+        if isinstance(result, Failure):
+            return result
 
         document = result.unwrap()
 
@@ -153,7 +156,7 @@ class DocumentDataAccess:
             self._cache_document(document)
             self._invalidate_workspace_documents_cache(workspace_id)
 
-        return document
+        return Success(document)
 
     def update(
         self,
@@ -171,7 +174,12 @@ class DocumentDataAccess:
         Returns:
             True if updated successfully
         """
-        result = self.repository.update(document_id, chunk_count, status)
+        # Use update_status method which matches the signature
+        result = self.repository.update_status(
+            document_id=document_id,
+            status=status or "processing",
+            chunk_count=chunk_count,
+        )
         if result:
             self._invalidate_cache(document_id)
         return result

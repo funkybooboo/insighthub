@@ -122,10 +122,16 @@ class SecretsFilter(logging.Filter):
         if isinstance(record.msg, dict):
             record.msg = self._redact_secrets_from_dict(record.msg)
         else:
-            record.msg = self._redact_secrets_from_str(str(record.msg))
+            # Redact the formatted message instead of the template
+            # This avoids issues with % formatting when args don't match
+            try:
+                formatted_msg = str(record.msg) % record.args if record.args else str(record.msg)
+                record.msg = self._redact_secrets_from_str(formatted_msg)
+                record.args = ()  # Clear args since we formatted the message
+            except (TypeError, ValueError):
+                # If formatting fails, just redact the message template
+                record.msg = self._redact_secrets_from_str(str(record.msg))
 
-        if record.args:
-            record.args = tuple(self._redact_secrets(arg) for arg in record.args)
         return True
 
     def _redact_secrets(self, data: Any) -> Any:

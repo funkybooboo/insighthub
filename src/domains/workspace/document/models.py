@@ -2,6 +2,48 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+
+
+class DocumentStatus(str, Enum):
+    """Fine-grained document processing statuses."""
+
+    # Initial state
+    PENDING = "pending"  # Document uploaded, waiting to start processing
+
+    # Upload/Storage phase
+    UPLOADING = "uploading"  # Uploading to blob storage
+    UPLOADED = "uploaded"  # Successfully uploaded to blob storage
+
+    # Processing phase
+    PARSING = "parsing"  # Extracting text from document
+    PARSED = "parsed"  # Text extraction complete
+    CHUNKING = "chunking"  # Splitting text into chunks
+    CHUNKED = "chunked"  # Chunking complete
+    EMBEDDING = "embedding"  # Generating embeddings
+    EMBEDDED = "embedded"  # Embeddings generated
+    INDEXING = "indexing"  # Storing in vector database
+    INDEXED = "indexed"  # Stored in vector database
+
+    # Terminal states
+    READY = "ready"  # Fully processed and searchable
+    FAILED = "failed"  # Processing failed at some stage
+
+    @classmethod
+    def is_terminal(cls, status: str) -> bool:
+        """Check if status is a terminal state."""
+        return status in (cls.READY.value, cls.FAILED.value)
+
+    @classmethod
+    def is_processing(cls, status: str) -> bool:
+        """Check if document is actively being processed."""
+        return status in (
+            cls.UPLOADING.value,
+            cls.PARSING.value,
+            cls.CHUNKING.value,
+            cls.EMBEDDING.value,
+            cls.INDEXING.value,
+        )
 
 
 @dataclass
@@ -14,7 +56,7 @@ class Document:
     file_size: int  # Maps to size_bytes in DB
     mime_type: str
     chunk_count: int = 0
-    status: str = "pending"  # 'pending', 'processing', 'ready', 'failed'
+    status: str = DocumentStatus.PENDING.value
     error_message: str | None = None
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)

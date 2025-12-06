@@ -37,9 +37,9 @@ class DocumentRepository:
         query = """
             INSERT INTO documents (
                 workspace_id, filename, original_filename, size_bytes, mime_type,
-                file_hash, storage_path, chunk_count, status, user_id, created_at
+                file_hash, storage_path, chunk_count, status, created_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """
         try:
@@ -55,7 +55,6 @@ class DocumentRepository:
                     file_path or "",  # storage_path
                     chunk_count,
                     status,
-                    1,  # user_id (placeholder for single-user system)
                     datetime.utcnow(),
                 ),
             )

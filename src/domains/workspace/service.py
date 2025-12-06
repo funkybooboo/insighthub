@@ -8,7 +8,7 @@ from src.config import config
 from src.domains.default_rag_config.models import DefaultRagConfig
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.domains.workspace.data_access import WorkspaceDataAccess
-from src.domains.workspace.models import VectorRagConfig, Workspace
+from src.domains.workspace.models import VectorRagConfig, Workspace, WorkspaceStatus
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.create_resources import CreateResourcesWorkflowFactory
 from src.infrastructure.rag.workflows.remove_resources import RemoveResourcesWorkflowFactory
@@ -62,12 +62,18 @@ class WorkspaceService:
             return Failure(WorkflowError("Default RAG configuration not found", "create_workspace"))
 
         # Create workspace in database via data access layer
-        workspace_result = self.data_access.create(name, description, rag_type, status="provisioning")
+        workspace_result = self.data_access.create(
+            name, description, rag_type, status=WorkspaceStatus.PROVISIONING.value
+        )
         if isinstance(workspace_result, Failure):
             return workspace_result
 
         workspace = workspace_result.unwrap()
         logger.info(f"Workspace created in database: workspace_id={workspace.id}")
+
+        # Update status: initializing config
+        self.data_access.update(workspace.id, status=WorkspaceStatus.INITIALIZING_CONFIG.value)
+        logger.info(f"Workspace {workspace.id}: initializing configuration")
 
         # Snapshot the default config for this specific workspace
         if workspace.rag_type == "vector":
@@ -93,12 +99,12 @@ class WorkspaceService:
         provision_result = self._provision_rag_resources(workspace, default_config)
         if isinstance(provision_result, Failure):
             # Update status to failed
-            self.data_access.update(workspace.id, status="failed")
+            self.data_access.update(workspace.id, status=WorkspaceStatus.FAILED.value)
             logger.error(f"Workspace provisioning failed: {provision_result.failure().message}")
             return Failure(provision_result.failure())
 
         # Update status to ready
-        self.data_access.update(workspace.id, status="ready")
+        self.data_access.update(workspace.id, status=WorkspaceStatus.READY.value)
         logger.info(f"Workspace provisioned successfully: workspace_id={workspace.id}")
 
         # Reload workspace with updated status (data_access handles caching)
@@ -115,7 +121,7 @@ class WorkspaceService:
     def _provision_rag_resources(
         self, workspace: Workspace, default_config: DefaultRagConfig
     ) -> Result[None, WorkflowError]:
-        """Provision RAG resources for a workspace.
+        """Provision RAG resources for a workspace with status tracking.
 
         Args:
             workspace: Workspace to provision resources for
@@ -125,6 +131,16 @@ class WorkspaceService:
             Result with None on success or WorkflowError on failure
         """
         logger.info(f"Provisioning RAG resources for workspace {workspace.id}")
+
+        # Update status based on RAG type
+        if workspace.rag_type == "vector":
+            self.data_access.update(
+                workspace.id, status=WorkspaceStatus.CREATING_VECTOR_COLLECTION.value
+            )
+            logger.info(f"Workspace {workspace.id}: creating vector collection")
+        elif workspace.rag_type == "graph":
+            self.data_access.update(workspace.id, status=WorkspaceStatus.CREATING_GRAPH_STORE.value)
+            logger.info(f"Workspace {workspace.id}: creating graph store")
 
         # Build configuration for workflow from defaults
         rag_config = {

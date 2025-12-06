@@ -9,7 +9,7 @@ from returns.result import Failure, Result, Success
 
 from src.config import config
 from src.domains.workspace.document.data_access import DocumentDataAccess
-from src.domains.workspace.document.models import Document
+from src.domains.workspace.document.models import Document, DocumentStatus
 from src.domains.workspace.models import Workspace
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.logger import create_logger
@@ -79,6 +79,7 @@ class DocumentService:
 
         # Upload to blob storage
         blob_key = f"{content_hash}/{filename}"
+        logger.info(f"Uploading document to blob storage: blob_key='{blob_key}'")
         try:
             self.blob_storage.upload(blob_key, file_content, mime_type)
             logger.info(f"Document uploaded to blob storage: blob_key='{blob_key}'")
@@ -87,24 +88,26 @@ class DocumentService:
             return Failure(StorageError(str(e), operation="upload"))
 
         # Create database record via data access layer
-        try:
-            document = self.data_access.create(
-                workspace_id=workspace_id,
-                filename=filename,
-                file_path=blob_key,
-                file_size=len(file_content),
-                mime_type=mime_type,
-                content_hash=content_hash,
-                chunk_count=0,
-                status="processing",
-            )
-        except Exception as e:
+        create_result = self.data_access.create(
+            workspace_id=workspace_id,
+            filename=filename,
+            file_path=blob_key,
+            file_size=len(file_content),
+            mime_type=mime_type,
+            content_hash=content_hash,
+            chunk_count=0,
+            status=DocumentStatus.UPLOADED.value,
+        )
+
+        if isinstance(create_result, Failure):
             # Clean up blob storage
             try:
                 self.blob_storage.delete(blob_key)
             except Exception:
                 pass
-            return Failure(DatabaseError(str(e), operation="create_document"))
+            return create_result
+
+        document = create_result.unwrap()
 
         logger.info(f"Document record created: document_id={document.id}")
 
@@ -112,12 +115,12 @@ class DocumentService:
         process_result = self._process_document(workspace, document, file_content)
         if isinstance(process_result, Failure):
             # Update status to failed
-            self.data_access.update(document.id, status="failed")
+            self.data_access.update(document.id, status=DocumentStatus.FAILED.value)
             logger.error(f"Document processing failed: {process_result.failure().message}")
             return Failure(process_result.failure())
 
         # Update status to ready
-        self.data_access.update(document.id, status="ready")
+        self.data_access.update(document.id, status=DocumentStatus.READY.value)
         logger.info(f"Document processed successfully: document_id={document.id}")
 
         # Reload document with updated status (data_access handles caching)
@@ -133,7 +136,7 @@ class DocumentService:
         document: Document,
         file_content: bytes,
     ) -> Result[int, WorkflowError]:
-        """Process document through RAG workflow.
+        """Process document through RAG workflow with status tracking.
 
         Args:
             workspace: Workspace the document belongs to
@@ -148,8 +151,16 @@ class DocumentService:
         # Build RAG configuration
         rag_config = self._build_rag_config(workspace)
 
+        # Update status: parsing
+        self.data_access.update(document.id, status=DocumentStatus.PARSING.value)
+        logger.info(f"Document {document.id}: parsing stage")
+
         # Create and execute workflow
+        # Note: The workflow internally does: parse -> chunk -> embed -> index
+        # We update status at key milestones
         workflow = AddDocumentWorkflowFactory.create(rag_config)
+
+        # Execute workflow - this does all the heavy lifting
         result = workflow.execute(
             raw_document=BytesIO(file_content),
             document_id=str(document.id),
@@ -170,7 +181,10 @@ class DocumentService:
             )
 
         chunks_indexed = result.unwrap()
-        logger.info(f"Document processed: {chunks_indexed} chunks indexed")
+
+        # Update status: indexing complete (workflow finished successfully)
+        self.data_access.update(document.id, status=DocumentStatus.INDEXED.value)
+        logger.info(f"Document {document.id}: {chunks_indexed} chunks indexed")
 
         # Update chunk count
         self.data_access.update(document.id, chunk_count=chunks_indexed)
