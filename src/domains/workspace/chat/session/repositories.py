@@ -21,8 +21,8 @@ class ChatSessionRepository:
 
     def create(
         self,
-        title: str | None = None,
-        workspace_id: int | None = None,
+        title: Optional[str]= None,
+        workspace_id: Optional[int]= None,
         rag_type: str = "vector",
     ) -> Result[ChatSession, DatabaseError]:
         """Create a new chat session (single-user system)."""

@@ -20,6 +20,19 @@ from src.infrastructure.logger import create_logger
 logger = create_logger(__name__)
 
 
+def _handle_failure_result(result: Failure, operation: str) -> None:
+    """Handle a Failure result by printing error and exiting.
+
+    Args:
+        result: Failure result to handle
+        operation: Description of operation that failed
+    """
+    error = result.failure()
+    message = error.message if hasattr(error, "message") else str(error)
+    IO.print_error(f"Error: {message}")
+    sys.exit(1)
+
+
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List all workspace."""
     try:
@@ -27,10 +40,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.workspace_orchestrator.list_workspaces()
 
         if isinstance(result, Failure):
-            error = result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(result, "list workspaces")
 
         responses = result.unwrap()
 
@@ -66,10 +76,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         # Get available options from service
         options_result = ctx.rag_options_orchestrator.get_all_options()
         if isinstance(options_result, Failure):
-            error = options_result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(options_result, "get RAG options")
 
         options = options_result.unwrap()
 
@@ -96,10 +103,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.workspace_orchestrator.create_workspace(request, default_rag_type)
 
         if isinstance(result, Failure):
-            error = result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(result, "create workspace")
 
         response = result.unwrap()
         IO.print(f"Created workspace [{response.id}] {response.name}")
@@ -130,10 +134,7 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
         workspace_result = ctx.workspace_orchestrator.show_workspace(request)
 
         if isinstance(workspace_result, Failure):
-            error = workspace_result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(workspace_result, "show workspace")
 
         response = workspace_result.unwrap()
 
@@ -195,10 +196,7 @@ def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
         workspace_result = ctx.workspace_orchestrator.get_workspace_model(args.workspace_id)
 
         if isinstance(workspace_result, Failure):
-            error = workspace_result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(workspace_result, "get workspace")
 
         workspace = workspace_result.unwrap()
 
@@ -220,10 +218,7 @@ def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.workspace_orchestrator.update_workspace(request)
 
         if isinstance(result, Failure):
-            error = result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(result, "update workspace")
 
         response = result.unwrap()
         IO.print(f"Updated [{response.id}] {response.name}")
@@ -251,10 +246,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
         workspace_result = ctx.workspace_orchestrator.get_workspace_model(args.workspace_id)
 
         if isinstance(workspace_result, Failure):
-            error = workspace_result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(workspace_result, "get workspace")
 
         workspace = workspace_result.unwrap()
 
@@ -270,10 +262,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.workspace_orchestrator.delete_workspace(request)
 
         if isinstance(result, Failure):
-            error = result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(result, "delete workspace")
 
         deleted = result.unwrap()
         if deleted:
@@ -301,10 +290,7 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.workspace_orchestrator.select_workspace(request, ctx.state_repo)
 
         if isinstance(result, Failure):
-            error = result.failure()
-            message = error.message if hasattr(error, "message") else str(error)
-            IO.print_error(f"Error: {message}")
-            sys.exit(1)
+            _handle_failure_result(result, "select workspace")
 
         response = result.unwrap()
         IO.print(f"Selected [{response.id}] {response.name}")

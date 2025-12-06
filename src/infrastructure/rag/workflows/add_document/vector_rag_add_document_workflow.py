@@ -7,7 +7,7 @@ This workflow orchestrates the full Vector RAG document ingestion process:
 4. Index vectors in vector store
 """
 
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -59,7 +59,7 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
         raw_document: BinaryIO,
         document_id: str,
         workspace_id: str,
-        metadata: MetadataDict | None = None,
+        metadata: Optional[MetadataDict] = None,
     ) -> Result[int, AddDocumentWorkflowError]:
         """
         Execute the full consume workflow.
@@ -111,26 +111,10 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
 
         # Step 3: Embed chunks
         logger.info(f"[ConsumeWorkflow] Embedding {len(chunks)} chunks")
-        try:
-            chunk_texts = [chunk.text for chunk in chunks]
-            result = self.embedder.encode(chunk_texts)
-            if isinstance(result, Failure):
-                error = result.failure()
-                return Failure(
-                    AddDocumentWorkflowError(
-                        f"Failed to embed chunks: {error.message}",
-                        step="embed",
-                    )
-                )
-            embeddings = result.unwrap()
-            logger.info(f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings")
-        except Exception as e:
-            return Failure(
-                AddDocumentWorkflowError(
-                    f"Failed to embed chunks: {e}",
-                    step="embed",
-                )
-            )
+        embed_result = self._embed_chunks(chunks)
+        if isinstance(embed_result, Failure):
+            return embed_result
+        embeddings = embed_result.unwrap()
 
         # Step 4: Index in vector store
         logger.info(f"[ConsumeWorkflow] Indexing {len(chunks)} chunks in vector store")
@@ -163,5 +147,32 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
                 AddDocumentWorkflowError(
                     f"Failed to index chunks: {e}",
                     step="index",
+                )
+            )
+
+    def _embed_chunks(self, chunks: list) -> Result[list, AddDocumentWorkflowError]:
+        """Embed chunks and return embeddings or error."""
+        try:
+            chunk_texts = [chunk.text for chunk in chunks]
+            result = self.embedder.encode(chunk_texts)
+
+            if isinstance(result, Failure):
+                error = result.failure()
+                return Failure(
+                    AddDocumentWorkflowError(
+                        f"Failed to embed chunks: {error.message}",
+                        step="embed",
+                    )
+                )
+
+            embeddings = result.unwrap()
+            logger.info(f"[ConsumeWorkflow] Generated {len(embeddings)} embeddings")
+            return Success(embeddings)
+
+        except Exception as e:
+            return Failure(
+                AddDocumentWorkflowError(
+                    f"Failed to embed chunks: {e}",
+                    step="embed",
                 )
             )

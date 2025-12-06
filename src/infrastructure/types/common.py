@@ -1,6 +1,6 @@
 """Common type aliases used across the application."""
 
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 # Metadata dictionary for storing arbitrary key-value pairs
 MetadataDict = dict[str, str | int | float | bool | None]

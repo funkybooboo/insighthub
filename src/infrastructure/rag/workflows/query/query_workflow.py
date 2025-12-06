@@ -4,6 +4,8 @@ All RAG implementations (Vector RAG, Graph RAG) must implement this interface
 for retrieval workflows.
 """
 
+from typing import Optional
+
 from abc import ABC, abstractmethod
 
 from src.infrastructure.types.common import FilterDict
@@ -42,7 +44,7 @@ class QueryWorkflow(ABC):
         self,
         query_text: str,
         top_k: int = 5,
-        filters: FilterDict | None = None,
+        filters: Optional[FilterDict]= None,
     ) -> list[ChunkData]:
         """
         Execute the query workflow for context retrieval.

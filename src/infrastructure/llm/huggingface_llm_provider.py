@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import Generator
+from typing import Optional
 
 import requests
 
@@ -13,9 +14,9 @@ class HuggingFaceLlmProvider(LlmProvider):
 
     def __init__(
         self,
-        api_key: str | None = None,
+        api_key: Optional[str] = None,
         model_name: str = "meta-llama/Llama-3.2-3B-Instruct",
-        api_url: str | None = None,
+        api_url: Optional[str] = None,
     ):
         """
         Initialize Hugging Face LLM provider.
@@ -57,24 +58,14 @@ class HuggingFaceLlmProvider(LlmProvider):
             response.raise_for_status()
 
             result = response.json()
-
-            # Handle different response formats
-            if isinstance(result, list) and len(result) > 0:
-                if isinstance(result[0], dict) and "generated_text" in result[0]:
-                    text_raw = result[0]["generated_text"]
-                    return str(text_raw).strip() if text_raw else ""
-            elif isinstance(result, dict) and "generated_text" in result:
-                text_raw = result["generated_text"]
-                return str(text_raw).strip() if text_raw else ""
-
-            return str(result)
+            return self._parse_response(result)
 
         except requests.exceptions.RequestException as e:
             return f"Error connecting to Hugging Face: {str(e)}"
         except Exception as e:
             return f"Error processing Hugging Face response: {str(e)}"
 
-    def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
+    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]] = None) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -140,7 +131,7 @@ class HuggingFaceLlmProvider(LlmProvider):
         return self.model_name
 
     def chat_stream(
-        self, message: str, conversation_history: list[dict[str, str]] | None = None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.
@@ -156,3 +147,33 @@ class HuggingFaceLlmProvider(LlmProvider):
         # Fall back to returning the full response as a single chunk
         full_response = self.chat(message, conversation_history)
         yield full_response
+
+    def _parse_response(self, result) -> str:
+        """Parse HuggingFace API response and extract generated text."""
+        list_response = self._try_parse_list_response(result)
+        if list_response is not None:
+            return list_response
+
+        dict_response = self._try_parse_dict_response(result)
+        if dict_response is not None:
+            return dict_response
+
+        return str(result)
+
+    def _try_parse_list_response(self, result) -> Optional[str]:
+        """Try to parse response as a list format."""
+        if not isinstance(result, list) or len(result) == 0:
+            return None
+
+        if isinstance(result[0], dict) and "generated_text" in result[0]:
+            text_raw = result[0]["generated_text"]
+            return str(text_raw).strip() if text_raw else ""
+
+        return None
+
+    def _try_parse_dict_response(self, result) -> Optional[str]:
+        """Try to parse response as a dict format."""
+        if isinstance(result, dict) and "generated_text" in result:
+            text_raw = result["generated_text"]
+            return str(text_raw).strip() if text_raw else ""
+        return None

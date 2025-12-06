@@ -24,7 +24,7 @@ class ChatMessageRepository:
         session_id: int,
         role: str,
         content: str,
-        extra_metadata: str | None = None,
+        extra_metadata: Optional[str]= None,
     ) -> Result[ChatMessage, DatabaseError]:
         """Create a new chat message."""
         query = """

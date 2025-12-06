@@ -38,43 +38,9 @@ class DefaultRagConfigDataAccess:
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
-            try:
-                data = json.loads(cached_json)
-                vector_config = DefaultVectorRagConfig(
-                    embedding_algorithm=data["vector_config"]["embedding_algorithm"],
-                    chunking_algorithm=data["vector_config"]["chunking_algorithm"],
-                    rerank_algorithm=data["vector_config"]["rerank_algorithm"],
-                    chunk_size=data["vector_config"]["chunk_size"],
-                    chunk_overlap=data["vector_config"]["chunk_overlap"],
-                    top_k=data["vector_config"]["top_k"],
-                )
-
-                graph_config = DefaultGraphRagConfig(
-                    entity_extraction_algorithm=data["graph_config"]["entity_extraction_algorithm"],
-                    relationship_extraction_algorithm=data["graph_config"][
-                        "relationship_extraction_algorithm"
-                    ],
-                    clustering_algorithm=data["graph_config"]["clustering_algorithm"],
-                )
-
-                return DefaultRagConfig(
-                    id=data["id"],
-                    rag_type=data["rag_type"],
-                    vector_config=vector_config,
-                    graph_config=graph_config,
-                    created_at=(
-                        datetime.fromisoformat(data["created_at"])
-                        if data.get("created_at")
-                        else datetime.now(UTC)
-                    ),
-                    updated_at=(
-                        datetime.fromisoformat(data["updated_at"])
-                        if data.get("updated_at")
-                        else datetime.now(UTC)
-                    ),
-                )
-            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                logger.warning(f"Cache deserialization error for default RAG config: {e}")
+            cached_config = self._deserialize_cached_config(cached_json)
+            if cached_config is not None:
+                return cached_config
 
         # Cache miss - fetch from database
         config = self.repository.get()
@@ -83,6 +49,51 @@ class DefaultRagConfigDataAccess:
             self._cache_config(config)
 
         return config
+
+    def _deserialize_cached_config(self, cached_json: str) -> Optional[DefaultRagConfig]:
+        """Deserialize cached config from JSON.
+
+        Returns:
+            DefaultRagConfig if valid, None if deserialization fails
+        """
+        try:
+            data = json.loads(cached_json)
+            vector_config = DefaultVectorRagConfig(
+                embedding_algorithm=data["vector_config"]["embedding_algorithm"],
+                chunking_algorithm=data["vector_config"]["chunking_algorithm"],
+                rerank_algorithm=data["vector_config"]["rerank_algorithm"],
+                chunk_size=data["vector_config"]["chunk_size"],
+                chunk_overlap=data["vector_config"]["chunk_overlap"],
+                top_k=data["vector_config"]["top_k"],
+            )
+
+            graph_config = DefaultGraphRagConfig(
+                entity_extraction_algorithm=data["graph_config"]["entity_extraction_algorithm"],
+                relationship_extraction_algorithm=data["graph_config"][
+                    "relationship_extraction_algorithm"
+                ],
+                clustering_algorithm=data["graph_config"]["clustering_algorithm"],
+            )
+
+            return DefaultRagConfig(
+                id=data["id"],
+                rag_type=data["rag_type"],
+                vector_config=vector_config,
+                graph_config=graph_config,
+                created_at=(
+                    datetime.fromisoformat(data["created_at"])
+                    if data.get("created_at")
+                    else datetime.now(UTC)
+                ),
+                updated_at=(
+                    datetime.fromisoformat(data["updated_at"])
+                    if data.get("updated_at")
+                    else datetime.now(UTC)
+                ),
+            )
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+            logger.warning(f"Cache deserialization error for default RAG config: {e}")
+            return None
 
     def update(self, config: DefaultRagConfig) -> DefaultRagConfig:
         """Update the default RAG config.

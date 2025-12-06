@@ -1,5 +1,7 @@
 """Factory for creating LLM provider instances."""
 
+from typing import Optional
+
 from .llm_provider import LlmProvider
 
 SUPPORTED_LLM_PROVIDERS = ["ollama", "openai", "claude", "huggingface"]
@@ -7,7 +9,7 @@ SUPPORTED_LLM_PROVIDERS = ["ollama", "openai", "claude", "huggingface"]
 
 def create_llm_provider(
     provider_type: str,
-    **kwargs: str | None,
+    **kwargs: Optional[str],
 ) -> LlmProvider:
     """
     Create an LLM provider instance.

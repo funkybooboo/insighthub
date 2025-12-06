@@ -4,6 +4,8 @@ These validators are reusable across all domains. They use dependency injection
 (composition) - pass in values and get Results back. No inheritance.
 """
 
+from typing import Optional
+
 from returns.result import Failure, Result, Success
 
 from src.infrastructure.types import ValidationError
@@ -50,9 +52,9 @@ def validate_pagination(
 
 
 def validate_non_empty_string(
-    value: str | None,
+    value: Optional[str],
     field_name: str,
-    max_length: int | None = None,
+    max_length: Optional[int] = None,
     required: bool = True,
 ) -> Result[str, ValidationError]:
     """Validate that a string is non-empty and optionally check max length.

@@ -1,7 +1,7 @@
 """PDF document parser implementation."""
 
 import uuid
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, BinaryIO, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -27,7 +27,7 @@ class PDFDocumentParser(DocumentParser):
     """PDF document parser using pypdf library."""
 
     def parse(
-        self, raw: BinaryIO, metadata: MetadataDict | None = None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict] = None
     ) -> Result[Document, ParsingError]:
         """
         Parse PDF document bytes into structured Document.
@@ -98,7 +98,7 @@ class PDFDocumentParser(DocumentParser):
     def _extract_pdf_metadata(
         self,
         reader: "pypdf_module.PdfReader",
-        user_metadata: MetadataDict | None,
+        user_metadata: Optional[MetadataDict],
     ) -> MetadataDict:
         """Extract metadata from PDF reader."""
         metadata: MetadataDict = {}
@@ -108,23 +108,35 @@ class PDFDocumentParser(DocumentParser):
             metadata["is_encrypted"] = getattr(reader, "is_encrypted", False)
 
         if hasattr(reader, "metadata") and reader.metadata:
-            doc_info = reader.metadata
-            if doc_info:
-                if doc_info.title:
-                    metadata["title"] = str(doc_info.title)
-                if doc_info.author:
-                    metadata["author"] = str(doc_info.author)
-                if doc_info.subject:
-                    metadata["subject"] = str(doc_info.subject)
-                if doc_info.creator:
-                    metadata["creator"] = str(doc_info.creator)
+            doc_info_data = self._extract_document_info(reader.metadata)
+            metadata.update(doc_info_data)
 
         if user_metadata:
             metadata.update(user_metadata)
 
         return metadata
 
-    def _get_title(self, metadata: MetadataDict | None, pdf_metadata: MetadataDict) -> str | None:
+    def _extract_document_info(
+        self, doc_info: "pypdf_module.DocumentInformation"
+    ) -> MetadataDict:
+        """Extract document information fields and return metadata."""
+        result: MetadataDict = {}
+
+        if not doc_info:
+            return result
+
+        if doc_info.title:
+            result["title"] = str(doc_info.title)
+        if doc_info.author:
+            result["author"] = str(doc_info.author)
+        if doc_info.subject:
+            result["subject"] = str(doc_info.subject)
+        if doc_info.creator:
+            result["creator"] = str(doc_info.creator)
+
+        return result
+
+    def _get_title(self, metadata: Optional[MetadataDict], pdf_metadata: MetadataDict) -> Optional[str]:
         """Get title from metadata or PDF metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])
@@ -139,7 +151,7 @@ class PDFDocumentParser(DocumentParser):
 
         return None
 
-    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
+    def _generate_document_id(self, metadata: Optional[MetadataDict]) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])

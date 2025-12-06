@@ -1,5 +1,7 @@
 """Local filesystem blob storage implementation."""
 
+from typing import Optional
+
 from pathlib import Path
 
 from src.infrastructure.logger import create_logger
@@ -12,7 +14,7 @@ logger = create_logger(__name__)
 class StorageException(Exception):
     """Exception raised when storage operations fail."""
 
-    def __init__(self, message: str, operation: str, key: str | None = None):
+    def __init__(self, message: str, operation: str, key: Optional[str]= None):
         """Initialize storage exception.
 
         Args:

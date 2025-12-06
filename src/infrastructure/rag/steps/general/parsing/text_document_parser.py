@@ -1,7 +1,7 @@
 """Text document parser implementation."""
 
 import uuid
-from typing import BinaryIO
+from typing import Optional, BinaryIO
 
 from returns.result import Failure, Result, Success
 
@@ -17,7 +17,7 @@ class TextDocumentParser(DocumentParser):
     """Plain text document parser."""
 
     def parse(
-        self, raw: BinaryIO, metadata: MetadataDict | None = None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict]= None
     ) -> Result[Document, ParsingError]:
         """
         Parse text document bytes into structured Document.
@@ -71,8 +71,7 @@ class TextDocumentParser(DocumentParser):
             return {}
 
     def _extract_text_metadata(
-        self, content: str, user_metadata: MetadataDict | None
-    ) -> MetadataDict:
+        self, content: str, user_metadata: Optional[MetadataDict]) -> MetadataDict:
         """Extract metadata from text content."""
         metadata: MetadataDict = {
             "encoding": "utf-8",
@@ -97,7 +96,7 @@ class TextDocumentParser(DocumentParser):
 
         return metadata
 
-    def _get_title(self, metadata: MetadataDict | None, content: str) -> str | None:
+    def _get_title(self, metadata: Optional[MetadataDict], content: str) -> Optional[str]:
         """Get title from metadata or extract from content."""
         if metadata and "title" in metadata:
             return str(metadata["title"])
@@ -110,7 +109,7 @@ class TextDocumentParser(DocumentParser):
 
         return None
 
-    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
+    def _generate_document_id(self, metadata: Optional[MetadataDict]) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])

@@ -4,6 +4,8 @@ All RAG implementations (Vector RAG, Graph RAG) must implement this interface
 for workspace resource provisioning workflows.
 """
 
+from typing import Optional
+
 from abc import ABC, abstractmethod
 
 from returns.result import Result
@@ -41,7 +43,7 @@ class CreateRagResourcesWorkflow(ABC):
     def execute(
         self,
         workspace_id: str,
-        config: dict[str, str | int | float | bool] | None = None,
+        config: Optional[dict[str, str | int | float | bool]] = None,
     ) -> Result[bool, CreateRagResourcesWorkflowError]:
         """
         Execute the create RAG resources workflow for workspace setup.

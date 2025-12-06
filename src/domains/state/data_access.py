@@ -36,20 +36,9 @@ class StateDataAccess:
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
-            try:
-                data = json.loads(cached_json)
-                return State(
-                    id=data["id"],
-                    current_workspace_id=data.get("current_workspace_id"),
-                    current_session_id=data.get("current_session_id"),
-                    updated_at=(
-                        datetime.fromisoformat(data["updated_at"])
-                        if data.get("updated_at")
-                        else datetime.utcnow()
-                    ),
-                )
-            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                logger.warning(f"Cache deserialization error for state: {e}")
+            cached_state = self._deserialize_cached_state(cached_json)
+            if cached_state is not None:
+                return cached_state
 
         # Cache miss - fetch from database
         state = self.repository.get()
@@ -58,6 +47,28 @@ class StateDataAccess:
             self._cache_state(state)
 
         return state
+
+    def _deserialize_cached_state(self, cached_json: str) -> Optional[State]:
+        """Deserialize cached state from JSON.
+
+        Returns:
+            State if valid, None if deserialization fails
+        """
+        try:
+            data = json.loads(cached_json)
+            return State(
+                id=data["id"],
+                current_workspace_id=data.get("current_workspace_id"),
+                current_session_id=data.get("current_session_id"),
+                updated_at=(
+                    datetime.fromisoformat(data["updated_at"])
+                    if data.get("updated_at")
+                    else datetime.utcnow()
+                ),
+            )
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+            logger.warning(f"Cache deserialization error for state: {e}")
+            return None
 
     def set_current_workspace(self, workspace_id: Optional[int]) -> None:
         """Set the current workspace ID.

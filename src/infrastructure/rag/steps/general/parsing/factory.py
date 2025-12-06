@@ -79,7 +79,7 @@ class ParserFactory:
         self,
         raw: BinaryIO,
         filename: str,
-        metadata: MetadataDict | None = None,
+        metadata: Optional[MetadataDict]= None,
     ) -> Result[Document, ParsingError]:
         """
         Parse document using appropriate parser.

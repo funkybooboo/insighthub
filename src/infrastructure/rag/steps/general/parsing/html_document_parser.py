@@ -2,7 +2,7 @@
 
 import re
 import uuid
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, BinaryIO, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -49,7 +49,7 @@ class HTMLDocumentParser(DocumentParser):
         self._parser_type = parser_type
 
     def parse(
-        self, raw: BinaryIO, metadata: MetadataDict | None = None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict] = None
     ) -> Result[Document, ParsingError]:
         """
         Parse HTML document bytes into structured Document.
@@ -142,7 +142,7 @@ class HTMLDocumentParser(DocumentParser):
         return text.strip()
 
     def _extract_html_metadata(
-        self, soup: "BS4Type", user_metadata: MetadataDict | None
+        self, soup: "BS4Type", user_metadata: Optional[MetadataDict]
     ) -> MetadataDict:
         """Extract metadata from HTML document."""
         metadata: MetadataDict = {}
@@ -152,26 +152,8 @@ class HTMLDocumentParser(DocumentParser):
             metadata["title"] = title_tag.string.strip()
 
         for meta in soup.find_all("meta"):
-            name_val = meta.get("name", "")
-            name = str(name_val).lower() if name_val else ""
-            content_val = meta.get("content", "")
-            content = str(content_val) if content_val else ""
-
-            if name and content:
-                if name == "description":
-                    metadata["description"] = content
-                elif name == "keywords":
-                    metadata["keywords"] = content
-                elif name == "author":
-                    metadata["author"] = content
-
-            property_val = meta.get("property", "")
-            property_name = str(property_val).lower() if property_val else ""
-            if property_name and content:
-                if property_name == "og:title":
-                    metadata["og_title"] = content
-                elif property_name == "og:description":
-                    metadata["og_description"] = content
+            meta_data = self._process_meta_tag(meta)
+            metadata.update(meta_data)
 
         metadata["heading_count"] = len(soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]))
         metadata["paragraph_count"] = len(soup.find_all("p"))
@@ -182,7 +164,46 @@ class HTMLDocumentParser(DocumentParser):
 
         return metadata
 
-    def _get_title(self, metadata: MetadataDict | None, html_metadata: MetadataDict) -> str | None:
+    def _process_meta_tag(self, meta: "BS4Type") -> MetadataDict:
+        """Process a single meta tag and return metadata."""
+        result: MetadataDict = {}
+
+        name_val = meta.get("name", "")
+        name = str(name_val).lower() if name_val else ""
+        content_val = meta.get("content", "")
+        content = str(content_val) if content_val else ""
+
+        if name and content:
+            name_data = self._process_meta_name(name, content)
+            result.update(name_data)
+
+        property_val = meta.get("property", "")
+        property_name = str(property_val).lower() if property_val else ""
+        if property_name and content:
+            property_data = self._process_meta_property(property_name, content)
+            result.update(property_data)
+
+        return result
+
+    def _process_meta_name(self, name: str, content: str) -> MetadataDict:
+        """Process meta tag with name attribute and return metadata."""
+        if name == "description":
+            return {"description": content}
+        elif name == "keywords":
+            return {"keywords": content}
+        elif name == "author":
+            return {"author": content}
+        return {}
+
+    def _process_meta_property(self, property_name: str, content: str) -> MetadataDict:
+        """Process meta tag with property attribute and return metadata."""
+        if property_name == "og:title":
+            return {"og_title": content}
+        elif property_name == "og:description":
+            return {"og_description": content}
+        return {}
+
+    def _get_title(self, metadata: Optional[MetadataDict], html_metadata: MetadataDict) -> Optional[str]:
         """Get title from metadata or HTML metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])
@@ -193,7 +214,7 @@ class HTMLDocumentParser(DocumentParser):
 
         return None
 
-    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
+    def _generate_document_id(self, metadata: Optional[MetadataDict]) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])

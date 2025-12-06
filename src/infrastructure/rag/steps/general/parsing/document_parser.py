@@ -1,7 +1,7 @@
 """Document parser interface for converting raw bytes to structured Document objects."""
 
 from abc import ABC, abstractmethod
-from typing import BinaryIO
+from typing import Optional, BinaryIO
 
 from returns.result import Result
 
@@ -38,7 +38,7 @@ class DocumentParser(ABC):
 
     @abstractmethod
     def parse(
-        self, raw: BinaryIO, metadata: MetadataDict | None = None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict]= None
     ) -> Result[Document, ParsingError]:
         """
         Parse raw document bytes into a Document object.

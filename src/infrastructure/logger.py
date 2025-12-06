@@ -3,7 +3,7 @@
 import logging
 import re
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from pythonjsonlogger.json import JsonFormatter
 
@@ -266,7 +266,7 @@ class Logger:
         return cls._instances[name]
 
     def _log(
-        self, level: int, message: str, extra: dict | None = None, exc_info: Any = None
+        self, level: int, message: str, extra: Optional[dict] = None, exc_info: Any = None
     ) -> None:
         """
         Log a message with a given level and extra context.
@@ -279,27 +279,27 @@ class Logger:
         """
         self._logger.log(level, message, extra=extra, exc_info=exc_info)
 
-    def debug(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def debug(self, message: str, extra: Optional[dict] = None, exc_info: Any = None) -> None:
         """Log debug message with optional context."""
         self._log(logging.DEBUG, message, extra, exc_info)
 
-    def info(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def info(self, message: str, extra: Optional[dict] = None, exc_info: Any = None) -> None:
         """Log info message with optional context."""
         self._log(logging.INFO, message, extra, exc_info)
 
-    def warning(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def warning(self, message: str, extra: Optional[dict] = None, exc_info: Any = None) -> None:
         """Log warning message with optional context."""
         self._log(logging.WARNING, message, extra, exc_info)
 
-    def error(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def error(self, message: str, extra: Optional[dict] = None, exc_info: Any = None) -> None:
         """Log error message with optional context."""
         self._log(logging.ERROR, message, extra, exc_info)
 
-    def critical(self, message: str, extra: dict | None = None, exc_info: Any = None) -> None:
+    def critical(self, message: str, extra: Optional[dict] = None, exc_info: Any = None) -> None:
         """Log critical message with optional context."""
         self._log(logging.CRITICAL, message, extra, exc_info)
 
-    def exception(self, message: str, extra: dict | None = None) -> None:
+    def exception(self, message: str, extra: Optional[dict] = None) -> None:
         """Log exception with traceback and optional context."""
         self._logger.exception(message, extra=extra)
 

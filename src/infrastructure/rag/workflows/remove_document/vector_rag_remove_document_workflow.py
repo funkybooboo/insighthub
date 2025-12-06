@@ -87,61 +87,70 @@ class VectorRagRemoveDocumentWorkflow(RemoveDocumentWorkflow):
             Number of chunks deleted
         """
         try:
-            # Build filter for document_id and workspace_id using Qdrant models
-            filter_conditions: Filter = qdrant_models.Filter(
-                must=[
-                    qdrant_models.FieldCondition(
-                        key="document_id",
-                        match=qdrant_models.MatchValue(value=document_id),
-                    ),
-                    qdrant_models.FieldCondition(
-                        key="workspace_id",
-                        match=qdrant_models.MatchValue(value=workspace_id),
-                    ),
-                ]
-            )
-
-            # Use scroll API to get all matching points
+            filter_conditions = self._build_metadata_filter(document_id, workspace_id)
             collection_name = self.vector_database.collection_name
             client = self.vector_database._client
 
-            # Scroll through all matching points
-            offset = None
-            deleted_count = 0
-            batch_size = 100
-
-            while True:
-                scroll_result = client.scroll(
-                    collection_name=collection_name,
-                    scroll_filter=filter_conditions,
-                    limit=batch_size,
-                    offset=offset,
-                    with_payload=False,
-                    with_vectors=False,
-                )
-
-                points, next_offset = scroll_result
-
-                if not points:
-                    break
-
-                # Delete this batch of points
-                point_ids = [point.id for point in points]
-                if point_ids:
-                    client.delete(
-                        collection_name=collection_name,
-                        points_selector=qdrant_models.PointIdsList(points=point_ids),
-                    )
-                    deleted_count += len(point_ids)
-
-                # Check if there are more results
-                if next_offset is None:
-                    break
-
-                offset = next_offset
-
+            deleted_count = self._scroll_and_delete(client, collection_name, filter_conditions)
             return deleted_count
 
         except Exception as e:
             logger.error(f"Failed to delete chunks by metadata: {e}")
             raise Exception(f"Chunk deletion failed: {e}") from e
+
+    def _build_metadata_filter(self, document_id: str, workspace_id: str) -> "Filter":
+        """Build filter for document_id and workspace_id."""
+        return qdrant_models.Filter(
+            must=[
+                qdrant_models.FieldCondition(
+                    key="document_id",
+                    match=qdrant_models.MatchValue(value=document_id),
+                ),
+                qdrant_models.FieldCondition(
+                    key="workspace_id",
+                    match=qdrant_models.MatchValue(value=workspace_id),
+                ),
+            ]
+        )
+
+    def _scroll_and_delete(self, client, collection_name: str, filter_conditions: "Filter") -> int:
+        """Scroll through matching points and delete them in batches."""
+        offset = None
+        deleted_count = 0
+        batch_size = 100
+
+        while True:
+            scroll_result = client.scroll(
+                collection_name=collection_name,
+                scroll_filter=filter_conditions,
+                limit=batch_size,
+                offset=offset,
+                with_payload=False,
+                with_vectors=False,
+            )
+
+            points, next_offset = scroll_result
+
+            if not points:
+                break
+
+            deleted_count += self._delete_point_batch(client, collection_name, points)
+
+            if next_offset is None:
+                break
+
+            offset = next_offset
+
+        return deleted_count
+
+    def _delete_point_batch(self, client, collection_name: str, points: list) -> int:
+        """Delete a batch of points and return count deleted."""
+        point_ids = [point.id for point in points]
+        if not point_ids:
+            return 0
+
+        client.delete(
+            collection_name=collection_name,
+            points_selector=qdrant_models.PointIdsList(points=point_ids),
+        )
+        return len(point_ids)

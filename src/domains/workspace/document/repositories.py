@@ -27,11 +27,11 @@ class DocumentRepository:
         mime_type: str,
         chunk_count: int = 0,
         status: str = "processing",
-        error_message: str | None = None,
-        file_path: str | None = None,
-        content_hash: str | None = None,
-        rag_collection: str | None = None,
-        parsed_text: str | None = None,
+        error_message: Optional[str]= None,
+        file_path: Optional[str]= None,
+        content_hash: Optional[str]= None,
+        rag_collection: Optional[str]= None,
+        parsed_text: Optional[str]= None,
     ) -> Result[Document, DatabaseError]:
         """Create a new document."""
         query = """
@@ -171,8 +171,8 @@ class DocumentRepository:
         self,
         document_id: int,
         status: str,
-        error: str | None = None,
-        chunk_count: int | None = None,
+        error: Optional[str]= None,
+        chunk_count: Optional[int]= None,
     ) -> bool:
         """Update document processing status."""
         query = """
@@ -183,7 +183,7 @@ class DocumentRepository:
         affected_rows = self.db.execute(query, (status, chunk_count, document_id))
         return affected_rows > 0
 
-    def count_by_workspace(self, workspace_id: int, status_filter: str | None = None) -> int:
+    def count_by_workspace(self, workspace_id: int, status_filter: Optional[str]= None) -> int:
         """Count document in workspace with optional status filter."""
         if status_filter:
             query = (

@@ -1,7 +1,7 @@
 """Document service implementation."""
 
 from io import BytesIO
-from typing import Any
+from typing import Optional, Any
 
 from returns.result import Failure, Result, Success
 
@@ -197,68 +197,87 @@ class DocumentService:
         }
 
         if workspace.rag_type == "vector":
-            # Get workspace-specific vector RAG config
             vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
-
-            if vector_config:
-                base_config.update(
-                    {
-                        "chunker_type": vector_config.chunking_algorithm,
-                        "chunker_config": {
-                            "chunk_size": vector_config.chunk_size,
-                            "overlap": vector_config.chunk_overlap,
-                        },
-                        "embedder_type": vector_config.embedding_algorithm,
-                        "embedder_config": {
-                            "base_url": config.llm.ollama_base_url,
-                        },
-                        "vector_store_type": "qdrant",
-                        "vector_store_config": {
-                            "host": config.vector_store.qdrant_host,
-                            "port": config.vector_store.qdrant_port,
-                            "collection_name": f"workspace_{workspace.id}",
-                        },
-                        "enable_reranking": vector_config.rerank_algorithm != "none",
-                        "reranker_type": vector_config.rerank_algorithm,
-                    }
-                )
-            else:
-                # Fallback to defaults if no config found
-                base_config.update(
-                    {
-                        "chunker_type": get_default_chunking_algorithm(),
-                        "chunker_config": {
-                            "chunk_size": 500,
-                            "overlap": 50,
-                        },
-                        "embedder_type": get_default_embedding_algorithm(),
-                        "embedder_config": {
-                            "base_url": config.llm.ollama_base_url,
-                        },
-                        "vector_store_type": "qdrant",
-                        "vector_store_config": {
-                            "host": config.vector_store.qdrant_host,
-                            "port": config.vector_store.qdrant_port,
-                            "collection_name": f"workspace_{workspace.id}",
-                        },
-                        "enable_reranking": False,
-                    }
-                )
+            vector_settings = self._build_vector_config(workspace.id, vector_config)
+            base_config.update(vector_settings)
         elif workspace.rag_type == "graph":
-            # Get workspace-specific graph RAG config
             graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
-
-            if graph_config:
-                base_config.update(
-                    {
-                        "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
-                        "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
-                        "clustering_algorithm": graph_config.clustering_algorithm,
-                    }
-                )
-            # Note: Graph RAG workflow not fully implemented yet
+            graph_settings = self._build_graph_config(workspace.id, graph_config)
+            base_config.update(graph_settings)
 
         return base_config
+
+    def _build_vector_config(
+        self, workspace_id: int, vector_config: Optional[VectorRagConfig]
+    ) -> dict[str, Any]:
+        """Build vector RAG configuration."""
+        if vector_config:
+            return {
+                "chunker_type": vector_config.chunking_algorithm,
+                "chunker_config": {
+                    "chunk_size": vector_config.chunk_size,
+                    "overlap": vector_config.chunk_overlap,
+                },
+                "embedder_type": vector_config.embedding_algorithm,
+                "embedder_config": {
+                    "base_url": config.llm.ollama_base_url,
+                },
+                "vector_store_type": "qdrant",
+                "vector_store_config": {
+                    "host": config.vector_store.qdrant_host,
+                    "port": config.vector_store.qdrant_port,
+                    "collection_name": f"workspace_{workspace_id}",
+                },
+                "enable_reranking": vector_config.rerank_algorithm != "none",
+                "reranker_type": vector_config.rerank_algorithm,
+            }
+
+        return {
+            "chunker_type": get_default_chunking_algorithm(),
+            "chunker_config": {
+                "chunk_size": 500,
+                "overlap": 50,
+            },
+            "embedder_type": get_default_embedding_algorithm(),
+            "embedder_config": {
+                "base_url": config.llm.ollama_base_url,
+            },
+            "vector_store_type": "qdrant",
+            "vector_store_config": {
+                "host": config.vector_store.qdrant_host,
+                "port": config.vector_store.qdrant_port,
+                "collection_name": f"workspace_{workspace_id}",
+            },
+            "enable_reranking": False,
+            "reranker_type": get_default_reranking_algorithm(),
+        }
+
+    def _build_graph_config(
+        self, workspace_id: int, graph_config: Optional[GraphRagConfig]
+    ) -> dict[str, Any]:
+        """Build graph RAG configuration."""
+        if graph_config:
+            return {
+                "graph_store_type": "neo4j",
+                "graph_store_config": {
+                    "uri": config.graph_store.neo4j_uri,
+                    "database": f"workspace_{workspace_id}",
+                },
+                "entity_extraction_type": graph_config.entity_extraction_algorithm,
+                "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
+                "clustering_type": graph_config.clustering_algorithm,
+            }
+
+        return {
+            "graph_store_type": "neo4j",
+            "graph_store_config": {
+                "uri": config.graph_store.neo4j_uri,
+                "database": f"workspace_{workspace_id}",
+            },
+            "entity_extraction_type": get_default_entity_extraction_algorithm(),
+            "relationship_extraction_type": get_default_relationship_extraction_algorithm(),
+            "clustering_type": get_default_clustering_algorithm(),
+        }
 
     def remove_document(self, document_id: int) -> bool:
         """Remove document and its RAG data.
@@ -343,7 +362,7 @@ class DocumentService:
         """
         return self.data_access.get_by_workspace(workspace_id)
 
-    def get_document_by_id(self, document_id: int) -> Document | None:
+    def get_document_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID with caching (handled by data access layer).
 
         Args:

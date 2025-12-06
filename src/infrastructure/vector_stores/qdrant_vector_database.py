@@ -1,7 +1,7 @@
 """Qdrant vector database implementation."""
 
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.types.common import FilterDict, MetadataDict
@@ -19,7 +19,7 @@ logger = create_logger(__name__)
 class VectorStoreException(Exception):
     """Exception raised when vector store operations fail."""
 
-    def __init__(self, message: str, operation: str, original_error: Exception | None = None):
+    def __init__(self, message: str, operation: str, original_error: Optional[Exception] = None):
         self.message = message
         self.operation = operation
         self.original_error = original_error
@@ -58,7 +58,7 @@ class QdrantVectorDatabase(VectorDatabase):
         collection_name: str = "document",
         vector_size: int = 384,
         distance: str = "cosine",
-        api_key: str | None = None,
+        api_key: Optional[str] = None,
     ) -> None:
         """
         Initialize Qdrant vector database.
@@ -124,7 +124,7 @@ class QdrantVectorDatabase(VectorDatabase):
         """
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, string_id))
 
-    def _build_filter(self, filters: FilterDict | None) -> "Filter | None":
+    def _build_filter(self, filters: Optional[FilterDict]) -> "Optional[Filter]":
         """
         Build a Qdrant filter from a dictionary.
 
@@ -250,7 +250,7 @@ class QdrantVectorDatabase(VectorDatabase):
         self,
         vector: list[float],
         top_k: int = 10,
-        filters: FilterDict | None = None,
+        filters: Optional[FilterDict] = None,
     ) -> list[RetrievalResult]:
         """
         Retrieve top-k most similar vectors.
@@ -391,7 +391,7 @@ class QdrantVectorDatabase(VectorDatabase):
         except Exception:
             return False
 
-    def get(self, id: str) -> tuple[list[float], MetadataDict] | None:
+    def get(self, id: str) -> Optional[tuple[list[float], MetadataDict]]:
         """
         Retrieve a vector and its metadata by ID.
 
@@ -486,7 +486,7 @@ class QdrantVectorDatabase(VectorDatabase):
         vector: list[float],
         top_k: int = 10,
         score_threshold: float = 0.0,
-        filters: FilterDict | None = None,
+        filters: Optional[FilterDict] = None,
     ) -> list[RetrievalResult]:
         """
         Search with a minimum score threshold.

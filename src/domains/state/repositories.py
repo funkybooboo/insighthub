@@ -23,12 +23,12 @@ class StateRepository:
             return State(**result)
         return None
 
-    def set_current_workspace(self, workspace_id: int | None) -> None:
+    def set_current_workspace(self, workspace_id: Optional[int]) -> None:
         """Set the current workspace ID."""
         query = "UPDATE cli_state SET current_workspace_id = %s WHERE id = 1"
         self.db.execute(query, (workspace_id,))
 
-    def set_current_session(self, session_id: int | None) -> None:
+    def set_current_session(self, session_id: Optional[int]) -> None:
         """Set the current session ID."""
         query = "UPDATE cli_state SET current_session_id = %s WHERE id = 1"
         self.db.execute(query, (session_id,))

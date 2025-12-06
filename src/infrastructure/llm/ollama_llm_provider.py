@@ -1,5 +1,7 @@
 """Ollama LLM provider implementation."""
 
+from typing import Optional
+
 import json
 from collections.abc import Generator
 
@@ -66,7 +68,7 @@ class OllamaLlmProvider(LlmProvider):
                 f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
             )
 
-    def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
+    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]]= None) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -124,7 +126,7 @@ class OllamaLlmProvider(LlmProvider):
         return self.model_name
 
     def chat_stream(
-        self, message: str, conversation_history: list[dict[str, str]] | None = None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]]= None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.
@@ -153,23 +155,31 @@ class OllamaLlmProvider(LlmProvider):
             prompt = message
 
         try:
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model_name,
-                    "prompt": prompt,
-                    "stream": True,
-                },
-                timeout=60,
-                stream=True,
-            )
-            response.raise_for_status()
-
-            for line in response.iter_lines():
-                if line:
-                    chunk = json.loads(line)
-                    if "response" in chunk:
-                        yield chunk["response"]
-
+            response = self._make_stream_request(prompt)
+            yield from self._process_stream_response(response)
         except requests.exceptions.RequestException as e:
             yield f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
+
+    def _make_stream_request(self, prompt: str):
+        """Make streaming request to Ollama API."""
+        response = requests.post(
+            f"{self.base_url}/api/generate",
+            json={
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": True,
+            },
+            timeout=60,
+            stream=True,
+        )
+        response.raise_for_status()
+        return response
+
+    def _process_stream_response(self, response):
+        """Process streaming response from Ollama."""
+        for line in response.iter_lines():
+            if not line:
+                continue
+            chunk = json.loads(line)
+            if "response" in chunk:
+                yield chunk["response"]

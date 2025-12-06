@@ -1,5 +1,7 @@
 """Chat session service."""
 
+from typing import Optional
+
 from returns.result import Failure, Result, Success
 
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
@@ -20,8 +22,8 @@ class ChatSessionService:
 
     def create_session(
         self,
-        title: str | None = None,
-        workspace_id: int | None = None,
+        title: Optional[str]= None,
+        workspace_id: Optional[int]= None,
         rag_type: str = "vector",
     ) -> Result[ChatSession, ValidationError | DatabaseError]:
         """Create a new chat session (single-user system)."""
@@ -54,7 +56,7 @@ class ChatSessionService:
 
         return Success(session)
 
-    def get_session(self, session_id: int) -> ChatSession | None:
+    def get_session(self, session_id: int) -> Optional[ChatSession]:
         """Get session by ID."""
         return self.data_access.get_by_id(session_id)
 
@@ -63,7 +65,7 @@ class ChatSessionService:
         return self.data_access.get_all(skip, limit)
 
     def update_session(
-        self, session_id: int, title: str | None = None
+        self, session_id: int, title: Optional[str]= None
     ) -> Result[ChatSession, ValidationError | NotFoundError]:
         """Update session title."""
         logger.info(f"Updating chat session: session_id={session_id}, new_title='{title}'")
@@ -103,7 +105,7 @@ class ChatSessionService:
 
         return deleted
 
-    def get_workspace_session(self, workspace_id: int, session_id: int) -> ChatSession | None:
+    def get_workspace_session(self, workspace_id: int, session_id: int) -> Optional[ChatSession]:
         """Get session by ID with workspace validation (single-user system)."""
         session = self.data_access.get_by_id(session_id)
         if session and session.workspace_id == workspace_id:

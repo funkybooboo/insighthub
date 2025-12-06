@@ -89,66 +89,62 @@ class SentenceDocumentChunker(Chunker):
         for sentence in sentences:
             sentence_length = len(sentence)
 
-            # If adding this sentence would exceed chunk_size and we have content
-            if (
-                current_chunk_length + sentence_length > self._chunk_size
-                and current_chunk_sentences
-            ):
-                # Create chunk from current sentences
+            if self._should_create_chunk(current_chunk_length, sentence_length, current_chunk_sentences):
                 chunk_text = " ".join(current_chunk_sentences)
-                chunks.append(
-                    Chunk(
-                        id=f"{document.id}_chunk_{chunk_index}",
-                        document_id=document.id,
-                        text=chunk_text,
-                        metadata={
-                            "chunk_index": str(chunk_index),
-                            "start_offset": str(text_offset),
-                            "end_offset": str(text_offset + len(chunk_text)),
-                            "sentence_count": str(len(current_chunk_sentences)),
-                        },
-                    )
-                )
+                chunk = self._create_chunk(document.id, chunk_index, chunk_text, text_offset)
+                chunks.append(chunk)
 
-                # Prepare for next chunk with overlap
                 chunk_index += 1
                 text_offset += len(chunk_text) - self._overlap
 
-                # Keep sentences for overlap
-                overlap_text = ""
-                overlap_sentences: list[str] = []
-                for s in reversed(current_chunk_sentences):
-                    if len(overlap_text) + len(s) <= self._overlap:
-                        overlap_sentences.insert(0, s)
-                        overlap_text = " ".join(overlap_sentences)
-                    else:
-                        break
-
+                overlap_sentences = self._get_overlap_sentences(current_chunk_sentences)
                 current_chunk_sentences = overlap_sentences
-                current_chunk_length = len(overlap_text)
+                current_chunk_length = len(" ".join(overlap_sentences))
 
             # Add sentence to current chunk
             current_chunk_sentences.append(sentence)
             current_chunk_length += sentence_length + 1  # +1 for space
 
-        # Handle remaining sentences
         if current_chunk_sentences:
             chunk_text = " ".join(current_chunk_sentences)
-            chunks.append(
-                Chunk(
-                    id=f"{document.id}_chunk_{chunk_index}",
-                    document_id=document.id,
-                    text=chunk_text,
-                    metadata={
-                        "chunk_index": str(chunk_index),
-                        "start_offset": str(text_offset),
-                        "end_offset": str(text_offset + len(chunk_text)),
-                        "sentence_count": str(len(current_chunk_sentences)),
-                    },
-                )
-            )
+            chunk = self._create_chunk(document.id, chunk_index, chunk_text, text_offset)
+            chunks.append(chunk)
 
         return chunks
+
+    def _should_create_chunk(
+        self, current_length: int, sentence_length: int, sentences: list[str]
+    ) -> bool:
+        """Check if we should create a chunk."""
+        return current_length + sentence_length > self._chunk_size and len(sentences) > 0
+
+    def _create_chunk(self, doc_id: str, chunk_index: int, text: str, text_offset: int) -> Chunk:
+        """Create a chunk with metadata."""
+        return Chunk(
+            id=f"{doc_id}_chunk_{chunk_index}",
+            document_id=doc_id,
+            text=text,
+            metadata={
+                "chunk_index": str(chunk_index),
+                "start_offset": str(text_offset),
+                "end_offset": str(text_offset + len(text)),
+                "sentence_count": str(len(text.split(". "))),
+            },
+        )
+
+    def _get_overlap_sentences(self, sentences: list[str]) -> list[str]:
+        """Get sentences for overlap with next chunk."""
+        overlap_text = ""
+        overlap_sentences: list[str] = []
+
+        for s in reversed(sentences):
+            if len(overlap_text) + len(s) <= self._overlap:
+                overlap_sentences.insert(0, s)
+                overlap_text = " ".join(overlap_sentences)
+            else:
+                break
+
+        return overlap_sentences
 
     def estimate_chunk_count(self, document: Document) -> int:
         """

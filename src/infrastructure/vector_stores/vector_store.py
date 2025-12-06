@@ -1,7 +1,7 @@
 """Vector store interface for storing and retrieving vector embeddings."""
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Optional, List, Tuple
 
 from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.document import Chunk
@@ -34,7 +34,7 @@ class VectorStore(ABC):
 
     @abstractmethod
     def search(
-        self, query_embedding: List[float], top_k: int = 5, filters: FilterDict | None = None
+        self, query_embedding: List[float], top_k: int = 5, filters: Optional[FilterDict]= None
     ) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.

@@ -3,7 +3,7 @@
 import os
 import tempfile
 import uuid
-from typing import TYPE_CHECKING, BinaryIO
+from typing import TYPE_CHECKING, BinaryIO, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -30,7 +30,7 @@ class DocxDocumentParser(DocumentParser):
     """DOCX document parser using python-docx library."""
 
     def parse(
-        self, raw: BinaryIO, metadata: MetadataDict | None = None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict] = None
     ) -> Result[Document, ParsingError]:
         """
         Parse DOCX document bytes into structured Document.
@@ -50,7 +50,7 @@ class DocxDocumentParser(DocumentParser):
                 )
             )
 
-        temp_file_path: str | None = None
+        temp_file_path: Optional[str] = None
         try:
             with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_file:
                 temp_file.write(raw.read())
@@ -101,7 +101,7 @@ class DocxDocumentParser(DocumentParser):
         if not DOCX_AVAILABLE or DocxDocument is None:
             return {}
 
-        temp_file_path: str | None = None
+        temp_file_path: Optional[str] = None
         try:
             with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_file:
                 temp_file.write(raw.read())
@@ -119,7 +119,7 @@ class DocxDocumentParser(DocumentParser):
                     pass
 
     def _extract_docx_metadata(
-        self, doc: "DocxDocumentType", user_metadata: MetadataDict | None
+        self, doc: "DocxDocumentType", user_metadata: Optional[MetadataDict]
     ) -> MetadataDict:
         """Extract metadata from DOCX document."""
         metadata: MetadataDict = {
@@ -127,25 +127,37 @@ class DocxDocumentParser(DocumentParser):
         }
 
         if hasattr(doc, "core_properties"):
-            core_props = doc.core_properties
-            if core_props:
-                if core_props.title:
-                    metadata["title"] = str(core_props.title)
-                if core_props.author:
-                    metadata["author"] = str(core_props.author)
-                if core_props.subject:
-                    metadata["subject"] = str(core_props.subject)
-                if core_props.keywords:
-                    metadata["keywords"] = str(core_props.keywords)
-                if core_props.category:
-                    metadata["category"] = str(core_props.category)
+            core_props_data = self._extract_core_properties(doc.core_properties)
+            metadata.update(core_props_data)
 
         if user_metadata:
             metadata.update(user_metadata)
 
         return metadata
 
-    def _get_title(self, metadata: MetadataDict | None, docx_metadata: MetadataDict) -> str | None:
+    def _extract_core_properties(
+        self, core_props: "docx_module.opc.coreprops.CoreProperties"
+    ) -> MetadataDict:
+        """Extract core properties and return metadata."""
+        result: MetadataDict = {}
+
+        if not core_props:
+            return result
+
+        if core_props.title:
+            result["title"] = str(core_props.title)
+        if core_props.author:
+            result["author"] = str(core_props.author)
+        if core_props.subject:
+            result["subject"] = str(core_props.subject)
+        if core_props.keywords:
+            result["keywords"] = str(core_props.keywords)
+        if core_props.category:
+            result["category"] = str(core_props.category)
+
+        return result
+
+    def _get_title(self, metadata: Optional[MetadataDict], docx_metadata: MetadataDict) -> Optional[str]:
         """Get title from metadata or DOCX metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])
@@ -160,7 +172,7 @@ class DocxDocumentParser(DocumentParser):
 
         return None
 
-    def _generate_document_id(self, metadata: MetadataDict | None) -> str:
+    def _generate_document_id(self, metadata: Optional[MetadataDict]) -> str:
         """Generate document ID from metadata or use default."""
         if metadata and "document_id" in metadata:
             return str(metadata["document_id"])

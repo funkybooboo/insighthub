@@ -1,5 +1,7 @@
 """Error types for the application."""
 
+from typing import Optional
+
 from dataclasses import dataclass
 
 
@@ -8,7 +10,7 @@ class ValidationError:
     """Error for validation failures."""
 
     message: str
-    field: str | None = None
+    field: Optional[str]= None
 
 
 @dataclass(frozen=True)

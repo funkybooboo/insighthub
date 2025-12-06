@@ -1,6 +1,6 @@
 """Cross-encoder reranker implementation."""
 
-from typing import List, Tuple
+from typing import Optional, List, Tuple
 
 from returns.result import Failure, Result, Success
 
@@ -37,7 +37,7 @@ class CrossEncoderReranker(Reranker):
             )
 
         self.model_name = model_name
-        self._model: CrossEncoder | None = None
+        self._model: Optional[CrossEncoder]= None
 
     def _load_model(self) -> None:
         """Lazy load the cross-encoder model."""

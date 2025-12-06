@@ -13,7 +13,7 @@ logger = create_logger(__name__)
 class DatabaseException(Exception):
     """Exception raised when database operations fail."""
 
-    def __init__(self, message: str, operation: str, original_error: Exception | None = None):
+    def __init__(self, message: str, operation: str, original_error: Optional[Exception] = None):
         """Initialize database exception.
 
         Args:
@@ -49,7 +49,7 @@ class SqlDatabase:
             logger.error(f"Failed to connect to database: {e}")
             raise DatabaseException(str(e), operation="connect", original_error=e) from e
 
-    def execute(self, query: str, params: tuple[Any, ...] | None = None) -> int:
+    def execute(self, query: str, params: Optional[tuple[Any, ...]] = None) -> int:
         """Execute a query and return rows affected.
 
         Raises:
@@ -67,7 +67,7 @@ class SqlDatabase:
             raise DatabaseException(str(e), operation="execute", original_error=e) from e
 
     def fetch_one(
-        self, query: str, params: tuple[Any, ...] | None = None
+        self, query: str, params: Optional[tuple[Any, ...]] = None
     ) -> Optional[dict[str, Any]]:
         """Fetch one row as a dictionary.
 
@@ -86,7 +86,7 @@ class SqlDatabase:
             logger.error(f"Unexpected error during database fetch_one: {e}")
             raise DatabaseException(str(e), operation="fetch_one", original_error=e) from e
 
-    def fetch_all(self, query: str, params: tuple[Any, ...] | None = None) -> list[dict[str, Any]]:
+    def fetch_all(self, query: str, params: Optional[tuple[Any, ...]] = None) -> list[dict[str, Any]]:
         """Fetch all rows as dictionaries.
 
         Raises:
@@ -131,7 +131,7 @@ class SqlDatabase:
 
 
 # Singleton instance (single-threaded application)
-_db_instance: SqlDatabase | None = None
+_db_instance: Optional[SqlDatabase] = None
 
 
 def get_sql_database() -> SqlDatabase:

@@ -27,7 +27,7 @@ class CacheMixin:
         value = json.dumps(data)
         self.cache.set(key, value, ttl=ttl)
 
-    def _get_cached_object(self, key: str) -> dict | None:
+    def _get_cached_object(self, key: str) -> Optional[dict]:
         """Get cached object from JSON.
 
         Args:

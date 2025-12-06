@@ -1,6 +1,6 @@
 """Vector RAG implementation of create RAG resources workflow."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -61,7 +61,7 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
     def execute(
         self,
         workspace_id: str,
-        config: dict[str, str | int | float | bool] | None = None,
+        config: Optional[dict[str, str | int | float | bool]] = None,
     ) -> Result[bool, CreateRagResourcesWorkflowError]:
         """Execute provisioning workflow for a workspace.
 
@@ -76,20 +76,7 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
             logger.info(f"Starting workspace provisioning for workspace_id={workspace_id}")
 
             # Override defaults with config if provided
-            vector_size = self.vector_size
-            distance = self.distance
-
-            if config:
-                if "vector_size" in config:
-                    vector_size = int(config["vector_size"])
-                if "distance" in config:
-                    distance_str = str(config["distance"])
-                    distance_map = {
-                        "cosine": Distance.COSINE,
-                        "euclidean": Distance.EUCLID,
-                        "dot": Distance.DOT,
-                    }
-                    distance = distance_map.get(distance_str.lower(), Distance.COSINE)
+            vector_size, distance = self._parse_config(config)
 
             # Create Qdrant collection
             collection_name = f"workspace_{workspace_id}"
@@ -149,3 +136,30 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
 
         except Exception as e:
             raise Exception(f"Failed to create Qdrant collection: {e}") from e
+
+    def _parse_config(
+        self, config: Optional[dict[str, str | int | float | bool]]
+    ) -> tuple[int, "Distance"]:
+        """Parse config and return vector_size and distance."""
+        vector_size = self.vector_size
+        distance = self.distance
+
+        if not config:
+            return vector_size, distance
+
+        if "vector_size" in config:
+            vector_size = int(config["vector_size"])
+
+        if "distance" in config:
+            distance = self._parse_distance_metric(str(config["distance"]))
+
+        return vector_size, distance
+
+    def _parse_distance_metric(self, distance_str: str) -> "Distance":
+        """Parse distance metric string and return Distance enum."""
+        distance_map = {
+            "cosine": qdrant_models.Distance.COSINE,
+            "euclidean": qdrant_models.Distance.EUCLID,
+            "dot": qdrant_models.Distance.DOT,
+        }
+        return distance_map.get(distance_str.lower(), qdrant_models.Distance.COSINE)

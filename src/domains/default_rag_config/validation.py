@@ -16,6 +16,89 @@ from src.infrastructure.rag.options import (
 from src.infrastructure.types import ValidationError
 
 
+def _validate_vector_config(
+    request: CreateUpdateDefaultRagConfigRequest,
+) -> Result[None, ValidationError]:
+    """Validate vector configuration fields."""
+    if request.chunking_algorithm and not is_valid_chunking_algorithm(request.chunking_algorithm):
+        return Failure(
+            ValidationError(
+                f"Invalid chunking algorithm '{request.chunking_algorithm}'",
+                field="chunking_algorithm",
+            )
+        )
+
+    if request.chunk_size is not None and request.chunk_size <= 0:
+        return Failure(
+            ValidationError("Chunk size must be a positive integer", field="chunk_size")
+        )
+
+    if request.chunk_overlap is not None and request.chunk_overlap < 0:
+        return Failure(
+            ValidationError("Chunk overlap must be a non-negative integer", field="chunk_overlap")
+        )
+
+    if request.embedding_algorithm and not is_valid_embedding_algorithm(
+        request.embedding_algorithm
+    ):
+        return Failure(
+            ValidationError(
+                f"Invalid embedding algorithm '{request.embedding_algorithm}'",
+                field="embedding_algorithm",
+            )
+        )
+
+    if request.top_k is not None and request.top_k <= 0:
+        return Failure(ValidationError("Top K must be a positive integer", field="top_k"))
+
+    if request.rerank_algorithm and not is_valid_reranking_algorithm(request.rerank_algorithm):
+        return Failure(
+            ValidationError(
+                f"Invalid reranking algorithm '{request.rerank_algorithm}'",
+                field="rerank_algorithm",
+            )
+        )
+
+    return Success(None)
+
+
+def _validate_graph_config(
+    request: CreateUpdateDefaultRagConfigRequest,
+) -> Result[None, ValidationError]:
+    """Validate graph configuration fields."""
+    if request.entity_extraction_algorithm and not is_valid_entity_extraction_algorithm(
+        request.entity_extraction_algorithm
+    ):
+        return Failure(
+            ValidationError(
+                f"Invalid entity extraction algorithm '{request.entity_extraction_algorithm}'",
+                field="entity_extraction_algorithm",
+            )
+        )
+
+    if request.relationship_extraction_algorithm and not is_valid_relationship_extraction_algorithm(
+        request.relationship_extraction_algorithm
+    ):
+        return Failure(
+            ValidationError(
+                f"Invalid relationship extraction algorithm '{request.relationship_extraction_algorithm}'",
+                field="relationship_extraction_algorithm",
+            )
+        )
+
+    if request.clustering_algorithm and not is_valid_clustering_algorithm(
+        request.clustering_algorithm
+    ):
+        return Failure(
+            ValidationError(
+                f"Invalid clustering algorithm '{request.clustering_algorithm}'",
+                field="clustering_algorithm",
+            )
+        )
+
+    return Success(None)
+
+
 def validate_create_update_default_rag_config(
     request: CreateUpdateDefaultRagConfigRequest,
     default_rag_type: str = "vector",
@@ -40,88 +123,15 @@ def validate_create_update_default_rag_config(
             )
         )
 
-    # Validate vector config if rag_type is vector
+    # Validate config based on rag_type
     if rag_type == "vector":
-        if request.chunking_algorithm and not is_valid_chunking_algorithm(
-            request.chunking_algorithm
-        ):
-            return Failure(
-                ValidationError(
-                    f"Invalid chunking algorithm '{request.chunking_algorithm}'",
-                    field="chunking_algorithm",
-                )
-            )
-
-        if request.chunk_size is not None:
-            if request.chunk_size <= 0:
-                return Failure(
-                    ValidationError("Chunk size must be a positive integer", field="chunk_size")
-                )
-
-        if request.chunk_overlap is not None:
-            if request.chunk_overlap < 0:
-                return Failure(
-                    ValidationError(
-                        "Chunk overlap must be a non-negative integer", field="chunk_overlap"
-                    )
-                )
-
-        if request.embedding_algorithm and not is_valid_embedding_algorithm(
-            request.embedding_algorithm
-        ):
-            return Failure(
-                ValidationError(
-                    f"Invalid embedding algorithm '{request.embedding_algorithm}'",
-                    field="embedding_algorithm",
-                )
-            )
-
-        if request.top_k is not None:
-            if request.top_k <= 0:
-                return Failure(ValidationError("Top K must be a positive integer", field="top_k"))
-
-        if request.rerank_algorithm and not is_valid_reranking_algorithm(request.rerank_algorithm):
-            return Failure(
-                ValidationError(
-                    f"Invalid reranking algorithm '{request.rerank_algorithm}'",
-                    field="rerank_algorithm",
-                )
-            )
-
-    # Validate graph config if rag_type is graph
+        validation_result = _validate_vector_config(request)
+        if isinstance(validation_result, Failure):
+            return validation_result
     elif rag_type == "graph":
-        if request.entity_extraction_algorithm and not is_valid_entity_extraction_algorithm(
-            request.entity_extraction_algorithm
-        ):
-            return Failure(
-                ValidationError(
-                    f"Invalid entity extraction algorithm '{request.entity_extraction_algorithm}'",
-                    field="entity_extraction_algorithm",
-                )
-            )
-
-        if (
-            request.relationship_extraction_algorithm
-            and not is_valid_relationship_extraction_algorithm(
-                request.relationship_extraction_algorithm
-            )
-        ):
-            return Failure(
-                ValidationError(
-                    f"Invalid relationship extraction algorithm '{request.relationship_extraction_algorithm}'",
-                    field="relationship_extraction_algorithm",
-                )
-            )
-
-        if request.clustering_algorithm and not is_valid_clustering_algorithm(
-            request.clustering_algorithm
-        ):
-            return Failure(
-                ValidationError(
-                    f"Invalid clustering algorithm '{request.clustering_algorithm}'",
-                    field="clustering_algorithm",
-                )
-            )
+        validation_result = _validate_graph_config(request)
+        if isinstance(validation_result, Failure):
+            return validation_result
 
     # Return cleaned request
     return Success(

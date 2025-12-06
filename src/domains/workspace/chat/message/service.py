@@ -1,6 +1,6 @@
 """Chat message service."""
 
-from typing import Any, Callable
+from typing import Optional, Any, Callable
 
 from returns.result import Failure, Result, Success
 
@@ -39,7 +39,7 @@ class ChatMessageService:
         session_id: int,
         role: str,
         content: str,
-        extra_metadata: dict | None = None,
+        extra_metadata: Optional[dict]= None,
     ) -> Result[ChatMessage, ValidationError | DatabaseError]:
         """
         Create a new chat message.
@@ -98,7 +98,7 @@ class ChatMessageService:
 
         return Success(message)
 
-    def get_message(self, message_id: int) -> ChatMessage | None:
+    def get_message(self, message_id: int) -> Optional[ChatMessage]:
         """Get message by ID."""
         return self.data_access.get_by_id(message_id)
 
@@ -137,7 +137,7 @@ class ChatMessageService:
         self,
         session_id: int,
         message_content: str,
-        stream_callback: Callable[[str], None] | None = None,
+        stream_callback: Optional[Callable[[str], None]]= None,
     ) -> Result[tuple[ChatMessage, ChatMessage], NotFoundError | ValidationError]:
         """Send a message with RAG context and get streaming LLM response.
 
@@ -225,41 +225,9 @@ class ChatMessageService:
         }
 
         if workspace.rag_type == "vector":
-            # Get workspace-specific vector RAG config
             vector_config = self.workspace_data_access.get_vector_rag_config(workspace.id)
-
-            if vector_config:
-                rag_config.update(
-                    {
-                        "embedder_type": vector_config.embedding_algorithm,
-                        "embedder_config": {"base_url": config.llm.ollama_base_url},
-                        "vector_store_type": "qdrant",
-                        "vector_store_config": {
-                            "host": config.vector_store.qdrant_host,
-                            "port": config.vector_store.qdrant_port,
-                            "collection_name": f"workspace_{workspace.id}",
-                        },
-                        "enable_reranking": vector_config.rerank_algorithm != "none",
-                        "reranker_type": vector_config.rerank_algorithm,
-                        "top_k": vector_config.top_k,
-                    }
-                )
-            else:
-                # Fallback to defaults if no config found
-                rag_config.update(
-                    {
-                        "embedder_type": get_default_embedding_algorithm(),
-                        "embedder_config": {"base_url": config.llm.ollama_base_url},
-                        "vector_store_type": "qdrant",
-                        "vector_store_config": {
-                            "host": config.vector_store.qdrant_host,
-                            "port": config.vector_store.qdrant_port,
-                            "collection_name": f"workspace_{workspace.id}",
-                        },
-                        "enable_reranking": False,
-                        "top_k": 5,
-                    }
-                )
+            vector_settings = self._build_vector_query_config(workspace.id, vector_config)
+            rag_config.update(vector_settings)
         elif workspace.rag_type == "graph":
             # Get workspace-specific graph RAG config
             graph_config = self.workspace_data_access.get_graph_rag_config(workspace.id)
@@ -292,3 +260,35 @@ class ChatMessageService:
             context_parts.append(f"\n[{i}] {chunk.text}\n")
 
         return "".join(context_parts)
+
+    def _build_vector_query_config(
+        self, workspace_id: int, vector_config: Optional[VectorRagConfig]
+    ) -> dict[str, Any]:
+        """Build vector RAG query configuration."""
+        if vector_config:
+            return {
+                "embedder_type": vector_config.embedding_algorithm,
+                "embedder_config": {"base_url": config.llm.ollama_base_url},
+                "vector_store_type": "qdrant",
+                "vector_store_config": {
+                    "host": config.vector_store.qdrant_host,
+                    "port": config.vector_store.qdrant_port,
+                    "collection_name": f"workspace_{workspace_id}",
+                },
+                "enable_reranking": vector_config.rerank_algorithm != "none",
+                "reranker_type": vector_config.rerank_algorithm,
+                "top_k": vector_config.top_k,
+            }
+
+        return {
+            "embedder_type": get_default_embedding_algorithm(),
+            "embedder_config": {"base_url": config.llm.ollama_base_url},
+            "vector_store_type": "qdrant",
+            "vector_store_config": {
+                "host": config.vector_store.qdrant_host,
+                "port": config.vector_store.qdrant_port,
+                "collection_name": f"workspace_{workspace_id}",
+            },
+            "enable_reranking": False,
+            "top_k": 5,
+        }

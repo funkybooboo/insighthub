@@ -1,5 +1,7 @@
 """RAG system interfaces and types."""
 
+from typing import Optional
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -23,7 +25,7 @@ class QueryResult:
 
     chunks: list[ChunkData]
     query: str
-    workspace_id: str | None = None
+    workspace_id: Optional[str]= None
 
 
 class RagSystem(ABC):
@@ -38,7 +40,7 @@ class RagSystem(ABC):
     def query(
         self,
         query_text: str,
-        workspace_id: int | None = None,
+        workspace_id: Optional[int]= None,
         top_k: int = 5,
     ) -> list[QueryResult]:
         """

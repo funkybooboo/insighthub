@@ -1,5 +1,7 @@
 """Chat message domain exceptions."""
 
+from typing import Optional
+
 from src.infrastructure.exceptions import DomainException, NotFoundError, ValidationError
 
 
@@ -46,7 +48,7 @@ class LlmProviderError(DomainException):
     """Raised when an LLM provider operation fails."""
 
     def __init__(
-        self, message: str, provider: str | None = None, original_error: Exception | None = None
+        self, message: str, provider: Optional[str]= None, original_error: Optional[Exception]= None
     ):
         """
         Initialize LLM provider error.

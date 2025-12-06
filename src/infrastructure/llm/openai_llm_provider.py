@@ -1,6 +1,7 @@
 """OpenAI LLM provider implementation."""
 
 from collections.abc import Generator
+from typing import Optional
 
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -57,7 +58,7 @@ class OpenAiLlmProvider(LlmProvider):
         except Exception as e:
             return f"Error connecting to OpenAI: {str(e)}"
 
-    def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
+    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]] = None) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -69,26 +70,8 @@ class OpenAiLlmProvider(LlmProvider):
             Generated response text
         """
         try:
-            # Build message array
-            messages: list[ChatCompletionMessageParam] = []
+            messages = self._build_messages(message, conversation_history)
 
-            # Add conversation history
-            if conversation_history:
-                for msg in conversation_history[-10:]:  # Keep last 10 message
-                    role_str = msg.get("role", "users")
-                    content_str = msg.get("content", "")
-                    # OpenAI expects specific role types - create properly typed message
-                    if role_str == "users":
-                        messages.append({"role": "users", "content": content_str})
-                    elif role_str == "assistant":
-                        messages.append({"role": "assistant", "content": content_str})
-                    elif role_str == "system":
-                        messages.append({"role": "system", "content": content_str})
-
-            # Add current message
-            messages.append({"role": "users", "content": message})
-
-            # Call OpenAI
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
@@ -127,7 +110,7 @@ class OpenAiLlmProvider(LlmProvider):
         return self.model_name
 
     def chat_stream(
-        self, message: str, conversation_history: list[dict[str, str]] | None = None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.
@@ -140,25 +123,8 @@ class OpenAiLlmProvider(LlmProvider):
             Chunks of generated response text
         """
         try:
-            # Build message array
-            messages: list[ChatCompletionMessageParam] = []
+            messages = self._build_messages(message, conversation_history)
 
-            # Add conversation history
-            if conversation_history:
-                for msg in conversation_history[-10:]:
-                    role_str = msg.get("role", "users")
-                    content_str = msg.get("content", "")
-                    if role_str == "users":
-                        messages.append({"role": "users", "content": content_str})
-                    elif role_str == "assistant":
-                        messages.append({"role": "assistant", "content": content_str})
-                    elif role_str == "system":
-                        messages.append({"role": "system", "content": content_str})
-
-            # Add current message
-            messages.append({"role": "users", "content": message})
-
-            # Call OpenAI with streaming
             stream = self.client.chat.completions.create(
                 model=self.model_name, messages=messages, temperature=0.7, stream=True
             )
@@ -169,3 +135,32 @@ class OpenAiLlmProvider(LlmProvider):
 
         except Exception as e:
             yield f"Error connecting to OpenAI: {str(e)}"
+
+    def _build_messages(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]]
+    ) -> list[ChatCompletionMessageParam]:
+        """Build message array from conversation history and current message."""
+        messages: list[ChatCompletionMessageParam] = []
+
+        if conversation_history:
+            for msg in conversation_history[-10:]:
+                role_str = msg.get("role", "users")
+                content_str = msg.get("content", "")
+                message_dict = self._create_message_dict(role_str, content_str)
+                if message_dict:
+                    messages.append(message_dict)
+
+        messages.append({"role": "users", "content": message})
+        return messages
+
+    def _create_message_dict(
+        self, role_str: str, content_str: str
+    ) -> Optional[ChatCompletionMessageParam]:
+        """Create a properly typed message dict for the given role."""
+        if role_str == "users":
+            return {"role": "users", "content": content_str}
+        elif role_str == "assistant":
+            return {"role": "assistant", "content": content_str}
+        elif role_str == "system":
+            return {"role": "system", "content": content_str}
+        return None

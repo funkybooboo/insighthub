@@ -4,7 +4,7 @@ Eliminates duplication between commands.py and routes.py by providing
 a single interface for: Request DTO → Validation → Service → Response DTO
 """
 
-from typing import Any
+from typing import Optional, Any
 
 from returns.result import Failure, Result, Success
 
@@ -218,7 +218,7 @@ class WorkspaceOrchestrator:
             return Failure(NotFoundError("workspace", workspace_id))
 
         # Get RAG config based on type
-        config: VectorRagConfig | GraphRagConfig | None
+        config: Optional[VectorRagConfig | GraphRagConfig]
         if workspace.rag_type == "vector":
             config = self.repository.get_vector_rag_config(workspace.id)
         elif workspace.rag_type == "graph":

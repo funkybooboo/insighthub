@@ -1,5 +1,7 @@
 """InsightHub CLI - Main entry point and routing."""
 
+from typing import Optional
+
 import argparse
 import atexit
 import signal
@@ -18,7 +20,7 @@ from src.infrastructure.logger import create_logger
 logger = create_logger(__name__)
 
 # Global context for cleanup
-_app_context: AppContext | None = None
+_app_context: Optional[AppContext]= None
 
 
 def cleanup_handler() -> None:

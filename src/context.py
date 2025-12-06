@@ -1,5 +1,7 @@
 """Application context containing all services and repositories."""
 
+from typing import Optional
+
 from src.config import config
 from src.domains.default_rag_config.data_access import DefaultRagConfigDataAccess
 from src.domains.default_rag_config.orchestrator import DefaultRagConfigOrchestrator
@@ -176,8 +178,8 @@ class AppContext:
 
         # Load current state from database (using data access layer with caching)
         state = self.state_data_access.get()
-        self.current_workspace_id: int | None = state.current_workspace_id if state else None
-        self.current_session_id: int | None = state.current_session_id if state else None
+        self.current_workspace_id: Optional[int]= state.current_workspace_id if state else None
+        self.current_session_id: Optional[int]= state.current_session_id if state else None
 
     def startup_checks(self) -> bool:
         """

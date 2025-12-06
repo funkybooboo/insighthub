@@ -76,23 +76,30 @@ class S3BlobStorage(BlobStorage):
         try:
             self._client.head_bucket(Bucket=self.bucket_name)
         except ClientError as e:
-            error_code = e.response.get("Error", {}).get("Code", "")
-            if error_code == "404":
-                # Bucket doesn't exist, create it
-                try:
-                    if self._region == "us-east-1":
-                        self._client.create_bucket(Bucket=self.bucket_name)
-                    else:
-                        self._client.create_bucket(
-                            Bucket=self.bucket_name,
-                            CreateBucketConfiguration={"LocationConstraint": self._region},
-                        )
-                except ClientError as create_error:
-                    raise RuntimeError(
-                        f"Failed to create bucket {self.bucket_name}: {create_error}"
-                    )
+            self._handle_bucket_error(e)
+
+    def _handle_bucket_error(self, e: ClientError) -> None:
+        """Handle bucket access errors."""
+        error_code = e.response.get("Error", {}).get("Code", "")
+        if error_code != "404":
+            raise RuntimeError(f"Failed to access bucket {self.bucket_name}: {e}")
+
+        self._create_bucket()
+
+    def _create_bucket(self) -> None:
+        """Create S3 bucket."""
+        try:
+            if self._region == "us-east-1":
+                self._client.create_bucket(Bucket=self.bucket_name)
             else:
-                raise RuntimeError(f"Failed to access bucket {self.bucket_name}: {e}")
+                self._client.create_bucket(
+                    Bucket=self.bucket_name,
+                    CreateBucketConfiguration={"LocationConstraint": self._region},
+                )
+        except ClientError as create_error:
+            raise RuntimeError(
+                f"Failed to create bucket {self.bucket_name}: {create_error}"
+            )
 
     def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         """

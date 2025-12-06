@@ -166,7 +166,7 @@ class WorkspaceService:
         logger.info(f"RAG resources provisioned for workspace {workspace.id}")
         return Success(None)
 
-    def get_workspace(self, workspace_id: int) -> Workspace | None:
+    def get_workspace(self, workspace_id: int) -> Optional[Workspace]:
         """Get workspace by ID with caching (handled by data access layer)."""
         return self.data_access.get_by_id(workspace_id)
 

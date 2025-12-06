@@ -37,8 +37,8 @@ class DefaultRagConfigService:
     def create_or_update_config(
         self,
         rag_type: str = "vector",
-        vector_config: dict | None = None,
-        graph_config: dict | None = None,
+        vector_config: Optional[dict]= None,
+        graph_config: Optional[dict]= None,
     ) -> DefaultRagConfig:
         """
         Create or update default RAG config (single-user system).
@@ -56,42 +56,60 @@ class DefaultRagConfigService:
         existing_config = self.data_access.get()
 
         if existing_config:
-            logger.info("Updating existing RAG config")
-            # Update existing config
-            existing_config.rag_type = rag_type
-            if vector_config:
-                for key, value in vector_config.items():
-                    if hasattr(existing_config.vector_config, key):
-                        setattr(existing_config.vector_config, key, value)
-            if graph_config:
-                for key, value in graph_config.items():
-                    if hasattr(existing_config.graph_config, key):
-                        setattr(existing_config.graph_config, key, value)
+            return self._update_existing_config(existing_config, rag_type, vector_config, graph_config)
 
-            updated_config = self.data_access.update(existing_config)
-            logger.info("RAG config updated")
-            return updated_config
-        else:
-            logger.info("Creating new RAG config")
-            # Create new config (should only happen once on first run)
-            vector_cfg = DefaultVectorRagConfig()
-            if vector_config:
-                for key, value in vector_config.items():
-                    if hasattr(vector_cfg, key):
-                        setattr(vector_cfg, key, value)
+        return self._create_new_config(rag_type, vector_config, graph_config)
 
-            graph_cfg = DefaultGraphRagConfig()
-            if graph_config:
-                for key, value in graph_config.items():
-                    if hasattr(graph_cfg, key):
-                        setattr(graph_cfg, key, value)
+    def _update_existing_config(
+        self,
+        existing_config: DefaultRagConfig,
+        rag_type: str,
+        vector_config: Optional[dict],
+        graph_config: Optional[dict],
+    ) -> DefaultRagConfig:
+        """Update existing RAG configuration."""
+        logger.info("Updating existing RAG config")
+        existing_config.rag_type = rag_type
 
-            new_config = DefaultRagConfig(
-                id=1,  # Always id=1 for single-row table
-                rag_type=rag_type,
-                vector_config=vector_cfg,
-                graph_config=graph_cfg,
-            )
-            updated_config = self.data_access.update(new_config)
-            logger.info("RAG config created")
-            return updated_config
+        if vector_config:
+            self._apply_config_updates(existing_config.vector_config, vector_config)
+
+        if graph_config:
+            self._apply_config_updates(existing_config.graph_config, graph_config)
+
+        updated_config = self.data_access.update(existing_config)
+        logger.info("RAG config updated")
+        return updated_config
+
+    def _create_new_config(
+        self,
+        rag_type: str,
+        vector_config: Optional[dict],
+        graph_config: Optional[dict],
+    ) -> DefaultRagConfig:
+        """Create new RAG configuration."""
+        logger.info("Creating new RAG config")
+
+        vector_cfg = DefaultVectorRagConfig()
+        if vector_config:
+            self._apply_config_updates(vector_cfg, vector_config)
+
+        graph_cfg = DefaultGraphRagConfig()
+        if graph_config:
+            self._apply_config_updates(graph_cfg, graph_config)
+
+        new_config = DefaultRagConfig(
+            id=1,  # Always id=1 for single-row table
+            rag_type=rag_type,
+            vector_config=vector_cfg,
+            graph_config=graph_cfg,
+        )
+        updated_config = self.data_access.update(new_config)
+        logger.info("RAG config created")
+        return updated_config
+
+    def _apply_config_updates(self, config_obj, updates: dict) -> None:
+        """Apply configuration updates to a config object."""
+        for key, value in updates.items():
+            if hasattr(config_obj, key):
+                setattr(config_obj, key, value)

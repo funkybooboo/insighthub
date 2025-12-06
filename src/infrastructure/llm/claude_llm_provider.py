@@ -1,8 +1,7 @@
 """Claude LLM provider implementation."""
 
 import os
-from collections.abc import Generator
-from typing import cast
+from typing import cast, Generator, Optional
 
 from .llm_provider import LlmProvider
 
@@ -20,7 +19,7 @@ class ClaudeLlmProvider(LlmProvider):
 
     def __init__(
         self,
-        api_key: str | None = None,
+        api_key: Optional[str]= None,
         model_name: str = "claude-3-5-sonnet-20241022",
     ):
         """
@@ -70,7 +69,7 @@ class ClaudeLlmProvider(LlmProvider):
         except Exception as e:
             return f"Error connecting to Claude: {str(e)}"
 
-    def chat(self, message: str, conversation_history: list[dict[str, str]] | None = None) -> str:
+    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]] = None) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -88,37 +87,43 @@ class ClaudeLlmProvider(LlmProvider):
             return "Anthropic API key not configured. Please set ANTHROPIC_API_KEY in environment."
 
         try:
-            # Build message array
-            messages: list[MessageParam] = []
-
-            # Add conversation history
-            if conversation_history:
-                for msg in conversation_history[-10:]:  # Keep last 10 message
-                    role_str = msg.get("role", "users")
-                    content_str = msg.get("content", "")
-                    if role_str in ("users", "assistant"):
-                        messages.append(
-                            cast(MessageParam, {"role": role_str, "content": content_str})
-                        )
-
-            # Add current message
-            messages.append(cast(MessageParam, {"role": "users", "content": message}))
-
-            # Call Claude
+            messages = self._build_messages(message, conversation_history)
             response = self.client.messages.create(
                 model=self.model_name, max_tokens=1024, messages=messages
             )
-
-            # Extract text content from response
-            if response.content and len(response.content) > 0:
-                content_block = response.content[0]
-                if hasattr(content_block, "text"):
-                    text = str(content_block.text).strip()
-                    return text
-            return ""
+            return self._extract_text_from_response(response)
 
         except Exception as e:
             return f"Error connecting to Claude: {str(e)}"
+
+    def _build_messages(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]]
+    ) -> list[MessageParam]:
+        """Build message array from history and current message."""
+        messages: list[MessageParam] = []
+
+        if conversation_history:
+            for msg in conversation_history[-10:]:
+                role_str = msg.get("role", "users")
+                content_str = msg.get("content", "")
+                if role_str in ("users", "assistant"):
+                    messages.append(
+                        cast(MessageParam, {"role": role_str, "content": content_str})
+                    )
+
+        messages.append(cast(MessageParam, {"role": "users", "content": message}))
+        return messages
+
+    def _extract_text_from_response(self, response) -> str:
+        """Extract text content from Claude response."""
+        if not response.content or len(response.content) == 0:
+            return ""
+
+        content_block = response.content[0]
+        if not hasattr(content_block, "text"):
+            return ""
+
+        return str(content_block.text).strip()
 
     def health_check(self) -> dict[str, str | bool]:
         """
@@ -165,7 +170,7 @@ class ClaudeLlmProvider(LlmProvider):
         return self.model_name
 
     def chat_stream(
-        self, message: str, conversation_history: list[dict[str, str]] | None = None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.
@@ -186,23 +191,7 @@ class ClaudeLlmProvider(LlmProvider):
             return
 
         try:
-            # Build message array
-            messages: list[MessageParam] = []
-
-            # Add conversation history
-            if conversation_history:
-                for msg in conversation_history[-10:]:
-                    role_str = msg.get("role", "users")
-                    content_str = msg.get("content", "")
-                    if role_str in ("users", "assistant"):
-                        messages.append(
-                            cast(MessageParam, {"role": role_str, "content": content_str})
-                        )
-
-            # Add current message
-            messages.append(cast(MessageParam, {"role": "users", "content": message}))
-
-            # Call Claude with streaming
+            messages = self._build_messages(message, conversation_history)
             with self.client.messages.stream(
                 model=self.model_name, max_tokens=1024, messages=messages
             ) as stream:

@@ -7,6 +7,8 @@ This workflow will orchestrate the full Graph RAG query process:
 4. Return context
 """
 
+from typing import Optional
+
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow, QueryWorkflowError
 from src.infrastructure.types.common import FilterDict
@@ -40,7 +42,7 @@ class GraphRagQueryWorkflow(QueryWorkflow):
         self,
         query_text: str,
         top_k: int = 5,
-        filters: FilterDict | None = None,
+        filters: Optional[FilterDict]= None,
     ) -> list[ChunkData]:
         """
         Execute Graph RAG query workflow.

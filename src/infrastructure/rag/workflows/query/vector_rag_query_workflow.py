@@ -7,6 +7,8 @@ This workflow orchestrates the full Vector RAG query process:
 4. Return context
 """
 
+from typing import Optional
+
 from returns.result import Failure, Success
 
 from src.infrastructure.logger import create_logger
@@ -32,7 +34,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
         self,
         embedder: VectorEmbeddingEncoder,
         vector_store: VectorStore,
-        reranker: Reranker | None = None,
+        reranker: Optional[Reranker] = None,
     ) -> None:
         """
         Initialize the query workflow.
@@ -50,7 +52,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
         self,
         query_text: str,
         top_k: int = 5,
-        filters: FilterDict | None = None,
+        filters: Optional[FilterDict] = None,
     ) -> list[ChunkData]:
         """
         Execute the full query workflow.
@@ -100,38 +102,7 @@ class VectorRagQueryWorkflow(QueryWorkflow):
 
         # Step 3: Rerank results (if reranker provided)
         if self.reranker and results:
-            logger.info(f"[QueryWorkflow] Reranking {len(results)} results")
-            try:
-                # Extract texts and scores from chunk tuples
-                texts = [chunk.text for chunk, _ in results]
-                scores = [score for _, score in results]
-
-                # Rerank and get back (text, score) tuples
-                rerank_result = self.reranker.rerank(
-                    query=query_text,
-                    texts=texts,
-                    scores=scores,
-                )
-
-                if isinstance(rerank_result, Success):
-                    reranked_pairs = rerank_result.unwrap()[:top_k]
-                    # Convert back to (Chunk, score) tuples
-                    # Match reranked texts back to original chunks
-                    text_to_chunk = {chunk.text: chunk for chunk, _ in results}
-                    results = [
-                        (text_to_chunk[text], score)
-                        for text, score in reranked_pairs
-                        if text in text_to_chunk
-                    ]
-                    logger.info(f"[QueryWorkflow] Reranked to {len(results)} results")
-                else:
-                    logger.warning(
-                        f"[QueryWorkflow] Reranking failed: {rerank_result.failure()}, using original results"
-                    )
-                    results = results[:top_k]
-            except Exception as e:
-                logger.warning(f"[QueryWorkflow] Reranking failed, using original results: {e}")
-                results = results[:top_k]
+            results = self._apply_reranking(query_text, results, top_k)
         else:
             results = results[:top_k]
 
@@ -150,3 +121,44 @@ class VectorRagQueryWorkflow(QueryWorkflow):
 
         logger.info(f"[QueryWorkflow] Returning {len(chunk_data)} chunks for query")
         return chunk_data
+
+    def _apply_reranking(
+        self, query_text: str, results: list[tuple[Chunk, float]], top_k: int
+    ) -> list[tuple[Chunk, float]]:
+        """Apply reranking to search results and return top_k reranked results."""
+        logger.info(f"[QueryWorkflow] Reranking {len(results)} results")
+
+        try:
+            reranked = self._rerank_results(query_text, results)
+            if reranked is None:
+                return results[:top_k]
+            return reranked[:top_k]
+        except Exception as e:
+            logger.warning(f"[QueryWorkflow] Reranking failed, using original results: {e}")
+            return results[:top_k]
+
+    def _rerank_results(
+        self, query_text: str, results: list[tuple[Chunk, float]]
+    ) -> Optional[list[tuple[Chunk, float]]]:
+        """Rerank results using the reranker, return None on failure."""
+        if not self.reranker:
+            return None
+
+        texts = [chunk.text for chunk, _ in results]
+        scores = [score for _, score in results]
+        rerank_result = self.reranker.rerank(query=query_text, texts=texts, scores=scores)
+
+        if isinstance(rerank_result, Failure):
+            logger.warning(f"[QueryWorkflow] Reranking failed: {rerank_result.failure()}")
+            return None
+
+        reranked_pairs = rerank_result.unwrap()
+        text_to_chunk = {chunk.text: chunk for chunk, _ in results}
+        mapped_results = [
+            (text_to_chunk[text], score)
+            for text, score in reranked_pairs
+            if text in text_to_chunk
+        ]
+
+        logger.info(f"[QueryWorkflow] Reranked to {len(mapped_results)} results")
+        return mapped_results

@@ -110,22 +110,9 @@ class ChatSessionDataAccess:
             cached_json = self.cache.get(cache_key) if self.cache else None
 
             if cached_json:
-                try:
-                    session_ids = json.loads(cached_json)
-                    sessions = []
-                    for sess_id in session_ids[:limit]:
-                        sess = self.get_by_id(sess_id)  # Uses individual session cache
-                        if not sess:
-                            # If any session is missing, invalidate list and refetch
-                            if self.cache:
-                                self.cache.delete(cache_key)
-                            break
-                        sessions.append(sess)
-                    else:
-                        # All sessions found in cache
-                        return sessions
-                except (json.JSONDecodeError, KeyError, ValueError):
-                    pass
+                cached_sessions = self._try_get_cached_sessions(cache_key, cached_json, limit)
+                if cached_sessions is not None:
+                    return cached_sessions
 
         # Cache miss or pagination - fetch from database
         sessions = self.repository.get_by_workspace(workspace_id, skip, limit)
@@ -141,6 +128,28 @@ class ChatSessionDataAccess:
                 self._cache_session(session)
 
         return sessions
+
+    def _try_get_cached_sessions(
+        self, cache_key: str, cached_json: str, limit: int
+    ) -> Optional[list[ChatSession]]:
+        """Try to retrieve sessions from cache.
+
+        Returns:
+            List of sessions if all found, None if any missing or invalid
+        """
+        try:
+            session_ids = json.loads(cached_json)
+            sessions = []
+            for sess_id in session_ids[:limit]:
+                sess = self.get_by_id(sess_id)
+                if not sess:
+                    if self.cache:
+                        self.cache.delete(cache_key)
+                    return None
+                sessions.append(sess)
+            return sessions
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
 
     def create(
         self,

@@ -28,7 +28,7 @@ class WorkspaceDataAccess:
         self.repository = repository  # Exposed for operations not handled by this layer
         self.cache = cache
 
-    def get_by_id(self, workspace_id: int) -> Workspace | None:
+    def get_by_id(self, workspace_id: int) -> Optional[Workspace]:
         """Get workspace by ID with caching.
 
         Args:
@@ -75,22 +75,9 @@ class WorkspaceDataAccess:
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
-            try:
-                workspace_ids = json.loads(cached_json)
-                workspaces = []
-                for ws_id in workspace_ids:
-                    ws = self.get_by_id(ws_id)  # Uses individual workspace cache
-                    if not ws:
-                        # If any workspace is missing, invalidate list and refetch
-                        if self.cache:
-                            self.cache.delete(cache_key)
-                        break
-                    workspaces.append(ws)
-                else:
-                    # All workspaces found in cache
-                    return workspaces
-            except (json.JSONDecodeError, KeyError, ValueError):
-                pass
+            cached_workspaces = self._try_get_cached_workspaces(cache_key, cached_json)
+            if cached_workspaces is not None:
+                return cached_workspaces
 
         # Cache miss - fetch from database
         workspaces = self.repository.get_all()
@@ -104,6 +91,26 @@ class WorkspaceDataAccess:
                 self._cache_workspace(ws)
 
         return workspaces
+
+    def _try_get_cached_workspaces(self, cache_key: str, cached_json: str) -> Optional[list[Workspace]]:
+        """Try to retrieve workspaces from cache.
+
+        Returns:
+            List of workspaces if all found, None if any missing or invalid
+        """
+        try:
+            workspace_ids = json.loads(cached_json)
+            workspaces = []
+            for ws_id in workspace_ids:
+                ws = self.get_by_id(ws_id)
+                if not ws:
+                    if self.cache:
+                        self.cache.delete(cache_key)
+                    return None
+                workspaces.append(ws)
+            return workspaces
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
 
     def create(
         self, name: str, description: Optional[str], rag_type: str, status: str = "provisioning"

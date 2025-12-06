@@ -84,22 +84,9 @@ class ChatMessageDataAccess:
             cached_json = self.cache.get(cache_key) if self.cache else None
 
             if cached_json:
-                try:
-                    message_ids = json.loads(cached_json)
-                    messages = []
-                    for msg_id in message_ids[:limit]:
-                        msg = self.get_by_id(msg_id)  # Uses individual message cache
-                        if not msg:
-                            # If any message is missing, invalidate list and refetch
-                            if self.cache:
-                                self.cache.delete(cache_key)
-                            break
-                        messages.append(msg)
-                    else:
-                        # All messages found in cache
-                        return messages
-                except (json.JSONDecodeError, KeyError, ValueError):
-                    pass
+                cached_messages = self._try_get_cached_messages(cache_key, cached_json, limit)
+                if cached_messages is not None:
+                    return cached_messages
 
         # Cache miss or pagination - fetch from database
         messages = self.repository.get_by_session(session_id, skip, limit)
@@ -115,6 +102,28 @@ class ChatMessageDataAccess:
                 self._cache_message(message)
 
         return messages
+
+    def _try_get_cached_messages(
+        self, cache_key: str, cached_json: str, limit: int
+    ) -> Optional[list[ChatMessage]]:
+        """Try to retrieve messages from cache.
+
+        Returns:
+            List of messages if all found, None if any missing or invalid
+        """
+        try:
+            message_ids = json.loads(cached_json)
+            messages = []
+            for msg_id in message_ids[:limit]:
+                msg = self.get_by_id(msg_id)
+                if not msg:
+                    if self.cache:
+                        self.cache.delete(cache_key)
+                    return None
+                messages.append(msg)
+            return messages
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
 
     def create(
         self,

@@ -28,7 +28,7 @@ class DocumentDataAccess:
         self.repository = repository  # Exposed for operations not handled by this layer
         self.cache = cache
 
-    def get_by_id(self, document_id: int) -> Document | None:
+    def get_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID with caching.
 
         Args:
@@ -82,21 +82,9 @@ class DocumentDataAccess:
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
-            try:
-                doc_ids = json.loads(cached_json)
-                documents = []
-                for doc_id in doc_ids:
-                    doc = self.get_by_id(doc_id)  # Uses individual document cache
-                    if not doc:
-                        # If any document is missing, invalidate list and refetch
-                        self._invalidate_workspace_documents_cache(workspace_id)
-                        break
-                    documents.append(doc)
-                else:
-                    # All documents found in cache
-                    return documents
-            except (json.JSONDecodeError, KeyError, ValueError):
-                pass
+            cached_docs = self._try_get_cached_documents(workspace_id, cached_json)
+            if cached_docs is not None:
+                return cached_docs
 
         # Cache miss - fetch from database
         documents = self.repository.get_by_workspace(workspace_id)
@@ -104,11 +92,31 @@ class DocumentDataAccess:
         # Cache the result
         if self.cache:
             self._cache_workspace_documents(workspace_id, documents)
-            # Also cache individual documents
             for doc in documents:
                 self._cache_document(doc)
 
         return documents
+
+    def _try_get_cached_documents(
+        self, workspace_id: str, cached_json: str
+    ) -> Optional[list[Document]]:
+        """Try to retrieve documents from cache.
+
+        Returns:
+            List of documents if all found, None if any missing or invalid
+        """
+        try:
+            doc_ids = json.loads(cached_json)
+            documents = []
+            for doc_id in doc_ids:
+                doc = self.get_by_id(doc_id)
+                if not doc:
+                    self._invalidate_workspace_documents_cache(workspace_id)
+                    return None
+                documents.append(doc)
+            return documents
+        except (json.JSONDecodeError, KeyError, ValueError):
+            return None
 
     def create(
         self,
