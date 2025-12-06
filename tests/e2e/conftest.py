@@ -170,6 +170,7 @@ def cleanup_resources():
     The cleanup happens automatically without requiring tests to track resources manually.
     """
     import psycopg2
+
     from src.config import config
 
     # Get database connection
@@ -191,9 +192,7 @@ def cleanup_resources():
         from qdrant_client import QdrantClient
 
         qdrant_client = QdrantClient(host=config.qdrant_host, port=config.qdrant_port)
-        existing_collections = {
-            col.name for col in qdrant_client.get_collections().collections
-        }
+        existing_collections = {col.name for col in qdrant_client.get_collections().collections}
     except Exception:
         existing_collections = set()
         qdrant_client = None
@@ -307,9 +306,7 @@ def cleanup_resources():
     # 3. Clean up Qdrant collections
     if qdrant_client:
         try:
-            current_collections = {
-                col.name for col in qdrant_client.get_collections().collections
-            }
+            current_collections = {col.name for col in qdrant_client.get_collections().collections}
             new_collections = current_collections - existing_collections
             for collection_name in new_collections:
                 try:

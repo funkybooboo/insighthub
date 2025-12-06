@@ -1,6 +1,6 @@
 """SQL implementation of ChatSessionRepository."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from returns.result import Failure, Result, Success
@@ -38,8 +38,8 @@ class ChatSessionRepository:
                     workspace_id,
                     title,
                     rag_type,
-                    datetime.utcnow(),
-                    datetime.utcnow(),
+                    datetime.now(UTC),
+                    datetime.now(UTC),
                 ),
             )
         except DatabaseException as e:
@@ -54,7 +54,7 @@ class ChatSessionRepository:
         return Success(
             ChatSession(
                 id=result["id"],
-                workspace_id=workspace_id,
+                workspace_id=workspace_id if workspace_id is not None else 0,
                 title=title,
                 rag_type=rag_type,
             )
@@ -107,7 +107,7 @@ class ChatSessionRepository:
             if hasattr(session, key):
                 setattr(session, key, value)
 
-        session.updated_at = datetime.utcnow()
+        session.updated_at = datetime.now(UTC)
 
         # Update in database
         query = """

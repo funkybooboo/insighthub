@@ -54,10 +54,7 @@ class TestRagOptionsCLI:
         # Check for embedding algorithms section
         assert "embedding algorithms" in result.stdout.lower()
         # Should show at least one embedding algorithm
-        assert any(
-            alg in result.stdout.lower()
-            for alg in ["nomic", "minilm", "mxbai", "embed"]
-        )
+        assert any(alg in result.stdout.lower() for alg in ["nomic", "minilm", "mxbai", "embed"])
 
     def test_rag_options_list_shows_rerank_algorithms(self):
         """Test that rag-options list shows reranking algorithms."""
@@ -86,10 +83,7 @@ class TestRagOptionsCLI:
 
         # Check for entity extraction options
         assert "entity extraction" in result.stdout.lower()
-        assert any(
-            opt in result.stdout.lower()
-            for opt in ["spacy", "llm"]
-        )
+        assert any(opt in result.stdout.lower() for opt in ["spacy", "llm"])
 
     def test_rag_options_list_shows_relationship_extraction(self):
         """Test that rag-options list shows relationship extraction options."""
@@ -98,10 +92,7 @@ class TestRagOptionsCLI:
 
         # Check for relationship extraction options
         assert "relationship extraction" in result.stdout.lower()
-        assert any(
-            opt in result.stdout.lower()
-            for opt in ["dependency-parsing", "llm"]
-        )
+        assert any(opt in result.stdout.lower() for opt in ["dependency-parsing", "llm"])
 
     def test_rag_options_list_shows_clustering(self):
         """Test that rag-options list shows clustering options."""
@@ -110,10 +101,7 @@ class TestRagOptionsCLI:
 
         # Check for clustering options
         assert "clustering algorithms" in result.stdout.lower()
-        assert any(
-            opt in result.stdout.lower()
-            for opt in ["leiden", "louvain"]
-        )
+        assert any(opt in result.stdout.lower() for opt in ["leiden", "louvain"])
 
     def test_rag_options_help_command(self):
         """Test rag-options help command."""

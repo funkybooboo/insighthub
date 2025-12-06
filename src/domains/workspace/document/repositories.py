@@ -1,6 +1,6 @@
 """SQL implementation of DocumentRepository."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from returns.result import Failure, Result, Success
@@ -55,7 +55,7 @@ class DocumentRepository:
                     file_path or "",  # storage_path
                     chunk_count,
                     status,
-                    datetime.utcnow(),
+                    datetime.now(UTC),
                 ),
             )
         except DatabaseException as e:

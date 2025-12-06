@@ -1,7 +1,7 @@
 """Default RAG configuration model."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -36,8 +36,8 @@ class DefaultRagConfig:
     # Default configurations for different RAG types
     vector_config: DefaultVectorRagConfig = field(default_factory=DefaultVectorRagConfig)
     graph_config: DefaultGraphRagConfig = field(default_factory=DefaultGraphRagConfig)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __repr__(self) -> str:
         return f"<DefaultRagConfig(id={self.id}, rag_type={self.rag_type})>"

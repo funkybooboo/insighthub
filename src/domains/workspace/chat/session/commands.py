@@ -13,8 +13,16 @@ from src.domains.workspace.chat.session.dtos import (
     SelectSessionRequest,
 )
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types.errors import NotFoundError
 
 logger = create_logger(__name__)
+
+
+def format_error(error: object) -> str:
+    """Format error object into a user-friendly message."""
+    if isinstance(error, NotFoundError):
+        return f"{error.resource} {error.id} not found"
+    return getattr(error, "message", str(error))
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
@@ -35,7 +43,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
+            print(f"Error: {format_error(error)}", file=sys.stderr)
             sys.exit(1)
 
         responses, total = result.unwrap()
@@ -78,7 +86,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
+            print(f"Error: {format_error(error)}", file=sys.stderr)
             sys.exit(1)
 
         response = result.unwrap()
@@ -105,7 +113,7 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
         # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
+            print(f"Error: {format_error(error)}", file=sys.stderr)
             sys.exit(1)
 
         response = result.unwrap()
@@ -143,7 +151,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
         # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
+            print(f"Error: {format_error(error)}", file=sys.stderr)
             sys.exit(1)
 
         deleted = result.unwrap()

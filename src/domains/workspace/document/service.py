@@ -1,9 +1,7 @@
 """Document service implementation."""
 
-import json
-from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 from returns.result import Failure, Result, Success
 

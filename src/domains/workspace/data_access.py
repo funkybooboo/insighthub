@@ -1,7 +1,7 @@
 """Workspace data access layer - coordinates cache and repository."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from returns.result import Failure, Result
@@ -149,11 +149,11 @@ class WorkspaceDataAccess:
         # Build kwargs dict for only non-None values
         kwargs = {}
         if name is not None:
-            kwargs['name'] = name
+            kwargs["name"] = name
         if description is not None:
-            kwargs['description'] = description
+            kwargs["description"] = description
         if status is not None:
-            kwargs['status'] = status
+            kwargs["status"] = status
 
         result = self.repository.update(workspace_id, **kwargs)
         if result:
@@ -239,11 +239,21 @@ class WorkspaceDataAccess:
                     chunk_size=data["chunk_size"],
                     chunk_overlap=data["chunk_overlap"],
                     top_k=data["top_k"],
-                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                    created_at=(
+                        datetime.fromisoformat(data["created_at"])
+                        if data.get("created_at")
+                        else datetime.now(UTC)
+                    ),
+                    updated_at=(
+                        datetime.fromisoformat(data["updated_at"])
+                        if data.get("updated_at")
+                        else datetime.now(UTC)
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                logger.warning(f"Cache deserialization error for vector RAG config {workspace_id}: {e}")
+                logger.warning(
+                    f"Cache deserialization error for vector RAG config {workspace_id}: {e}"
+                )
 
         # Cache miss - fetch from database
         config = self.repository.get_vector_rag_config(workspace_id)
@@ -274,11 +284,21 @@ class WorkspaceDataAccess:
                     entity_extraction_algorithm=data["entity_extraction_algorithm"],
                     relationship_extraction_algorithm=data["relationship_extraction_algorithm"],
                     clustering_algorithm=data["clustering_algorithm"],
-                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                    created_at=(
+                        datetime.fromisoformat(data["created_at"])
+                        if data.get("created_at")
+                        else datetime.now(UTC)
+                    ),
+                    updated_at=(
+                        datetime.fromisoformat(data["updated_at"])
+                        if data.get("updated_at")
+                        else datetime.now(UTC)
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
-                logger.warning(f"Cache deserialization error for graph RAG config {workspace_id}: {e}")
+                logger.warning(
+                    f"Cache deserialization error for graph RAG config {workspace_id}: {e}"
+                )
 
         # Cache miss - fetch from database
         config = self.repository.get_graph_rag_config(workspace_id)
@@ -299,20 +319,24 @@ class WorkspaceDataAccess:
             return
 
         cache_key = f"workspace:{workspace_id}:vector_rag_config"
-        cache_value = json.dumps({
-            "workspace_id": config.workspace_id,
-            "embedding_model_vector_size": config.embedding_model_vector_size,
-            "distance_metric": config.distance_metric,
-            "embedding_algorithm": config.embedding_algorithm,
-            "chunking_algorithm": config.chunking_algorithm,
-            "rerank_algorithm": config.rerank_algorithm,
-            "chunk_size": config.chunk_size,
-            "chunk_overlap": config.chunk_overlap,
-            "top_k": config.top_k,
-            "created_at": config.created_at.isoformat() if config.created_at else None,
-            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
-        })
-        self.cache.set(cache_key, cache_value, ttl=600)  # Cache for 10 minutes (configs change less frequently)
+        cache_value = json.dumps(
+            {
+                "workspace_id": config.workspace_id,
+                "embedding_model_vector_size": config.embedding_model_vector_size,
+                "distance_metric": config.distance_metric,
+                "embedding_algorithm": config.embedding_algorithm,
+                "chunking_algorithm": config.chunking_algorithm,
+                "rerank_algorithm": config.rerank_algorithm,
+                "chunk_size": config.chunk_size,
+                "chunk_overlap": config.chunk_overlap,
+                "top_k": config.top_k,
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+            }
+        )
+        self.cache.set(
+            cache_key, cache_value, ttl=600
+        )  # Cache for 10 minutes (configs change less frequently)
 
     def _cache_graph_rag_config(self, workspace_id: int, config: GraphRagConfig) -> None:
         """Cache graph RAG config.
@@ -325,12 +349,16 @@ class WorkspaceDataAccess:
             return
 
         cache_key = f"workspace:{workspace_id}:graph_rag_config"
-        cache_value = json.dumps({
-            "workspace_id": config.workspace_id,
-            "entity_extraction_algorithm": config.entity_extraction_algorithm,
-            "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
-            "clustering_algorithm": config.clustering_algorithm,
-            "created_at": config.created_at.isoformat() if config.created_at else None,
-            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
-        })
-        self.cache.set(cache_key, cache_value, ttl=600)  # Cache for 10 minutes (configs change less frequently)
+        cache_value = json.dumps(
+            {
+                "workspace_id": config.workspace_id,
+                "entity_extraction_algorithm": config.entity_extraction_algorithm,
+                "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
+                "clustering_algorithm": config.clustering_algorithm,
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+            }
+        )
+        self.cache.set(
+            cache_key, cache_value, ttl=600
+        )  # Cache for 10 minutes (configs change less frequently)

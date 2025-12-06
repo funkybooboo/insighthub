@@ -5,7 +5,6 @@ across all domain command files. Does not contain domain-specific logic.
 """
 
 import sys
-from typing import Optional
 
 
 class IO:

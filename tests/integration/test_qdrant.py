@@ -14,7 +14,7 @@ class TestQdrantIntegration:
     @pytest.fixture(scope="function")
     def qdrant_container(self):
         """Spin up a Qdrant container for testing."""
-        container = QdrantContainer()
+        container = QdrantContainer("qdrant/qdrant:v1.9.1")
         container.start()
         yield container
         container.stop()

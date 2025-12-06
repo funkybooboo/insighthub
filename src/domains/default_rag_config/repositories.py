@@ -1,6 +1,6 @@
 """PostgreSQL implementation of DefaultRagConfigRepository (single-user system)."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from src.domains.default_rag_config.models import (
@@ -78,7 +78,7 @@ class DefaultRagConfigRepository:
                 config.graph_config.entity_extraction_algorithm,
                 config.graph_config.relationship_extraction_algorithm,
                 config.graph_config.clustering_algorithm,
-                datetime.utcnow(),
+                datetime.now(UTC),
             ),
         )
         return config

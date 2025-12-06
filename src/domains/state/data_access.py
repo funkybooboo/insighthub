@@ -42,7 +42,11 @@ class StateDataAccess:
                     id=data["id"],
                     current_workspace_id=data.get("current_workspace_id"),
                     current_session_id=data.get("current_session_id"),
-                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                    updated_at=(
+                        datetime.fromisoformat(data["updated_at"])
+                        if data.get("updated_at")
+                        else datetime.utcnow()
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
                 logger.warning(f"Cache deserialization error for state: {e}")
@@ -83,13 +87,17 @@ class StateDataAccess:
             return
 
         cache_key = "cli_state:1"
-        cache_value = json.dumps({
-            "id": state.id,
-            "current_workspace_id": state.current_workspace_id,
-            "current_session_id": state.current_session_id,
-            "updated_at": state.updated_at.isoformat() if state.updated_at else None,
-        })
-        self.cache.set(cache_key, cache_value, ttl=60)  # Cache for 1 minute (state changes frequently)
+        cache_value = json.dumps(
+            {
+                "id": state.id,
+                "current_workspace_id": state.current_workspace_id,
+                "current_session_id": state.current_session_id,
+                "updated_at": state.updated_at.isoformat() if state.updated_at else None,
+            }
+        )
+        self.cache.set(
+            cache_key, cache_value, ttl=60
+        )  # Cache for 1 minute (state changes frequently)
 
     def _invalidate_cache(self) -> None:
         """Invalidate state cache."""

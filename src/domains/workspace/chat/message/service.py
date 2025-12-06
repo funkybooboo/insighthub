@@ -1,6 +1,6 @@
 """Chat message service."""
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from returns.result import Failure, Result, Success
 

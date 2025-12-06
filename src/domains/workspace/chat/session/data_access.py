@@ -1,7 +1,7 @@
 """Chat session data access layer - coordinates cache and repository."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from returns.result import Result
@@ -49,8 +49,16 @@ class ChatSessionDataAccess:
                     workspace_id=data.get("workspace_id"),
                     title=data.get("title"),
                     rag_type=data["rag_type"],
-                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                    created_at=(
+                        datetime.fromisoformat(data["created_at"])
+                        if data.get("created_at")
+                        else datetime.now(UTC)
+                    ),
+                    updated_at=(
+                        datetime.fromisoformat(data["updated_at"])
+                        if data.get("updated_at")
+                        else datetime.now(UTC)
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
                 logger.warning(f"Cache deserialization error for chat session {session_id}: {e}")
@@ -83,7 +91,9 @@ class ChatSessionDataAccess:
 
         return sessions
 
-    def get_by_workspace(self, workspace_id: int, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def get_by_workspace(
+        self, workspace_id: int, skip: int = 0, limit: int = 50
+    ) -> list[ChatSession]:
         """Get sessions by workspace with caching.
 
         Args:
@@ -123,7 +133,9 @@ class ChatSessionDataAccess:
         # Cache the result for first page
         if self.cache and skip == 0 and sessions:
             cache_value = json.dumps([s.id for s in sessions])
-            self.cache.set(f"workspace:{workspace_id}:chat_sessions", cache_value, ttl=120)  # Cache for 2 minutes
+            self.cache.set(
+                f"workspace:{workspace_id}:chat_sessions", cache_value, ttl=120
+            )  # Cache for 2 minutes
             # Also cache individual sessions
             for session in sessions:
                 self._cache_session(session)
@@ -148,7 +160,7 @@ class ChatSessionDataAccess:
         """
         result = self.repository.create(title, workspace_id, rag_type)
 
-        if hasattr(result, 'unwrap'):
+        if hasattr(result, "unwrap"):
             session = result.unwrap()
             if self.cache and session:
                 self._cache_session(session)
@@ -206,14 +218,16 @@ class ChatSessionDataAccess:
             return
 
         cache_key = f"chat_session:{session.id}"
-        cache_value = json.dumps({
-            "id": session.id,
-            "workspace_id": session.workspace_id,
-            "title": session.title,
-            "rag_type": session.rag_type,
-            "created_at": session.created_at.isoformat() if session.created_at else None,
-            "updated_at": session.updated_at.isoformat() if session.updated_at else None,
-        })
+        cache_value = json.dumps(
+            {
+                "id": session.id,
+                "workspace_id": session.workspace_id,
+                "title": session.title,
+                "rag_type": session.rag_type,
+                "created_at": session.created_at.isoformat() if session.created_at else None,
+                "updated_at": session.updated_at.isoformat() if session.updated_at else None,
+            }
+        )
         self.cache.set(cache_key, cache_value, ttl=300)  # Cache for 5 minutes
 
     def _invalidate_cache(self, session_id: int) -> None:

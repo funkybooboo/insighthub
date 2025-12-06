@@ -1,7 +1,5 @@
 """Chat session service."""
 
-from typing import Optional
-
 from returns.result import Failure, Result, Success
 
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
@@ -77,7 +75,9 @@ class ChatSessionService:
                 ValidationError("Session title too long (max 255 characters)", field="title")
             )
 
-        updated_session = self.data_access.update(session_id, title=title.strip() if title else None)
+        updated_session = self.data_access.update(
+            session_id, title=title.strip() if title else None
+        )
 
         if updated_session:
             logger.info(f"Chat session updated: session_id={session_id}")

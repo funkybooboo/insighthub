@@ -3,7 +3,6 @@
 from typing import Optional
 
 from src.domains.state.data_access import StateDataAccess
-from src.domains.state.models import State
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.infrastructure.logger import create_logger

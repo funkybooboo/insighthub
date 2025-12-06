@@ -8,8 +8,16 @@ from returns.result import Failure
 from src.context import AppContext
 from src.domains.workspace.chat.message.dtos import ListMessagesRequest, SendMessageRequest
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types.errors import NotFoundError
 
 logger = create_logger(__name__)
+
+
+def format_error(error: object) -> str:
+    """Format error object into a user-friendly message."""
+    if isinstance(error, NotFoundError):
+        return f"{error.resource} {error.id} not found"
+    return getattr(error, "message", str(error))
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
@@ -28,7 +36,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         # === Handle Result (CLI-specific output) ===
         if isinstance(result, Failure):
             error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
+            print(f"Error: {format_error(error)}", file=sys.stderr)
             sys.exit(1)
 
         responses, total = result.unwrap()

@@ -1,7 +1,7 @@
 """Default RAG config data access layer - coordinates cache and repository."""
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 
 from src.domains.default_rag_config.models import (
@@ -21,7 +21,6 @@ class DefaultRagConfigDataAccess:
 
     def __init__(self, repository: DefaultRagConfigRepository, cache: Optional[Cache] = None):
         """Initialize data access layer.
-
         Args:
             repository: DefaultRagConfig repository for database operations
             cache: Optional cache for performance optimization
@@ -31,7 +30,6 @@ class DefaultRagConfigDataAccess:
 
     def get(self) -> Optional[DefaultRagConfig]:
         """Get the default RAG config with caching.
-
         Returns:
             DefaultRagConfig if found, None otherwise
         """
@@ -53,7 +51,9 @@ class DefaultRagConfigDataAccess:
 
                 graph_config = DefaultGraphRagConfig(
                     entity_extraction_algorithm=data["graph_config"]["entity_extraction_algorithm"],
-                    relationship_extraction_algorithm=data["graph_config"]["relationship_extraction_algorithm"],
+                    relationship_extraction_algorithm=data["graph_config"][
+                        "relationship_extraction_algorithm"
+                    ],
                     clustering_algorithm=data["graph_config"]["clustering_algorithm"],
                 )
 
@@ -62,8 +62,16 @@ class DefaultRagConfigDataAccess:
                     rag_type=data["rag_type"],
                     vector_config=vector_config,
                     graph_config=graph_config,
-                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-                    updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+                    created_at=(
+                        datetime.fromisoformat(data["created_at"])
+                        if data.get("created_at")
+                        else datetime.now(UTC)
+                    ),
+                    updated_at=(
+                        datetime.fromisoformat(data["updated_at"])
+                        if data.get("updated_at")
+                        else datetime.now(UTC)
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
                 logger.warning(f"Cache deserialization error for default RAG config: {e}")
@@ -78,10 +86,8 @@ class DefaultRagConfigDataAccess:
 
     def update(self, config: DefaultRagConfig) -> DefaultRagConfig:
         """Update the default RAG config.
-
         Args:
             config: DefaultRagConfig to update
-
         Returns:
             Updated config
         """
@@ -91,7 +97,6 @@ class DefaultRagConfigDataAccess:
 
     def _cache_config(self, config: DefaultRagConfig) -> None:
         """Cache config data.
-
         Args:
             config: DefaultRagConfig to cache
         """
@@ -99,26 +104,30 @@ class DefaultRagConfigDataAccess:
             return
 
         cache_key = "default_rag_config:1"
-        cache_value = json.dumps({
-            "id": config.id,
-            "rag_type": config.rag_type,
-            "vector_config": {
-                "embedding_algorithm": config.vector_config.embedding_algorithm,
-                "chunking_algorithm": config.vector_config.chunking_algorithm,
-                "rerank_algorithm": config.vector_config.rerank_algorithm,
-                "chunk_size": config.vector_config.chunk_size,
-                "chunk_overlap": config.vector_config.chunk_overlap,
-                "top_k": config.vector_config.top_k,
-            },
-            "graph_config": {
-                "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
-                "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
-                "clustering_algorithm": config.graph_config.clustering_algorithm,
-            },
-            "created_at": config.created_at.isoformat() if config.created_at else None,
-            "updated_at": config.updated_at.isoformat() if config.updated_at else None,
-        })
-        self.cache.set(cache_key, cache_value, ttl=600)  # Cache for 10 minutes (config changes rarely)
+        cache_value = json.dumps(
+            {
+                "id": config.id,
+                "rag_type": config.rag_type,
+                "vector_config": {
+                    "embedding_algorithm": config.vector_config.embedding_algorithm,
+                    "chunking_algorithm": config.vector_config.chunking_algorithm,
+                    "rerank_algorithm": config.vector_config.rerank_algorithm,
+                    "chunk_size": config.vector_config.chunk_size,
+                    "chunk_overlap": config.vector_config.chunk_overlap,
+                    "top_k": config.vector_config.top_k,
+                },
+                "graph_config": {
+                    "entity_extraction_algorithm": config.graph_config.entity_extraction_algorithm,
+                    "relationship_extraction_algorithm": config.graph_config.relationship_extraction_algorithm,
+                    "clustering_algorithm": config.graph_config.clustering_algorithm,
+                },
+                "created_at": config.created_at.isoformat() if config.created_at else None,
+                "updated_at": config.updated_at.isoformat() if config.updated_at else None,
+            }
+        )
+        self.cache.set(
+            cache_key, cache_value, ttl=600
+        )  # Cache for 10 minutes (config changes rarely)
 
     def _invalidate_cache(self) -> None:
         """Invalidate config cache."""

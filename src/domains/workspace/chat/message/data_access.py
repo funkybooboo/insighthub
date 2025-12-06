@@ -50,7 +50,11 @@ class ChatMessageDataAccess:
                     role=data["role"],
                     content=data["content"],
                     extra_metadata=data.get("extra_metadata"),
-                    created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
+                    created_at=(
+                        datetime.fromisoformat(data["created_at"])
+                        if data.get("created_at")
+                        else datetime.utcnow()
+                    ),
                 )
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
                 logger.warning(f"Cache deserialization error for chat message {message_id}: {e}")
@@ -103,7 +107,9 @@ class ChatMessageDataAccess:
         # Cache the result for first page
         if self.cache and skip == 0 and messages:
             cache_value = json.dumps([m.id for m in messages])
-            self.cache.set(f"session:{session_id}:chat_messages", cache_value, ttl=60)  # Cache for 1 minute
+            self.cache.set(
+                f"session:{session_id}:chat_messages", cache_value, ttl=60
+            )  # Cache for 1 minute
             # Also cache individual messages
             for message in messages:
                 self._cache_message(message)
@@ -130,7 +136,7 @@ class ChatMessageDataAccess:
         """
         result = self.repository.create(session_id, role, content, extra_metadata)
 
-        if hasattr(result, 'unwrap'):
+        if hasattr(result, "unwrap"):
             message = result.unwrap()
             if self.cache and message:
                 self._cache_message(message)
@@ -169,14 +175,16 @@ class ChatMessageDataAccess:
             return
 
         cache_key = f"chat_message:{message.id}"
-        cache_value = json.dumps({
-            "id": message.id,
-            "session_id": message.session_id,
-            "role": message.role,
-            "content": message.content,
-            "extra_metadata": message.extra_metadata,
-            "created_at": message.created_at.isoformat() if message.created_at else None,
-        })
+        cache_value = json.dumps(
+            {
+                "id": message.id,
+                "session_id": message.session_id,
+                "role": message.role,
+                "content": message.content,
+                "extra_metadata": message.extra_metadata,
+                "created_at": message.created_at.isoformat() if message.created_at else None,
+            }
+        )
         self.cache.set(cache_key, cache_value, ttl=300)  # Cache for 5 minutes
 
     def _invalidate_cache(self, message_id: int) -> None:

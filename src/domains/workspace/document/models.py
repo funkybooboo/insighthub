@@ -1,65 +1,35 @@
 """Document model."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Optional
 
 
 class DocumentStatus(str, Enum):
-    """Fine-grained document processing statuses."""
+    """Document processing status."""
 
-    # Initial state
-    PENDING = "pending"  # Document uploaded, waiting to start processing
-
-    # Upload/Storage phase
-    UPLOADING = "uploading"  # Uploading to blob storage
-    UPLOADED = "uploaded"  # Successfully uploaded to blob storage
-
-    # Processing phase
-    PARSING = "parsing"  # Extracting text from document
-    PARSED = "parsed"  # Text extraction complete
-    CHUNKING = "chunking"  # Splitting text into chunks
-    CHUNKED = "chunked"  # Chunking complete
-    EMBEDDING = "embedding"  # Generating embeddings
-    EMBEDDED = "embedded"  # Embeddings generated
-    INDEXING = "indexing"  # Storing in vector database
-    INDEXED = "indexed"  # Stored in vector database
-
-    # Terminal states
-    READY = "ready"  # Fully processed and searchable
-    FAILED = "failed"  # Processing failed at some stage
-
-    @classmethod
-    def is_terminal(cls, status: str) -> bool:
-        """Check if status is a terminal state."""
-        return status in (cls.READY.value, cls.FAILED.value)
-
-    @classmethod
-    def is_processing(cls, status: str) -> bool:
-        """Check if document is actively being processed."""
-        return status in (
-            cls.UPLOADING.value,
-            cls.PARSING.value,
-            cls.CHUNKING.value,
-            cls.EMBEDDING.value,
-            cls.INDEXING.value,
-        )
+    UPLOADED = "uploaded"
+    PARSING = "parsing"
+    INDEXED = "indexed"
+    READY = "ready"
+    FAILED = "failed"
 
 
 @dataclass
 class Document:
-    """Document model for storing uploaded document."""
+    """Represents a document in a workspace."""
 
     id: int
     workspace_id: int
     filename: str
-    file_size: int  # Maps to size_bytes in DB
+    file_size: int
     mime_type: str
-    chunk_count: int = 0
-    status: str = DocumentStatus.PENDING.value
-    error_message: str | None = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    status: str
+    chunk_count: int
+    error_message: Optional[str] = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     # Additional fields from DB
     file_path: str | None = None  # Maps to storage_path in DB

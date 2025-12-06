@@ -17,6 +17,7 @@ from src.domains.workspace.dtos import (
     WorkspaceResponse,
 )
 from src.domains.workspace.mappers import WorkspaceMapper
+from src.domains.workspace.models import GraphRagConfig, VectorRagConfig
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.domains.workspace.service import WorkspaceService
 from src.domains.workspace.validation import (
@@ -217,6 +218,7 @@ class WorkspaceOrchestrator:
             return Failure(NotFoundError("workspace", workspace_id))
 
         # Get RAG config based on type
+        config: VectorRagConfig | GraphRagConfig | None
         if workspace.rag_type == "vector":
             config = self.repository.get_vector_rag_config(workspace.id)
         elif workspace.rag_type == "graph":
