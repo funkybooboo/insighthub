@@ -4,18 +4,21 @@ from typing import Any, Callable, Optional
 
 from returns.result import Failure, Result, Success
 
-from src.config import config
 from src.domains.workspace.chat.message.data_access import ChatMessageDataAccess
 from src.domains.workspace.chat.message.models import ChatMessage
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.data_access import WorkspaceDataAccess
-from src.domains.workspace.models import VectorRagConfig
+from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.options import get_default_embedding_algorithm
 from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
-from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
-from src.infrastructure.types.common import WorkspaceContext
+from src.infrastructure.types import (
+    DatabaseError,
+    NotFoundError,
+    Pagination,
+    PaginatedResult,
+    ValidationError,
+)
 
 logger = create_logger(__name__)
 
@@ -29,12 +32,14 @@ class ChatMessageService:
         session_data_access: ChatSessionDataAccess,
         workspace_data_access: WorkspaceDataAccess,
         llm_provider: LlmProvider,
+        config_provider_factory: RagConfigProviderFactory,
     ):
         """Initialize service with data access layers."""
         self.data_access = data_access
         self.session_data_access = session_data_access
         self.workspace_data_access = workspace_data_access
         self.llm_provider = llm_provider
+        self.config_provider_factory = config_provider_factory
 
     def create_message(
         self,
@@ -105,20 +110,23 @@ class ChatMessageService:
         return self.data_access.get_by_id(message_id)
 
     def get_session_messages(
-        self, session_id: int, skip: int = 0, limit: int = 50
-    ) -> tuple[list[ChatMessage], int]:
+        self, session_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatMessage]:
         """Get message for a session."""
+        skip, limit = pagination.offset_limit()
         logger.info(
             f"Retrieving session message: session_id={session_id}, skip={skip}, limit={limit}"
         )
 
         # Validation is performed at the route level
-        messages = self.data_access.get_by_session(session_id, skip, limit)
-        total = len(self.data_access.get_by_session(session_id))  # Get total count
+        result = self.data_access.get_by_session(session_id, pagination)
 
-        logger.info(f"Retrieved {len(messages)} message for session {session_id} (total: {total})")
+        logger.info(
+            f"Retrieved {result.current_page_size} message for session {session_id} "
+            f"(total: {result.total_count})"
+        )
 
-        return messages, total
+        return result
 
     def delete_message(self, message_id: int) -> bool:
         """Delete a message."""
@@ -166,7 +174,10 @@ class ChatMessageService:
         user_message = user_message_result.unwrap()
 
         # Build conversation history (last 10 messages for context)
-        all_messages = self.data_access.get_by_session(session_id)
+        # Get a large enough page to include recent history
+        history_pagination = Pagination.create(skip=0, limit=100).unwrap()
+        all_messages_result = self.data_access.get_by_session(session_id, history_pagination)
+        all_messages = all_messages_result.items
         history_messages = all_messages[-11:-1] if len(all_messages) > 1 else []
         conversation_history = [
             {"role": msg.role, "content": msg.content} for msg in history_messages
@@ -221,28 +232,13 @@ class ChatMessageService:
         if not workspace:
             return ""
 
-        # Build RAG configuration from workspace's stored configuration
-        rag_config: dict[str, Any] = {
-            "rag_type": workspace.rag_type,
-        }
+        # Use provider pattern to build query configuration
+        provider = self.config_provider_factory.get_provider(workspace.rag_type)
+        if not provider:
+            logger.warning(f"Unknown RAG type: {workspace.rag_type}")
+            return ""
 
-        if workspace.rag_type == "vector":
-            vector_config = self.workspace_data_access.get_vector_rag_config(workspace.id)
-            vector_settings = self._build_vector_query_config(workspace.id, vector_config)
-            rag_config.update(vector_settings)
-        elif workspace.rag_type == "graph":
-            # Get workspace-specific graph RAG config
-            graph_config = self.workspace_data_access.get_graph_rag_config(workspace.id)
-
-            if graph_config:
-                rag_config.update(
-                    {
-                        "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
-                        "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
-                        "clustering_algorithm": graph_config.clustering_algorithm,
-                    }
-                )
-            # Note: Graph RAG workflow not fully implemented yet
+        rag_config = provider.build_query_settings(workspace_id)
 
         # Create and execute query workflow
         workflow = QueryWorkflowFactory.create(rag_config)
@@ -262,37 +258,3 @@ class ChatMessageService:
             context_parts.append(f"\n[{i}] {chunk.text}\n")
 
         return "".join(context_parts)
-
-    def _build_vector_query_config(
-        self, workspace_id: int, vector_config: Optional[VectorRagConfig]
-    ) -> dict[str, Any]:
-        """Build vector RAG query configuration."""
-        workspace_ctx = WorkspaceContext(id=workspace_id)
-
-        if vector_config:
-            return {
-                "embedder_type": vector_config.embedding_algorithm,
-                "embedder_config": {"base_url": config.llm.ollama_base_url},
-                "vector_store_type": "qdrant",
-                "vector_store_config": {
-                    "host": config.vector_store.qdrant_host,
-                    "port": config.vector_store.qdrant_port,
-                    "collection_name": workspace_ctx.collection_name,
-                },
-                "enable_reranking": vector_config.rerank_algorithm != "none",
-                "reranker_type": vector_config.rerank_algorithm,
-                "top_k": vector_config.top_k,
-            }
-
-        return {
-            "embedder_type": get_default_embedding_algorithm(),
-            "embedder_config": {"base_url": config.llm.ollama_base_url},
-            "vector_store_type": "qdrant",
-            "vector_store_config": {
-                "host": config.vector_store.qdrant_host,
-                "port": config.vector_store.qdrant_port,
-                "collection_name": workspace_ctx.collection_name,
-            },
-            "enable_reranking": False,
-            "top_k": 5,
-        }

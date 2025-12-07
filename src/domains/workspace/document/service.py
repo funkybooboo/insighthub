@@ -5,20 +5,12 @@ from typing import Any, Optional
 
 from returns.result import Failure, Result, Success
 
-from src.config import config
 from src.domains.workspace.document.data_access import DocumentDataAccess
 from src.domains.workspace.document.models import Document, DocumentStatus
-from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace
+from src.domains.workspace.models import Workspace
+from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.options import (
-    get_default_chunking_algorithm,
-    get_default_clustering_algorithm,
-    get_default_embedding_algorithm,
-    get_default_entity_extraction_algorithm,
-    get_default_relationship_extraction_algorithm,
-    get_default_reranking_algorithm,
-)
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
@@ -27,7 +19,6 @@ from src.infrastructure.rag.workflows.add_document import AddDocumentWorkflowFac
 from src.infrastructure.rag.workflows.remove_document import RemoveDocumentWorkflowFactory
 from src.infrastructure.storage import BlobStorage
 from src.infrastructure.types import DatabaseError, NotFoundError, StorageError, WorkflowError
-from src.infrastructure.types.common import WorkspaceContext
 
 logger = create_logger(__name__)
 
@@ -40,6 +31,7 @@ class DocumentService:
         data_access: DocumentDataAccess,
         workspace_repository: WorkspaceRepository,
         blob_storage: BlobStorage,
+        config_provider_factory: RagConfigProviderFactory,
     ):
         """Initialize service with data access, workspace repository, and storage.
 
@@ -47,10 +39,12 @@ class DocumentService:
             data_access: Document data access layer (handles cache + repository)
             workspace_repository: Workspace repository (needed for RAG config)
             blob_storage: Blob storage implementation (needed for file operations)
+            config_provider_factory: Factory for RAG config providers
         """
         self.data_access = data_access
         self.workspace_repository = workspace_repository
         self.blob_storage = blob_storage
+        self.config_provider_factory = config_provider_factory
 
     def upload_and_process_document(
         self,
@@ -193,97 +187,13 @@ class DocumentService:
 
     def _build_rag_config(self, workspace: Workspace) -> dict[str, Any]:
         """Build RAG configuration from workspace's stored configuration."""
-        base_config: dict[str, Any] = {
-            "rag_type": workspace.rag_type,
-            "parser_type": "text",  # Auto-detect based on file type
-        }
+        # Use provider pattern to build indexing configuration
+        provider = self.config_provider_factory.get_provider(workspace.rag_type)
+        if not provider:
+            logger.warning(f"Unknown RAG type: {workspace.rag_type}")
+            return {"rag_type": workspace.rag_type, "parser_type": "text"}
 
-        if workspace.rag_type == "vector":
-            vector_config = self.workspace_repository.get_vector_rag_config(workspace.id)
-            vector_settings = self._build_vector_config(workspace.id, vector_config)
-            base_config.update(vector_settings)
-        elif workspace.rag_type == "graph":
-            graph_config = self.workspace_repository.get_graph_rag_config(workspace.id)
-            graph_settings = self._build_graph_config(workspace.id, graph_config)
-            base_config.update(graph_settings)
-
-        return base_config
-
-    def _build_vector_config(
-        self, workspace_id: int, vector_config: Optional[VectorRagConfig]
-    ) -> dict[str, Any]:
-        """Build vector RAG configuration."""
-        workspace_ctx = WorkspaceContext(id=workspace_id)
-
-        if vector_config:
-            return {
-                "chunker_type": vector_config.chunking_algorithm,
-                "chunker_config": {
-                    "chunk_size": vector_config.chunk_size,
-                    "overlap": vector_config.chunk_overlap,
-                },
-                "embedder_type": vector_config.embedding_algorithm,
-                "embedder_config": {
-                    "base_url": config.llm.ollama_base_url,
-                },
-                "vector_store_type": "qdrant",
-                "vector_store_config": {
-                    "host": config.vector_store.qdrant_host,
-                    "port": config.vector_store.qdrant_port,
-                    "collection_name": workspace_ctx.collection_name,
-                },
-                "enable_reranking": vector_config.rerank_algorithm != "none",
-                "reranker_type": vector_config.rerank_algorithm,
-            }
-
-        return {
-            "chunker_type": get_default_chunking_algorithm(),
-            "chunker_config": {
-                "chunk_size": 500,
-                "overlap": 50,
-            },
-            "embedder_type": get_default_embedding_algorithm(),
-            "embedder_config": {
-                "base_url": config.llm.ollama_base_url,
-            },
-            "vector_store_type": "qdrant",
-            "vector_store_config": {
-                "host": config.vector_store.qdrant_host,
-                "port": config.vector_store.qdrant_port,
-                "collection_name": workspace_ctx.collection_name,
-            },
-            "enable_reranking": False,
-            "reranker_type": get_default_reranking_algorithm(),
-        }
-
-    def _build_graph_config(
-        self, workspace_id: int, graph_config: Optional[GraphRagConfig]
-    ) -> dict[str, Any]:
-        """Build graph RAG configuration."""
-        workspace_ctx = WorkspaceContext(id=workspace_id)
-
-        if graph_config:
-            return {
-                "graph_store_type": "neo4j",
-                "graph_store_config": {
-                    "uri": config.graph_store.neo4j_url,
-                    "database": workspace_ctx.collection_name,
-                },
-                "entity_extraction_type": graph_config.entity_extraction_algorithm,
-                "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
-                "clustering_type": graph_config.clustering_algorithm,
-            }
-
-        return {
-            "graph_store_type": "neo4j",
-            "graph_store_config": {
-                "uri": config.graph_store.neo4j_url,
-                "database": workspace_ctx.collection_name,
-            },
-            "entity_extraction_type": get_default_entity_extraction_algorithm(),
-            "relationship_extraction_type": get_default_relationship_extraction_algorithm(),
-            "clustering_type": get_default_clustering_algorithm(),
-        }
+        return provider.build_indexing_settings(workspace.id)
 
     def remove_document(self, document_id: int) -> bool:
         """Remove document and its RAG data.

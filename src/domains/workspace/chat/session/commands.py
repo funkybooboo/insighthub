@@ -32,12 +32,12 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.session_orchestrator.list_sessions(request)
 
         # === Handle Result (CLI-specific output) ===
-        responses, total = ResultHandler.unwrap_or_exit(result, "list sessions")
-        if not responses:
+        paginated = ResultHandler.unwrap_or_exit(result, "list sessions")
+        if not paginated.items:
             print("No chat sessions found")
             return
 
-        for response in responses:
+        for response in paginated.items:
             title = response.title or "(No title)"
             print(f"[{response.id}] {title}")
 

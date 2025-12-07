@@ -27,6 +27,11 @@ from src.domains.workspace.document.orchestrator import DocumentOrchestrator
 from src.domains.workspace.document.repositories import DocumentRepository
 from src.domains.workspace.document.service import DocumentService
 from src.domains.workspace.orchestrator import WorkspaceOrchestrator
+from src.domains.workspace.rag_config_provider import (
+    GraphRagConfigProvider,
+    RagConfigProviderFactory,
+    VectorRagConfigProvider,
+)
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.cache.factory import create_cache
@@ -103,6 +108,18 @@ class AppContext:
             cache=cache,
         )
 
+        # RAG Config Providers
+        vector_provider = VectorRagConfigProvider(
+            workspace_data_access=self.workspace_data_access,
+        )
+        graph_provider = GraphRagConfigProvider(
+            workspace_data_access=self.workspace_data_access,
+        )
+        self.rag_config_provider_factory = RagConfigProviderFactory(
+            vector_provider=vector_provider,
+            graph_provider=graph_provider,
+        )
+
         # Services
         self.default_rag_config_service = DefaultRagConfigService(
             data_access=self.default_rag_config_data_access,
@@ -110,11 +127,13 @@ class AppContext:
         self.workspace_service = WorkspaceService(
             data_access=self.workspace_data_access,
             default_rag_config_service=self.default_rag_config_service,
+            config_provider_factory=self.rag_config_provider_factory,
         )
         self.document_service = DocumentService(
             data_access=self.document_data_access,
             workspace_repository=self.workspace_repo,
             blob_storage=self.blob_storage,
+            config_provider_factory=self.rag_config_provider_factory,
         )
         self.chat_session_service = ChatSessionService(
             data_access=self.chat_session_data_access,
@@ -140,6 +159,7 @@ class AppContext:
             session_data_access=self.chat_session_data_access,
             workspace_data_access=self.workspace_data_access,
             llm_provider=self.llm_provider,
+            config_provider_factory=self.rag_config_provider_factory,
         )
 
         # State service

@@ -8,7 +8,7 @@ from returns.result import Failure, Result, Success
 from src.domains.workspace.chat.session.models import ChatSession
 from src.infrastructure.logger import create_logger
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
-from src.infrastructure.types import DatabaseError
+from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
 
 logger = create_logger(__name__)
 
@@ -71,8 +71,16 @@ class ChatSessionRepository:
             return ChatSession(**result)
         return None
 
-    def get_all(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def get_all(self, pagination: Pagination) -> PaginatedResult[ChatSession]:
         """Get all chat session (single-user system)."""
+        skip, limit = pagination.offset_limit()
+
+        # Get total count
+        count_query = "SELECT COUNT(*) as total FROM chat_sessions"
+        count_result = self.db.fetch_one(count_query)
+        total_count = count_result["total"] if count_result else 0
+
+        # Get paginated results
         query = """
             SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions
@@ -80,12 +88,22 @@ class ChatSessionRepository:
             LIMIT %s OFFSET %s
         """
         results = self.db.fetch_all(query, (limit, skip))
-        return [ChatSession(**result) for result in results]
+        items = [ChatSession(**result) for result in results]
+
+        return PaginatedResult(items=items, total_count=total_count, skip=skip, limit=limit)
 
     def get_by_workspace(
-        self, workspace_id: int, skip: int = 0, limit: int = 50
-    ) -> list[ChatSession]:
+        self, workspace_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatSession]:
         """Get session by workspace ID with pagination."""
+        skip, limit = pagination.offset_limit()
+
+        # Get total count for workspace
+        count_query = "SELECT COUNT(*) as total FROM chat_sessions WHERE workspace_id = %s"
+        count_result = self.db.fetch_one(count_query, (workspace_id,))
+        total_count = count_result["total"] if count_result else 0
+
+        # Get paginated results
         query = """
             SELECT id, workspace_id, title, rag_type, created_at, updated_at
             FROM chat_sessions WHERE workspace_id = %s
@@ -93,7 +111,9 @@ class ChatSessionRepository:
             LIMIT %s OFFSET %s
         """
         results = self.db.fetch_all(query, (workspace_id, limit, skip))
-        return [ChatSession(**result) for result in results]
+        items = [ChatSession(**result) for result in results]
+
+        return PaginatedResult(items=items, total_count=total_count, skip=skip, limit=limit)
 
     def update(self, session_id: int, **kwargs) -> Optional[ChatSession]:
         """Update session fields."""

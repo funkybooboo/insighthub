@@ -8,7 +8,13 @@ from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.chat.session.models import ChatSession
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_type
-from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
+from src.infrastructure.types import (
+    DatabaseError,
+    NotFoundError,
+    Pagination,
+    PaginatedResult,
+    ValidationError,
+)
 
 logger = create_logger(__name__)
 
@@ -60,9 +66,9 @@ class ChatSessionService:
         """Get session by ID."""
         return self.data_access.get_by_id(session_id)
 
-    def list_sessions(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def list_sessions(self, pagination: Pagination) -> PaginatedResult[ChatSession]:
         """List all chat session (single-user system)."""
-        return self.data_access.get_all(skip, limit)
+        return self.data_access.get_all(pagination)
 
     def update_session(
         self, session_id: int, title: Optional[str] = None
@@ -113,14 +119,7 @@ class ChatSessionService:
         return None
 
     def list_workspace_sessions(
-        self, workspace_id: int, skip: int = 0, limit: int = 50
-    ) -> tuple[list[ChatSession], int]:
+        self, workspace_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatSession]:
         """List session for a workspace (single-user system)."""
-        # Get all session in workspace
-        all_sessions = self.data_access.get_by_workspace(workspace_id)
-
-        # Apply pagination
-        paginated_sessions = all_sessions[skip : skip + limit]
-        total = len(all_sessions)
-
-        return paginated_sessions, total
+        return self.data_access.get_by_workspace(workspace_id, pagination)

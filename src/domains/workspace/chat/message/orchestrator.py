@@ -4,8 +4,6 @@ Eliminates duplication between commands.py and routes.py by providing
 a single interface for: Request DTO → Validation → Service → Response DTO
 """
 
-from typing import List, Tuple
-
 from returns.result import Failure, Result, Success
 
 from src.domains.workspace.chat.message.dtos import (
@@ -19,7 +17,7 @@ from src.domains.workspace.chat.message.validation import (
     validate_list_messages,
     validate_send_message,
 )
-from src.infrastructure.types import ValidationError
+from src.infrastructure.types import Pagination, PaginatedResult, ValidationError
 
 
 class MessageOrchestrator:
@@ -63,14 +61,14 @@ class MessageOrchestrator:
     def list_messages(
         self,
         request: ListMessagesRequest,
-    ) -> Result[Tuple[List[MessageResponse], int], ValidationError]:
+    ) -> Result[PaginatedResult[MessageResponse], ValidationError]:
         """Orchestrate list messages.
 
         Args:
             request: List messages request DTO
 
         Returns:
-            Result with tuple of (list of MessageResponse, total count) or error
+            Result with PaginatedResult of MessageResponse or error
         """
         # Validate
         validation_result = validate_list_messages(request)
@@ -79,13 +77,28 @@ class MessageOrchestrator:
 
         validated_request = validation_result.unwrap()
 
+        # Create pagination
+        pagination_result = Pagination.create(
+            skip=validated_request.skip, limit=validated_request.limit
+        )
+        if isinstance(pagination_result, Failure):
+            return Failure(ValidationError(pagination_result.failure().message))
+
+        pagination = pagination_result.unwrap()
+
         # Call service
-        messages, total = self.service.get_session_messages(
+        result = self.service.get_session_messages(
             session_id=validated_request.session_id,
-            skip=validated_request.skip,
-            limit=validated_request.limit,
+            pagination=pagination,
         )
 
         # Map to responses
-        responses = [MessageMapper.to_response(message) for message in messages]
-        return Success((responses, total))
+        responses = [MessageMapper.to_response(message) for message in result.items]
+        return Success(
+            PaginatedResult(
+                items=responses,
+                total_count=result.total_count,
+                skip=result.skip,
+                limit=result.limit,
+            )
+        )

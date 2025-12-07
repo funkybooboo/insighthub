@@ -8,7 +8,7 @@ from returns.result import Failure, Result, Success
 from src.domains.workspace.chat.message.models import ChatMessage
 from src.infrastructure.logger import create_logger
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
-from src.infrastructure.types import DatabaseError
+from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
 
 logger = create_logger(__name__)
 
@@ -77,8 +77,20 @@ class ChatMessageRepository:
             return ChatMessage(**result)
         return None
 
-    def get_by_session(self, session_id: int, skip: int = 0, limit: int = 50) -> list[ChatMessage]:
+    def get_by_session(self, session_id: int, pagination: Pagination) -> PaginatedResult[ChatMessage]:
         """Get message for a session with pagination."""
+        skip, limit = pagination.offset_limit()
+
+        # Get total count for session
+        count_query = "SELECT COUNT(*) as total FROM chat_messages WHERE chat_session_id = %s"
+        try:
+            count_result = self.db.fetch_one(count_query, (session_id,))
+            total_count = count_result["total"] if count_result else 0
+        except DatabaseException as e:
+            logger.error(f"Database error counting chat messages: {e}")
+            total_count = 0
+
+        # Get paginated results
         query = """
             SELECT id, chat_session_id as session_id, role, content, created_at
             FROM chat_messages WHERE chat_session_id = %s
@@ -87,11 +99,12 @@ class ChatMessageRepository:
         """
         try:
             results = self.db.fetch_all(query, (session_id, limit, skip))
+            items = [ChatMessage(**result) for result in results]
         except DatabaseException as e:
             logger.error(f"Database error getting chat messages: {e}")
-            return []
+            items = []
 
-        return [ChatMessage(**result) for result in results]
+        return PaginatedResult(items=items, total_count=total_count, skip=skip, limit=limit)
 
     def delete(self, message_id: int) -> bool:
         """Delete message by ID."""

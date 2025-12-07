@@ -21,6 +21,11 @@ from src.infrastructure.types.errors import (
     VectorStoreError,
     WorkflowError,
 )
+from src.infrastructure.types.pagination import (
+    Pagination,
+    PaginatedResult,
+    PaginationError,
+)
 from src.infrastructure.types.rag import ChunkData, QueryResult, RagSystem
 from src.infrastructure.types.retrieval import RetrievalResult
 
@@ -39,6 +44,9 @@ __all__ = [
     "QueryResult",
     "ChunkData",
     "RetrievalResult",
+    "Pagination",
+    "PaginatedResult",
+    "PaginationError",
     "ValidationError",
     "NotFoundError",
     "WorkflowError",

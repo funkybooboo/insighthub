@@ -4,11 +4,11 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
-from src.config import config
 from src.domains.default_rag_config.models import DefaultRagConfig
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.domains.workspace.models import VectorRagConfig, Workspace, WorkspaceStatus
+from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.create_resources import CreateResourcesWorkflowFactory
 from src.infrastructure.rag.workflows.remove_resources import RemoveResourcesWorkflowFactory
@@ -28,15 +28,18 @@ class WorkspaceService:
         self,
         data_access: WorkspaceDataAccess,
         default_rag_config_service: DefaultRagConfigService,
+        config_provider_factory: RagConfigProviderFactory,
     ):
         """Initialize service with data access and default config service.
 
         Args:
             data_access: Workspace data access layer (handles cache + repository)
             default_rag_config_service: Service for default RAG configuration
+            config_provider_factory: Factory for RAG config providers
         """
         self.data_access = data_access
         self.default_rag_config_service = default_rag_config_service
+        self.config_provider_factory = config_provider_factory
 
     def create_workspace(
         self,
@@ -142,13 +145,17 @@ class WorkspaceService:
             self.data_access.update(workspace.id, status=WorkspaceStatus.CREATING_GRAPH_STORE.value)
             logger.info(f"Workspace {workspace.id}: creating graph store")
 
-        # Build configuration for workflow from defaults
-        rag_config = {
-            "rag_type": workspace.rag_type,
-            "qdrant_url": f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}",
-            "vector_size": default_config.vector_config.embedding_model_vector_size,
-            "distance": default_config.vector_config.distance_metric,
-        }
+        # Use provider pattern to build configuration
+        provider = self.config_provider_factory.get_provider(workspace.rag_type)
+        if not provider:
+            return Failure(
+                WorkflowError(
+                    f"Unknown RAG type: {workspace.rag_type}",
+                    workflow="provision_rag_resources",
+                )
+            )
+
+        rag_config = provider.build_provisioning_settings(workspace.id)
 
         # Create and execute provisioning workflow
         workflow = CreateResourcesWorkflowFactory.create(rag_config)
@@ -246,11 +253,17 @@ class WorkspaceService:
         """
         logger.info(f"Deallocating RAG resources for workspace {workspace.id}")
 
-        # Build configuration for workflow
-        rag_config = {
-            "rag_type": workspace.rag_type,
-            "qdrant_url": f"http://{config.vector_store.qdrant_host}:{config.vector_store.qdrant_port}",
-        }
+        # Use provider pattern to build configuration
+        provider = self.config_provider_factory.get_provider(workspace.rag_type)
+        if not provider:
+            return Failure(
+                WorkflowError(
+                    f"Unknown RAG type: {workspace.rag_type}",
+                    workflow="deallocate_rag_resources",
+                )
+            )
+
+        rag_config = provider.build_provisioning_settings(workspace.id)
 
         # Create and execute removal workflow
         workflow = RemoveResourcesWorkflowFactory.create(rag_config)

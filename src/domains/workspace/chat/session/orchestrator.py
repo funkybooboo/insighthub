@@ -4,7 +4,7 @@ Eliminates duplication between commands.py and routes.py by providing
 a single interface for: Request DTO → Validation → Service → Response DTO
 """
 
-from typing import Any, List, Tuple
+from typing import Any
 
 from returns.result import Failure, Result, Success
 
@@ -23,7 +23,7 @@ from src.domains.workspace.chat.session.validation import (
     validate_list_sessions,
     validate_select_session,
 )
-from src.infrastructure.types import NotFoundError, ValidationError
+from src.infrastructure.types import NotFoundError, Pagination, PaginatedResult, ValidationError
 
 
 class SessionOrchestrator:
@@ -75,14 +75,14 @@ class SessionOrchestrator:
     def list_sessions(
         self,
         request: ListSessionsRequest,
-    ) -> Result[Tuple[List[SessionResponse], int], ValidationError]:
+    ) -> Result[PaginatedResult[SessionResponse], ValidationError]:
         """Orchestrate list sessions.
 
         Args:
             request: List sessions request DTO
 
         Returns:
-            Result with tuple of (list of SessionResponse, total count) or error
+            Result with PaginatedResult of SessionResponse or error
         """
         # Validate
         validation_result = validate_list_sessions(request)
@@ -91,16 +91,31 @@ class SessionOrchestrator:
 
         validated_request = validation_result.unwrap()
 
+        # Create pagination
+        pagination_result = Pagination.create(
+            skip=validated_request.skip, limit=validated_request.limit
+        )
+        if isinstance(pagination_result, Failure):
+            return Failure(ValidationError(pagination_result.failure().message))
+
+        pagination = pagination_result.unwrap()
+
         # Call service
-        sessions, total = self.service.list_workspace_sessions(
+        result = self.service.list_workspace_sessions(
             workspace_id=validated_request.workspace_id,
-            skip=validated_request.skip,
-            limit=validated_request.limit,
+            pagination=pagination,
         )
 
         # Map to responses
-        responses = [SessionMapper.to_response(session) for session in sessions]
-        return Success((responses, total))
+        responses = [SessionMapper.to_response(session) for session in result.items]
+        return Success(
+            PaginatedResult(
+                items=responses,
+                total_count=result.total_count,
+                skip=result.skip,
+                limit=result.limit,
+            )
+        )
 
     def select_session(
         self,

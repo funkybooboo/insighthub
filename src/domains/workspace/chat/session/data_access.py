@@ -11,7 +11,7 @@ from src.domains.workspace.chat.session.models import ChatSession
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types import DatabaseError
+from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
 
 logger = create_logger(__name__)
 
@@ -72,75 +72,74 @@ class ChatSessionDataAccess:
 
         return session
 
-    def get_all(self, skip: int = 0, limit: int = 50) -> list[ChatSession]:
+    def get_all(self, pagination: Pagination) -> PaginatedResult[ChatSession]:
         """Get all chat sessions with caching.
 
         Args:
-            skip: Number of sessions to skip
-            limit: Maximum number of sessions to return
+            pagination: Pagination parameters
 
         Returns:
-            List of chat sessions
+            PaginatedResult of chat sessions
         """
         # For paginated queries, we don't cache the list itself
         # but we cache individual sessions that are fetched
-        sessions = self.repository.get_all(skip, limit)
+        result = self.repository.get_all(pagination)
 
         if self.cache:
-            for session in sessions:
+            for session in result.items:
                 self._cache_session(session)
 
-        return sessions
+        return result
 
     def get_by_workspace(
-        self, workspace_id: int, skip: int = 0, limit: int = 50
-    ) -> list[ChatSession]:
+        self, workspace_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatSession]:
         """Get sessions by workspace with caching.
 
         Args:
             workspace_id: Workspace ID
-            skip: Number of sessions to skip
-            limit: Maximum number of sessions to return
+            pagination: Pagination parameters
 
         Returns:
-            List of chat sessions
+            PaginatedResult of chat sessions
         """
-        # Try cache first for small result sets (first page only)
-        if skip == 0 and limit <= 50:
+        # Try cache first for cache-eligible queries (first page, reasonable size)
+        if pagination.is_cache_eligible():
             cache_key = CacheKeys.workspace_chat_sessions(workspace_id)
             cached_json = self.cache.get(cache_key) if self.cache else None
 
             if cached_json:
-                cached_sessions = self._try_get_cached_sessions(cache_key, cached_json, limit)
-                if cached_sessions is not None:
-                    return cached_sessions
+                cached_result = self._try_get_cached_sessions(cache_key, cached_json, pagination)
+                if cached_result is not None:
+                    return cached_result
 
         # Cache miss or pagination - fetch from database
-        sessions = self.repository.get_by_workspace(workspace_id, skip, limit)
+        result = self.repository.get_by_workspace(workspace_id, pagination)
 
         # Cache the result for first page
-        if self.cache and skip == 0 and sessions:
-            cache_value = json.dumps([s.id for s in sessions])
+        if self.cache and pagination.is_cache_eligible() and result.items:
+            cache_value = json.dumps([s.id for s in result.items])
             self.cache.set(
                 CacheKeys.workspace_chat_sessions(workspace_id), cache_value, ttl=120
             )  # Cache for 2 minutes
             # Also cache individual sessions
-            for session in sessions:
+            for session in result.items:
                 self._cache_session(session)
 
-        return sessions
+        return result
 
     def _try_get_cached_sessions(
-        self, cache_key: str, cached_json: str, limit: int
-    ) -> Optional[list[ChatSession]]:
+        self, cache_key: str, cached_json: str, pagination: Pagination
+    ) -> Optional[PaginatedResult[ChatSession]]:
         """Try to retrieve sessions from cache.
 
         Returns:
-            List of sessions if all found, None if any missing or invalid
+            PaginatedResult if all found, None if any missing or invalid
         """
         try:
             session_ids = json.loads(cached_json)
             sessions = []
+            skip, limit = pagination.offset_limit()
             for sess_id in session_ids[:limit]:
                 sess = self.get_by_id(sess_id)
                 if not sess:
@@ -148,7 +147,11 @@ class ChatSessionDataAccess:
                         self.cache.delete(cache_key)
                     return None
                 sessions.append(sess)
-            return sessions
+            # Note: For cached results, we use the length as total_count
+            # This is a simplification since we only cache first page
+            return PaginatedResult(
+                items=sessions, total_count=len(session_ids), skip=skip, limit=limit
+            )
         except (json.JSONDecodeError, KeyError, ValueError):
             return None
 

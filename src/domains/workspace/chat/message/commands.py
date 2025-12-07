@@ -25,14 +25,14 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.message_orchestrator.list_messages(request)
 
         # === Handle Result (CLI-specific output) ===
-        responses, total = ResultHandler.unwrap_or_exit(result, "list messages")
+        paginated = ResultHandler.unwrap_or_exit(result, "list messages")
 
-        if not responses:
+        if not paginated.items:
             print("No messages in this session")
             return
 
-        print(f"\nChat History ({total} messages):\n")
-        for response in responses:
+        print(f"\nChat History ({paginated.total_count} messages):\n")
+        for response in paginated.items:
             role = "You" if response.role == "user" else "Assistant"
             print(f"{role}: {response.content}\n")
 
