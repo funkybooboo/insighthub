@@ -130,9 +130,20 @@ END;
 $$ language 'plpgsql';
 
 -- Add updated_at triggers to all tables
+DROP TRIGGER IF EXISTS update_workspaces_updated_at ON workspaces;
 CREATE TRIGGER update_workspaces_updated_at BEFORE UPDATE ON workspaces FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_vector_rag_configs_updated_at ON vector_rag_configs;
 CREATE TRIGGER update_vector_rag_configs_updated_at BEFORE UPDATE ON vector_rag_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_graph_rag_configs_updated_at ON graph_rag_configs;
 CREATE TRIGGER update_graph_rag_configs_updated_at BEFORE UPDATE ON graph_rag_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_documents_updated_at ON documents;
 CREATE TRIGGER update_documents_updated_at BEFORE UPDATE ON documents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_chat_sessions_updated_at ON chat_sessions;
 CREATE TRIGGER update_chat_sessions_updated_at BEFORE UPDATE ON chat_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_default_rag_configs_updated_at ON default_rag_configs;
 CREATE TRIGGER update_default_rag_configs_updated_at BEFORE UPDATE ON default_rag_configs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
