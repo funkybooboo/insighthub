@@ -8,7 +8,7 @@ from returns.result import Failure, Result, Success
 from src.domains.workspace.chat.message.models import ChatMessage
 from src.infrastructure.logger import create_logger
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
-from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
+from src.infrastructure.types import DatabaseError, PaginatedResult, Pagination
 
 logger = create_logger(__name__)
 
@@ -77,7 +77,9 @@ class ChatMessageRepository:
             return ChatMessage(**result)
         return None
 
-    def get_by_session(self, session_id: int, pagination: Pagination) -> PaginatedResult[ChatMessage]:
+    def get_by_session(
+        self, session_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatMessage]:
         """Get message for a session with pagination."""
         skip, limit = pagination.offset_limit()
 

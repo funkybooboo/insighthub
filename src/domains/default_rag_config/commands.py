@@ -6,7 +6,6 @@ import sys
 from src.context import AppContext
 from src.domains.default_rag_config.dtos import CreateUpdateDefaultRagConfigRequest
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types import ResultHandler
 from src.infrastructure.rag.options import (
     get_default_chunking_algorithm,
     get_default_clustering_algorithm,
@@ -16,6 +15,7 @@ from src.infrastructure.rag.options import (
     get_default_relationship_extraction_algorithm,
     get_default_reranking_algorithm,
 )
+from src.infrastructure.types import ResultHandler
 
 logger = create_logger(__name__)
 

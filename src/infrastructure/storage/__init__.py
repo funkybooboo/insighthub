@@ -1,6 +1,10 @@
 """Storage infrastructure for file operations."""
 
-from .file_system_storage import FileSystemBlobStorage, StorageException
+from returns.result import Result
+
+from src.infrastructure.types.errors import StorageError
+
+from .file_system_storage import FileSystemBlobStorage
 from .storage import BlobStorage
 
 try:
@@ -17,10 +21,10 @@ except ImportError:
 
         def upload(
             self, key: str, data: bytes, content_type: str = "application/octet-stream"
-        ) -> str:
+        ) -> Result[str, StorageError]:
             raise NotImplementedError
 
-        def download(self, key: str) -> bytes:
+        def download(self, key: str) -> Result[bytes, StorageError]:
             raise NotImplementedError
 
         def delete(self, key: str) -> bool:
@@ -34,7 +38,6 @@ except ImportError:
 __all__ = [
     "BlobStorage",
     "FileSystemBlobStorage",
-    "StorageException",
     "S3_AVAILABLE",
 ]
 

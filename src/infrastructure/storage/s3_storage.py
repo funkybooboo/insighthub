@@ -218,4 +218,6 @@ class S3BlobStorage(BlobStorage):
             return Success(url)
 
         except ClientError as e:
-            return Failure(StorageError(f"Failed to generate URL for {key}: {e}", operation="get_url"))
+            return Failure(
+                StorageError(f"Failed to generate URL for {key}: {e}", operation="get_url")
+            )

@@ -11,8 +11,8 @@ from src.infrastructure.rag.options import get_valid_rag_types, is_valid_rag_typ
 from src.infrastructure.types import (
     DatabaseError,
     NotFoundError,
-    Pagination,
     PaginatedResult,
+    Pagination,
     ValidationError,
 )
 

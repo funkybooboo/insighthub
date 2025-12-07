@@ -111,12 +111,14 @@ class VectorRagConfigProvider(RagConfigProvider):
         }
 
         if vector_config:
-            base_settings.update({
-                "embedder_type": vector_config.embedding_algorithm,
-                "enable_reranking": vector_config.rerank_algorithm != "none",
-                "reranker_type": vector_config.rerank_algorithm,
-                "top_k": vector_config.top_k,
-            })
+            base_settings.update(
+                {
+                    "embedder_type": vector_config.embedding_algorithm,
+                    "enable_reranking": vector_config.rerank_algorithm != "none",
+                    "reranker_type": vector_config.rerank_algorithm,
+                    "top_k": vector_config.top_k,
+                }
+            )
 
         return base_settings
 
@@ -148,22 +150,23 @@ class VectorRagConfigProvider(RagConfigProvider):
         }
 
         if vector_config:
-            base_settings.update({
-                "chunker_type": vector_config.chunking_algorithm,
-                "chunker_config": {
-                    "chunk_size": vector_config.chunk_size,
-                    "overlap": vector_config.chunk_overlap,
-                },
-                "embedder_type": vector_config.embedding_algorithm,
-                "enable_reranking": vector_config.rerank_algorithm != "none",
-                "reranker_type": vector_config.rerank_algorithm,
-            })
+            base_settings.update(
+                {
+                    "chunker_type": vector_config.chunking_algorithm,
+                    "chunker_config": {
+                        "chunk_size": vector_config.chunk_size,
+                        "overlap": vector_config.chunk_overlap,
+                    },
+                    "embedder_type": vector_config.embedding_algorithm,
+                    "enable_reranking": vector_config.rerank_algorithm != "none",
+                    "reranker_type": vector_config.rerank_algorithm,
+                }
+            )
 
         return base_settings
 
     def build_provisioning_settings(self, workspace_id: int) -> dict[str, Any]:
         """Build vector provisioning settings."""
-        workspace_ctx = WorkspaceContext(id=workspace_id)
         vector_config = self.get_config_model(workspace_id)
 
         # Get default vector config for provisioning
@@ -175,10 +178,12 @@ class VectorRagConfigProvider(RagConfigProvider):
         }
 
         if vector_config:
-            base_settings.update({
-                "vector_size": vector_config.embedding_model_vector_size,
-                "distance": vector_config.distance_metric,
-            })
+            base_settings.update(
+                {
+                    "vector_size": vector_config.embedding_model_vector_size,
+                    "distance": vector_config.distance_metric,
+                }
+            )
 
         return base_settings
 
@@ -207,11 +212,13 @@ class GraphRagConfigProvider(RagConfigProvider):
         }
 
         if graph_config:
-            base_settings.update({
-                "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
-                "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
-                "clustering_algorithm": graph_config.clustering_algorithm,
-            })
+            base_settings.update(
+                {
+                    "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
+                    "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
+                    "clustering_algorithm": graph_config.clustering_algorithm,
+                }
+            )
 
         return base_settings
 
@@ -234,11 +241,13 @@ class GraphRagConfigProvider(RagConfigProvider):
         }
 
         if graph_config:
-            base_settings.update({
-                "entity_extraction_type": graph_config.entity_extraction_algorithm,
-                "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
-                "clustering_type": graph_config.clustering_algorithm,
-            })
+            base_settings.update(
+                {
+                    "entity_extraction_type": graph_config.entity_extraction_algorithm,
+                    "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
+                    "clustering_type": graph_config.clustering_algorithm,
+                }
+            )
 
         return base_settings
 

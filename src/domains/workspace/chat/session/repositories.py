@@ -8,7 +8,7 @@ from returns.result import Failure, Result, Success
 from src.domains.workspace.chat.session.models import ChatSession
 from src.infrastructure.logger import create_logger
 from src.infrastructure.sql_database import DatabaseException, SqlDatabase
-from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
+from src.infrastructure.types import DatabaseError, PaginatedResult, Pagination
 
 logger = create_logger(__name__)
 

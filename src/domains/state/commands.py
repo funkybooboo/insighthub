@@ -1,6 +1,7 @@
 """State CLI commands."""
 
 import argparse
+import sys
 
 from src.context import AppContext
 from src.infrastructure.cli_io import IO

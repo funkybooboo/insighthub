@@ -11,7 +11,7 @@ from src.domains.workspace.chat.session.models import ChatSession
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
+from src.infrastructure.types import DatabaseError, PaginatedResult, Pagination
 
 logger = create_logger(__name__)
 

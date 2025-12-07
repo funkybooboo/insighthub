@@ -1,8 +1,10 @@
 """Workspace CLI commands."""
 
 import argparse
+import sys
 
 from pydantic import ValidationError as PydanticValidationError
+from returns.result import Failure
 
 from src.context import AppContext
 from src.domains.workspace.dtos import (

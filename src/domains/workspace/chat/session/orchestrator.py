@@ -23,7 +23,7 @@ from src.domains.workspace.chat.session.validation import (
     validate_list_sessions,
     validate_select_session,
 )
-from src.infrastructure.types import NotFoundError, Pagination, PaginatedResult, ValidationError
+from src.infrastructure.types import NotFoundError, PaginatedResult, Pagination, ValidationError
 
 
 class SessionOrchestrator:

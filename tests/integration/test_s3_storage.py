@@ -3,6 +3,7 @@
 from collections.abc import Generator
 
 import pytest
+from returns.result import Failure, Success
 from testcontainers.minio import MinioContainer
 
 from src.infrastructure.storage.s3_storage import S3BlobStorage
@@ -57,19 +58,22 @@ class TestS3BlobStorageIntegration:
         content_type = "text/plain"
 
         # Act
-        url = s3_storage_instance.upload(key, data, content_type)
-        downloaded_data = s3_storage_instance.download(key)
+        url_result = s3_storage_instance.upload(key, data, content_type)
+        downloaded_data_result = s3_storage_instance.download(key)
 
         # Assert
+        assert isinstance(url_result, Success)
+        url = url_result.unwrap()
         assert isinstance(url, str)
         assert s3_storage_instance.bucket_name in url
         assert key in url
-        assert downloaded_data == data
+        assert isinstance(downloaded_data_result, Success)
+        assert downloaded_data_result.unwrap() == data
 
     def test_download_nonexistent_object(self, s3_storage_instance: S3BlobStorage):
-        """Test that downloading a nonexistent object raises FileNotFoundError."""
-        with pytest.raises(FileNotFoundError):
-            s3_storage_instance.download("nonexistent_object")
+        """Test that downloading a nonexistent object returns a Failure result."""
+        result = s3_storage_instance.download("nonexistent_object")
+        assert isinstance(result, Failure)
 
     def test_delete(self, s3_storage_instance: S3BlobStorage):
         """Test that we can delete an object from S3."""
@@ -105,9 +109,11 @@ class TestS3BlobStorageIntegration:
         s3_storage_instance.upload(key, data)
 
         # Act
-        url = s3_storage_instance.get_url(key)
+        url_result = s3_storage_instance.get_url(key)
 
         # Assert
+        assert isinstance(url_result, Success)
+        url = url_result.unwrap()
         assert isinstance(url, str)
         assert s3_storage_instance.bucket_name in url
         assert key in url

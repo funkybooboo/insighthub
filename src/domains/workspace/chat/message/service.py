@@ -1,6 +1,6 @@
 """Chat message service."""
 
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -15,8 +15,8 @@ from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
 from src.infrastructure.types import (
     DatabaseError,
     NotFoundError,
-    Pagination,
     PaginatedResult,
+    Pagination,
     ValidationError,
 )
 

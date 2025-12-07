@@ -11,7 +11,7 @@ from src.domains.workspace.chat.message.models import ChatMessage
 from src.domains.workspace.chat.message.repositories import ChatMessageRepository
 from src.infrastructure.cache.cache import Cache
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types import DatabaseError, Pagination, PaginatedResult
+from src.infrastructure.types import DatabaseError, PaginatedResult, Pagination
 
 logger = create_logger(__name__)
 
@@ -68,7 +68,9 @@ class ChatMessageDataAccess:
 
         return message
 
-    def get_by_session(self, session_id: int, pagination: Pagination) -> PaginatedResult[ChatMessage]:
+    def get_by_session(
+        self, session_id: int, pagination: Pagination
+    ) -> PaginatedResult[ChatMessage]:
         """Get messages by session with caching.
 
         Args:

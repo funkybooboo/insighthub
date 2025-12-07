@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict, TypeVar
 
 if TYPE_CHECKING:
-    from returns.result import Failure, Result
+    from returns.result import Result
 
 E = TypeVar("E")
 T = TypeVar("T")

@@ -17,7 +17,7 @@ from src.domains.workspace.chat.message.validation import (
     validate_list_messages,
     validate_send_message,
 )
-from src.infrastructure.types import Pagination, PaginatedResult, ValidationError
+from src.infrastructure.types import PaginatedResult, Pagination, ValidationError
 
 
 class MessageOrchestrator:

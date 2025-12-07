@@ -46,20 +46,14 @@ class Pagination:
             Result with Pagination or PaginationError
         """
         if skip < 0:
-            return Failure(
-                PaginationError(message="skip must be non-negative", field="skip")
-            )
+            return Failure(PaginationError(message="skip must be non-negative", field="skip"))
 
         if limit <= 0:
-            return Failure(
-                PaginationError(message="limit must be positive", field="limit")
-            )
+            return Failure(PaginationError(message="limit must be positive", field="limit"))
 
         if limit > max_limit:
             return Failure(
-                PaginationError(
-                    message=f"limit must not exceed {max_limit}", field="limit"
-                )
+                PaginationError(message=f"limit must not exceed {max_limit}", field="limit")
             )
 
         return Success(Pagination(skip=skip, limit=limit, max_limit=max_limit))

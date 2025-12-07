@@ -7,6 +7,7 @@ from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.infrastructure.cache.redis_cache import RedisCache
 from src.infrastructure.sql_database import SqlDatabase
+from src.infrastructure.types import Pagination
 
 
 @pytest.mark.integration
@@ -65,10 +66,11 @@ class TestChatSessionDataAccessIntegration:
         data_access_with_cache.create(workspace_id=workspace_id, title="Session 2")
 
         # Act
-        sessions = data_access_with_cache.get_by_workspace(workspace_id)
+        pagination = Pagination(skip=0, limit=50)
+        sessions = data_access_with_cache.get_by_workspace(workspace_id, pagination)
 
         # Assert
-        assert len(sessions) == 2
+        assert len(sessions.items) == 2
         assert data_access_with_cache.cache is not None
         assert data_access_with_cache.cache.exists(f"workspace:{workspace_id}:chat_sessions")
 
