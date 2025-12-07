@@ -1,78 +1,11 @@
 # Critical Encapsulation Opportunities (TIER 1)
 
-**Impact**: ~190 lines of boilerplate elimination
+**Impact**: ~30 lines of boilerplate elimination
 **RAG Compatibility**: All patterns work for both Vector and Graph RAG
 
 ---
 
-## 1. Validation Chaining Helper
-
-**Problem**: 40+ occurrences of identical validation check-and-return pattern.
-
-**Current Code**:
-```python
-# Repeated 40+ times across validation functions
-result = validate_positive_id(workspace_id)
-if isinstance(result, Failure):
-    return Failure(result.failure())
-workspace_id = result.unwrap()
-
-result = validate_non_empty_name(request.name)
-if isinstance(result, Failure):
-    return Failure(result.failure())
-validated_name = result.unwrap()
-
-result = validate_rag_type(request.rag_type)
-if isinstance(result, Failure):
-    return Failure(result.failure())
-```
-
-**Solution**:
-```python
-def chain_validations(*validators: Callable[[T], Result[T, E]]) -> Callable[[T], Result[T, E]]:
-    """Chain multiple validators, short-circuiting on first failure.
-
-    Args:
-        *validators: Validation functions that take value and return Result
-
-    Returns:
-        Combined validator function
-    """
-    def validate(value: T) -> Result[T, E]:
-        for validator in validators:
-            result = validator(value)
-            if isinstance(result, Failure):
-                return result
-        return Success(value)
-    return validate
-
-# Usage - clean and declarative
-validate_workspace_request = chain_validations(
-    validate_positive_id,
-    validate_non_empty_name,
-    validate_rag_type
-)
-
-result = validate_workspace_request(request)
-if isinstance(result, Failure):
-    return result
-```
-
-**Locations**:
-- `src/domains/default_rag_config/validation.py:129-135`
-- `src/domains/workspace/chat/session/validation.py:26-28, 69-71, 101-103, 117-119, 133-140`
-- `src/domains/workspace/document/validation.py:81-83, 134-140`
-- `src/domains/workspace/chat/message/validation.py:19-20, 50-51, 55-56`
-
-**Why Valuable**:
-- Eliminates 40+ × 4 lines = ~160 lines of boilerplate
-- Declarative validation composition
-- Easier to see all validation rules at a glance
-- Not RAG-specific
-
----
-
-## 2. Command Guard Helper
+## 1. Command Guard Helper
 
 **Problem**: 6+ occurrences of identical "no workspace selected" check with same error message.
 
@@ -131,7 +64,7 @@ workspace_id = CommandGuards.require_workspace(self.ctx, "document upload")
 
 ---
 
-## 3. Pagination Value Object
+## 2. Pagination Value Object
 
 **Problem**: Pagination parameters (`skip`, `limit`) repeated in 5+ methods with duplicated validation using exceptions.
 
@@ -238,7 +171,7 @@ sessions = repository.get_sessions(workspace_id, *pagination.offset_limit())
 
 ---
 
-## 4. PaginatedResult Value Object
+## 3. PaginatedResult Value Object
 
 **Problem**: `Tuple[List[T], int]` used for pagination with unclear semantics.
 
