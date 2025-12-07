@@ -105,8 +105,22 @@ class DocumentRepository:
 
     def get_by_content_hash(self, content_hash: str) -> Optional[Document]:
         """Get document by content hash."""
-        # Note: content_hash is not stored in DB yet, this is a placeholder
-        # TODO: Add content_hash column to document table
+        query = """
+            SELECT
+                id, workspace_id, filename, original_filename,
+                size_bytes as file_size, mime_type, chunk_count, status,
+                error_message, file_hash as content_hash, storage_path as file_path,
+                created_at, updated_at
+            FROM documents WHERE file_hash = %s
+        """
+        try:
+            result = self.db.fetch_one(query, (content_hash,))
+        except DatabaseException as e:
+            logger.error(f"Database error getting document by content hash: {e}")
+            return None
+
+        if result:
+            return Document(**result)
         return None
 
     def get_by_workspace(

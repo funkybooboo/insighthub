@@ -39,6 +39,8 @@ __all__ = [
     # Embedding
     "VectorEmbeddingEncoder",
     "EmbedderFactory",
+    # "EmbedderFactory", # Removed as per new structure
+    "get_available_embedders",
     # Vector Stores
     "VectorStore",
     "VectorDatabase",

@@ -52,6 +52,26 @@ AVAILABLE_CHUNKERS = {
         "label": "Semantic",
         "description": "Semantically coherent chunks",
     },
+    "token": {
+        "class": SentenceDocumentChunker,  # TODO: Replace with actual TokenDocumentChunker
+        "label": "Token",
+        "description": "Split by token boundaries",
+    },
+    "markdown": {
+        "class": SentenceDocumentChunker,  # TODO: Replace with actual MarkdownDocumentChunker
+        "label": "Markdown",
+        "description": "Split by Markdown sections",
+    },
+    "html": {
+        "class": SentenceDocumentChunker,  # TODO: Replace with actual HtmlDocumentChunker
+        "label": "HTML",
+        "description": "Split by HTML elements",
+    },
+    "code": {
+        "class": SentenceDocumentChunker,  # TODO: Replace with actual CodeDocumentChunker
+        "label": "Code",
+        "description": "Split by code structures",
+    },
 }
 
 

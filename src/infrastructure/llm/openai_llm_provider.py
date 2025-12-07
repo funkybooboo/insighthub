@@ -48,7 +48,7 @@ class OpenAiLlmProvider(LlmProvider):
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=[{"role": "users", "content": prompt}],
+                messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
             )
 
@@ -146,21 +146,21 @@ class OpenAiLlmProvider(LlmProvider):
 
         if conversation_history:
             for msg in conversation_history[-10:]:
-                role_str = msg.get("role", "users")
+                role_str = msg.get("role", "user")
                 content_str = msg.get("content", "")
                 message_dict = self._create_message_dict(role_str, content_str)
                 if message_dict:
                     messages.append(message_dict)
 
-        messages.append({"role": "users", "content": message})
+        messages.append({"role": "user", "content": message})
         return messages
 
     def _create_message_dict(
         self, role_str: str, content_str: str
     ) -> Optional[ChatCompletionMessageParam]:
         """Create a properly typed message dict for the given role."""
-        if role_str == "users":
-            return {"role": "users", "content": content_str}
+        if role_str == "user":
+            return {"role": "user", "content": content_str}
         elif role_str == "assistant":
             return {"role": "assistant", "content": content_str}
         elif role_str == "system":

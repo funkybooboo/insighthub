@@ -355,6 +355,11 @@ class WorkspaceDataAccess:
             workspace_id: Workspace ID
             config: GraphRagConfig to cache
         """
+        # TODO: Add missing fields to cache serialization (added in migration 008):
+        #       entity_types, relationship_types, max_traversal_depth, top_k_entities,
+        #       top_k_communities, include_entity_neighborhoods, community_min_size,
+        #       clustering_resolution, clustering_max_level
+        # TODO: Update corresponding deserialization in get_graph_rag_config method
         if not self.cache:
             return
 

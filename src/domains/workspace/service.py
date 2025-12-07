@@ -7,7 +7,7 @@ from returns.result import Failure, Result, Success
 from src.domains.default_rag_config.models import DefaultRagConfig
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.domains.workspace.data_access import WorkspaceDataAccess
-from src.domains.workspace.models import VectorRagConfig, Workspace, WorkspaceStatus
+from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace, WorkspaceStatus
 from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.workflows.create_resources import CreateResourcesWorkflowFactory
@@ -91,12 +91,32 @@ class WorkspaceService:
                 chunk_overlap=default_config.vector_config.chunk_overlap,
                 top_k=default_config.vector_config.top_k,
             )
-            config_create_result = self.data_access.repository.create_vector_rag_config(
+            vector_config_result = self.data_access.repository.create_vector_rag_config(
                 new_vector_config
             )
-            if isinstance(config_create_result, Failure):
-                return Failure(config_create_result.failure())
-        # TODO: Add similar logic for 'graph' rag_type
+            if isinstance(vector_config_result, Failure):
+                return Failure(vector_config_result.failure())
+        elif workspace.rag_type == "graph":
+            new_graph_config = GraphRagConfig(
+                workspace_id=workspace.id,
+                entity_extraction_algorithm=default_config.graph_config.entity_extraction_algorithm,
+                relationship_extraction_algorithm=default_config.graph_config.relationship_extraction_algorithm,
+                clustering_algorithm=default_config.graph_config.clustering_algorithm,
+                entity_types=default_config.graph_config.entity_types.copy(),
+                relationship_types=default_config.graph_config.relationship_types.copy(),
+                max_traversal_depth=default_config.graph_config.max_traversal_depth,
+                top_k_entities=default_config.graph_config.top_k_entities,
+                top_k_communities=default_config.graph_config.top_k_communities,
+                include_entity_neighborhoods=default_config.graph_config.include_entity_neighborhoods,
+                community_min_size=default_config.graph_config.community_min_size,
+                clustering_resolution=default_config.graph_config.clustering_resolution,
+                clustering_max_level=default_config.graph_config.clustering_max_level,
+            )
+            graph_config_result = self.data_access.repository.create_graph_rag_config(
+                new_graph_config
+            )
+            if isinstance(graph_config_result, Failure):
+                return Failure(graph_config_result.failure())
 
         # Provision RAG resources
         provision_result = self._provision_rag_resources(workspace, default_config)
@@ -280,3 +300,7 @@ class WorkspaceService:
 
         logger.info(f"RAG resources deallocated for workspace {workspace.id}")
         return Success(None)
+
+    # TODO: Add update_workspace_vector_rag_config method to allow updating vector RAG configurations
+    # TODO: Add update_workspace_graph_rag_config method to allow updating graph RAG configurations
+    # TODO: Add delete_workspace_rag_config method to remove RAG configurations (coordinate with repository layer)

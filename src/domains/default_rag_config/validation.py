@@ -64,6 +64,16 @@ def _validate_graph_config(
     request: CreateUpdateDefaultRagConfigRequest,
 ) -> Result[None, ValidationError]:
     """Validate graph configuration fields."""
+    # TODO: Add validation for missing graph configuration fields:
+    #       - entity_types (should be non-empty list if provided)
+    #       - relationship_types (should be non-empty list if provided)
+    #       - max_traversal_depth (should be positive integer)
+    #       - top_k_entities (should be positive integer)
+    #       - top_k_communities (should be positive integer)
+    #       - community_min_size (should be positive integer)
+    #       - clustering_resolution (should be positive float)
+    #       - clustering_max_level (should be positive integer)
+    #       - include_entity_neighborhoods (boolean, no validation needed)
     if request.entity_extraction_algorithm and not is_valid_entity_extraction_algorithm(
         request.entity_extraction_algorithm
     ):

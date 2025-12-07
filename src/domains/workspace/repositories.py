@@ -140,6 +140,9 @@ class WorkspaceRepository:
 
     def get_vector_rag_config(self, workspace_id: int) -> Optional[VectorRagConfig]:
         """Get vector RAG config for workspace."""
+        # TODO: Fix incomplete field mapping - missing embedding_model_vector_size, distance_metric, and rerank_algorithm from database
+        # TODO: Remove hardcoded rerank_algorithm="none" and read from database instead
+        # TODO: Add score_threshold field to VectorRagConfig model and map it properly
         query = """
             SELECT workspace_id, chunk_size, chunk_overlap, chunker_type as chunking_algorithm,
                    embedding_model as embedding_algorithm, top_k,
@@ -173,7 +176,10 @@ class WorkspaceRepository:
 
     def get_graph_rag_config(self, workspace_id: int) -> Optional[GraphRagConfig]:
         """Get graph RAG config for workspace."""
-        # This method also needs review.
+        # TODO: Add missing fields to SELECT query: entity_types, relationship_types, max_traversal_depth,
+        #       top_k_entities, top_k_communities, include_entity_neighborhoods, community_min_size,
+        #       clustering_resolution, clustering_max_level (added in migration 008)
+        # TODO: Properly deserialize JSONB fields (entity_types, relationship_types) from database
         query = """
             SELECT workspace_id,
                    entity_extraction_model as entity_extraction_algorithm,
@@ -229,3 +235,53 @@ class WorkspaceRepository:
         except DatabaseException as e:
             logger.error(f"Database error creating vector RAG config: {e}")
             return Failure(DatabaseError(e.message, "create_vector_rag_config"))
+
+    def create_graph_rag_config(
+        self, config: GraphRagConfig
+    ) -> Result[GraphRagConfig, DatabaseError]:
+        """Create graph RAG config for a workspace."""
+        query = """
+            INSERT INTO graph_rag_configs (
+                workspace_id, entity_extraction_algorithm, relationship_extraction_algorithm,
+                clustering_algorithm, entity_types, relationship_types,
+                max_traversal_depth, top_k_entities, top_k_communities,
+                include_entity_neighborhoods, community_min_size,
+                clustering_resolution, clustering_max_level, created_at, updated_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        import json
+
+        now = datetime.now(UTC)
+        try:
+            self.db.execute(
+                query,
+                (
+                    config.workspace_id,
+                    config.entity_extraction_algorithm,
+                    config.relationship_extraction_algorithm,
+                    config.clustering_algorithm,
+                    json.dumps(config.entity_types),
+                    json.dumps(config.relationship_types),
+                    config.max_traversal_depth,
+                    config.top_k_entities,
+                    config.top_k_communities,
+                    config.include_entity_neighborhoods,
+                    config.community_min_size,
+                    config.clustering_resolution,
+                    config.clustering_max_level,
+                    now,
+                    now,
+                ),
+            )
+            config.created_at = now
+            config.updated_at = now
+            return Success(config)
+        except DatabaseException as e:
+            logger.error(f"Database error creating graph RAG config: {e}")
+            return Failure(DatabaseError(e.message, "create_graph_rag_config"))
+
+    # TODO: Add update_vector_rag_config method for updating vector RAG configurations
+    # TODO: Add update_graph_rag_config method for updating graph RAG configurations
+    # TODO: Add delete_vector_rag_config method for removing vector RAG configurations
+    # TODO: Add delete_graph_rag_config method for removing graph RAG configurations

@@ -25,6 +25,7 @@ spacy = "^3.7.0"
 networkx = "^3.2.0"
 igraph = "^0.11.0"
 leidenalg = "^0.10.0"
+openai = "^2.9.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
