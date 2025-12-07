@@ -140,19 +140,14 @@ class WorkspaceRepository:
 
     def get_vector_rag_config(self, workspace_id: int) -> Optional[VectorRagConfig]:
         """Get vector RAG config for workspace."""
-        # TODO: Fix incomplete field mapping - missing embedding_model_vector_size, distance_metric, and rerank_algorithm from database
-        # TODO: Remove hardcoded rerank_algorithm="none" and read from database instead
-        # TODO: Add score_threshold field to VectorRagConfig model and map it properly
         query = """
-            SELECT workspace_id, chunk_size, chunk_overlap, chunker_type as chunking_algorithm,
-                   embedding_model as embedding_algorithm, top_k,
-                   COALESCE(score_threshold, 0) as score_threshold,
+            SELECT workspace_id, chunk_size, chunk_overlap, chunking_algorithm,
+                   embedding_algorithm, top_k, embedding_model_vector_size,
+                   distance_metric, rerank_algorithm,
                    created_at, updated_at
             FROM vector_rag_configs
             WHERE workspace_id = %s
         """
-        # This get method is messy and doesn't map to the new model fields.
-        # It needs to be fixed separately. For now, we focus on writing.
         try:
             result = self.db.fetch_one(query, (workspace_id,))
         except DatabaseException as e:
@@ -160,15 +155,16 @@ class WorkspaceRepository:
             return None
 
         if result:
-            # This mapping is partial and needs a fix.
             return VectorRagConfig(
                 workspace_id=result["workspace_id"],
                 chunking_algorithm=result["chunking_algorithm"],
                 chunk_size=result["chunk_size"],
                 chunk_overlap=result["chunk_overlap"],
                 embedding_algorithm=result["embedding_algorithm"],
+                embedding_model_vector_size=result["embedding_model_vector_size"],
+                distance_metric=result["distance_metric"],
                 top_k=result["top_k"],
-                rerank_algorithm="none",
+                rerank_algorithm=result["rerank_algorithm"],
                 created_at=result["created_at"],
                 updated_at=result["updated_at"],
             )
@@ -176,15 +172,20 @@ class WorkspaceRepository:
 
     def get_graph_rag_config(self, workspace_id: int) -> Optional[GraphRagConfig]:
         """Get graph RAG config for workspace."""
-        # TODO: Add missing fields to SELECT query: entity_types, relationship_types, max_traversal_depth,
-        #       top_k_entities, top_k_communities, include_entity_neighborhoods, community_min_size,
-        #       clustering_resolution, clustering_max_level (added in migration 008)
-        # TODO: Properly deserialize JSONB fields (entity_types, relationship_types) from database
         query = """
             SELECT workspace_id,
-                   entity_extraction_model as entity_extraction_algorithm,
-                   relationship_extraction_model as relationship_extraction_algorithm,
+                   entity_extraction_algorithm,
+                   relationship_extraction_algorithm,
                    clustering_algorithm,
+                   entity_types,
+                   relationship_types,
+                   max_traversal_depth,
+                   top_k_entities,
+                   top_k_communities,
+                   include_entity_neighborhoods,
+                   community_min_size,
+                   clustering_resolution,
+                   clustering_max_level,
                    created_at, updated_at
             FROM graph_rag_configs
             WHERE workspace_id = %s
@@ -196,7 +197,23 @@ class WorkspaceRepository:
             return None
 
         if result:
-            return GraphRagConfig(**result)
+            return GraphRagConfig(
+                workspace_id=result["workspace_id"],
+                entity_extraction_algorithm=result["entity_extraction_algorithm"],
+                relationship_extraction_algorithm=result["relationship_extraction_algorithm"],
+                clustering_algorithm=result["clustering_algorithm"],
+                entity_types=result["entity_types"],
+                relationship_types=result["relationship_types"],
+                max_traversal_depth=result["max_traversal_depth"],
+                top_k_entities=result["top_k_entities"],
+                top_k_communities=result["top_k_communities"],
+                include_entity_neighborhoods=result["include_entity_neighborhoods"],
+                community_min_size=result["community_min_size"],
+                clustering_resolution=result["clustering_resolution"],
+                clustering_max_level=result["clustering_max_level"],
+                created_at=result["created_at"],
+                updated_at=result["updated_at"],
+            )
         return None
 
     def create_vector_rag_config(
@@ -281,7 +298,100 @@ class WorkspaceRepository:
             logger.error(f"Database error creating graph RAG config: {e}")
             return Failure(DatabaseError(e.message, "create_graph_rag_config"))
 
-    # TODO: Add update_vector_rag_config method for updating vector RAG configurations
-    # TODO: Add update_graph_rag_config method for updating graph RAG configurations
-    # TODO: Add delete_vector_rag_config method for removing vector RAG configurations
-    # TODO: Add delete_graph_rag_config method for removing graph RAG configurations
+    def update_vector_rag_config(
+        self, config: VectorRagConfig
+    ) -> Result[VectorRagConfig, DatabaseError]:
+        """Update vector RAG config for a workspace."""
+        query = """
+            UPDATE vector_rag_configs
+            SET embedding_model_vector_size = %s, distance_metric = %s,
+                embedding_algorithm = %s, chunking_algorithm = %s, rerank_algorithm = %s,
+                chunk_size = %s, chunk_overlap = %s, top_k = %s, updated_at = %s
+            WHERE workspace_id = %s
+        """
+        now = datetime.now(UTC)
+        try:
+            self.db.execute(
+                query,
+                (
+                    config.embedding_model_vector_size,
+                    config.distance_metric,
+                    config.embedding_algorithm,
+                    config.chunking_algorithm,
+                    config.rerank_algorithm,
+                    config.chunk_size,
+                    config.chunk_overlap,
+                    config.top_k,
+                    now,
+                    config.workspace_id,
+                ),
+            )
+            config.updated_at = now
+            return Success(config)
+        except DatabaseException as e:
+            logger.error(f"Database error updating vector RAG config: {e}")
+            return Failure(DatabaseError(e.message, "update_vector_rag_config"))
+
+    def update_graph_rag_config(
+        self, config: GraphRagConfig
+    ) -> Result[GraphRagConfig, DatabaseError]:
+        """Update graph RAG config for a workspace."""
+        import json
+
+        query = """
+            UPDATE graph_rag_configs
+            SET entity_extraction_algorithm = %s, relationship_extraction_algorithm = %s,
+                clustering_algorithm = %s, entity_types = %s, relationship_types = %s,
+                max_traversal_depth = %s, top_k_entities = %s, top_k_communities = %s,
+                include_entity_neighborhoods = %s, community_min_size = %s,
+                clustering_resolution = %s, clustering_max_level = %s, updated_at = %s
+            WHERE workspace_id = %s
+        """
+        now = datetime.now(UTC)
+        try:
+            self.db.execute(
+                query,
+                (
+                    config.entity_extraction_algorithm,
+                    config.relationship_extraction_algorithm,
+                    config.clustering_algorithm,
+                    json.dumps(config.entity_types),
+                    json.dumps(config.relationship_types),
+                    config.max_traversal_depth,
+                    config.top_k_entities,
+                    config.top_k_communities,
+                    config.include_entity_neighborhoods,
+                    config.community_min_size,
+                    config.clustering_resolution,
+                    config.clustering_max_level,
+                    now,
+                    config.workspace_id,
+                ),
+            )
+            config.updated_at = now
+            return Success(config)
+        except DatabaseException as e:
+            logger.error(f"Database error updating graph RAG config: {e}")
+            return Failure(DatabaseError(e.message, "update_graph_rag_config"))
+
+    def delete_vector_rag_config(self, workspace_id: int) -> bool:
+        """Delete vector RAG config for a workspace."""
+        query = "DELETE FROM vector_rag_configs WHERE workspace_id = %s"
+        try:
+            affected_rows = self.db.execute(query, (workspace_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error deleting vector RAG config: {e}")
+            return False
+
+        return affected_rows > 0
+
+    def delete_graph_rag_config(self, workspace_id: int) -> bool:
+        """Delete graph RAG config for a workspace."""
+        query = "DELETE FROM graph_rag_configs WHERE workspace_id = %s"
+        try:
+            affected_rows = self.db.execute(query, (workspace_id,))
+        except DatabaseException as e:
+            logger.error(f"Database error deleting graph RAG config: {e}")
+            return False
+
+        return affected_rows > 0

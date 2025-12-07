@@ -301,6 +301,49 @@ class WorkspaceService:
         logger.info(f"RAG resources deallocated for workspace {workspace.id}")
         return Success(None)
 
-    # TODO: Add update_workspace_vector_rag_config method to allow updating vector RAG configurations
-    # TODO: Add update_workspace_graph_rag_config method to allow updating graph RAG configurations
-    # TODO: Add delete_workspace_rag_config method to remove RAG configurations (coordinate with repository layer)
+    def update_workspace_vector_rag_config(
+        self, config: VectorRagConfig
+    ) -> Result[VectorRagConfig, DatabaseError]:
+        """
+        Update vector RAG configuration for a workspace.
+
+        Args:
+            config: Updated vector RAG configuration
+
+        Returns:
+            Result with updated config or DatabaseError
+        """
+        return self.data_access.update_vector_rag_config(config)
+
+    def update_workspace_graph_rag_config(
+        self, config: GraphRagConfig
+    ) -> Result[GraphRagConfig, DatabaseError]:
+        """
+        Update graph RAG configuration for a workspace.
+
+        Args:
+            config: Updated graph RAG configuration
+
+        Returns:
+            Result with updated config or DatabaseError
+        """
+        return self.data_access.update_graph_rag_config(config)
+
+    def delete_workspace_rag_config(self, workspace_id: int, rag_type: str) -> bool:
+        """
+        Delete RAG configuration for a workspace.
+
+        Args:
+            workspace_id: Workspace ID
+            rag_type: Type of RAG config to delete ("vector" or "graph")
+
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        if rag_type == "vector":
+            return self.data_access.delete_vector_rag_config(workspace_id)
+        elif rag_type == "graph":
+            return self.data_access.delete_graph_rag_config(workspace_id)
+        else:
+            logger.error(f"Invalid RAG type: {rag_type}")
+            return False

@@ -4,7 +4,7 @@ import json
 from datetime import UTC, datetime
 from typing import Optional
 
-from returns.result import Failure, Result
+from returns.result import Failure, Result, Success
 
 from src.cache_keys import CacheKeys
 from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace
@@ -294,6 +294,15 @@ class WorkspaceDataAccess:
                     entity_extraction_algorithm=data["entity_extraction_algorithm"],
                     relationship_extraction_algorithm=data["relationship_extraction_algorithm"],
                     clustering_algorithm=data["clustering_algorithm"],
+                    entity_types=data.get("entity_types", []),
+                    relationship_types=data.get("relationship_types", []),
+                    max_traversal_depth=data.get("max_traversal_depth", 2),
+                    top_k_entities=data.get("top_k_entities", 10),
+                    top_k_communities=data.get("top_k_communities", 3),
+                    include_entity_neighborhoods=data.get("include_entity_neighborhoods", True),
+                    community_min_size=data.get("community_min_size", 3),
+                    clustering_resolution=data.get("clustering_resolution", 1.0),
+                    clustering_max_level=data.get("clustering_max_level", 3),
                     created_at=(
                         datetime.fromisoformat(data["created_at"])
                         if data.get("created_at")
@@ -355,11 +364,6 @@ class WorkspaceDataAccess:
             workspace_id: Workspace ID
             config: GraphRagConfig to cache
         """
-        # TODO: Add missing fields to cache serialization (added in migration 008):
-        #       entity_types, relationship_types, max_traversal_depth, top_k_entities,
-        #       top_k_communities, include_entity_neighborhoods, community_min_size,
-        #       clustering_resolution, clustering_max_level
-        # TODO: Update corresponding deserialization in get_graph_rag_config method
         if not self.cache:
             return
 
@@ -370,6 +374,15 @@ class WorkspaceDataAccess:
                 "entity_extraction_algorithm": config.entity_extraction_algorithm,
                 "relationship_extraction_algorithm": config.relationship_extraction_algorithm,
                 "clustering_algorithm": config.clustering_algorithm,
+                "entity_types": config.entity_types,
+                "relationship_types": config.relationship_types,
+                "max_traversal_depth": config.max_traversal_depth,
+                "top_k_entities": config.top_k_entities,
+                "top_k_communities": config.top_k_communities,
+                "include_entity_neighborhoods": config.include_entity_neighborhoods,
+                "community_min_size": config.community_min_size,
+                "clustering_resolution": config.clustering_resolution,
+                "clustering_max_level": config.clustering_max_level,
                 "created_at": config.created_at.isoformat() if config.created_at else None,
                 "updated_at": config.updated_at.isoformat() if config.updated_at else None,
             }
@@ -377,3 +390,79 @@ class WorkspaceDataAccess:
         self.cache.set(
             cache_key, cache_value, ttl=600
         )  # Cache for 10 minutes (configs change less frequently)
+
+    def update_vector_rag_config(
+        self, config: VectorRagConfig
+    ) -> Result[VectorRagConfig, DatabaseError]:
+        """Update vector RAG config for a workspace.
+
+        Args:
+            config: Updated VectorRagConfig
+
+        Returns:
+            Result with updated config or DatabaseError
+        """
+        result = self.repository.update_vector_rag_config(config)
+
+        # Invalidate cache on success
+        if isinstance(result, Success) and self.cache:
+            cache_key = CacheKeys.workspace_vector_config(config.workspace_id)
+            self.cache.delete(cache_key)
+
+        return result
+
+    def update_graph_rag_config(
+        self, config: GraphRagConfig
+    ) -> Result[GraphRagConfig, DatabaseError]:
+        """Update graph RAG config for a workspace.
+
+        Args:
+            config: Updated GraphRagConfig
+
+        Returns:
+            Result with updated config or DatabaseError
+        """
+        result = self.repository.update_graph_rag_config(config)
+
+        # Invalidate cache on success
+        if isinstance(result, Success) and self.cache:
+            cache_key = CacheKeys.workspace_graph_config(config.workspace_id)
+            self.cache.delete(cache_key)
+
+        return result
+
+    def delete_vector_rag_config(self, workspace_id: int) -> bool:
+        """Delete vector RAG config for a workspace.
+
+        Args:
+            workspace_id: Workspace ID
+
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        success = self.repository.delete_vector_rag_config(workspace_id)
+
+        # Invalidate cache on success
+        if success and self.cache:
+            cache_key = CacheKeys.workspace_vector_config(workspace_id)
+            self.cache.delete(cache_key)
+
+        return success
+
+    def delete_graph_rag_config(self, workspace_id: int) -> bool:
+        """Delete graph RAG config for a workspace.
+
+        Args:
+            workspace_id: Workspace ID
+
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        success = self.repository.delete_graph_rag_config(workspace_id)
+
+        # Invalidate cache on success
+        if success and self.cache:
+            cache_key = CacheKeys.workspace_graph_config(workspace_id)
+            self.cache.delete(cache_key)
+
+        return success

@@ -64,16 +64,6 @@ def _validate_graph_config(
     request: CreateUpdateDefaultRagConfigRequest,
 ) -> Result[None, ValidationError]:
     """Validate graph configuration fields."""
-    # TODO: Add validation for missing graph configuration fields:
-    #       - entity_types (should be non-empty list if provided)
-    #       - relationship_types (should be non-empty list if provided)
-    #       - max_traversal_depth (should be positive integer)
-    #       - top_k_entities (should be positive integer)
-    #       - top_k_communities (should be positive integer)
-    #       - community_min_size (should be positive integer)
-    #       - clustering_resolution (should be positive float)
-    #       - clustering_max_level (should be positive integer)
-    #       - include_entity_neighborhoods (boolean, no validation needed)
     if request.entity_extraction_algorithm and not is_valid_entity_extraction_algorithm(
         request.entity_extraction_algorithm
     ):
@@ -104,6 +94,70 @@ def _validate_graph_config(
             ValidationError(
                 f"Invalid clustering algorithm '{request.clustering_algorithm}'",
                 field="clustering_algorithm",
+            )
+        )
+
+    # Validate entity_types
+    if request.entity_types is not None:
+        if not isinstance(request.entity_types, list):
+            return Failure(ValidationError("entity_types must be a list", field="entity_types"))
+        if len(request.entity_types) == 0:
+            return Failure(ValidationError("entity_types must not be empty", field="entity_types"))
+
+    # Validate relationship_types
+    if request.relationship_types is not None:
+        if not isinstance(request.relationship_types, list):
+            return Failure(
+                ValidationError("relationship_types must be a list", field="relationship_types")
+            )
+        if len(request.relationship_types) == 0:
+            return Failure(
+                ValidationError("relationship_types must not be empty", field="relationship_types")
+            )
+
+    # Validate max_traversal_depth
+    if request.max_traversal_depth is not None and request.max_traversal_depth <= 0:
+        return Failure(
+            ValidationError(
+                "max_traversal_depth must be a positive integer", field="max_traversal_depth"
+            )
+        )
+
+    # Validate top_k_entities
+    if request.top_k_entities is not None and request.top_k_entities <= 0:
+        return Failure(
+            ValidationError("top_k_entities must be a positive integer", field="top_k_entities")
+        )
+
+    # Validate top_k_communities
+    if request.top_k_communities is not None and request.top_k_communities <= 0:
+        return Failure(
+            ValidationError(
+                "top_k_communities must be a positive integer", field="top_k_communities"
+            )
+        )
+
+    # Validate community_min_size
+    if request.community_min_size is not None and request.community_min_size <= 0:
+        return Failure(
+            ValidationError(
+                "community_min_size must be a positive integer", field="community_min_size"
+            )
+        )
+
+    # Validate clustering_resolution
+    if request.clustering_resolution is not None and request.clustering_resolution <= 0:
+        return Failure(
+            ValidationError(
+                "clustering_resolution must be a positive float", field="clustering_resolution"
+            )
+        )
+
+    # Validate clustering_max_level
+    if request.clustering_max_level is not None and request.clustering_max_level <= 0:
+        return Failure(
+            ValidationError(
+                "clustering_max_level must be a positive integer", field="clustering_max_level"
             )
         )
 
@@ -152,10 +206,21 @@ def validate_create_update_default_rag_config(
             chunk_size=request.chunk_size,
             chunk_overlap=request.chunk_overlap,
             embedding_algorithm=request.embedding_algorithm,
+            embedding_model_vector_size=request.embedding_model_vector_size,
+            distance_metric=request.distance_metric,
             top_k=request.top_k,
             rerank_algorithm=request.rerank_algorithm,
             entity_extraction_algorithm=request.entity_extraction_algorithm,
             relationship_extraction_algorithm=request.relationship_extraction_algorithm,
             clustering_algorithm=request.clustering_algorithm,
+            entity_types=request.entity_types,
+            relationship_types=request.relationship_types,
+            max_traversal_depth=request.max_traversal_depth,
+            top_k_entities=request.top_k_entities,
+            top_k_communities=request.top_k_communities,
+            include_entity_neighborhoods=request.include_entity_neighborhoods,
+            community_min_size=request.community_min_size,
+            clustering_resolution=request.clustering_resolution,
+            clustering_max_level=request.clustering_max_level,
         )
     )

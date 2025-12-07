@@ -3,9 +3,13 @@
 from enum import Enum
 
 from .character_document_chunker import CharacterDocumentChunker
+from .code_document_chunker import CodeDocumentChunker
 from .document_chunker import Chunker
+from .html_document_chunker import HtmlDocumentChunker
+from .markdown_document_chunker import MarkdownDocumentChunker
 from .semantic_document_chunker import SemanticDocumentChunker
 from .sentence_document_chunker import SentenceDocumentChunker
+from .token_document_chunker import TokenDocumentChunker
 
 
 class ChunkerType(Enum):
@@ -53,22 +57,22 @@ AVAILABLE_CHUNKERS = {
         "description": "Semantically coherent chunks",
     },
     "token": {
-        "class": SentenceDocumentChunker,  # TODO: Replace with actual TokenDocumentChunker
+        "class": TokenDocumentChunker,
         "label": "Token",
         "description": "Split by token boundaries",
     },
     "markdown": {
-        "class": SentenceDocumentChunker,  # TODO: Replace with actual MarkdownDocumentChunker
+        "class": MarkdownDocumentChunker,
         "label": "Markdown",
         "description": "Split by Markdown sections",
     },
     "html": {
-        "class": SentenceDocumentChunker,  # TODO: Replace with actual HtmlDocumentChunker
+        "class": HtmlDocumentChunker,
         "label": "HTML",
         "description": "Split by HTML elements",
     },
     "code": {
-        "class": SentenceDocumentChunker,  # TODO: Replace with actual CodeDocumentChunker
+        "class": CodeDocumentChunker,
         "label": "Code",
         "description": "Split by code structures",
     },
@@ -121,5 +125,13 @@ def create_chunker_from_config(
         return CharacterDocumentChunker(chunk_size=chunk_size, overlap=overlap)
     elif chunker_class == SemanticDocumentChunker:
         return SemanticDocumentChunker(chunk_size=chunk_size, overlap=overlap)
+    elif chunker_class == TokenDocumentChunker:
+        return TokenDocumentChunker(chunk_size=chunk_size, overlap=overlap)
+    elif chunker_class == MarkdownDocumentChunker:
+        return MarkdownDocumentChunker(chunk_size=chunk_size, overlap=overlap)
+    elif chunker_class == HtmlDocumentChunker:
+        return HtmlDocumentChunker(chunk_size=chunk_size, overlap=overlap)
+    elif chunker_class == CodeDocumentChunker:
+        return CodeDocumentChunker(chunk_size=chunk_size, overlap=overlap)
     else:
         raise ValueError(f"Unknown chunker class: {chunker_class}")
