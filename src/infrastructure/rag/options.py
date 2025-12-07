@@ -64,19 +64,11 @@ def get_graph_entity_extraction_options() -> list[dict[str, str]]:
     Returns:
         List of dicts with 'value', 'label', and 'description' keys
     """
-    # TODO: Implement when graph RAG entity extraction factory is created
-    return [
-        {
-            "value": "spacy",
-            "label": "spaCy",
-            "description": "spaCy NLP-based entity extraction",
-        },
-        {
-            "value": "llm",
-            "label": "LLM-based",
-            "description": "Use LLM to extract entities",
-        },
-    ]
+    from src.infrastructure.rag.steps.graph_rag.entity_extraction.factory import (
+        EntityExtractorFactory,
+    )
+
+    return EntityExtractorFactory.get_available_extractors()
 
 
 def get_graph_relationship_extraction_options() -> list[dict[str, str]]:
@@ -85,19 +77,11 @@ def get_graph_relationship_extraction_options() -> list[dict[str, str]]:
     Returns:
         List of dicts with 'value', 'label', and 'description' keys
     """
-    # TODO: Implement when graph RAG relationship extraction factory is created
-    return [
-        {
-            "value": "dependency-parsing",
-            "label": "Dependency Parsing",
-            "description": "Parse grammatical dependencies to extract relationships",
-        },
-        {
-            "value": "llm",
-            "label": "LLM-based",
-            "description": "Use LLM to extract relationships",
-        },
-    ]
+    from src.infrastructure.rag.steps.graph_rag.relationship_extraction.factory import (
+        RelationshipExtractorFactory,
+    )
+
+    return RelationshipExtractorFactory.get_available_extractors()
 
 
 def get_graph_clustering_options() -> list[dict[str, str]]:
@@ -106,19 +90,9 @@ def get_graph_clustering_options() -> list[dict[str, str]]:
     Returns:
         List of dicts with 'value', 'label', and 'description' keys
     """
-    # TODO: Implement when graph RAG clustering factory is created
-    return [
-        {
-            "value": "leiden",
-            "label": "Leiden",
-            "description": "Leiden community detection algorithm",
-        },
-        {
-            "value": "louvain",
-            "label": "Louvain",
-            "description": "Louvain community detection algorithm",
-        },
-    ]
+    from src.infrastructure.rag.steps.graph_rag.clustering.factory import CommunityDetectorFactory
+
+    return CommunityDetectorFactory.get_available_detectors()
 
 
 # Convenience functions to get default values

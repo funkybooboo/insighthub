@@ -81,5 +81,41 @@ class QueryWorkflowFactory:
     @staticmethod
     def _create_graph(config: dict) -> QueryWorkflow:
         """Create Graph RAG query workflow."""
-        logger.warning("Graph RAG query workflow not yet implemented")
-        raise NotImplementedError("Graph RAG query workflow not yet implemented")
+        logger.info("Creating Graph RAG query workflow")
+
+        from src.infrastructure.graph_stores.factory import GraphStoreFactory
+        from src.infrastructure.rag.steps.graph_rag.entity_extraction.factory import (
+            EntityExtractorFactory,
+        )
+        from src.infrastructure.rag.workflows.query.graph_rag_query_workflow import (
+            GraphRagQueryWorkflow,
+        )
+
+        # Create entity extractor
+        entity_extractor = EntityExtractorFactory.create(
+            config.get("entity_extraction_algorithm", "spacy"),
+            **config.get("entity_extraction_config", {}),
+        )
+
+        # Create graph store
+        graph_store = GraphStoreFactory.create(
+            config.get("graph_store_type", "neo4j"),
+            **config.get("graph_store_config", {}),
+        )
+
+        # Get workspace_id from config (should be provided by caller)
+        workspace_id = config.get("workspace_id", "")
+
+        # Create workflow
+        workflow = GraphRagQueryWorkflow(
+            entity_extractor=entity_extractor,
+            graph_store=graph_store,
+            workspace_id=workspace_id,
+            max_traversal_depth=config.get("max_traversal_depth", 2),
+            top_k_entities=config.get("top_k_entities", 10),
+            top_k_communities=config.get("top_k_communities", 3),
+            include_entity_neighborhoods=config.get("include_entity_neighborhoods", True),
+        )
+
+        logger.info("Graph RAG query workflow created successfully")
+        return workflow

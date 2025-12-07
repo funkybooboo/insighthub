@@ -21,6 +21,17 @@ from src.infrastructure.types.errors import (
     VectorStoreError,
     WorkflowError,
 )
+from src.infrastructure.types.graph import (
+    Community,
+    CommunityMetadata,
+    Entity,
+    EntityMetadata,
+    EntityType,
+    GraphSubgraph,
+    Relationship,
+    RelationshipMetadata,
+    RelationType,
+)
 from src.infrastructure.types.pagination import PaginatedResult, Pagination, PaginationError
 from src.infrastructure.types.rag import ChunkData, QueryResult, RagSystem
 from src.infrastructure.types.retrieval import RetrievalResult
@@ -52,4 +63,13 @@ __all__ = [
     "LlmProviderError",
     "DocumentUploadError",
     "DocumentProcessingError",
+    "EntityType",
+    "RelationType",
+    "EntityMetadata",
+    "RelationshipMetadata",
+    "CommunityMetadata",
+    "Entity",
+    "Relationship",
+    "Community",
+    "GraphSubgraph",
 ]

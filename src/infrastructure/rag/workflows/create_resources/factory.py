@@ -60,5 +60,19 @@ class CreateResourcesWorkflowFactory:
     @staticmethod
     def _create_graph(config: dict) -> CreateRagResourcesWorkflow:
         """Create Graph RAG create resources workflow."""
-        logger.warning("Graph RAG create resources workflow not yet implemented")
-        raise NotImplementedError("Graph RAG create resources workflow not yet implemented")
+        logger.info("Creating Graph RAG create resources workflow")
+
+        from src.infrastructure.graph_stores.factory import GraphStoreFactory
+        from src.infrastructure.rag.workflows.create_resources.graph_rag_create_rag_resources_workflow import (
+            GraphRagCreateRagResourcesWorkflow,
+        )
+
+        # Create graph store
+        graph_store = GraphStoreFactory.create(
+            config.get("graph_store_type", "neo4j"),
+            **config.get("graph_store_config", {}),
+        )
+
+        workflow = GraphRagCreateRagResourcesWorkflow(graph_store=graph_store)
+        logger.info("Graph RAG create resources workflow created successfully")
+        return workflow

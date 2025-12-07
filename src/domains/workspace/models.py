@@ -112,6 +112,19 @@ class GraphRagConfig:
     entity_extraction_algorithm: str = "spacy"
     relationship_extraction_algorithm: str = "dependency-parsing"
     clustering_algorithm: str = "leiden"
+    entity_types: list[str] = field(
+        default_factory=lambda: ["PERSON", "ORG", "GPE", "PRODUCT", "EVENT", "CONCEPT"]
+    )
+    relationship_types: list[str] = field(
+        default_factory=lambda: ["WORKS_AT", "LOCATED_IN", "RELATED_TO", "PART_OF", "CREATED_BY"]
+    )
+    max_traversal_depth: int = 2
+    top_k_entities: int = 10
+    top_k_communities: int = 3
+    include_entity_neighborhoods: bool = True
+    community_min_size: int = 3
+    clustering_resolution: float = 1.0
+    clustering_max_level: int = 3
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 

@@ -52,5 +52,19 @@ class RemoveResourcesWorkflowFactory:
     @staticmethod
     def _create_graph(config: dict) -> RemoveRagResourcesWorkflow:
         """Create Graph RAG remove resources workflow."""
-        logger.warning("Graph RAG remove resources workflow not yet implemented")
-        raise NotImplementedError("Graph RAG remove resources workflow not yet implemented")
+        logger.info("Creating Graph RAG remove resources workflow")
+
+        from src.infrastructure.graph_stores.factory import GraphStoreFactory
+        from src.infrastructure.rag.workflows.remove_resources.graph_rag_remove_rag_resources_workflow import (
+            GraphRagRemoveRagResourcesWorkflow,
+        )
+
+        # Create graph store
+        graph_store = GraphStoreFactory.create(
+            config.get("graph_store_type", "neo4j"),
+            **config.get("graph_store_config", {}),
+        )
+
+        workflow = GraphRagRemoveRagResourcesWorkflow(graph_store=graph_store)
+        logger.info("Graph RAG remove resources workflow created successfully")
+        return workflow

@@ -69,5 +69,19 @@ class RemoveDocumentWorkflowFactory:
     @staticmethod
     def _create_graph(config: dict) -> RemoveDocumentWorkflow:
         """Create Graph RAG remove document workflow."""
-        logger.warning("Graph RAG remove document workflow not yet implemented")
-        raise NotImplementedError("Graph RAG remove document workflow not yet implemented")
+        logger.info("Creating Graph RAG remove document workflow")
+
+        from src.infrastructure.graph_stores.factory import GraphStoreFactory
+        from src.infrastructure.rag.workflows.remove_document.graph_rag_remove_document_workflow import (
+            GraphRagRemoveDocumentWorkflow,
+        )
+
+        # Create graph store
+        graph_store = GraphStoreFactory.create(
+            config.get("graph_store_type", "neo4j"),
+            **config.get("graph_store_config", {}),
+        )
+
+        workflow = GraphRagRemoveDocumentWorkflow(graph_store=graph_store)
+        logger.info("Graph RAG remove document workflow created successfully")
+        return workflow

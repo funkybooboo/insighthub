@@ -217,7 +217,7 @@ CREATE INDEX idx_hybrid_rag_config_workspace ON hybrid_rag_config(workspace_id);
 
 ### Base Interface
 
-**Location:** `src/infrastructure/rag/steps/hybrid_rag/fusion/base.py` (CREATE DIRECTORIES)
+**Location:** `src/infrastructure/rag/steps/hybrid_rag/fusion/fusion.py` (CREATE DIRECTORIES)
 
 **Type Safety:** Use proper types, not `Dict[str, Any]`
 
@@ -614,8 +614,8 @@ from typing import Optional
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
 from src.infrastructure.rag.workflows.query.graph_rag_query_workflow import GraphRagQueryWorkflow
-from src.infrastructure.rag.steps.hybrid_rag.fusion.base import ResultFusion
-from src.infrastructure.rag.steps.vector_rag.reranking.base import Reranker
+from src.infrastructure.rag.steps.hybrid_rag.fusion.fusion import ResultFusion
+from src.infrastructure.rag.steps.vector_rag.reranking.reranker import Reranker
 from src.infrastructure.types.rag import ChunkData
 from src.infrastructure.types.common import FilterDict
 

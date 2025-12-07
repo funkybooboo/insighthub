@@ -90,5 +90,60 @@ class AddDocumentWorkflowFactory:
     @staticmethod
     def _create_graph(config: dict) -> AddDocumentWorkflow:
         """Create Graph RAG add document workflow."""
-        logger.warning("Graph RAG add document workflow not yet implemented")
-        raise NotImplementedError("Graph RAG add document workflow not yet implemented")
+        logger.info("Creating Graph RAG add document workflow")
+
+        from src.infrastructure.graph_stores.factory import GraphStoreFactory
+        from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
+        from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
+        from src.infrastructure.rag.steps.graph_rag.entity_extraction.factory import (
+            EntityExtractorFactory,
+        )
+        from src.infrastructure.rag.steps.graph_rag.relationship_extraction.factory import (
+            RelationshipExtractorFactory,
+        )
+        from src.infrastructure.rag.workflows.add_document.graph_rag_add_document_workflow import (
+            GraphRagAddDocumentWorkflow,
+        )
+
+        # Create parser
+        parser = ParserFactory.create_parser(config.get("parser_type", "text"))
+
+        # Create chunker
+        chunker = ChunkerFactory.create_chunker(
+            config.get("chunker_type", "sentence"),
+            **config.get("chunker_config", {}),
+        )
+
+        # Create entity extractor
+        entity_extractor = EntityExtractorFactory.create(
+            config.get("entity_extraction_type", "spacy"),
+            **config.get("entity_extraction_config", {}),
+        )
+
+        # Create relationship extractor
+        relationship_extractor = RelationshipExtractorFactory.create(
+            config.get("relationship_extraction_type", "dependency-parsing"),
+            **config.get("relationship_extraction_config", {}),
+        )
+
+        # Create graph store
+        graph_store = GraphStoreFactory.create(
+            config.get("graph_store_type", "neo4j"),
+            **config.get("graph_store_config", {}),
+        )
+
+        # Create workflow with clustering parameters
+        workflow = GraphRagAddDocumentWorkflow(
+            parser=parser,
+            chunker=chunker,
+            entity_extractor=entity_extractor,
+            relationship_extractor=relationship_extractor,
+            graph_store=graph_store,
+            clustering_algorithm=config.get("clustering_algorithm", "leiden"),
+            clustering_resolution=config.get("clustering_resolution", 1.0),
+            clustering_max_level=config.get("clustering_max_level", 3),
+            community_min_size=config.get("community_min_size", 3),
+        )
+
+        logger.info("Graph RAG add document workflow created successfully")
+        return workflow

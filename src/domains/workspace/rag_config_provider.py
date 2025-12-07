@@ -205,10 +205,25 @@ class GraphRagConfigProvider(RagConfigProvider):
 
     def build_query_settings(self, workspace_id: int) -> dict[str, Any]:
         """Build graph query settings."""
+        workspace_ctx = WorkspaceContext(id=workspace_id)
         graph_config = self.get_config_model(workspace_id)
 
         base_settings = {
             "rag_type": "graph",
+            "graph_store_type": "neo4j",
+            "graph_store_config": {
+                "uri": config.graph_store.neo4j_url,
+                "username": config.graph_store.neo4j_user,
+                "password": config.graph_store.neo4j_password,
+                "database": workspace_ctx.collection_name,
+            },
+            "max_traversal_depth": 2,
+            "top_k_entities": 10,
+            "top_k_communities": 3,
+            "include_entity_neighborhoods": True,
+            "entity_extraction_algorithm": get_default_entity_extraction_algorithm(),
+            "relationship_extraction_algorithm": get_default_relationship_extraction_algorithm(),
+            "clustering_algorithm": get_default_clustering_algorithm(),
         }
 
         if graph_config:
@@ -217,6 +232,12 @@ class GraphRagConfigProvider(RagConfigProvider):
                     "entity_extraction_algorithm": graph_config.entity_extraction_algorithm,
                     "relationship_extraction_algorithm": graph_config.relationship_extraction_algorithm,
                     "clustering_algorithm": graph_config.clustering_algorithm,
+                    "entity_types": graph_config.entity_types,
+                    "relationship_types": graph_config.relationship_types,
+                    "max_traversal_depth": graph_config.max_traversal_depth,
+                    "top_k_entities": graph_config.top_k_entities,
+                    "top_k_communities": graph_config.top_k_communities,
+                    "include_entity_neighborhoods": graph_config.include_entity_neighborhoods,
                 }
             )
 
@@ -230,22 +251,53 @@ class GraphRagConfigProvider(RagConfigProvider):
         base_settings = {
             "rag_type": "graph",
             "parser_type": "text",
+            "chunker_type": get_default_chunking_algorithm(),
+            "chunker_config": {
+                "chunk_size": 500,
+                "overlap": 50,
+            },
             "graph_store_type": "neo4j",
             "graph_store_config": {
                 "uri": config.graph_store.neo4j_url,
+                "username": config.graph_store.neo4j_user,
+                "password": config.graph_store.neo4j_password,
                 "database": workspace_ctx.collection_name,
             },
             "entity_extraction_type": get_default_entity_extraction_algorithm(),
+            "entity_extraction_config": {
+                "entity_types": ["PERSON", "ORG", "GPE", "PRODUCT", "EVENT", "CONCEPT"],
+            },
             "relationship_extraction_type": get_default_relationship_extraction_algorithm(),
-            "clustering_type": get_default_clustering_algorithm(),
+            "relationship_extraction_config": {
+                "relationship_types": [
+                    "WORKS_AT",
+                    "LOCATED_IN",
+                    "RELATED_TO",
+                    "PART_OF",
+                    "CREATED_BY",
+                ],
+            },
+            "clustering_algorithm": get_default_clustering_algorithm(),
+            "clustering_resolution": 1.0,
+            "clustering_max_level": 3,
+            "community_min_size": 3,
         }
 
         if graph_config:
             base_settings.update(
                 {
                     "entity_extraction_type": graph_config.entity_extraction_algorithm,
+                    "entity_extraction_config": {
+                        "entity_types": graph_config.entity_types,
+                    },
                     "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
-                    "clustering_type": graph_config.clustering_algorithm,
+                    "relationship_extraction_config": {
+                        "relationship_types": graph_config.relationship_types,
+                    },
+                    "clustering_algorithm": graph_config.clustering_algorithm,
+                    "clustering_resolution": graph_config.clustering_resolution,
+                    "clustering_max_level": graph_config.clustering_max_level,
+                    "community_min_size": graph_config.community_min_size,
                 }
             )
 
@@ -253,10 +305,14 @@ class GraphRagConfigProvider(RagConfigProvider):
 
     def build_provisioning_settings(self, workspace_id: int) -> dict[str, Any]:
         """Build graph provisioning settings."""
-        # Graph RAG provisioning settings (when fully implemented)
         return {
             "rag_type": "graph",
-            "neo4j_url": config.graph_store.neo4j_url,
+            "graph_store_type": "neo4j",
+            "graph_store_config": {
+                "uri": config.graph_store.neo4j_url,
+                "username": config.graph_store.neo4j_user,
+                "password": config.graph_store.neo4j_password,
+            },
         }
 
 
