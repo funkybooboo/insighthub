@@ -6,6 +6,7 @@ from typing import Optional
 
 from returns.result import Result
 
+from src.cache_keys import CacheKeys
 from src.domains.workspace.chat.message.models import ChatMessage
 from src.domains.workspace.chat.message.repositories import ChatMessageRepository
 from src.infrastructure.cache.cache import Cache
@@ -38,7 +39,7 @@ class ChatMessageDataAccess:
             ChatMessage if found, None otherwise
         """
         # Try cache first
-        cache_key = f"chat_message:{message_id}"
+        cache_key = CacheKeys.chat_message(message_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -80,7 +81,7 @@ class ChatMessageDataAccess:
         """
         # Try cache first for small result sets (first page only)
         if skip == 0 and limit <= 50:
-            cache_key = f"session:{session_id}:chat_messages"
+            cache_key = CacheKeys.chat_session_messages(session_id)
             cached_json = self.cache.get(cache_key) if self.cache else None
 
             if cached_json:
@@ -95,7 +96,7 @@ class ChatMessageDataAccess:
         if self.cache and skip == 0 and messages:
             cache_value = json.dumps([m.id for m in messages])
             self.cache.set(
-                f"session:{session_id}:chat_messages", cache_value, ttl=60
+                CacheKeys.chat_session_messages(session_id), cache_value, ttl=60
             )  # Cache for 1 minute
             # Also cache individual messages
             for message in messages:
@@ -150,7 +151,7 @@ class ChatMessageDataAccess:
             if self.cache and message:
                 self._cache_message(message)
                 # Invalidate session messages list
-                self.cache.delete(f"session:{session_id}:chat_messages")
+                self.cache.delete(CacheKeys.chat_session_messages(session_id))
 
         return result
 
@@ -171,7 +172,7 @@ class ChatMessageDataAccess:
         if result:
             self._invalidate_cache(message_id)
             if session_id and self.cache:
-                self.cache.delete(f"session:{session_id}:chat_messages")
+                self.cache.delete(CacheKeys.chat_session_messages(session_id))
         return result
 
     def _cache_message(self, message: ChatMessage) -> None:
@@ -183,7 +184,7 @@ class ChatMessageDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"chat_message:{message.id}"
+        cache_key = CacheKeys.chat_message(message.id)
         cache_value = json.dumps(
             {
                 "id": message.id,
@@ -203,5 +204,5 @@ class ChatMessageDataAccess:
             message_id: Message ID to invalidate
         """
         if self.cache:
-            cache_key = f"chat_message:{message_id}"
+            cache_key = CacheKeys.chat_message(message_id)
             self.cache.delete(cache_key)

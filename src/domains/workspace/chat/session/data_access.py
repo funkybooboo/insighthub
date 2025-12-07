@@ -6,6 +6,7 @@ from typing import Optional
 
 from returns.result import Result
 
+from src.cache_keys import CacheKeys
 from src.domains.workspace.chat.session.models import ChatSession
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.infrastructure.cache.cache import Cache
@@ -38,7 +39,7 @@ class ChatSessionDataAccess:
             ChatSession if found, None otherwise
         """
         # Try cache first
-        cache_key = f"chat_session:{session_id}"
+        cache_key = CacheKeys.chat_session(session_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -106,7 +107,7 @@ class ChatSessionDataAccess:
         """
         # Try cache first for small result sets (first page only)
         if skip == 0 and limit <= 50:
-            cache_key = f"workspace:{workspace_id}:chat_sessions"
+            cache_key = CacheKeys.workspace_chat_sessions(workspace_id)
             cached_json = self.cache.get(cache_key) if self.cache else None
 
             if cached_json:
@@ -121,7 +122,7 @@ class ChatSessionDataAccess:
         if self.cache and skip == 0 and sessions:
             cache_value = json.dumps([s.id for s in sessions])
             self.cache.set(
-                f"workspace:{workspace_id}:chat_sessions", cache_value, ttl=120
+                CacheKeys.workspace_chat_sessions(workspace_id), cache_value, ttl=120
             )  # Cache for 2 minutes
             # Also cache individual sessions
             for session in sessions:
@@ -175,7 +176,7 @@ class ChatSessionDataAccess:
                 self._cache_session(session)
                 # Invalidate workspace sessions list
                 if workspace_id:
-                    self.cache.delete(f"workspace:{workspace_id}:chat_sessions")
+                    self.cache.delete(CacheKeys.workspace_chat_sessions(workspace_id))
 
         return result
 
@@ -194,7 +195,7 @@ class ChatSessionDataAccess:
             self._invalidate_cache(session_id)
             # Invalidate workspace sessions list if session has workspace
             if session.workspace_id and self.cache:
-                self.cache.delete(f"workspace:{session.workspace_id}:chat_sessions")
+                self.cache.delete(CacheKeys.workspace_chat_sessions(session.workspace_id))
         return session
 
     def delete(self, session_id: int) -> bool:
@@ -214,7 +215,7 @@ class ChatSessionDataAccess:
         if result:
             self._invalidate_cache(session_id)
             if workspace_id and self.cache:
-                self.cache.delete(f"workspace:{workspace_id}:chat_sessions")
+                self.cache.delete(CacheKeys.workspace_chat_sessions(workspace_id))
         return result
 
     def _cache_session(self, session: ChatSession) -> None:
@@ -226,7 +227,7 @@ class ChatSessionDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"chat_session:{session.id}"
+        cache_key = CacheKeys.chat_session(session.id)
         cache_value = json.dumps(
             {
                 "id": session.id,
@@ -246,5 +247,5 @@ class ChatSessionDataAccess:
             session_id: Session ID to invalidate
         """
         if self.cache:
-            cache_key = f"chat_session:{session_id}"
+            cache_key = CacheKeys.chat_session(session_id)
             self.cache.delete(cache_key)

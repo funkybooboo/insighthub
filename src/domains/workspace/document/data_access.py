@@ -6,6 +6,7 @@ from typing import Optional
 
 from returns.result import Failure, Result, Success
 
+from src.cache_keys import CacheKeys
 from src.domains.workspace.document.models import Document
 from src.domains.workspace.document.repositories import DocumentRepository
 from src.infrastructure.cache.cache import Cache
@@ -38,7 +39,7 @@ class DocumentDataAccess:
             Document if found, None otherwise
         """
         # Try cache first
-        cache_key = f"document:{document_id}"
+        cache_key = CacheKeys.document(document_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -78,7 +79,7 @@ class DocumentDataAccess:
             List of documents
         """
         # Try cache first for the document list
-        cache_key = f"workspace:{workspace_id}:documents"
+        cache_key = CacheKeys.workspace_documents(workspace_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -221,7 +222,7 @@ class DocumentDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"document:{document.id}"
+        cache_key = CacheKeys.document(document.id)
         cache_value = json.dumps(
             {
                 "id": document.id,
@@ -246,7 +247,7 @@ class DocumentDataAccess:
             document_id: Document ID to invalidate
         """
         if self.cache:
-            cache_key = f"document:{document_id}"
+            cache_key = CacheKeys.document(document_id)
             self.cache.delete(cache_key)
 
     def _cache_workspace_documents(self, workspace_id: int, documents: list[Document]) -> None:
@@ -259,7 +260,7 @@ class DocumentDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"workspace:{workspace_id}:documents"
+        cache_key = CacheKeys.workspace_documents(workspace_id)
         cache_value = json.dumps([doc.id for doc in documents])
         self.cache.set(cache_key, cache_value, ttl=180)  # Cache for 3 minutes
 
@@ -270,5 +271,5 @@ class DocumentDataAccess:
             workspace_id: Workspace ID
         """
         if self.cache:
-            cache_key = f"workspace:{workspace_id}:documents"
+            cache_key = CacheKeys.workspace_documents(workspace_id)
             self.cache.delete(cache_key)

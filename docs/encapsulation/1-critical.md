@@ -1,73 +1,11 @@
 # Critical Encapsulation Opportunities (TIER 1)
 
-**Impact**: ~350 lines of boilerplate elimination
+**Impact**: ~190 lines of boilerplate elimination
 **RAG Compatibility**: All patterns work for both Vector and Graph RAG
 
 ---
 
-## 1. Cache Key Centralization
-
-**Problem**: 15+ magic strings for cache keys with inconsistent patterns (mix of colons and underscores).
-
-**Current Code**:
-```python
-# Inconsistent patterns scattered across data access layers
-cache_key = f"insighthub:workspace:{workspace_id}"
-cache_key = f"workspace_{workspace_id}_config"
-cache_key = f"session:{session_id}:messages"
-```
-
-**Solution**:
-```python
-class CacheKeys:
-    """Centralized cache key generation."""
-
-    NAMESPACE = "insighthub"
-
-    @classmethod
-    def workspace(cls, workspace_id: int) -> str:
-        """Cache key for workspace entity."""
-        return f"{cls.NAMESPACE}:workspace:{workspace_id}"
-
-    @classmethod
-    def workspace_config(cls, workspace_id: int) -> str:
-        """Cache key for workspace RAG config."""
-        return f"{cls.NAMESPACE}:workspace:{workspace_id}:config"
-
-    @classmethod
-    def chat_session(cls, session_id: int) -> str:
-        """Cache key for chat session entity."""
-        return f"{cls.NAMESPACE}:session:{session_id}"
-
-    @classmethod
-    def chat_session_messages(cls, session_id: int) -> str:
-        """Cache key for session messages list."""
-        return f"{cls.NAMESPACE}:session:{session_id}:messages"
-
-    @classmethod
-    def document(cls, document_id: int) -> str:
-        """Cache key for document entity."""
-        return f"{cls.NAMESPACE}:document:{document_id}"
-
-# Usage
-cache_key = CacheKeys.workspace_config(workspace_id)
-```
-
-**Locations**:
-- `src/domains/workspace/data_access.py:41, 74, 196`
-- `src/domains/workspace/chat/session/data_access.py:41, 109`
-- All data access layers
-
-**Why Valuable**:
-- Single source of truth for cache key format
-- Enforces consistent colon-separated pattern
-- Easy to find all cache keys
-- Easy to add pattern-based invalidation later
-- Works for both RAG types
-
----
-
-## 2. Validation Chaining Helper
+## 1. Validation Chaining Helper
 
 **Problem**: 40+ occurrences of identical validation check-and-return pattern.
 
@@ -134,7 +72,7 @@ if isinstance(result, Failure):
 
 ---
 
-## 3. Command Guard Helper
+## 2. Command Guard Helper
 
 **Problem**: 6+ occurrences of identical "no workspace selected" check with same error message.
 
@@ -193,7 +131,7 @@ workspace_id = CommandGuards.require_workspace(self.ctx, "document upload")
 
 ---
 
-## 4. Pagination Value Object
+## 3. Pagination Value Object
 
 **Problem**: Pagination parameters (`skip`, `limit`) repeated in 5+ methods with duplicated validation using exceptions.
 
@@ -300,7 +238,7 @@ sessions = repository.get_sessions(workspace_id, *pagination.offset_limit())
 
 ---
 
-## 5. PaginatedResult Value Object
+## 4. PaginatedResult Value Object
 
 **Problem**: `Tuple[List[T], int]` used for pagination with unclear semantics.
 

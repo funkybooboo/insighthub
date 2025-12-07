@@ -6,6 +6,7 @@ from typing import Optional
 
 from returns.result import Failure, Result
 
+from src.cache_keys import CacheKeys
 from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.cache.cache import Cache
@@ -38,7 +39,7 @@ class WorkspaceDataAccess:
             Workspace if found, None otherwise
         """
         # Try cache first
-        cache_key = f"workspace:{workspace_id}"
+        cache_key = CacheKeys.workspace(workspace_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -71,7 +72,7 @@ class WorkspaceDataAccess:
             List of all workspaces
         """
         # Try cache first
-        cache_key = "workspaces:all"
+        cache_key = CacheKeys.workspaces_all()
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -193,7 +194,7 @@ class WorkspaceDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"workspace:{workspace.id}"
+        cache_key = CacheKeys.workspace(workspace.id)
         cache_value = json.dumps(
             {
                 "id": workspace.id,
@@ -214,13 +215,13 @@ class WorkspaceDataAccess:
             workspace_id: Workspace ID to invalidate
         """
         if self.cache:
-            cache_key = f"workspace:{workspace_id}"
+            cache_key = CacheKeys.workspace(workspace_id)
             self.cache.delete(cache_key)
             # Also invalidate the all workspaces list cache
-            self.cache.delete("workspaces:all")
+            self.cache.delete(CacheKeys.workspaces_all())
             # Invalidate RAG configs as well
-            self.cache.delete(f"workspace:{workspace_id}:vector_rag_config")
-            self.cache.delete(f"workspace:{workspace_id}:graph_rag_config")
+            self.cache.delete(CacheKeys.workspace_vector_config(workspace_id))
+            self.cache.delete(CacheKeys.workspace_graph_config(workspace_id))
 
     def get_vector_rag_config(self, workspace_id: int) -> Optional[VectorRagConfig]:
         """Get vector RAG config for workspace with caching.
@@ -232,7 +233,7 @@ class WorkspaceDataAccess:
             VectorRagConfig if found, None otherwise
         """
         # Try cache first
-        cache_key = f"workspace:{workspace_id}:vector_rag_config"
+        cache_key = CacheKeys.workspace_vector_config(workspace_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -282,7 +283,7 @@ class WorkspaceDataAccess:
             GraphRagConfig if found, None otherwise
         """
         # Try cache first
-        cache_key = f"workspace:{workspace_id}:graph_rag_config"
+        cache_key = CacheKeys.workspace_graph_config(workspace_id)
         cached_json = self.cache.get(cache_key) if self.cache else None
 
         if cached_json:
@@ -327,7 +328,7 @@ class WorkspaceDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"workspace:{workspace_id}:vector_rag_config"
+        cache_key = CacheKeys.workspace_vector_config(workspace_id)
         cache_value = json.dumps(
             {
                 "workspace_id": config.workspace_id,
@@ -357,7 +358,7 @@ class WorkspaceDataAccess:
         if not self.cache:
             return
 
-        cache_key = f"workspace:{workspace_id}:graph_rag_config"
+        cache_key = CacheKeys.workspace_graph_config(workspace_id)
         cache_value = json.dumps(
             {
                 "workspace_id": config.workspace_id,
