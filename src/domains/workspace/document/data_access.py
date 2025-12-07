@@ -98,7 +98,7 @@ class DocumentDataAccess:
         return documents
 
     def _try_get_cached_documents(
-        self, workspace_id: str, cached_json: str
+        self, workspace_id: int, cached_json: str
     ) -> Optional[list[Document]]:
         """Try to retrieve documents from cache.
 

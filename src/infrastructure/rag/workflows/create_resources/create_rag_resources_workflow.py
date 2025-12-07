@@ -4,9 +4,8 @@ All RAG implementations (Vector RAG, Graph RAG) must implement this interface
 for workspace resource provisioning workflows.
 """
 
-from typing import Optional
-
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from returns.result import Result
 

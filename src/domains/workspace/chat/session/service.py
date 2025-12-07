@@ -22,8 +22,8 @@ class ChatSessionService:
 
     def create_session(
         self,
-        title: Optional[str]= None,
-        workspace_id: Optional[int]= None,
+        title: Optional[str] = None,
+        workspace_id: Optional[int] = None,
         rag_type: str = "vector",
     ) -> Result[ChatSession, ValidationError | DatabaseError]:
         """Create a new chat session (single-user system)."""
@@ -65,7 +65,7 @@ class ChatSessionService:
         return self.data_access.get_all(skip, limit)
 
     def update_session(
-        self, session_id: int, title: Optional[str]= None
+        self, session_id: int, title: Optional[str] = None
     ) -> Result[ChatSession, ValidationError | NotFoundError]:
         """Update session title."""
         logger.info(f"Updating chat session: session_id={session_id}, new_title='{title}'")

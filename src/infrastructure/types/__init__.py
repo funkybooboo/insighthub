@@ -2,10 +2,19 @@
 
 from returns.result import Failure, Result, Success
 
-from src.infrastructure.types.common import FilterDict, HealthStatus, MetadataDict, PrimitiveValue
+from src.infrastructure.types.common import (
+    FilterDict,
+    HealthStatus,
+    MetadataDict,
+    PrimitiveValue,
+    ResultHandler,
+)
 from src.infrastructure.types.document import Chunk, Document
 from src.infrastructure.types.errors import (
     DatabaseError,
+    DocumentProcessingError,
+    DocumentUploadError,
+    LlmProviderError,
     NotFoundError,
     StorageError,
     ValidationError,
@@ -23,6 +32,7 @@ __all__ = [
     "FilterDict",
     "PrimitiveValue",
     "HealthStatus",
+    "ResultHandler",
     "Document",
     "Chunk",
     "RagSystem",
@@ -35,4 +45,7 @@ __all__ = [
     "DatabaseError",
     "StorageError",
     "VectorStoreError",
+    "LlmProviderError",
+    "DocumentUploadError",
+    "DocumentProcessingError",
 ]

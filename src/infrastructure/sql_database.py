@@ -86,7 +86,9 @@ class SqlDatabase:
             logger.error(f"Unexpected error during database fetch_one: {e}")
             raise DatabaseException(str(e), operation="fetch_one", original_error=e) from e
 
-    def fetch_all(self, query: str, params: Optional[tuple[Any, ...]] = None) -> list[dict[str, Any]]:
+    def fetch_all(
+        self, query: str, params: Optional[tuple[Any, ...]] = None
+    ) -> list[dict[str, Any]]:
         """Fetch all rows as dictionaries.
 
         Raises:

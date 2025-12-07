@@ -1,8 +1,7 @@
 """Ollama vector embedding encoder implementation."""
 
-from typing import Optional
-
 from collections.abc import Iterable
+from typing import Optional
 
 import requests
 from returns.result import Failure, Result, Success
@@ -57,7 +56,7 @@ class OllamaVectorEmbeddingEncoder(VectorEmbeddingEncoder):
         self._model = model
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
-        self._dimension: Optional[int]= None
+        self._dimension: Optional[int] = None
 
     def encode(self, texts: Iterable[str]) -> Result[list[list[float]], EmbeddingError]:
         """

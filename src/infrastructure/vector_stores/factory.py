@@ -1,8 +1,7 @@
 """Factory for creating vector database instances."""
 
-from typing import Optional
-
 from enum import Enum
+from typing import Optional
 
 from .qdrant_vector_database import QdrantVectorDatabase
 from .qdrant_vector_store import QdrantVectorStore
@@ -64,10 +63,10 @@ def get_available_vector_stores() -> list[dict[str, str]]:
 
 def create_vector_database(
     db_type: str,
-    url: Optional[str]= None,
-    collection_name: Optional[str]= None,
-    vector_size: Optional[int]= None,
-    api_key: Optional[str]= None,
+    url: Optional[str] = None,
+    collection_name: Optional[str] = None,
+    vector_size: Optional[int] = None,
+    api_key: Optional[str] = None,
 ) -> VectorDatabase:
     """
     Create a vector database instance based on configuration.
@@ -118,10 +117,10 @@ def create_vector_database(
 
 def create_vector_store(
     db_type: str,
-    url: Optional[str]= None,
-    collection_name: Optional[str]= None,
-    vector_size: Optional[int]= None,
-    api_key: Optional[str]= None,
+    url: Optional[str] = None,
+    collection_name: Optional[str] = None,
+    vector_size: Optional[int] = None,
+    api_key: Optional[str] = None,
 ) -> VectorStore:
     """
     Create a vector store instance (high-level interface).

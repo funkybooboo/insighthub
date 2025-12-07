@@ -1,6 +1,6 @@
 """Chat message service."""
 
-from typing import Optional, Any, Callable
+from typing import Any, Callable, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -9,11 +9,13 @@ from src.domains.workspace.chat.message.data_access import ChatMessageDataAccess
 from src.domains.workspace.chat.message.models import ChatMessage
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.data_access import WorkspaceDataAccess
+from src.domains.workspace.models import VectorRagConfig
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.options import get_default_embedding_algorithm
 from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
 from src.infrastructure.types import DatabaseError, NotFoundError, ValidationError
+from src.infrastructure.types.common import WorkspaceContext
 
 logger = create_logger(__name__)
 
@@ -39,7 +41,7 @@ class ChatMessageService:
         session_id: int,
         role: str,
         content: str,
-        extra_metadata: Optional[dict]= None,
+        extra_metadata: Optional[dict] = None,
     ) -> Result[ChatMessage, ValidationError | DatabaseError]:
         """
         Create a new chat message.
@@ -137,7 +139,7 @@ class ChatMessageService:
         self,
         session_id: int,
         message_content: str,
-        stream_callback: Optional[Callable[[str], None]]= None,
+        stream_callback: Optional[Callable[[str], None]] = None,
     ) -> Result[tuple[ChatMessage, ChatMessage], NotFoundError | ValidationError]:
         """Send a message with RAG context and get streaming LLM response.
 
@@ -265,6 +267,8 @@ class ChatMessageService:
         self, workspace_id: int, vector_config: Optional[VectorRagConfig]
     ) -> dict[str, Any]:
         """Build vector RAG query configuration."""
+        workspace_ctx = WorkspaceContext(id=workspace_id)
+
         if vector_config:
             return {
                 "embedder_type": vector_config.embedding_algorithm,
@@ -273,7 +277,7 @@ class ChatMessageService:
                 "vector_store_config": {
                     "host": config.vector_store.qdrant_host,
                     "port": config.vector_store.qdrant_port,
-                    "collection_name": f"workspace_{workspace_id}",
+                    "collection_name": workspace_ctx.collection_name,
                 },
                 "enable_reranking": vector_config.rerank_algorithm != "none",
                 "reranker_type": vector_config.rerank_algorithm,
@@ -287,7 +291,7 @@ class ChatMessageService:
             "vector_store_config": {
                 "host": config.vector_store.qdrant_host,
                 "port": config.vector_store.qdrant_port,
-                "collection_name": f"workspace_{workspace_id}",
+                "collection_name": workspace_ctx.collection_name,
             },
             "enable_reranking": False,
             "top_k": 5,

@@ -1,9 +1,8 @@
 """Ollama LLM provider implementation."""
 
-from typing import Optional
-
 import json
 from collections.abc import Generator
+from typing import Optional
 
 import requests
 
@@ -68,7 +67,9 @@ class OllamaLlmProvider(LlmProvider):
                 f"I apologize, but I'm having trouble connecting to the AI model. Error: {str(e)}"
             )
 
-    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]]= None) -> str:
+    def chat(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+    ) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -126,7 +127,7 @@ class OllamaLlmProvider(LlmProvider):
         return self.model_name
 
     def chat_stream(
-        self, message: str, conversation_history: Optional[list[dict[str, str]]]= None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.

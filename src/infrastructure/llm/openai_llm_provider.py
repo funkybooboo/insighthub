@@ -58,7 +58,9 @@ class OpenAiLlmProvider(LlmProvider):
         except Exception as e:
             return f"Error connecting to OpenAI: {str(e)}"
 
-    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]] = None) -> str:
+    def chat(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+    ) -> str:
         """
         Generate a chat response with optional conversation history.
 

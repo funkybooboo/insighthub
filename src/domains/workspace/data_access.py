@@ -92,7 +92,9 @@ class WorkspaceDataAccess:
 
         return workspaces
 
-    def _try_get_cached_workspaces(self, cache_key: str, cached_json: str) -> Optional[list[Workspace]]:
+    def _try_get_cached_workspaces(
+        self, cache_key: str, cached_json: str
+    ) -> Optional[list[Workspace]]:
         """Try to retrieve workspaces from cache.
 
         Returns:

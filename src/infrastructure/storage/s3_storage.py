@@ -2,6 +2,10 @@
 
 from typing import Optional
 
+from returns.result import Failure, Result, Success
+
+from src.infrastructure.types.errors import StorageError
+
 try:
     import boto3
     from botocore.exceptions import ClientError
@@ -88,6 +92,9 @@ class S3BlobStorage(BlobStorage):
 
     def _create_bucket(self) -> None:
         """Create S3 bucket."""
+        if not self._client:
+            raise RuntimeError("S3 client not initialized")
+
         try:
             if self._region == "us-east-1":
                 self._client.create_bucket(Bucket=self.bucket_name)
@@ -97,11 +104,11 @@ class S3BlobStorage(BlobStorage):
                     CreateBucketConfiguration={"LocationConstraint": self._region},
                 )
         except ClientError as create_error:
-            raise RuntimeError(
-                f"Failed to create bucket {self.bucket_name}: {create_error}"
-            )
+            raise RuntimeError(f"Failed to create bucket {self.bucket_name}: {create_error}")
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> Result[str, StorageError]:
         """
         Upload data to S3 storage.
 
@@ -111,7 +118,7 @@ class S3BlobStorage(BlobStorage):
             content_type: MIME type of the data
 
         Returns:
-            str: URL to access the uploaded blob
+            Result with URL to access the uploaded blob, or StorageError
         """
         from io import BytesIO
 
@@ -129,9 +136,9 @@ class S3BlobStorage(BlobStorage):
             return self.get_url(key)
 
         except ClientError as e:
-            raise RuntimeError(f"Failed to upload {key}: {e}")
+            return Failure(StorageError(f"Failed to upload {key}: {e}", operation="upload"))
 
-    def download(self, key: str) -> bytes:
+    def download(self, key: str) -> Result[bytes, StorageError]:
         """
         Download data from S3 storage.
 
@@ -139,20 +146,17 @@ class S3BlobStorage(BlobStorage):
             key: Unique identifier for the blob
 
         Returns:
-            bytes: Binary data from storage
-
-        Raises:
-            FileNotFoundError: If blob doesn't exist
+            Result with binary data from storage, or StorageError
         """
         try:
             response = self.client.get_object(Bucket=self.bucket_name, Key=key)
-            return response["Body"].read()
+            return Success(response["Body"].read())
 
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "")
             if error_code == "NoSuchKey":
-                raise FileNotFoundError(f"Blob {key} not found")
-            raise RuntimeError(f"Failed to download {key}: {e}")
+                return Failure(StorageError(f"Blob {key} not found", operation="download"))
+            return Failure(StorageError(f"Failed to download {key}: {e}", operation="download"))
 
     def delete(self, key: str) -> bool:
         """
@@ -194,7 +198,7 @@ class S3BlobStorage(BlobStorage):
                 return False
             raise RuntimeError(f"Failed to check existence of {key}: {e}")
 
-    def get_url(self, key: str, expires_in: int = 3600) -> str:
+    def get_url(self, key: str, expires_in: int = 3600) -> Result[str, StorageError]:
         """
         Get a signed URL for accessing the blob.
 
@@ -203,7 +207,7 @@ class S3BlobStorage(BlobStorage):
             expires_in: URL expiration time in seconds
 
         Returns:
-            str: Signed URL for blob access
+            Result with signed URL for blob access, or StorageError
         """
         try:
             url = self.client.generate_presigned_url(
@@ -211,7 +215,7 @@ class S3BlobStorage(BlobStorage):
                 Params={"Bucket": self.bucket_name, "Key": key},
                 ExpiresIn=expires_in,
             )
-            return url
+            return Success(url)
 
         except ClientError as e:
-            raise RuntimeError(f"Failed to generate URL for {key}: {e}")
+            return Failure(StorageError(f"Failed to generate URL for {key}: {e}", operation="get_url"))

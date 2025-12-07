@@ -116,9 +116,7 @@ class PDFDocumentParser(DocumentParser):
 
         return metadata
 
-    def _extract_document_info(
-        self, doc_info: "pypdf_module.DocumentInformation"
-    ) -> MetadataDict:
+    def _extract_document_info(self, doc_info: "pypdf_module.DocumentInformation") -> MetadataDict:
         """Extract document information fields and return metadata."""
         result: MetadataDict = {}
 
@@ -136,7 +134,9 @@ class PDFDocumentParser(DocumentParser):
 
         return result
 
-    def _get_title(self, metadata: Optional[MetadataDict], pdf_metadata: MetadataDict) -> Optional[str]:
+    def _get_title(
+        self, metadata: Optional[MetadataDict], pdf_metadata: MetadataDict
+    ) -> Optional[str]:
         """Get title from metadata or PDF metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])

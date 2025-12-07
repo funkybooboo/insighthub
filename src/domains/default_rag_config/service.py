@@ -37,8 +37,8 @@ class DefaultRagConfigService:
     def create_or_update_config(
         self,
         rag_type: str = "vector",
-        vector_config: Optional[dict]= None,
-        graph_config: Optional[dict]= None,
+        vector_config: Optional[dict] = None,
+        graph_config: Optional[dict] = None,
     ) -> DefaultRagConfig:
         """
         Create or update default RAG config (single-user system).
@@ -56,7 +56,9 @@ class DefaultRagConfigService:
         existing_config = self.data_access.get()
 
         if existing_config:
-            return self._update_existing_config(existing_config, rag_type, vector_config, graph_config)
+            return self._update_existing_config(
+                existing_config, rag_type, vector_config, graph_config
+            )
 
         return self._create_new_config(rag_type, vector_config, graph_config)
 

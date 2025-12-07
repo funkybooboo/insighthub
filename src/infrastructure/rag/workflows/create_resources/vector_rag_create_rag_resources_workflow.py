@@ -9,6 +9,7 @@ from src.infrastructure.rag.workflows.create_resources.create_rag_resources_work
     CreateRagResourcesWorkflow,
     CreateRagResourcesWorkflowError,
 )
+from src.infrastructure.types.common import WorkspaceContext
 
 if TYPE_CHECKING:
     from qdrant_client import QdrantClient
@@ -78,9 +79,9 @@ class VectorRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
             # Override defaults with config if provided
             vector_size, distance = self._parse_config(config)
 
-            # Create Qdrant collection
-            collection_name = f"workspace_{workspace_id}"
-            self._create_qdrant_collection(collection_name, vector_size, distance)
+            # Create Qdrant collection using WorkspaceContext for naming
+            workspace_ctx = WorkspaceContext(id=int(workspace_id))
+            self._create_qdrant_collection(workspace_ctx.collection_name, vector_size, distance)
 
             logger.info(f"Workspace {workspace_id} provisioned successfully")
 

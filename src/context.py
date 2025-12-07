@@ -178,8 +178,8 @@ class AppContext:
 
         # Load current state from database (using data access layer with caching)
         state = self.state_data_access.get()
-        self.current_workspace_id: Optional[int]= state.current_workspace_id if state else None
-        self.current_session_id: Optional[int]= state.current_session_id if state else None
+        self.current_workspace_id: Optional[int] = state.current_workspace_id if state else None
+        self.current_session_id: Optional[int] = state.current_session_id if state else None
 
     def startup_checks(self) -> bool:
         """

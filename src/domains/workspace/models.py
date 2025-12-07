@@ -1,10 +1,9 @@
 """Workspace domain models."""
 
-from typing import Optional
-
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Optional
 
 
 class WorkspaceStatus(str, Enum):
@@ -78,7 +77,7 @@ class Workspace:
 
     id: int
     name: str
-    description: Optional[str]= None
+    description: Optional[str] = None
     rag_type: str = "vector"  # "vector" or "graph"
     status: str = WorkspaceStatus.READY.value
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))

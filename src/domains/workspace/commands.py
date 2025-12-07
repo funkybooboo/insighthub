@@ -1,10 +1,8 @@
 """Workspace CLI commands."""
 
 import argparse
-import sys
 
 from pydantic import ValidationError as PydanticValidationError
-from returns.result import Failure
 
 from src.context import AppContext
 from src.domains.workspace.dtos import (
@@ -16,21 +14,9 @@ from src.domains.workspace.dtos import (
 )
 from src.infrastructure.cli_io import IO
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types import ResultHandler
 
 logger = create_logger(__name__)
-
-
-def _handle_failure_result(result: Failure, operation: str) -> None:
-    """Handle a Failure result by printing error and exiting.
-
-    Args:
-        result: Failure result to handle
-        operation: Description of operation that failed
-    """
-    error = result.failure()
-    message = error.message if hasattr(error, "message") else str(error)
-    IO.print_error(f"Error: {message}")
-    sys.exit(1)
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
@@ -38,11 +24,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     try:
         # Call orchestrator
         result = ctx.workspace_orchestrator.list_workspaces()
-
-        if isinstance(result, Failure):
-            _handle_failure_result(result, "list workspaces")
-
-        responses = result.unwrap()
+        responses = ResultHandler.unwrap_or_exit(result, "list workspaces")
 
         if not responses:
             IO.print("No workspace found")
@@ -75,10 +57,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Get available options from service
         options_result = ctx.rag_options_orchestrator.get_all_options()
-        if isinstance(options_result, Failure):
-            _handle_failure_result(options_result, "get RAG options")
-
-        options = options_result.unwrap()
+        options = ResultHandler.unwrap_or_exit(options_result, "get RAG options")
 
         # Gather input
         name = IO.input("Workspace name: ").strip()
@@ -101,11 +80,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Call orchestrator
         result = ctx.workspace_orchestrator.create_workspace(request, default_rag_type)
-
-        if isinstance(result, Failure):
-            _handle_failure_result(result, "create workspace")
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "create workspace")
         IO.print(f"Created workspace [{response.id}] {response.name}")
 
     except KeyboardInterrupt:
@@ -132,11 +107,7 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Call orchestrator to get workspace
         workspace_result = ctx.workspace_orchestrator.show_workspace(request)
-
-        if isinstance(workspace_result, Failure):
-            _handle_failure_result(workspace_result, "show workspace")
-
-        response = workspace_result.unwrap()
+        response = ResultHandler.unwrap_or_exit(workspace_result, "show workspace")
 
         # Present workspace details
         IO.print(f"ID: {response.id}")
@@ -194,11 +165,7 @@ def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
     try:
         # Get workspace model via orchestrator for input gathering
         workspace_result = ctx.workspace_orchestrator.get_workspace_model(args.workspace_id)
-
-        if isinstance(workspace_result, Failure):
-            _handle_failure_result(workspace_result, "get workspace")
-
-        workspace = workspace_result.unwrap()
+        workspace = ResultHandler.unwrap_or_exit(workspace_result, "get workspace")
 
         # Gather input
         IO.print(f"Current name: {workspace.name}")
@@ -216,11 +183,7 @@ def cmd_update(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Call orchestrator
         result = ctx.workspace_orchestrator.update_workspace(request)
-
-        if isinstance(result, Failure):
-            _handle_failure_result(result, "update workspace")
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "update workspace")
         IO.print(f"Updated [{response.id}] {response.name}")
 
     except KeyboardInterrupt:
@@ -244,11 +207,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
     try:
         # Get workspace via orchestrator
         workspace_result = ctx.workspace_orchestrator.get_workspace_model(args.workspace_id)
-
-        if isinstance(workspace_result, Failure):
-            _handle_failure_result(workspace_result, "get workspace")
-
-        workspace = workspace_result.unwrap()
+        workspace = ResultHandler.unwrap_or_exit(workspace_result, "get workspace")
 
         # Confirm deletion
         if not IO.confirm(f"Delete workspace [{workspace.id}] {workspace.name}? (yes/no): "):
@@ -260,11 +219,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Call orchestrator
         result = ctx.workspace_orchestrator.delete_workspace(request)
-
-        if isinstance(result, Failure):
-            _handle_failure_result(result, "delete workspace")
-
-        deleted = result.unwrap()
+        deleted = ResultHandler.unwrap_or_exit(result, "delete workspace")
         if deleted:
             IO.print(f"Deleted [{workspace.id}] {workspace.name}")
         else:
@@ -288,11 +243,7 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Call orchestrator
         result = ctx.workspace_orchestrator.select_workspace(request, ctx.state_repo)
-
-        if isinstance(result, Failure):
-            _handle_failure_result(result, "select workspace")
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "select workspace")
         IO.print(f"Selected [{response.id}] {response.name}")
 
     except PydanticValidationError as e:

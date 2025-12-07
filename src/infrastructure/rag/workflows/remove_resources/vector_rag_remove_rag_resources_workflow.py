@@ -9,6 +9,7 @@ from src.infrastructure.rag.workflows.remove_resources.remove_rag_resources_work
     RemoveRagResourcesWorkflow,
     RemoveRagResourcesWorkflowError,
 )
+from src.infrastructure.types.common import WorkspaceContext
 
 if TYPE_CHECKING:
     from qdrant_client import QdrantClient
@@ -59,9 +60,9 @@ class VectorRagRemoveRagResourcesWorkflow(RemoveRagResourcesWorkflow):
         try:
             logger.info(f"Starting RAG resource removal for workspace_id={workspace_id}")
 
-            # Delete Qdrant collection
-            collection_name = f"workspace_{workspace_id}"
-            self._delete_qdrant_collection(collection_name)
+            # Delete Qdrant collection using WorkspaceContext for naming
+            workspace_ctx = WorkspaceContext(id=int(workspace_id))
+            self._delete_qdrant_collection(workspace_ctx.collection_name)
 
             logger.info(f"Workspace {workspace_id} RAG resources removed successfully")
 

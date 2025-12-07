@@ -1,9 +1,8 @@
 """Chat message model."""
 
-from typing import Optional
-
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
@@ -14,7 +13,7 @@ class ChatMessage:
     session_id: int
     role: str  # 'users', 'assistant', 'system'
     content: str
-    extra_metadata: Optional[str]= None  # JSON string for storing additional data
+    extra_metadata: Optional[str] = None  # JSON string for storing additional data
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 

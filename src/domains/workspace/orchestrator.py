@@ -4,7 +4,7 @@ Eliminates duplication between commands.py and routes.py by providing
 a single interface for: Request DTO → Validation → Service → Response DTO
 """
 
-from typing import Optional, Any
+from typing import Any, Optional
 
 from returns.result import Failure, Result, Success
 

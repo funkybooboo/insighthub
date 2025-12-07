@@ -3,8 +3,6 @@
 import argparse
 import sys
 
-from returns.result import Failure
-
 from src.context import AppContext
 from src.domains.workspace.chat.session.dtos import (
     CreateSessionRequest,
@@ -13,16 +11,9 @@ from src.domains.workspace.chat.session.dtos import (
     SelectSessionRequest,
 )
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types.errors import NotFoundError
+from src.infrastructure.types import ResultHandler
 
 logger = create_logger(__name__)
-
-
-def format_error(error: object) -> str:
-    """Format error object into a user-friendly message."""
-    if isinstance(error, NotFoundError):
-        return f"{error.resource} {error.id} not found"
-    return getattr(error, "message", str(error))
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
@@ -41,12 +32,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.session_orchestrator.list_sessions(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {format_error(error)}", file=sys.stderr)
-            sys.exit(1)
-
-        responses, total = result.unwrap()
+        responses, total = ResultHandler.unwrap_or_exit(result, "list sessions")
         if not responses:
             print("No chat sessions found")
             return
@@ -84,12 +70,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.session_orchestrator.create_session(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {format_error(error)}", file=sys.stderr)
-            sys.exit(1)
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "create session")
         print(f"Created chat session [{response.id}] {response.title or '(No title)'}")
 
     except KeyboardInterrupt:
@@ -111,12 +92,7 @@ def cmd_select(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.session_orchestrator.select_session(request, ctx.state_repo)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {format_error(error)}", file=sys.stderr)
-            sys.exit(1)
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "select session")
         print(f"Selected [{response.id}] {response.title or f'Session {response.id}'}")
 
     except Exception as e:
@@ -149,12 +125,7 @@ def cmd_delete(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.session_orchestrator.delete_session(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {format_error(error)}", file=sys.stderr)
-            sys.exit(1)
-
-        deleted = result.unwrap()
+        deleted = ResultHandler.unwrap_or_exit(result, "delete session")
         if deleted:
             print(f"Deleted [{session.id}] {session.title or f'Session {session.id}'}")
         else:

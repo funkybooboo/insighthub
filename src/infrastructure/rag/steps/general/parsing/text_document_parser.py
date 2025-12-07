@@ -1,7 +1,7 @@
 """Text document parser implementation."""
 
 import uuid
-from typing import Optional, BinaryIO
+from typing import BinaryIO, Optional
 
 from returns.result import Failure, Result, Success
 
@@ -17,7 +17,7 @@ class TextDocumentParser(DocumentParser):
     """Plain text document parser."""
 
     def parse(
-        self, raw: BinaryIO, metadata: Optional[MetadataDict]= None
+        self, raw: BinaryIO, metadata: Optional[MetadataDict] = None
     ) -> Result[Document, ParsingError]:
         """
         Parse text document bytes into structured Document.
@@ -71,7 +71,8 @@ class TextDocumentParser(DocumentParser):
             return {}
 
     def _extract_text_metadata(
-        self, content: str, user_metadata: Optional[MetadataDict]) -> MetadataDict:
+        self, content: str, user_metadata: Optional[MetadataDict]
+    ) -> MetadataDict:
         """Extract metadata from text content."""
         metadata: MetadataDict = {
             "encoding": "utf-8",

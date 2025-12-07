@@ -1,19 +1,23 @@
 """Document service implementation."""
 
 from io import BytesIO
-from typing import Optional, Any
+from typing import Any, Optional
 
 from returns.result import Failure, Result, Success
 
 from src.config import config
 from src.domains.workspace.document.data_access import DocumentDataAccess
 from src.domains.workspace.document.models import Document, DocumentStatus
-from src.domains.workspace.models import Workspace
+from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.options import (
     get_default_chunking_algorithm,
+    get_default_clustering_algorithm,
     get_default_embedding_algorithm,
+    get_default_entity_extraction_algorithm,
+    get_default_relationship_extraction_algorithm,
+    get_default_reranking_algorithm,
 )
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
@@ -23,6 +27,7 @@ from src.infrastructure.rag.workflows.add_document import AddDocumentWorkflowFac
 from src.infrastructure.rag.workflows.remove_document import RemoveDocumentWorkflowFactory
 from src.infrastructure.storage import BlobStorage
 from src.infrastructure.types import DatabaseError, NotFoundError, StorageError, WorkflowError
+from src.infrastructure.types.common import WorkspaceContext
 
 logger = create_logger(__name__)
 
@@ -78,12 +83,12 @@ class DocumentService:
         # Upload to blob storage
         blob_key = f"{content_hash}/{filename}"
         logger.info(f"Uploading document to blob storage: blob_key='{blob_key}'")
-        try:
-            self.blob_storage.upload(blob_key, file_content, mime_type)
-            logger.info(f"Document uploaded to blob storage: blob_key='{blob_key}'")
-        except Exception as e:
-            logger.error(f"Blob storage upload failed: {e}")
-            return Failure(StorageError(str(e), operation="upload"))
+        upload_result = self.blob_storage.upload(blob_key, file_content, mime_type)
+        if isinstance(upload_result, Failure):
+            logger.error(f"Blob storage upload failed: {upload_result.failure().message}")
+            return upload_result
+
+        logger.info(f"Document uploaded to blob storage: blob_key='{blob_key}'")
 
         # Create database record via data access layer
         create_result = self.data_access.create(
@@ -99,10 +104,7 @@ class DocumentService:
 
         if isinstance(create_result, Failure):
             # Clean up blob storage
-            try:
-                self.blob_storage.delete(blob_key)
-            except Exception:
-                pass
+            self.blob_storage.delete(blob_key)
             return create_result
 
         document = create_result.unwrap()
@@ -211,6 +213,8 @@ class DocumentService:
         self, workspace_id: int, vector_config: Optional[VectorRagConfig]
     ) -> dict[str, Any]:
         """Build vector RAG configuration."""
+        workspace_ctx = WorkspaceContext(id=workspace_id)
+
         if vector_config:
             return {
                 "chunker_type": vector_config.chunking_algorithm,
@@ -226,7 +230,7 @@ class DocumentService:
                 "vector_store_config": {
                     "host": config.vector_store.qdrant_host,
                     "port": config.vector_store.qdrant_port,
-                    "collection_name": f"workspace_{workspace_id}",
+                    "collection_name": workspace_ctx.collection_name,
                 },
                 "enable_reranking": vector_config.rerank_algorithm != "none",
                 "reranker_type": vector_config.rerank_algorithm,
@@ -246,7 +250,7 @@ class DocumentService:
             "vector_store_config": {
                 "host": config.vector_store.qdrant_host,
                 "port": config.vector_store.qdrant_port,
-                "collection_name": f"workspace_{workspace_id}",
+                "collection_name": workspace_ctx.collection_name,
             },
             "enable_reranking": False,
             "reranker_type": get_default_reranking_algorithm(),
@@ -256,12 +260,14 @@ class DocumentService:
         self, workspace_id: int, graph_config: Optional[GraphRagConfig]
     ) -> dict[str, Any]:
         """Build graph RAG configuration."""
+        workspace_ctx = WorkspaceContext(id=workspace_id)
+
         if graph_config:
             return {
                 "graph_store_type": "neo4j",
                 "graph_store_config": {
-                    "uri": config.graph_store.neo4j_uri,
-                    "database": f"workspace_{workspace_id}",
+                    "uri": config.graph_store.neo4j_url,
+                    "database": workspace_ctx.collection_name,
                 },
                 "entity_extraction_type": graph_config.entity_extraction_algorithm,
                 "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
@@ -271,8 +277,8 @@ class DocumentService:
         return {
             "graph_store_type": "neo4j",
             "graph_store_config": {
-                "uri": config.graph_store.neo4j_uri,
-                "database": f"workspace_{workspace_id}",
+                "uri": config.graph_store.neo4j_url,
+                "database": workspace_ctx.collection_name,
             },
             "entity_extraction_type": get_default_entity_extraction_algorithm(),
             "relationship_extraction_type": get_default_relationship_extraction_algorithm(),
@@ -307,11 +313,11 @@ class DocumentService:
 
         # Delete from blob storage
         if document.file_path:
-            try:
-                self.blob_storage.delete(document.file_path)
+            deleted = self.blob_storage.delete(document.file_path)
+            if deleted:
                 logger.info(f"Document deleted from blob storage: {document.file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete from blob storage: {e}")
+            else:
+                logger.warning(f"Failed to delete from blob storage: {document.file_path}")
 
         # Delete from database (data_access handles cache invalidation)
         return self.data_access.delete(document_id)

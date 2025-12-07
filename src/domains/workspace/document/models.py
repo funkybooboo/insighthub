@@ -32,13 +32,13 @@ class Document:
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     # Additional fields from DB
-    file_path: Optional[str]= None  # Maps to storage_path in DB
-    content_hash: Optional[str]= None  # Maps to file_hash in DB
-    original_filename: Optional[str]= None
+    file_path: Optional[str] = None  # Maps to storage_path in DB
+    content_hash: Optional[str] = None  # Maps to file_hash in DB
+    original_filename: Optional[str] = None
 
     # Additional fields for domain logic (not in DB)
-    rag_collection: Optional[str]= None  # Vector store collection name
-    parsed_text: Optional[str]= None  # Extracted text content
+    rag_collection: Optional[str] = None  # Vector store collection name
+    parsed_text: Optional[str] = None  # Extracted text content
 
     def __repr__(self) -> str:
         return (

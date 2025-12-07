@@ -89,7 +89,9 @@ class SentenceDocumentChunker(Chunker):
         for sentence in sentences:
             sentence_length = len(sentence)
 
-            if self._should_create_chunk(current_chunk_length, sentence_length, current_chunk_sentences):
+            if self._should_create_chunk(
+                current_chunk_length, sentence_length, current_chunk_sentences
+            ):
                 chunk_text = " ".join(current_chunk_sentences)
                 chunk = self._create_chunk(document.id, chunk_index, chunk_text, text_offset)
                 chunks.append(chunk)

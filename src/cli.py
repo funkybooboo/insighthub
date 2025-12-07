@@ -1,11 +1,10 @@
 """InsightHub CLI - Main entry point and routing."""
 
-from typing import Optional
-
 import argparse
 import atexit
 import signal
 import sys
+from typing import Optional
 
 from src.context import AppContext
 from src.domains.default_rag_config import commands as default_rag_config_commands
@@ -20,7 +19,7 @@ from src.infrastructure.logger import create_logger
 logger = create_logger(__name__)
 
 # Global context for cleanup
-_app_context: Optional[AppContext]= None
+_app_context: Optional[AppContext] = None
 
 
 def cleanup_handler() -> None:

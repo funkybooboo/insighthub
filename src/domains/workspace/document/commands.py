@@ -4,8 +4,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from returns.result import Failure
-
 from src.context import AppContext
 from src.domains.workspace.document.dtos import (
     DeleteDocumentRequest,
@@ -13,6 +11,7 @@ from src.domains.workspace.document.dtos import (
     UploadDocumentRequest,
 )
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types import ResultHandler
 
 logger = create_logger(__name__)
 
@@ -30,12 +29,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.document_orchestrator.list_documents(ctx.current_workspace_id)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
-        responses = result.unwrap()
+        responses = ResultHandler.unwrap_or_exit(result, "list documents")
         if not responses:
             print("No documents found")
             return
@@ -67,12 +61,7 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.document_orchestrator.show_document(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "show document")
 
         print(f"ID: {response.id}")
         print(f"Filename: {response.filename}")
@@ -113,12 +102,7 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.document_orchestrator.upload_document(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "upload document")
         print(f"Uploaded [{response.id}] {response.filename}")
 
     except KeyboardInterrupt:
@@ -166,12 +150,7 @@ def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.document_orchestrator.delete_document(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
-        deleted = result.unwrap()
+        deleted = ResultHandler.unwrap_or_exit(result, "delete document")
         if deleted:
             print(f"Deleted [{doc_to_remove.id}] {args.filename}")
         else:

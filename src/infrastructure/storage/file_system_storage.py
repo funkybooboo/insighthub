@@ -1,31 +1,15 @@
 """Local filesystem blob storage implementation."""
 
-from typing import Optional
-
 from pathlib import Path
 
+from returns.result import Failure, Result, Success
+
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types.errors import StorageError
 
 from .storage import BlobStorage
 
 logger = create_logger(__name__)
-
-
-class StorageException(Exception):
-    """Exception raised when storage operations fail."""
-
-    def __init__(self, message: str, operation: str, key: Optional[str]= None):
-        """Initialize storage exception.
-
-        Args:
-            message: Error message
-            operation: Storage operation that failed (upload, download, delete, etc.)
-            key: Blob key involved in the operation
-        """
-        self.message = message
-        self.operation = operation
-        self.key = key
-        super().__init__(f"Storage {operation} failed: {message}")
 
 
 class FileSystemBlobStorage(BlobStorage):
@@ -43,7 +27,7 @@ class FileSystemBlobStorage(BlobStorage):
         # Ensure base directory exists
         self.base_path.mkdir(parents=True, exist_ok=True)
 
-    def _get_file_path(self, key: str) -> Path:
+    def _get_file_path(self, key: str) -> Result[Path, StorageError]:
         """Get the full file path for a given key."""
         # Ensure key doesn't contain path traversal attacks
         key = key.replace("\\", "/")  # Normalize path separators
@@ -56,11 +40,15 @@ class FileSystemBlobStorage(BlobStorage):
         try:
             file_path.resolve().relative_to(self.base_path.resolve())
         except ValueError:
-            raise ValueError(f"Invalid key: {key} - path traversal detected")
+            return Failure(
+                StorageError(f"Invalid key: {key} - path traversal detected", operation="validate")
+            )
 
-        return file_path
+        return Success(file_path)
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> Result[str, StorageError]:
         """
         Upload data to filesystem storage.
 
@@ -70,14 +58,16 @@ class FileSystemBlobStorage(BlobStorage):
             content_type: MIME type of the data
 
         Returns:
-            str: File path to access the uploaded blob
-
-        Raises:
-            StorageException: If upload fails
+            Result with file path to access the uploaded blob, or StorageError
         """
-        try:
-            file_path = self._get_file_path(key)
+        file_path_result = self._get_file_path(key)
+        if isinstance(file_path_result, Failure):
+            logger.error(f"Invalid storage key: {key}")
+            return file_path_result
 
+        file_path = file_path_result.unwrap()
+
+        try:
             # Ensure parent directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -85,19 +75,15 @@ class FileSystemBlobStorage(BlobStorage):
             with open(file_path, "wb") as f:
                 f.write(data)
 
-            return str(file_path)
-        except ValueError as e:
-            # Path traversal or invalid key
-            logger.error(f"Invalid storage key: {key} - {e}")
-            raise StorageException(str(e), operation="upload", key=key) from e
+            return Success(str(file_path))
         except OSError as e:
             logger.error(f"Filesystem error during upload: {e}")
-            raise StorageException(str(e), operation="upload", key=key) from e
+            return Failure(StorageError(str(e), operation="upload"))
         except Exception as e:
             logger.error(f"Unexpected error during upload: {e}")
-            raise StorageException(str(e), operation="upload", key=key) from e
+            return Failure(StorageError(str(e), operation="upload"))
 
-    def download(self, key: str) -> bytes:
+    def download(self, key: str) -> Result[bytes, StorageError]:
         """
         Download data from filesystem storage.
 
@@ -105,31 +91,28 @@ class FileSystemBlobStorage(BlobStorage):
             key: Unique identifier for the blob
 
         Returns:
-            bytes: Binary data from storage
-
-        Raises:
-            StorageException: If download fails or blob doesn't exist
+            Result with binary data from storage, or StorageError
         """
-        try:
-            file_path = self._get_file_path(key)
+        file_path_result = self._get_file_path(key)
+        if isinstance(file_path_result, Failure):
+            logger.error(f"Invalid storage key: {key}")
+            return file_path_result
 
-            if not file_path.exists():
-                raise FileNotFoundError(f"Blob {key} not found")
+        file_path = file_path_result.unwrap()
 
-            with open(file_path, "rb") as f:
-                return f.read()
-        except ValueError as e:
-            logger.error(f"Invalid storage key: {key} - {e}")
-            raise StorageException(str(e), operation="download", key=key) from e
-        except FileNotFoundError as e:
+        if not file_path.exists():
             logger.error(f"Blob not found: {key}")
-            raise StorageException(str(e), operation="download", key=key) from e
+            return Failure(StorageError(f"Blob {key} not found", operation="download"))
+
+        try:
+            with open(file_path, "rb") as f:
+                return Success(f.read())
         except OSError as e:
             logger.error(f"Filesystem error during download: {e}")
-            raise StorageException(str(e), operation="download", key=key) from e
+            return Failure(StorageError(str(e), operation="download"))
         except Exception as e:
             logger.error(f"Unexpected error during download: {e}")
-            raise StorageException(str(e), operation="download", key=key) from e
+            return Failure(StorageError(str(e), operation="download"))
 
     def delete(self, key: str) -> bool:
         """
@@ -141,7 +124,11 @@ class FileSystemBlobStorage(BlobStorage):
         Returns:
             bool: True if deleted successfully, False otherwise
         """
-        file_path = self._get_file_path(key)
+        file_path_result = self._get_file_path(key)
+        if isinstance(file_path_result, Failure):
+            return False
+
+        file_path = file_path_result.unwrap()
 
         if not file_path.exists():
             return False
@@ -162,10 +149,14 @@ class FileSystemBlobStorage(BlobStorage):
         Returns:
             bool: True if blob exists, False otherwise
         """
-        file_path = self._get_file_path(key)
+        file_path_result = self._get_file_path(key)
+        if isinstance(file_path_result, Failure):
+            return False
+
+        file_path = file_path_result.unwrap()
         return file_path.exists() and file_path.is_file()
 
-    def get_url(self, key: str, expires_in: int = 3600) -> str:
+    def get_url(self, key: str, expires_in: int = 3600) -> Result[str, StorageError]:
         """
         Get a file path URL for accessing the blob.
 
@@ -174,7 +165,11 @@ class FileSystemBlobStorage(BlobStorage):
             expires_in: URL expiration time in seconds (ignored for filesystem)
 
         Returns:
-            str: File path URL for blob access
+            Result with file path URL for blob access, or StorageError
         """
-        file_path = self._get_file_path(key)
-        return f"file://{file_path}"
+        file_path_result = self._get_file_path(key)
+        if isinstance(file_path_result, Failure):
+            return file_path_result
+
+        file_path = file_path_result.unwrap()
+        return Success(f"file://{file_path}")

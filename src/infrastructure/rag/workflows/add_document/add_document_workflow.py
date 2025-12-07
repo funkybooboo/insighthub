@@ -5,7 +5,7 @@ for document ingestion workflows.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, BinaryIO
+from typing import BinaryIO, Optional
 
 from returns.result import Result
 
@@ -46,7 +46,7 @@ class AddDocumentWorkflow(ABC):
         raw_document: BinaryIO,
         document_id: str,
         workspace_id: str,
-        metadata: Optional[MetadataDict]= None,
+        metadata: Optional[MetadataDict] = None,
     ) -> Result[int, AddDocumentWorkflowError]:
         """
         Execute the add document workflow for document ingestion.

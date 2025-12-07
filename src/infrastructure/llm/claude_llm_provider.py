@@ -1,7 +1,7 @@
 """Claude LLM provider implementation."""
 
 import os
-from typing import cast, Generator, Optional
+from typing import Generator, Optional, cast
 
 from .llm_provider import LlmProvider
 
@@ -19,7 +19,7 @@ class ClaudeLlmProvider(LlmProvider):
 
     def __init__(
         self,
-        api_key: Optional[str]= None,
+        api_key: Optional[str] = None,
         model_name: str = "claude-3-5-sonnet-20241022",
     ):
         """
@@ -69,7 +69,9 @@ class ClaudeLlmProvider(LlmProvider):
         except Exception as e:
             return f"Error connecting to Claude: {str(e)}"
 
-    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]] = None) -> str:
+    def chat(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+    ) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -107,9 +109,7 @@ class ClaudeLlmProvider(LlmProvider):
                 role_str = msg.get("role", "users")
                 content_str = msg.get("content", "")
                 if role_str in ("users", "assistant"):
-                    messages.append(
-                        cast(MessageParam, {"role": role_str, "content": content_str})
-                    )
+                    messages.append(cast(MessageParam, {"role": role_str, "content": content_str}))
 
         messages.append(cast(MessageParam, {"role": "users", "content": message}))
         return messages

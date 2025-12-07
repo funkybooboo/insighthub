@@ -2,12 +2,18 @@
 
 from abc import ABC, abstractmethod
 
+from returns.result import Result
+
+from src.infrastructure.types.errors import StorageError
+
 
 class BlobStorage(ABC):
     """Abstract base class for blob storage operations."""
 
     @abstractmethod
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> Result[str, StorageError]:
         """
         Upload data to storage.
 
@@ -17,12 +23,12 @@ class BlobStorage(ABC):
             content_type: MIME type of the data
 
         Returns:
-            str: URL or path to access the uploaded blob
+            Result with URL or path to access the uploaded blob, or StorageError
         """
         pass
 
     @abstractmethod
-    def download(self, key: str) -> bytes:
+    def download(self, key: str) -> Result[bytes, StorageError]:
         """
         Download data from storage.
 
@@ -30,10 +36,7 @@ class BlobStorage(ABC):
             key: Unique identifier for the blob
 
         Returns:
-            bytes: Binary data from storage
-
-        Raises:
-            FileNotFoundError: If blob doesn't exist
+            Result with binary data from storage, or StorageError
         """
         pass
 
@@ -64,7 +67,7 @@ class BlobStorage(ABC):
         pass
 
     @abstractmethod
-    def get_url(self, key: str, expires_in: int = 3600) -> str:
+    def get_url(self, key: str, expires_in: int = 3600) -> Result[str, StorageError]:
         """
         Get a signed URL for accessing the blob.
 
@@ -73,6 +76,6 @@ class BlobStorage(ABC):
             expires_in: URL expiration time in seconds
 
         Returns:
-            str: Signed URL for blob access
+            Result with signed URL for blob access, or StorageError
         """
         pass

@@ -1,8 +1,7 @@
 """Vector database interface for storing and retrieving vector embeddings."""
 
-from typing import Optional
-
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.retrieval import RetrievalResult
@@ -48,7 +47,7 @@ class VectorDatabase(ABC):
         self,
         vector: list[float],
         top_k: int = 10,
-        filters: Optional[FilterDict]= None,
+        filters: Optional[FilterDict] = None,
     ) -> list[RetrievalResult]:
         """
         Retrieve top-k most similar vectors.

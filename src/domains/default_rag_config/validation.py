@@ -29,9 +29,7 @@ def _validate_vector_config(
         )
 
     if request.chunk_size is not None and request.chunk_size <= 0:
-        return Failure(
-            ValidationError("Chunk size must be a positive integer", field="chunk_size")
-        )
+        return Failure(ValidationError("Chunk size must be a positive integer", field="chunk_size"))
 
     if request.chunk_overlap is not None and request.chunk_overlap < 0:
         return Failure(
@@ -76,8 +74,11 @@ def _validate_graph_config(
             )
         )
 
-    if request.relationship_extraction_algorithm and not is_valid_relationship_extraction_algorithm(
+    if (
         request.relationship_extraction_algorithm
+        and not is_valid_relationship_extraction_algorithm(
+            request.relationship_extraction_algorithm
+        )
     ):
         return Failure(
             ValidationError(

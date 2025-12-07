@@ -16,6 +16,7 @@ from src.infrastructure.types.document import Document
 
 if TYPE_CHECKING:
     from docx import Document as DocxDocumentType
+    from docx.opc.coreprops import CoreProperties
 
 try:
     from docx import Document as DocxDocument
@@ -135,9 +136,7 @@ class DocxDocumentParser(DocumentParser):
 
         return metadata
 
-    def _extract_core_properties(
-        self, core_props: "docx_module.opc.coreprops.CoreProperties"
-    ) -> MetadataDict:
+    def _extract_core_properties(self, core_props: "CoreProperties") -> MetadataDict:
         """Extract core properties and return metadata."""
         result: MetadataDict = {}
 
@@ -157,7 +156,9 @@ class DocxDocumentParser(DocumentParser):
 
         return result
 
-    def _get_title(self, metadata: Optional[MetadataDict], docx_metadata: MetadataDict) -> Optional[str]:
+    def _get_title(
+        self, metadata: Optional[MetadataDict], docx_metadata: MetadataDict
+    ) -> Optional[str]:
         """Get title from metadata or DOCX metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])

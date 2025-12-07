@@ -22,7 +22,7 @@ class WorkspaceRepository:
     def create(
         self,
         name: str,
-        description: Optional[str]= None,
+        description: Optional[str] = None,
         rag_type: str = "vector",
         status: str = "ready",
     ) -> Result[Workspace, DatabaseError]:

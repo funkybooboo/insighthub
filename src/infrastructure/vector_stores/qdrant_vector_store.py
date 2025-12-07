@@ -1,6 +1,6 @@
 """Qdrant implementation of VectorStore interface (adapter pattern)."""
 
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.types.common import FilterDict, MetadataDict
@@ -68,7 +68,7 @@ class QdrantVectorStore(VectorStore):
         self.db.upsert_batch(items)
 
     def search(
-        self, query_embedding: List[float], top_k: int = 5, filters: Optional[FilterDict]= None
+        self, query_embedding: List[float], top_k: int = 5, filters: Optional[FilterDict] = None
     ) -> List[Tuple[Chunk, float]]:
         """
         Search for similar chunks in the vector store.

@@ -3,11 +3,10 @@
 import argparse
 import sys
 
-from returns.result import Failure
-
 from src.context import AppContext
 from src.domains.default_rag_config.dtos import CreateUpdateDefaultRagConfigRequest
 from src.infrastructure.logger import create_logger
+from src.infrastructure.types import ResultHandler
 from src.infrastructure.rag.options import (
     get_default_chunking_algorithm,
     get_default_clustering_algorithm,
@@ -28,12 +27,7 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.default_rag_config_orchestrator.get_config()
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
-        response = result.unwrap()
+        response = ResultHandler.unwrap_or_exit(result, "get default RAG config")
 
         # Display RAG type first
         print(f"RAG Type: {response.rag_type}")
@@ -66,15 +60,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # Get all available options from service
         options_result = ctx.rag_options_orchestrator.get_all_options()
-        if isinstance(options_result, Failure):
-            error = options_result.failure()
-            print(
-                f"Error: {error.message if hasattr(error, 'message') else str(error)}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        options = options_result.unwrap()
+        options = ResultHandler.unwrap_or_exit(options_result, "get RAG options")
 
         # Show available RAG types
         print("\nAvailable RAG types:")
@@ -182,11 +168,7 @@ def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.default_rag_config_orchestrator.create_or_update_config(request, default_rag)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {error.message}", file=sys.stderr)
-            sys.exit(1)
-
+        ResultHandler.unwrap_or_exit(result, "save default RAG config")
         print("Default RAG config saved")
 
     except KeyboardInterrupt:

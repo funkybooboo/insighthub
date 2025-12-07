@@ -1,9 +1,8 @@
 """LLM provider interface for text generation."""
 
-from typing import Optional
-
 from abc import ABC, abstractmethod
 from collections.abc import Generator
+from typing import Optional
 
 
 class LlmProvider(ABC):
@@ -27,7 +26,9 @@ class LlmProvider(ABC):
         pass
 
     @abstractmethod
-    def chat(self, message: str, conversation_history: Optional[list[dict[str, str]]]= None) -> str:
+    def chat(
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+    ) -> str:
         """
         Generate a chat response with optional conversation history.
 
@@ -43,7 +44,7 @@ class LlmProvider(ABC):
 
     @abstractmethod
     def chat_stream(
-        self, message: str, conversation_history: Optional[list[dict[str, str]]]= None
+        self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
     ) -> Generator[str, None, None]:
         """
         Generate a streaming chat response with optional conversation history.

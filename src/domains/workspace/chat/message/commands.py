@@ -3,21 +3,12 @@
 import argparse
 import sys
 
-from returns.result import Failure
-
 from src.context import AppContext
 from src.domains.workspace.chat.message.dtos import ListMessagesRequest, SendMessageRequest
 from src.infrastructure.logger import create_logger
-from src.infrastructure.types.errors import NotFoundError
+from src.infrastructure.types import ResultHandler
 
 logger = create_logger(__name__)
-
-
-def format_error(error: object) -> str:
-    """Format error object into a user-friendly message."""
-    if isinstance(error, NotFoundError):
-        return f"{error.resource} {error.id} not found"
-    return getattr(error, "message", str(error))
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
@@ -34,12 +25,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         result = ctx.message_orchestrator.list_messages(request)
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"Error: {format_error(error)}", file=sys.stderr)
-            sys.exit(1)
-
-        responses, total = result.unwrap()
+        responses, total = ResultHandler.unwrap_or_exit(result, "list messages")
 
         if not responses:
             print("No messages in this session")
@@ -84,10 +70,7 @@ def cmd_send(ctx: AppContext, args: argparse.Namespace) -> None:
         print()  # New line after streaming completes
 
         # === Handle Result (CLI-specific output) ===
-        if isinstance(result, Failure):
-            error = result.failure()
-            print(f"\nError: {error.message}", file=sys.stderr)
-            sys.exit(1)
+        ResultHandler.unwrap_or_exit(result, "send message")
 
     except KeyboardInterrupt:
         print("\n\nCancelled")

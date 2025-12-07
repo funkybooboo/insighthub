@@ -42,7 +42,7 @@ class GraphRagQueryWorkflow(QueryWorkflow):
         self,
         query_text: str,
         top_k: int = 5,
-        filters: Optional[FilterDict]= None,
+        filters: Optional[FilterDict] = None,
     ) -> list[ChunkData]:
         """
         Execute Graph RAG query workflow.

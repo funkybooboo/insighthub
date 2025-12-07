@@ -15,6 +15,7 @@ from src.infrastructure.types.document import Document
 
 if TYPE_CHECKING:
     from bs4 import BeautifulSoup as BS4Type
+    from bs4 import Tag
 
 try:
     import bs4
@@ -164,7 +165,7 @@ class HTMLDocumentParser(DocumentParser):
 
         return metadata
 
-    def _process_meta_tag(self, meta: "BS4Type") -> MetadataDict:
+    def _process_meta_tag(self, meta: "Tag") -> MetadataDict:
         """Process a single meta tag and return metadata."""
         result: MetadataDict = {}
 
@@ -203,7 +204,9 @@ class HTMLDocumentParser(DocumentParser):
             return {"og_description": content}
         return {}
 
-    def _get_title(self, metadata: Optional[MetadataDict], html_metadata: MetadataDict) -> Optional[str]:
+    def _get_title(
+        self, metadata: Optional[MetadataDict], html_metadata: MetadataDict
+    ) -> Optional[str]:
         """Get title from metadata or HTML metadata."""
         if metadata and "title" in metadata:
             return str(metadata["title"])
