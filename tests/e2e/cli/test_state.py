@@ -30,7 +30,7 @@ class TestStateCLI:
     def create_workspace(self, name, description="Test workspace"):
         """Helper to create a workspace."""
         create = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{name}\n{description}\nvector\n",
             capture_output=True,
             text=True,
@@ -62,7 +62,7 @@ class TestStateCLI:
         # Create workspace and chat session
         ws_id = self.create_workspace("State Session Test")
         chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Chat\n",
             capture_output=True,
             text=True,

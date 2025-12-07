@@ -35,7 +35,7 @@ class TestCLIWorkflow:
         """Test complete workflow: create workspace, upload docs, list, remove."""
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Workflow Test\nComplete workflow test\nvector\n",
             capture_output=True,
             text=True,
@@ -98,7 +98,7 @@ class TestCLIWorkflow:
         """Test complete workflow: create workspace, create chat sessions, send messages."""
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Chat Workflow\nChat workflow test\nvector\n",
             capture_output=True,
             text=True,
@@ -109,7 +109,7 @@ class TestCLIWorkflow:
 
         # Create first chat session
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="First Session\n",
             capture_output=True,
             text=True,
@@ -120,7 +120,7 @@ class TestCLIWorkflow:
 
         # Create second chat session
         chat2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Second Session\n",
             capture_output=True,
             text=True,
@@ -163,7 +163,7 @@ class TestCLIWorkflow:
         """Test workflow: set default RAG config, create workspace with it."""
         # Set default vector RAG config
         set_config = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n800\n150\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
@@ -178,7 +178,7 @@ class TestCLIWorkflow:
 
         # Create workspace (should use default config)
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="RAG Config Test\nRAG config workflow\nvector\n",
             capture_output=True,
             text=True,
@@ -199,7 +199,7 @@ class TestCLIWorkflow:
         # Create 3 workspaces
         for i in range(3):
             create = subprocess.run(
-                [sys.executable, "-m", "src.cli", "workspace", "new"],
+                [sys.executable, "-m", "src.cli", "workspace", "create"],
                 input=f"Workspace {i}\nDescription {i}\nvector\n",
                 capture_output=True,
                 text=True,
@@ -225,7 +225,7 @@ class TestCLIWorkflow:
         """Test uploading different document types."""
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Multi-type Docs\nMultiple document types\nvector\n",
             capture_output=True,
             text=True,
@@ -281,7 +281,7 @@ class TestCLIWorkflow:
         """Test creating, updating, and verifying workspace changes."""
         # Create workspace
         create = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Original Name\nOriginal description\nvector\n",
             capture_output=True,
             text=True,
@@ -316,7 +316,7 @@ class TestCLIWorkflow:
         """Test viewing document details after upload."""
         # Create and select workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Doc Show Test\nTest document show\nvector\n",
             capture_output=True,
             text=True,

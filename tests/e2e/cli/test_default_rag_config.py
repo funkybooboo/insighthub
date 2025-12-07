@@ -32,9 +32,9 @@ class TestDefaultRagConfigCLI:
         )
 
     def test_default_rag_config_new_vector(self):
-        """Test default-rag-config new command with vector type."""
+        """Test default-rag-config create command with vector type."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\nnone\n",
             capture_output=True,
             text=True,
@@ -51,9 +51,9 @@ class TestDefaultRagConfigCLI:
         assert "200" in show_result.stdout
 
     def test_default_rag_config_new_graph(self):
-        """Test default-rag-config new command with graph type."""
+        """Test default-rag-config create command with graph type."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="graph\nspacy\ndependency-parsing\nleiden\n",
             capture_output=True,
             text=True,
@@ -73,7 +73,7 @@ class TestDefaultRagConfigCLI:
         """Test updating default config from vector to graph."""
         # First set to vector
         subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n512\n100\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
@@ -81,7 +81,7 @@ class TestDefaultRagConfigCLI:
 
         # Then update to graph
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="graph\nspacy\ndependency-parsing\nleiden\n",
             capture_output=True,
             text=True,
@@ -94,9 +94,9 @@ class TestDefaultRagConfigCLI:
         assert "graph" in show_result.stdout.lower()
 
     def test_default_rag_config_invalid_rag_type(self):
-        """Test default-rag-config new with invalid RAG type."""
+        """Test default-rag-config create with invalid RAG type."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="invalid\n",
             capture_output=True,
             text=True,

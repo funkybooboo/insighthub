@@ -66,7 +66,7 @@ class TestCLIErrorHandling:
         """Test canceling workspace deletion."""
         # First create a workspace
         create = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Delete Cancel Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -112,7 +112,7 @@ class TestCLIErrorHandling:
         """Test uploading an empty file."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Empty File Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -142,7 +142,7 @@ class TestCLIErrorHandling:
         """Test uploading file with very long path."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Long Path Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -184,7 +184,7 @@ class TestCLIErrorHandling:
         """Test canceling document removal."""
         # Create workspace and upload document
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Remove Cancel Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -233,10 +233,10 @@ class TestCLIErrorHandling:
         result = self.run_cli("chat", "list", "999999")
         assert result.returncode != 0
 
-    def test_chat_new_invalid_workspace(self):
+    def test_chat_create_invalid_workspace(self):
         """Test creating chat in invalid workspace."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", "invalid"],
+            [sys.executable, "-m", "src.cli", "chat", "create", "invalid"],
             input="Test\n",
             capture_output=True,
             text=True,
@@ -258,7 +258,7 @@ class TestCLIErrorHandling:
         """Test canceling chat deletion."""
         # Create workspace and chat
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Chat Delete Cancel\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -271,7 +271,7 @@ class TestCLIErrorHandling:
         ws_id = match.group(1) if match else None
 
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Session\n",
             capture_output=True,
             text=True,
@@ -299,7 +299,7 @@ class TestCLIErrorHandling:
         """Test sending an empty message."""
         # Create workspace and chat
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Empty Message Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -312,7 +312,7 @@ class TestCLIErrorHandling:
         ws_id = match.group(1) if match else None
 
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Session\n",
             capture_output=True,
             text=True,
@@ -372,14 +372,14 @@ class TestCLIErrorHandling:
         result = self.run_cli("document", "upload")
         assert result.returncode != 0
 
-        # chat new requires workspace ID
-        result = self.run_cli("chat", "new")
+        # chat create requires workspace ID
+        result = self.run_cli("chat", "create")
         assert result.returncode != 0
 
-    def test_workspace_new_with_empty_inputs(self):
+    def test_workspace_create_with_empty_inputs(self):
         """Test creating workspace with empty name (but providing all prompts)."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="\n\nvector\n",
             capture_output=True,
             text=True,
@@ -390,7 +390,7 @@ class TestCLIErrorHandling:
     def test_default_rag_config_invalid_type(self):
         """Test creating RAG config with completely invalid input."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="completely-invalid-type\n",
             capture_output=True,
             text=True,
@@ -401,7 +401,7 @@ class TestCLIErrorHandling:
         """Test uploading a directory instead of a file."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Dir Upload Test\nTest\nvector\n",
             capture_output=True,
             text=True,

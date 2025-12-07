@@ -42,7 +42,7 @@ class TestCLIValidation:
         """Test creating workspace with very long name."""
         long_name = "A" * 500
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{long_name}\nDescription\nvector\n",
             capture_output=True,
             text=True,
@@ -64,7 +64,7 @@ class TestCLIValidation:
 
         for name in special_names:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "workspace", "new"],
+                [sys.executable, "-m", "src.cli", "workspace", "create"],
                 input=f"{name}\nTest description\nvector\n",
                 capture_output=True,
                 text=True,
@@ -83,7 +83,7 @@ class TestCLIValidation:
 
         for name in unicode_names:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "workspace", "new"],
+                [sys.executable, "-m", "src.cli", "workspace", "create"],
                 input=f"{name}\nTest description\nvector\n",
                 capture_output=True,
                 text=True,
@@ -103,7 +103,7 @@ class TestCLIValidation:
         """Test uploading file with special characters in filename."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Special Char Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -144,7 +144,7 @@ class TestCLIValidation:
         """Test uploading a symlink."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Symlink Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -189,7 +189,7 @@ class TestCLIValidation:
         """Test document remove with wildcard patterns."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Wildcard Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -231,11 +231,11 @@ class TestCLIValidation:
             result = self.run_cli("chat", "select", invalid_id)
             assert result.returncode != 0
 
-    def test_chat_new_with_very_long_title(self):
+    def test_chat_create_with_very_long_title(self):
         """Test creating chat with very long title."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Long Title Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -249,7 +249,7 @@ class TestCLIValidation:
 
         long_title = "A" * 1000
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input=f"{long_title}\n",
             capture_output=True,
             text=True,
@@ -257,11 +257,11 @@ class TestCLIValidation:
         # Should handle gracefully
         assert result.returncode in [0, 1]
 
-    def test_chat_new_with_special_characters(self):
+    def test_chat_create_with_special_characters(self):
         """Test creating chat with special characters in title."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Special Chat Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -277,7 +277,7 @@ class TestCLIValidation:
 
         for title in special_titles:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input=f"{title}\n",
                 capture_output=True,
                 text=True,
@@ -289,7 +289,7 @@ class TestCLIValidation:
         """Test sending very long message."""
         # Create workspace and chat
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Long Message Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -302,7 +302,7 @@ class TestCLIValidation:
         ws_id = match.group(1) if match else None
 
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Session\n",
             capture_output=True,
             text=True,
@@ -325,7 +325,7 @@ class TestCLIValidation:
         """Test sending message with newlines."""
         # Create workspace and chat
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Newline Message Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -338,7 +338,7 @@ class TestCLIValidation:
         ws_id = match.group(1) if match else None
 
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Session\n",
             capture_output=True,
             text=True,
@@ -362,7 +362,7 @@ class TestCLIValidation:
     def test_rag_config_invalid_chunking_algorithm(self):
         """Test RAG config with invalid chunking algorithm."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\ninvalid-algorithm\n512\n100\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
@@ -376,7 +376,7 @@ class TestCLIValidation:
 
         for size in invalid_sizes:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+                [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
                 input=f"vector\nsentence\n{size}\n100\nnomic-embed-text\n3\nnone\n",
                 capture_output=True,
                 text=True,
@@ -386,7 +386,7 @@ class TestCLIValidation:
 
         # Empty string should use default value and succeed
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n\n\nnomic-embed-text\n\nnone\n",
             capture_output=True,
             text=True,
@@ -399,7 +399,7 @@ class TestCLIValidation:
 
         for overlap in invalid_overlaps:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+                [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
                 input=f"vector\nsentence\n512\n{overlap}\nnomic-embed-text\n3\nnone\n",
                 capture_output=True,
                 text=True,
@@ -409,7 +409,7 @@ class TestCLIValidation:
 
         # Empty string should use default value and succeed
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n512\n\nnomic-embed-text\n\nnone\n",
             capture_output=True,
             text=True,
@@ -419,7 +419,7 @@ class TestCLIValidation:
     def test_rag_config_overlap_greater_than_chunk_size(self):
         """Test RAG config where overlap is greater than chunk size."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n100\n500\nnomic-embed-text\n3\nnone\n",
             capture_output=True,
             text=True,
@@ -434,7 +434,7 @@ class TestCLIValidation:
 
         for top_k in invalid_top_k:
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+                [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
                 input=f"vector\nsentence\n512\n100\nnomic-embed-text\n{top_k}\nnone\n",
                 capture_output=True,
                 text=True,
@@ -444,7 +444,7 @@ class TestCLIValidation:
 
         # Empty string should use default value and succeed
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n\n\nnomic-embed-text\n\nnone\n",
             capture_output=True,
             text=True,
@@ -454,7 +454,7 @@ class TestCLIValidation:
     def test_rag_config_invalid_entity_extraction(self):
         """Test graph RAG config with invalid entity extraction."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="graph\ninvalid-extraction\ndependency-parsing\nleiden\n",
             capture_output=True,
             text=True,
@@ -476,7 +476,7 @@ class TestCLIValidation:
 
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Injection Test\nTest\nvector\n",
             capture_output=True,
             text=True,
@@ -491,7 +491,7 @@ class TestCLIValidation:
         for attempt in injection_attempts:
             # Try injection in chat title
             result = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input=f"{attempt}\n",
                 capture_output=True,
                 text=True,
@@ -507,7 +507,7 @@ class TestCLIValidation:
         """Test null byte injection attempts."""
         # Create workspace with null byte in name
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Test\x00Workspace\nDescription\nvector\n",
             capture_output=True,
             text=True,
@@ -519,7 +519,7 @@ class TestCLIValidation:
         """Test path traversal attempts in document names."""
         # Create workspace first
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Path Traversal Test\nTest\nvector\n",
             capture_output=True,
             text=True,

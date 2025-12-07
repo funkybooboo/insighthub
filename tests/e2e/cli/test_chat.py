@@ -25,7 +25,7 @@ class TestChatCLI:
         import re
 
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{name}\nTest workspace for chat\nvector\n",
             capture_output=True,
             text=True,
@@ -49,12 +49,12 @@ class TestChatCLI:
         assert result.returncode == 0
         assert "no chat sessions found" in result.stdout.lower()
 
-    def test_chat_new_with_title(self):
+    def test_chat_create_with_title(self):
         """Test creating a new chat session with a title."""
         workspace_id = self.create_workspace("New Chat Workspace")
 
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="Test Chat Session\n",
             capture_output=True,
             text=True,
@@ -63,12 +63,12 @@ class TestChatCLI:
         assert "created chat session" in result.stdout.lower()
         assert "Test Chat Session" in result.stdout
 
-    def test_chat_new_without_title(self):
+    def test_chat_create_without_title(self):
         """Test creating a new chat session without a title."""
         workspace_id = self.create_workspace("No Title Chat Workspace")
 
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="\n",
             capture_output=True,
             text=True,
@@ -82,13 +82,13 @@ class TestChatCLI:
 
         # Create multiple sessions
         subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="Session 1\n",
             capture_output=True,
             text=True,
         )
         subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="Session 2\n",
             capture_output=True,
             text=True,
@@ -106,7 +106,7 @@ class TestChatCLI:
 
         # Create a session
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="Select Test Session\n",
             capture_output=True,
             text=True,
@@ -140,7 +140,7 @@ class TestChatCLI:
 
         # Create and select a session
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="History Test\n",
             capture_output=True,
             text=True,
@@ -180,7 +180,7 @@ class TestChatCLI:
 
         # Create a session
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", workspace_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
             input="Delete Test Session\n",
             capture_output=True,
             text=True,
@@ -221,10 +221,10 @@ class TestChatCLI:
         assert result.returncode != 0
         assert "not found" in result.stderr.lower()
 
-    def test_chat_new_invalid_workspace(self):
+    def test_chat_create_invalid_workspace(self):
         """Test creating a chat session in non-existent workspace."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", "999999"],
+            [sys.executable, "-m", "src.cli", "chat", "create", "999999"],
             input="Test\n",
             capture_output=True,
             text=True,

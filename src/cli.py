@@ -45,7 +45,7 @@ def main() -> None:
 Examples:
   # Workspace management
   python -m src.cli workspace list              List all workspace
-  python -m src.cli workspace new               Create a new workspace (interactive)
+  python -m src.cli workspace create            Create a new workspace (interactive)
   python -m src.cli workspace select 1          Select workspace with ID 1
 
   # Document management
@@ -56,7 +56,7 @@ Examples:
 
   # Chat operations
   python -m src.cli chat list                   List chat session in current workspace
-  python -m src.cli chat new                    Create a new chat session in current workspace
+  python -m src.cli chat create                 Create a new chat session in current workspace
   python -m src.cli chat select 1               Select chat session with ID 1 in current workspace
   python -m src.cli chat send "Hello"           Send a message to current session
   python -m src.cli chat history                Show message history for current session
@@ -64,7 +64,7 @@ Examples:
 
   # Configuration
   python -m src.cli default-rag-config show     Show default RAG configuration
-  python -m src.cli default-rag-config new      Create/update default RAG config
+  python -m src.cli default-rag-config create   Create/update default RAG config
 
   # State
   python -m src.cli state show                  Show current state (selected workspace/session)
@@ -96,7 +96,7 @@ For help on a specific resource, use:
     ws_subparsers.add_parser("list", help="List all workspace")
     ws_show = ws_subparsers.add_parser("show", help="Show detailed workspace information")
     ws_show.add_argument("workspace_id", type=int, help="Workspace ID")
-    ws_subparsers.add_parser("new", help="Create new workspace (interactive)")
+    ws_subparsers.add_parser("create", help="Create new workspace (interactive)")
     ws_update = ws_subparsers.add_parser("update", help="Update workspace (interactive)")
     ws_update.add_argument("workspace_id", type=int, help="Workspace ID")
     ws_delete = ws_subparsers.add_parser("delete", help="Delete workspace")
@@ -130,8 +130,8 @@ For help on a specific resource, use:
 
     chat_list = chat_subparsers.add_parser("list", help="List chat session in workspace")
     chat_list.add_argument("workspace_id", type=int, help="Workspace ID")
-    chat_new = chat_subparsers.add_parser("new", help="Create new chat session (interactive)")
-    chat_new.add_argument("workspace_id", type=int, help="Workspace ID")
+    chat_create = chat_subparsers.add_parser("create", help="Create new chat session (interactive)")
+    chat_create.add_argument("workspace_id", type=int, help="Workspace ID")
     chat_select = chat_subparsers.add_parser("select", help="Select a chat session")
     chat_select.add_argument("session_id", type=int, help="Chat session ID")
     chat_delete = chat_subparsers.add_parser("delete", help="Delete a chat session")
@@ -151,7 +151,9 @@ For help on a specific resource, use:
     )
 
     rag_config_subparsers.add_parser("show", help="Show default RAG config")
-    rag_config_subparsers.add_parser("new", help="Create/update default RAG config (interactive)")
+    rag_config_subparsers.add_parser(
+        "create", help="Create/update default RAG config (interactive)"
+    )
 
     # ==================== STATE ====================
     state_parser = subparsers.add_parser(
@@ -249,8 +251,8 @@ def route_command(
             workspace_commands.cmd_list(ctx, args)
         elif args.action == "show":
             workspace_commands.cmd_show(ctx, args)
-        elif args.action == "new":
-            workspace_commands.cmd_new(ctx, args)
+        elif args.action == "create":
+            workspace_commands.cmd_create(ctx, args)
         elif args.action == "update":
             workspace_commands.cmd_update(ctx, args)
         elif args.action == "delete":
@@ -285,8 +287,8 @@ def route_command(
             sys.exit(0)
         elif args.action == "list":
             chat_session_commands.cmd_list(ctx, args)
-        elif args.action == "new":
-            chat_session_commands.cmd_new(ctx, args)
+        elif args.action == "create":
+            chat_session_commands.cmd_create(ctx, args)
         elif args.action == "select":
             chat_session_commands.cmd_select(ctx, args)
         elif args.action == "delete":
@@ -306,8 +308,8 @@ def route_command(
             sys.exit(0)
         elif args.action == "show":
             default_rag_config_commands.cmd_show(ctx, args)
-        elif args.action == "new":
-            default_rag_config_commands.cmd_new(ctx, args)
+        elif args.action == "create":
+            default_rag_config_commands.cmd_create(ctx, args)
         else:
             print(f"Error: Unknown default-rag-config action '{args.action}'\n")
             rag_config_parser.print_help()

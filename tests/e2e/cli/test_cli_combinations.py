@@ -35,7 +35,7 @@ class TestCLICombinations:
         """Test complete workflow: RAG config -> workspace -> document -> chat."""
         # Set RAG config
         config = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\nnone\n",
             capture_output=True,
             text=True,
@@ -44,7 +44,7 @@ class TestCLICombinations:
 
         # Create workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Full Workflow\nComplete workflow test\nvector\n",
             capture_output=True,
             text=True,
@@ -67,7 +67,7 @@ class TestCLICombinations:
 
             # Create chat
             chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input="Workflow Chat\n",
                 capture_output=True,
                 text=True,
@@ -90,7 +90,7 @@ class TestCLICombinations:
         """Test creating multiple workspaces with different RAG configs."""
         # Create vector workspace
         vector_config = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\nnone\n",
             capture_output=True,
             text=True,
@@ -98,7 +98,7 @@ class TestCLICombinations:
         assert vector_config.returncode == 0
 
         vector_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Vector Workspace\nVector RAG workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -108,7 +108,7 @@ class TestCLICombinations:
 
         # Create graph workspace
         graph_config = subprocess.run(
-            [sys.executable, "-m", "src.cli", "default-rag-config", "new"],
+            [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
             input="graph\nspacy\ndependency-parsing\nleiden\n",
             capture_output=True,
             text=True,
@@ -116,7 +116,7 @@ class TestCLICombinations:
         assert graph_config.returncode == 0
 
         graph_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Graph Workspace\nGraph RAG workspace\ngraph\n",
             capture_output=True,
             text=True,
@@ -139,7 +139,7 @@ class TestCLICombinations:
         """Test upload -> list -> show -> remove workflow."""
         # Create and select workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Doc Operations\nDocument operations test\nvector\n",
             capture_output=True,
             text=True,
@@ -193,7 +193,7 @@ class TestCLICombinations:
         """Test uploading multiple documents and performing various operations."""
         # Create and select workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Multi Docs\nMultiple documents test\nvector\n",
             capture_output=True,
             text=True,
@@ -263,7 +263,7 @@ class TestCLICombinations:
         """Test creating and managing multiple chat sessions."""
         # Create workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Multi Chat\nMultiple chat sessions\nvector\n",
             capture_output=True,
             text=True,
@@ -275,7 +275,7 @@ class TestCLICombinations:
         chat_ids = []
         for i in range(4):
             chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input=f"Chat Session {i}\n",
                 capture_output=True,
                 text=True,
@@ -320,7 +320,7 @@ class TestCLICombinations:
         """Test chat sessions through workspace creation, update, and operations."""
         # Create workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Lifecycle Chat\nWorkspace lifecycle test\nvector\n",
             capture_output=True,
             text=True,
@@ -330,7 +330,7 @@ class TestCLICombinations:
 
         # Create chat
         chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Original Chat\n",
             capture_output=True,
             text=True,
@@ -367,7 +367,7 @@ class TestCLICombinations:
         ws_ids = []
         for i in range(3):
             ws = subprocess.run(
-                [sys.executable, "-m", "src.cli", "workspace", "new"],
+                [sys.executable, "-m", "src.cli", "workspace", "create"],
                 input=f"Workspace {i}\nDescription {i}\nvector\n",
                 capture_output=True,
                 text=True,
@@ -418,7 +418,7 @@ class TestCLICombinations:
         """Test workspace containing documents and chat sessions."""
         # Create workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="All Resources\nAll resource types\nvector\n",
             capture_output=True,
             text=True,
@@ -445,7 +445,7 @@ class TestCLICombinations:
             # Add chat sessions
             for i in range(3):
                 chat = subprocess.run(
-                    [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                    [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                     input=f"Resource Chat {i}\n",
                     capture_output=True,
                     text=True,
@@ -507,7 +507,7 @@ class TestCLICombinations:
 
         # Create workspace (should succeed)
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Error Recovery\nRecovery test\nvector\n",
             capture_output=True,
             text=True,
@@ -523,7 +523,7 @@ class TestCLICombinations:
         """Test that document operations work after encountering errors."""
         # Create and select workspace
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Doc Error Recovery\nDocument error test\nvector\n",
             capture_output=True,
             text=True,

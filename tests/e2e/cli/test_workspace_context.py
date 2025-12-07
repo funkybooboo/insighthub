@@ -32,7 +32,7 @@ class TestWorkspaceContext:
     def create_workspace(self, name, description="Test workspace"):
         """Helper to create a workspace."""
         create = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{name}\n{description}\nvector\n",
             capture_output=True,
             text=True,
@@ -199,7 +199,7 @@ class TestWorkspaceContext:
 
         # Create chat in first workspace
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws1_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws1_id],
             input="Chat 1\n",
             capture_output=True,
             text=True,
@@ -208,7 +208,7 @@ class TestWorkspaceContext:
 
         # Create chat in second workspace
         chat2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws2_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws2_id],
             input="Chat 2\n",
             capture_output=True,
             text=True,
@@ -235,7 +235,7 @@ class TestWorkspaceContext:
 
         # Create chats in both workspaces
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws1_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws1_id],
             input="WS1 Chat\n",
             capture_output=True,
             text=True,
@@ -244,7 +244,7 @@ class TestWorkspaceContext:
         chat1_id = self.extract_id(chat1.stdout, r"Created chat session \[(\d+)\]")
 
         chat2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws2_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws2_id],
             input="WS2 Chat\n",
             capture_output=True,
             text=True,
@@ -360,7 +360,7 @@ class TestWorkspaceContext:
 
             # Create chat in first workspace
             chat1 = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws1_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws1_id],
                 input="WS1 Chat\n",
                 capture_output=True,
                 text=True,
@@ -447,7 +447,7 @@ class TestWorkspaceContext:
 
         # Create chat in workspace 1
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws1_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws1_id],
             input="Boundary Chat 1\n",
             capture_output=True,
             text=True,

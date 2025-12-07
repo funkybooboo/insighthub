@@ -27,10 +27,10 @@ class TestWorkspaceCLI:
         # Should either show workspaces or "No workspace found"
         assert "workspace" in result.stdout.lower() or "no workspace found" in result.stdout.lower()
 
-    def test_workspace_new_interactive(self):
-        """Test workspace new command with interactive input."""
+    def test_workspace_create_interactive(self):
+        """Test workspace create command with interactive input."""
         result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="E2E Test Workspace\nTest description\nvector\n",
             capture_output=True,
             text=True,
@@ -42,7 +42,7 @@ class TestWorkspaceCLI:
         """Test workspace show command."""
         # First create a workspace to show
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Show Test Workspace\nShow description\nvector\n",
             capture_output=True,
             text=True,
@@ -74,7 +74,7 @@ class TestWorkspaceCLI:
         """Test workspace update command."""
         # First create a workspace
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Update Test Workspace\nOriginal description\nvector\n",
             capture_output=True,
             text=True,
@@ -104,7 +104,7 @@ class TestWorkspaceCLI:
         """Test workspace select command."""
         # First create a workspace
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Select Test Workspace\nSelect description\nvector\n",
             capture_output=True,
             text=True,
@@ -129,7 +129,7 @@ class TestWorkspaceCLI:
         """Test workspace delete command."""
         # First create a workspace
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Delete Test Workspace\nDelete description\nvector\n",
             capture_output=True,
             text=True,
@@ -159,7 +159,7 @@ class TestWorkspaceCLI:
         """Test workspace show with non-existent ID."""
         result = self.run_cli("workspace", "show", "999999")
         assert result.returncode != 0
-        assert "notfounderror" in result.stderr.lower()
+        assert "not found" in result.stderr.lower()
 
     def test_workspace_help(self):
         """Test workspace help command."""
@@ -167,4 +167,4 @@ class TestWorkspaceCLI:
         assert result.returncode == 0
         assert "workspace" in result.stdout.lower()
         assert "list" in result.stdout.lower()
-        assert "new" in result.stdout.lower()
+        assert "create" in result.stdout.lower()

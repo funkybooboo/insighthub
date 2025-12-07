@@ -32,7 +32,7 @@ class TestDocumentCombinations:
     def create_workspace_and_select(self, name="Doc Test"):
         """Helper to create and select workspace."""
         ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{name}\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -491,7 +491,7 @@ class TestDocumentCombinations:
 
             # Create chat session
             chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input="Document Chat\n",
                 capture_output=True,
                 text=True,
@@ -518,7 +518,7 @@ class TestDocumentCombinations:
 
         # Create chat session
         chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Mid Chat Test\n",
             capture_output=True,
             text=True,

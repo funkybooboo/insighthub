@@ -47,7 +47,7 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
-def cmd_new(ctx: AppContext, args: argparse.Namespace) -> None:
+def cmd_create(ctx: AppContext, args: argparse.Namespace) -> None:
     """Create a new chat session (interactive)."""
     try:
         # Check workspace exists

@@ -50,7 +50,7 @@ class TestGraphRagCLI:
         # Act
         result = self.run_cli(
             "workspace",
-            "create",
+            "new",
             "--name",
             "graph_rag_test_workspace",
             "--rag-type",
@@ -67,7 +67,7 @@ class TestGraphRagCLI:
         # Arrange - Create workspace first
         create_result = self.run_cli(
             "workspace",
-            "create",
+            "new",
             "--name",
             "graph_doc_test",
             "--rag-type",
@@ -113,7 +113,7 @@ class TestGraphRagCLI:
         # Arrange - Create workspace
         create_result = self.run_cli(
             "workspace",
-            "create",
+            "new",
             "--name",
             "graph_query_test",
             "--rag-type",
@@ -202,7 +202,7 @@ class TestGraphRagCLI:
         # Arrange - Create a graph workspace
         create_result = self.run_cli(
             "workspace",
-            "create",
+            "new",
             "--name",
             "graph_list_test",
             "--rag-type",
@@ -225,7 +225,7 @@ class TestGraphRagCLI:
         # Step 1: Create workspace with Graph RAG
         create_result = self.run_cli(
             "workspace",
-            "create",
+            "new",
             "--name",
             "graph_e2e_test",
             "--rag-type",

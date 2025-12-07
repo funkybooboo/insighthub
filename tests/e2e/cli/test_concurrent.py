@@ -42,7 +42,7 @@ class TestCLIConcurrency:
 
         def create_workspace(index):
             result = self.run_cli_with_input(
-                ["workspace", "new"], f"Concurrent WS {index}\nDescription {index}\nvector\n"
+                ["workspace", "create"], f"Concurrent WS {index}\nDescription {index}\nvector\n"
             )
             results.append((index, result))
 
@@ -65,7 +65,7 @@ class TestCLIConcurrency:
         """Test uploading multiple documents concurrently to same workspace."""
         # Create workspace first
         create_ws = self.run_cli_with_input(
-            ["workspace", "new"], "Concurrent Docs\nConcurrent upload test\nvector\n"
+            ["workspace", "create"], "Concurrent Docs\nConcurrent upload test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -127,7 +127,7 @@ class TestCLIConcurrency:
         """Test creating multiple chat sessions concurrently in same workspace."""
         # Create workspace first
         create_ws = self.run_cli_with_input(
-            ["workspace", "new"], "Concurrent Chats\nConcurrent chat test\nvector\n"
+            ["workspace", "create"], "Concurrent Chats\nConcurrent chat test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -142,7 +142,7 @@ class TestCLIConcurrency:
 
         def create_chat(workspace_id, index):
             result = self.run_cli_with_input(
-                ["chat", "new", workspace_id], f"Concurrent Chat {index}\n"
+                ["chat", "create", workspace_id], f"Concurrent Chat {index}\n"
             )
             results.append((index, result))
 
@@ -173,7 +173,7 @@ class TestCLIConcurrency:
         workspace_ids = []
         for i in range(3):
             create = self.run_cli_with_input(
-                ["workspace", "new"], f"Select WS {i}\nDescription {i}\nvector\n"
+                ["workspace", "create"], f"Select WS {i}\nDescription {i}\nvector\n"
             )
             assert create.returncode == 0
 
@@ -209,7 +209,7 @@ class TestCLIConcurrency:
         """Test removing different documents concurrently."""
         # Create workspace and upload multiple documents
         create_ws = self.run_cli_with_input(
-            ["workspace", "new"], "Concurrent Remove\nConcurrent removal test\nvector\n"
+            ["workspace", "create"], "Concurrent Remove\nConcurrent removal test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -272,7 +272,7 @@ class TestCLIConcurrency:
         """Test concurrent read-only operations (list, show)."""
         # Create workspace with some data
         create_ws = self.run_cli_with_input(
-            ["workspace", "new"], "Concurrent Reads\nConcurrent read test\nvector\n"
+            ["workspace", "create"], "Concurrent Reads\nConcurrent read test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -315,7 +315,7 @@ class TestCLIConcurrency:
         """Test updating same workspace concurrently (race condition test)."""
         # Create workspace
         create = self.run_cli_with_input(
-            ["workspace", "new"], "Update Test\nOriginal description\nvector\n"
+            ["workspace", "create"], "Update Test\nOriginal description\nvector\n"
         )
         assert create.returncode == 0
 
@@ -358,7 +358,7 @@ class TestCLIConcurrency:
         """Test mixed read/write operations concurrently."""
         # Create workspace
         create_ws = self.run_cli_with_input(
-            ["workspace", "new"], "Mixed Ops\nMixed operations test\nvector\n"
+            ["workspace", "create"], "Mixed Ops\nMixed operations test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -431,7 +431,7 @@ class TestCLIConcurrency:
         def update_rag_config(index):
             chunk_size = 500 + (index * 100)
             result = self.run_cli_with_input(
-                ["default-rag-config", "new"],
+                ["default-rag-config", "create"],
                 f"vector\nsentence\n{chunk_size}\n100\nnomic-embed-text\n{3+index}\nnone\n",
             )
             results.append((index, result))

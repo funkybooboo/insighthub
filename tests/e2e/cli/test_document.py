@@ -27,7 +27,7 @@ class TestDocumentCLI:
         import re
 
         create_result = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{name}\nTest workspace for documents\nvector\n",
             capture_output=True,
             text=True,

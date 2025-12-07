@@ -28,7 +28,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input=f"{ws_name}\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -40,7 +40,7 @@ class TestChatMessaging:
 
         # Create chat session
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input=f"{chat_title}\n",
             capture_output=True,
             text=True,
@@ -114,7 +114,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Doc Chat Test\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -139,7 +139,7 @@ class TestChatMessaging:
 
             # Create chat session
             create_chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input="Doc Test Chat\n",
                 capture_output=True,
                 text=True,
@@ -166,7 +166,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Multi Doc Chat\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -195,7 +195,7 @@ class TestChatMessaging:
 
             # Create chat session
             create_chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input="Multi Doc Chat\n",
                 capture_output=True,
                 text=True,
@@ -239,7 +239,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Isolation Test\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -250,7 +250,7 @@ class TestChatMessaging:
 
         # Create first chat session
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Session 1\n",
             capture_output=True,
             text=True,
@@ -261,7 +261,7 @@ class TestChatMessaging:
 
         # Create second chat session
         chat2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Session 2\n",
             capture_output=True,
             text=True,
@@ -339,7 +339,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Switch Test\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -352,7 +352,7 @@ class TestChatMessaging:
         session_ids = []
         for i in range(3):
             chat = subprocess.run(
-                [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+                [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
                 input=f"Session {i}\n",
                 capture_output=True,
                 text=True,
@@ -375,7 +375,7 @@ class TestChatMessaging:
 
         # Create first workspace and chat
         ws1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Workspace 1\nFirst workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -385,7 +385,7 @@ class TestChatMessaging:
         ws1_id = ws1_match.group(1) if ws1_match else None
 
         chat1 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws1_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws1_id],
             input="Chat 1\n",
             capture_output=True,
             text=True,
@@ -396,7 +396,7 @@ class TestChatMessaging:
 
         # Create second workspace and chat
         ws2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Workspace 2\nSecond workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -406,7 +406,7 @@ class TestChatMessaging:
         ws2_id = ws2_match.group(1) if ws2_match else None
 
         chat2 = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws2_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws2_id],
             input="Chat 2\n",
             capture_output=True,
             text=True,
@@ -439,7 +439,7 @@ class TestChatMessaging:
 
         # Create workspace
         create_ws = subprocess.run(
-            [sys.executable, "-m", "src.cli", "workspace", "new"],
+            [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Workflow Test\nTest workspace\nvector\n",
             capture_output=True,
             text=True,
@@ -450,7 +450,7 @@ class TestChatMessaging:
 
         # Create chat
         create_chat = subprocess.run(
-            [sys.executable, "-m", "src.cli", "chat", "new", ws_id],
+            [sys.executable, "-m", "src.cli", "chat", "create", ws_id],
             input="Test Chat\n",
             capture_output=True,
             text=True,
