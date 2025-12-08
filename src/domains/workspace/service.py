@@ -95,6 +95,12 @@ class WorkspaceService:
                 new_vector_config
             )
             if isinstance(vector_config_result, Failure):
+                # Update status to failed and cleanup
+                self.data_access.update(workspace.id, status=WorkspaceStatus.FAILED.value)
+                logger.error(
+                    f"Failed to create vector RAG config for workspace {workspace.id}: "
+                    f"{vector_config_result.failure().message}"
+                )
                 return Failure(vector_config_result.failure())
         elif workspace.rag_type == "graph":
             new_graph_config = GraphRagConfig(
@@ -116,6 +122,12 @@ class WorkspaceService:
                 new_graph_config
             )
             if isinstance(graph_config_result, Failure):
+                # Update status to failed and cleanup
+                self.data_access.update(workspace.id, status=WorkspaceStatus.FAILED.value)
+                logger.error(
+                    f"Failed to create graph RAG config for workspace {workspace.id}: "
+                    f"{graph_config_result.failure().message}"
+                )
                 return Failure(graph_config_result.failure())
 
         # Provision RAG resources

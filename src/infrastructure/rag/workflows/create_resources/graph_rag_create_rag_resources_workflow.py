@@ -52,13 +52,19 @@ class GraphRagCreateRagResourcesWorkflow(CreateRagResourcesWorkflow):
                 f"Starting Graph RAG workspace provisioning for workspace_id={workspace_id}"
             )
 
-            # Step 1: Create entity constraints
-            logger.info("Creating entity constraints")
-            self.graph_store.create_constraint("Entity", "id")
+            # Step 1: Drop old incompatible constraint (if exists from earlier versions)
+            # The old constraint on Entity.id alone prevented the same entity from
+            # existing in multiple workspaces. We remove it to allow workspace isolation.
+            logger.info("Dropping old Entity.id constraint if it exists")
+            self.graph_store.drop_constraint("Entity", "id")
 
             # Step 2: Create workspace isolation indexes
+            # Note: We don't create a unique constraint on Entity.id alone because
+            # the same entity (same id) can exist in multiple workspaces.
+            # The MERGE uses (id, workspace_id) together for uniqueness.
             logger.info("Creating workspace isolation indexes")
             self.graph_store.create_index("Entity", ["workspace_id"])
+            self.graph_store.create_index("Entity", ["id", "workspace_id"])
 
             # Step 3: Create entity type indexes
             logger.info("Creating entity type indexes")

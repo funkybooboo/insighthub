@@ -62,6 +62,18 @@ class Neo4jGraphStore(GraphStore):
             result = session.run(query, parameters)
             return list(result)
 
+    def drop_constraint(self, label: str, property: str) -> None:
+        """Drop a uniqueness constraint on a node label property if it exists."""
+        constraint_name = f"{label.lower()}_{property}_unique"
+        query = f"""
+        DROP CONSTRAINT {constraint_name} IF EXISTS
+        """
+        try:
+            self._execute_write(query, {})
+            logger.info(f"Dropped constraint {constraint_name} on {label}.{property}")
+        except Exception as e:
+            logger.warning(f"Constraint drop skipped or failed: {e}")
+
     def create_constraint(self, label: str, property: str) -> None:
         """Create a uniqueness constraint on a node label property."""
         query = f"""

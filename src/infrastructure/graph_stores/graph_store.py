@@ -144,6 +144,19 @@ class GraphStore(ABC):
         pass
 
     @abstractmethod
+    def drop_constraint(self, label: str, property: str) -> None:
+        """Drop a uniqueness constraint on a node label property if it exists.
+
+        Args:
+            label: Node label (e.g., "Entity", "Community")
+            property: Property name of the constraint (e.g., "id")
+
+        Note:
+            Implementation should be idempotent (no error if constraint doesn't exist).
+        """
+        pass
+
+    @abstractmethod
     def create_constraint(self, label: str, property: str) -> None:
         """Create a uniqueness constraint on a node label property.
 
