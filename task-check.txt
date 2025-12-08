@@ -293,4 +293,53 @@ tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::t
 tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_graph_store_entity_retrieval PASSED [ 28%]
 tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_graph_traversal PASSED [ 31%]
 tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_delete_workspace_graph PASSED [ 33%]
-tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_community_detection_integration 
+tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_community_detection_integration PASSED [ 35%]
+tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_container_starts PASSED [ 37%]
+tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_connection PASSED [ 40%]
+tests/integration/test_rag_options_integration.py::test_get_all_options_returns_success_with_all_options PASSED [ 42%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_cache_connection PASSED [ 44%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_set_and_get PASSED [ 46%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_get_nonexistent_key PASSED [ 48%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_delete PASSED [ 51%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_exists PASSED [ 53%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_clear PASSED [ 55%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_s3_connection PASSED [ 57%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_upload_and_download PASSED [ 60%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_download_nonexistent_object PASSED [ 62%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_delete PASSED [ 64%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_exists PASSED [ 66%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_get_url PASSED [ 68%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_database_connection_and_health_check PASSED [ 71%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_execute_and_fetch_operations PASSED [ 73%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_execute_with_no_results PASSED [ 75%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_fetch_one_with_no_results PASSED [ 77%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_fetch_all_with_no_results PASSED [ 80%]
+tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_get_initial_state PASSED [ 82%]
+tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_set_and_get_workspace PASSED [ 84%]
+tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_set_and_get_session PASSED [ 86%]
+tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_cache_invalidation_on_set PASSED [ 88%]
+tests/integration/test_workspace_data_access.py::TestWorkspaceDataAccessIntegration::test_create_and_get_workspace_no_cache_returns_expected_workspace PASSED [ 91%]
+tests/integration/test_workspace_data_access.py::TestWorkspaceDataAccessIntegration::test_create_workspace_returns_success_and_workspace PASSED [ 93%]
+tests/integration/test_workspace_data_access.py::TestWorkspaceDataAccessIntegration::test_update_workspace_returns_success_and_updates_data PASSED [ 95%]
+tests/integration/test_workspace_data_access.py::TestWorkspaceDataAccessIntegration::test_delete_workspace_returns_success_and_removes_data PASSED [ 97%]
+tests/integration/test_workspace_data_access.py::TestWorkspaceDataAccessIntegration::test_get_all_workspaces_returns_all_created_workspaces PASSED [100%]
+
+=============================== warnings summary ===============================
+tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_connection
+  /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/lib/python3.13/site-packages/testcontainers/qdrant/__init__.py:82: UserWarning: Qdrant client version 1.16.1 is incompatible with server version 1.9.1. Major versions should match and minor version difference must not exceed 1. Set check_compatibility=False to skip version check.
+    return QdrantClient(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=================== 45 passed, 1 warning in 98.47s (0:01:38) ===================
+============================= test session starts ==============================
+platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
+cachedir: .pytest_cache
+rootdir: /home/nate/projects/insighthub
+configfile: pyproject.toml
+plugins: anyio-4.11.0, returns-0.26.0, cov-4.1.0
+collecting ... collected 256 items
+
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_list_empty PASSED     [  0%]
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_with_title PASSED [  0%]
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_without_title PASSED [  1%]
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_list_with_sessions 

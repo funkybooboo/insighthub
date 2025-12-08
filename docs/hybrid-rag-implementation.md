@@ -7,7 +7,8 @@
 **Current State:** Hybrid RAG is COMPLETELY UNIMPLEMENTED. Not even configuration exists.
 
 **What EXISTS:**
-- NOTHING related to hybrid RAG
+- Vector RAG - Fully implemented and operational
+- Graph RAG - **FULLY IMPLEMENTED** (entity extraction, relationship extraction, graph stores, community detection)
 
 **What DOES NOT EXIST:**
 - NO `HybridRagConfig` model in `src/domains/workspace/models.py`
@@ -23,41 +24,37 @@
 
 **CRITICAL DEPENDENCIES:**
 
-Hybrid RAG is a COMPOSITE pattern that combines Vector RAG + Graph RAG. It CANNOT be implemented until:
+Hybrid RAG is a COMPOSITE pattern that combines Vector RAG + Graph RAG.
 
-1. **Vector RAG is complete** - Currently complete and operational
-2. **Graph RAG is complete** - Currently NOT implemented (see graph-rag-implementation.md)
+**Dependency Status:**
+1. **Vector RAG is complete** - Complete and operational
+2. **Graph RAG is complete** - **FULLY IMPLEMENTED**
 
-**Implementation Blockers:**
+**Implementation Ready:**
 
-1. **Graph RAG Must Be Implemented First:**
-   - Graph RAG workflows don't exist (raise NotImplementedError)
-   - Graph RAG config is incomplete (missing 9 fields)
-   - No entity extraction implementations
-   - No relationship extraction implementations
-   - No graph stores
-   - No community detection
+Now that both Vector RAG and Graph RAG are complete, Hybrid RAG can be implemented. The implementation requires:
 
-2. **Missing Hybrid Infrastructure:**
-   - "hybrid" not in RAG type options
-   - No config models
-   - No config provider
-   - No factory support
-
-**Implementation Order (MUST follow this sequence):**
-
-1. **FIRST: Complete Graph RAG implementation** (see graph-rag-implementation.md)
-   - This is a prerequisite - hybrid cannot work without it
-
-2. **THEN implement hybrid-specific code:**
+1. **Hybrid Infrastructure:**
    - Add "hybrid" to RAG type options
    - Create config models (HybridRagConfig, DefaultHybridRagConfig)
    - Create database migration
    - Create config provider
-   - Create fusion implementations
-   - Create hybrid workflows (composite pattern wrapping vector + graph)
    - Add data access methods
-   - Tests
+
+2. **Fusion Layer:**
+   - Implement RRF (Reciprocal Rank Fusion)
+   - Implement weighted score fusion
+   - Implement max score fusion
+   - Create fusion factory
+
+3. **Hybrid Workflows:**
+   - Create hybrid add_document workflow (composite pattern wrapping vector + graph)
+   - Create hybrid query workflow (composite pattern wrapping vector + graph)
+   - Create resource provisioning/removal workflows
+
+4. **Testing:**
+   - Unit tests for fusion implementations
+   - Integration tests for hybrid workflows
 
 ---
 
@@ -65,9 +62,9 @@ Hybrid RAG is a COMPOSITE pattern that combines Vector RAG + Graph RAG. It CANNO
 
 Hybrid RAG combines vector similarity search and graph-based retrieval to leverage strengths of both approaches. Vector RAG excels at semantic similarity while Graph RAG captures entity relationships and community structure.
 
-**Prerequisites (MUST be complete):**
-- Vector RAG fully implemented (DONE)
-- Graph RAG fully implemented (NOT DONE - see graph-rag-implementation.md)
+**Prerequisites:**
+- Vector RAG fully implemented
+- Graph RAG fully implemented
 
 ## Architecture
 
@@ -1144,9 +1141,9 @@ No additional dependencies beyond vector and graph RAG requirements.
 
 **CRITICAL: Follow this exact sequence**
 
-### Phase 0: Prerequisites (MUST BE COMPLETE FIRST)
-1. Vector RAG implementation - **DONE**
-2. Graph RAG implementation - **NOT DONE** (see graph-rag-implementation.md)
+### Phase 0: Prerequisites COMPLETE
+1. Vector RAG implementation - **COMPLETE**
+2. Graph RAG implementation - **COMPLETE**
 
 ### Phase 1: Configuration Infrastructure
 3. Add "hybrid" to `get_rag_type_options()` in `src/infrastructure/rag/options.py`
