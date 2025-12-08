@@ -3,23 +3,23 @@
 import pytest
 from returns.result import Failure, Success
 
+from src.domains.state.data_access import StateDataAccess
+from src.domains.state.repositories import StateRepository
 from src.domains.workspace.chat.session.data_access import ChatSessionDataAccess
 from src.domains.workspace.chat.session.dtos import (
     CreateSessionRequest,
+    DeleteSessionRequest,
     ListSessionsRequest,
     SelectSessionRequest,
-    DeleteSessionRequest
 )
 from src.domains.workspace.chat.session.orchestrator import SessionOrchestrator
 from src.domains.workspace.chat.session.repositories import ChatSessionRepository
 from src.domains.workspace.chat.session.service import ChatSessionService
 from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.domains.workspace.repositories import WorkspaceRepository
-from src.domains.state.data_access import StateDataAccess
-from src.domains.state.repositories import StateRepository
 from src.infrastructure.cache.redis_cache import RedisCache
 from src.infrastructure.sql_database import SqlDatabase
-from src.infrastructure.types import NotFoundError, ValidationError, Pagination
+from src.infrastructure.types import NotFoundError, ValidationError
 
 
 @pytest.mark.integration
@@ -73,9 +73,7 @@ class TestSessionOrchestratorIntegration:
         )
 
     @pytest.fixture(scope="function")
-    def session_orchestrator(
-        self, chat_session_service: ChatSessionService
-    ) -> SessionOrchestrator:
+    def session_orchestrator(self, chat_session_service: ChatSessionService) -> SessionOrchestrator:
         """Fixture to create a SessionOrchestrator."""
         return SessionOrchestrator(service=chat_session_service)
 
@@ -85,7 +83,9 @@ class TestSessionOrchestratorIntegration:
         """Test successful creation of a chat session."""
         # Arrange
         workspace_id = setup_workspace.id
-        request = CreateSessionRequest(workspace_id=workspace_id, title="New Session", rag_type="vector")
+        request = CreateSessionRequest(
+            workspace_id=workspace_id, title="New Session", rag_type="vector"
+        )
 
         # Act
         result = session_orchestrator.create_session(request)
@@ -98,11 +98,15 @@ class TestSessionOrchestratorIntegration:
         assert session_response.rag_type == "vector"
         assert session_orchestrator.service.get_session(session_response.id) is not None
 
-    def test_create_session_validation_failure(self, session_orchestrator: SessionOrchestrator, setup_workspace):
+    def test_create_session_validation_failure(
+        self, session_orchestrator: SessionOrchestrator, setup_workspace
+    ):
         """Test creation of a chat session with invalid data."""
         # Arrange
-        workspace_id = setup_workspace.id # Use a valid workspace_id
-        request = CreateSessionRequest(workspace_id=workspace_id, title="", rag_type="vector")  # Empty title
+        workspace_id = setup_workspace.id  # Use a valid workspace_id
+        request = CreateSessionRequest(
+            workspace_id=workspace_id, title="", rag_type="vector"
+        )  # Empty title
 
         # Act
         result = session_orchestrator.create_session(request)
@@ -119,9 +123,13 @@ class TestSessionOrchestratorIntegration:
         """Test successful listing of chat sessions for a workspace."""
         # Arrange
         workspace_id = setup_workspace.id
-        session1_request = CreateSessionRequest(workspace_id=workspace_id, title="Session 1", rag_type="vector")
-        session2_request = CreateSessionRequest(workspace_id=workspace_id, title="Session 2", rag_type="vector")
-        
+        session1_request = CreateSessionRequest(
+            workspace_id=workspace_id, title="Session 1", rag_type="vector"
+        )
+        session2_request = CreateSessionRequest(
+            workspace_id=workspace_id, title="Session 2", rag_type="vector"
+        )
+
         session_orchestrator.create_session(session1_request)
         session_orchestrator.create_session(session2_request)
 
@@ -150,15 +158,20 @@ class TestSessionOrchestratorIntegration:
         assert isinstance(result, Failure)
         error = result.failure()
         assert isinstance(error, ValidationError)
-        assert "Skip" in error.message # Corrected assertion
+        assert "Skip" in error.message  # Corrected assertion
 
     def test_select_session_success(
-        self, session_orchestrator: SessionOrchestrator, setup_workspace, state_repository: StateRepository
+        self,
+        session_orchestrator: SessionOrchestrator,
+        setup_workspace,
+        state_repository: StateRepository,
     ):
         """Test successful selection of a chat session."""
         # Arrange
         workspace_id = setup_workspace.id
-        create_request = CreateSessionRequest(workspace_id=workspace_id, title="Selectable Session", rag_type="vector")
+        create_request = CreateSessionRequest(
+            workspace_id=workspace_id, title="Selectable Session", rag_type="vector"
+        )
         create_result = session_orchestrator.create_session(create_request)
         created_session_id = create_result.unwrap().id
 
@@ -171,7 +184,9 @@ class TestSessionOrchestratorIntegration:
         assert isinstance(result, Success)
         session_response = result.unwrap()
         assert session_response.id == created_session_id
-        assert state_repository.get().current_session_id == created_session_id
+        state = state_repository.get()
+        assert state is not None
+        assert state.current_session_id == created_session_id
 
     def test_select_session_not_found(
         self, session_orchestrator: SessionOrchestrator, state_repository: StateRepository
@@ -196,7 +211,9 @@ class TestSessionOrchestratorIntegration:
         """Test successful deletion of a chat session."""
         # Arrange
         workspace_id = setup_workspace.id
-        create_request = CreateSessionRequest(workspace_id=workspace_id, title="Deletable Session", rag_type="vector")
+        create_request = CreateSessionRequest(
+            workspace_id=workspace_id, title="Deletable Session", rag_type="vector"
+        )
         create_result = session_orchestrator.create_session(create_request)
         created_session_id = create_result.unwrap().id
 

@@ -1,12 +1,11 @@
 """Integration tests for QdrantVectorDatabase using testcontainers."""
 
+from collections.abc import Generator
+
 import pytest
 from testcontainers.qdrant import QdrantContainer
 
-from src.infrastructure.vector_stores.qdrant_vector_database import (
-    QdrantVectorDatabase,
-    VectorStoreException,
-)
+from src.infrastructure.vector_stores.qdrant_vector_database import QdrantVectorDatabase
 
 
 @pytest.mark.integration
@@ -22,11 +21,15 @@ class TestQdrantVectorDatabaseIntegration:
         container.stop()
 
     @pytest.fixture(scope="function")
-    def qdrant_db(self, qdrant_container_instance: QdrantContainer) -> QdrantVectorDatabase:
+    def qdrant_db(
+        self, qdrant_container_instance: QdrantContainer
+    ) -> Generator[QdrantVectorDatabase, None, None]:
         """Fixture to create a QdrantVectorDatabase instance."""
         host = qdrant_container_instance.get_container_host_ip()
         port = qdrant_container_instance.get_exposed_port(6333)
-        db = QdrantVectorDatabase(url=f"http://{host}:{port}", collection_name="test_collection", vector_size=4)
+        db = QdrantVectorDatabase(
+            url=f"http://{host}:{port}", collection_name="test_collection", vector_size=4
+        )
         yield db
         db.clear()  # Clean up collection after each test
 
@@ -35,7 +38,10 @@ class TestQdrantVectorDatabaseIntegration:
         # Arrange
         vector_id = "test_id_1"
         vector = [0.1, 0.2, 0.3, 0.4]
-        metadata = {"text": "hello world", "source": "test_document"}
+        metadata: dict[str, str | int | float | bool | None] = {
+            "text": "hello world",
+            "source": "test_document",
+        }
 
         # Act
         qdrant_db.upsert(vector_id, vector, metadata)
@@ -50,7 +56,7 @@ class TestQdrantVectorDatabaseIntegration:
     def test_upsert_batch_and_count(self, qdrant_db: QdrantVectorDatabase):
         """Test upserting multiple vectors in a batch and checking the count."""
         # Arrange
-        items = [
+        items: list[tuple[str, list[float], dict[str, str | int | float | bool | None]]] = [
             ("id_2", [0.5, 0.6, 0.7, 0.8], {"data": "item 2"}),
             ("id_3", [0.9, 1.0, 1.1, 1.2], {"data": "item 3"}),
         ]
@@ -80,7 +86,7 @@ class TestQdrantVectorDatabaseIntegration:
     def test_delete_batch(self, qdrant_db: QdrantVectorDatabase):
         """Test deleting multiple vectors in a batch."""
         # Arrange
-        items = [
+        items: list[tuple[str, list[float], dict[str, str | int | float | bool | None]]] = [
             ("batch_id_1", [0.1, 0.1, 0.1, 0.1], {}),
             ("batch_id_2", [0.2, 0.2, 0.2, 0.2], {}),
             ("batch_id_3", [0.3, 0.3, 0.3, 0.3], {}),
@@ -113,9 +119,15 @@ class TestQdrantVectorDatabaseIntegration:
     def test_delete_by_filter(self, qdrant_db: QdrantVectorDatabase):
         """Test deleting vectors based on a metadata filter."""
         # Arrange
-        qdrant_db.upsert("doc_a_chunk_1", [0.1, 0.1, 0.1, 0.1], {"document_id": "doc_a", "version": 1})
-        qdrant_db.upsert("doc_a_chunk_2", [0.2, 0.2, 0.2, 0.2], {"document_id": "doc_a", "version": 2})
-        qdrant_db.upsert("doc_b_chunk_1", [0.3, 0.3, 0.3, 0.3], {"document_id": "doc_b", "version": 1})
+        qdrant_db.upsert(
+            "doc_a_chunk_1", [0.1, 0.1, 0.1, 0.1], {"document_id": "doc_a", "version": 1}
+        )
+        qdrant_db.upsert(
+            "doc_a_chunk_2", [0.2, 0.2, 0.2, 0.2], {"document_id": "doc_a", "version": 2}
+        )
+        qdrant_db.upsert(
+            "doc_b_chunk_1", [0.3, 0.3, 0.3, 0.3], {"document_id": "doc_b", "version": 1}
+        )
         assert qdrant_db.count() == 3
 
         # Act
@@ -136,8 +148,12 @@ class TestQdrantVectorDatabaseIntegration:
 
         # Act
         query_vector = [1.0, 0.0, 0.0, 0.0]
-        results_high_threshold = qdrant_db.search_with_score_threshold(query_vector, top_k=3, score_threshold=0.95)
-        results_low_threshold = qdrant_db.search_with_score_threshold(query_vector, top_k=3, score_threshold=0.8)
+        results_high_threshold = qdrant_db.search_with_score_threshold(
+            query_vector, top_k=3, score_threshold=0.95
+        )
+        results_low_threshold = qdrant_db.search_with_score_threshold(
+            query_vector, top_k=3, score_threshold=0.8
+        )
 
         # Assert
         assert len(results_high_threshold) == 2

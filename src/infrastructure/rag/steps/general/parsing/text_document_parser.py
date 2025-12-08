@@ -39,14 +39,14 @@ class TextDocumentParser(DocumentParser):
             title = self._get_title(metadata, content) or "Untitled Document"
             # Extract and merge metadata
             extracted_metadata = self._extract_text_metadata(content, metadata)
-            
+
             return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
                     title=title,
                     content=content,
-                    metadata=extracted_metadata, # Use the merged metadata
+                    metadata=extracted_metadata,  # Use the merged metadata
                 )
             )
 

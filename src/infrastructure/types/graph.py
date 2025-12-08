@@ -37,10 +37,12 @@ class EntityMetadata(TypedDict, total=False):
     """
 
     document_id: str
+    document_ids: list[str]
     chunk_id: str
     source_text: str
     extraction_method: str
     confidence_source: str
+    version: int
 
 
 class RelationshipMetadata(TypedDict, total=False):
@@ -53,6 +55,7 @@ class RelationshipMetadata(TypedDict, total=False):
     chunk_id: str
     sentence: str
     extraction_method: str
+    source: str
 
 
 class CommunityMetadata(TypedDict, total=False):
@@ -64,6 +67,7 @@ class CommunityMetadata(TypedDict, total=False):
     detection_algorithm: str
     resolution: float
     modularity: float
+    algo: str
 
 
 @dataclass

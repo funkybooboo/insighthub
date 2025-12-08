@@ -195,7 +195,9 @@ class TestVectorRagComprehensive:
         time.sleep(3)
 
         # Create chat session
-        chat_result = self.run_cli("chat", "create", workspace_id, input_text="\n")
+        chat_result = self.run_cli(
+            "chat", "create", workspace_id, input_text="Search Test Session\n"
+        )
         assert chat_result.returncode == 0
 
         match = re.search(r"Created chat session \[(\d+)\]", chat_result.stdout)
@@ -232,7 +234,9 @@ class TestVectorRagComprehensive:
 
         time.sleep(2)
 
-        chat_result = self.run_cli("chat", "create", workspace_id, input_text="\n")
+        chat_result = self.run_cli(
+            "chat", "create", workspace_id, input_text="Context Test Session\n"
+        )
         assert chat_result.returncode == 0
 
         match = re.search(r"Created chat session \[(\d+)\]", chat_result.stdout)
@@ -333,7 +337,9 @@ class TestVectorRagComprehensive:
         assert workspace_id is not None
 
         # Create chat session
-        chat_result = self.run_cli("chat", "create", workspace_id, input_text="\n")
+        chat_result = self.run_cli(
+            "chat", "create", workspace_id, input_text="Empty Workspace Session\n"
+        )
         assert chat_result.returncode == 0
 
         match = re.search(r"Created chat session \[(\d+)\]", chat_result.stdout)

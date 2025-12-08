@@ -5,17 +5,11 @@ Tests the complete Vector RAG pipeline with a real Qdrant database instance.
 
 import io
 from collections.abc import Generator
-from typing import Any, Optional
 
 import pytest
 from returns.result import Success
 from testcontainers.qdrant import QdrantContainer
-from testcontainers.redis import RedisContainer
 
-from src.domains.workspace.repositories import WorkspaceRepository
-from src.infrastructure.cache.redis_cache import RedisCache
-from src.infrastructure.llm.llm_provider import LlmProvider
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.steps.general.chunking.sentence_document_chunker import (
     SentenceDocumentChunker,
 )
@@ -27,10 +21,8 @@ from src.infrastructure.rag.workflows.add_document.vector_rag_add_document_workf
     VectorRagAddDocumentWorkflow,
 )
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
-from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.vector_stores.qdrant_vector_database import QdrantVectorDatabase
 from src.infrastructure.vector_stores.qdrant_vector_store import QdrantVectorStore
-from src.infrastructure.types import StorageError
 
 
 @pytest.mark.integration
@@ -46,11 +38,15 @@ class TestVectorRagWorkflowIntegration:
         container.stop()
 
     @pytest.fixture(scope="function")
-    def qdrant_db(self, qdrant_container_instance: QdrantContainer) -> QdrantVectorDatabase:
+    def qdrant_db(
+        self, qdrant_container_instance: QdrantContainer
+    ) -> Generator[QdrantVectorDatabase, None, None]:
         """Fixture to create a QdrantVectorDatabase instance."""
         host = qdrant_container_instance.get_container_host_ip()
         port = qdrant_container_instance.get_exposed_port(6333)
-        db = QdrantVectorDatabase(url=f"http://{host}:{port}", collection_name="test_collection", vector_size=4)
+        db = QdrantVectorDatabase(
+            url=f"http://{host}:{port}", collection_name="test_collection", vector_size=4
+        )
         yield db
         db.clear()  # Clean up collection after each test
 
@@ -93,7 +89,9 @@ class TestVectorRagWorkflowIntegration:
         return workflow
 
     def test_add_document_and_query_workflow_success(
-        self, add_document_workflow: VectorRagAddDocumentWorkflow, query_workflow: VectorRagQueryWorkflow
+        self,
+        add_document_workflow: VectorRagAddDocumentWorkflow,
+        query_workflow: VectorRagQueryWorkflow,
     ):
         """Test successfully adding a document and then querying it."""
         # Arrange

@@ -1,16 +1,13 @@
 """Integration tests for the Storage Factory component."""
 
-import os
-import shutil
 import tempfile
-from collections.abc import Generator
 
 import pytest
 from returns.result import Success
 from testcontainers.minio import MinioContainer
 
-from src.infrastructure.storage.file_system_storage import FileSystemBlobStorage
 from src.infrastructure.storage.factory import create_blob_storage
+from src.infrastructure.storage.file_system_storage import FileSystemBlobStorage
 from src.infrastructure.storage.s3_storage import S3BlobStorage
 
 
@@ -89,9 +86,15 @@ class TestStorageFactoryIntegration:
 
     def test_create_blob_storage_s3_missing_params(self):
         """Test that create_blob_storage raises ValueError for missing S3 parameters."""
-        with pytest.raises(ValueError, match="S3 storage requires endpoint, access_key, and secret_key"):
+        with pytest.raises(
+            ValueError, match="S3 storage requires endpoint, access_key, and secret_key"
+        ):
             create_blob_storage(storage_type="s3", endpoint="test")
-        with pytest.raises(ValueError, match="S3 storage requires endpoint, access_key, and secret_key"):
+        with pytest.raises(
+            ValueError, match="S3 storage requires endpoint, access_key, and secret_key"
+        ):
             create_blob_storage(storage_type="s3", access_key="test")
-        with pytest.raises(ValueError, match="S3 storage requires endpoint, access_key, and secret_key"):
+        with pytest.raises(
+            ValueError, match="S3 storage requires endpoint, access_key, and secret_key"
+        ):
             create_blob_storage(storage_type="s3", secret_key="test")

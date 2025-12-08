@@ -1,7 +1,6 @@
 """Dummy Embedding provider implementation for testing."""
 
 from collections.abc import Iterable
-from typing import Optional
 
 from returns.result import Result, Success
 

@@ -181,8 +181,9 @@ class GraphRagQueryWorkflow(QueryWorkflow):
                     if rel.source_entity_id == entity.id or rel.target_entity_id == entity.id
                 ]
 
-                # Create context text
-                context_parts = [f"Entity: {entity.text} (Type: {entity.type.value})"]
+                # Create context text - use source_text if available to preserve original casing
+                entity_display_text = entity.metadata.get("source_text", entity.text)
+                context_parts = [f"Entity: {entity_display_text} (Type: {entity.type.value})"]
 
                 if entity_relationships and self.include_entity_neighborhoods:
                     rel_descriptions = []
@@ -197,8 +198,12 @@ class GraphRagQueryWorkflow(QueryWorkflow):
                             (e for e in subgraph.entities if e.id == other_entity_id), None
                         )
                         if other_entity:
+                            # Use source_text for related entity as well
+                            other_display_text = other_entity.metadata.get(
+                                "source_text", other_entity.text
+                            )
                             rel_descriptions.append(
-                                f"{rel.relation_type.value} {other_entity.text}"
+                                f"{rel.relation_type.value} {other_display_text}"
                             )
 
                     if rel_descriptions:

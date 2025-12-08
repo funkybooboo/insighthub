@@ -1,13 +1,11 @@
 """Integration tests for the DocumentService component."""
 
-import os
 import tempfile
 from collections.abc import Generator
-from io import BytesIO
 from typing import Any, Optional
 
 import pytest
-from returns.result import Failure, Success # Import Failure
+from returns.result import Failure, Success  # Import Failure
 from testcontainers.minio import MinioContainer
 from testcontainers.redis import RedisContainer
 
@@ -30,7 +28,6 @@ from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.storage.file_system_storage import FileSystemBlobStorage
 from src.infrastructure.storage.s3_storage import S3BlobStorage
-from src.infrastructure.types import StorageError
 
 
 @pytest.mark.integration
@@ -80,7 +77,9 @@ class TestDocumentServiceIntegration:
         self, default_rag_config_repository: DefaultRagConfigRepository, cache_instance: RedisCache
     ) -> DefaultRagConfigDataAccess:
         """Fixture to create a DefaultRagConfigDataAccess."""
-        return DefaultRagConfigDataAccess(repository=default_rag_config_repository, cache=cache_instance)
+        return DefaultRagConfigDataAccess(
+            repository=default_rag_config_repository, cache=cache_instance
+        )
 
     @pytest.fixture(scope="function")
     def default_rag_config_service(
@@ -230,7 +229,7 @@ class TestDocumentServiceIntegration:
         )
 
         # Assert
-        assert isinstance(result, Failure) # Corrected assertion
+        assert isinstance(result, Failure)  # Corrected assertion
         assert result.failure().resource == "workspace"
 
     def test_remove_document_fs_success(
@@ -249,7 +248,7 @@ class TestDocumentServiceIntegration:
         )
         assert isinstance(upload_result, Success)
         document = upload_result.unwrap()
-        
+
         # Act
         deleted = document_service_fs.remove_document(document.id)
 
@@ -258,7 +257,9 @@ class TestDocumentServiceIntegration:
         assert document_service_fs.get_document_by_id(document.id) is None
         assert document_service_fs.blob_storage.exists(document.file_path) is False
 
-    def test_list_documents_by_workspace(self, document_service_fs: DocumentService, setup_workspace):
+    def test_list_documents_by_workspace(
+        self, document_service_fs: DocumentService, setup_workspace
+    ):
         """Test listing documents for a specific workspace."""
         # Arrange
         workspace_id = setup_workspace.id

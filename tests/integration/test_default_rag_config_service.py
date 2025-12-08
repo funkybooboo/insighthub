@@ -3,7 +3,6 @@
 import pytest
 
 from src.domains.default_rag_config.data_access import DefaultRagConfigDataAccess
-from src.domains.default_rag_config.models import DefaultGraphRagConfig, DefaultRagConfig, DefaultVectorRagConfig
 from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.infrastructure.cache.redis_cache import RedisCache
@@ -24,7 +23,9 @@ class TestDefaultRagConfigServiceIntegration:
         self, default_rag_config_repository: DefaultRagConfigRepository, cache_instance: RedisCache
     ) -> DefaultRagConfigDataAccess:
         """Fixture to create a DefaultRagConfigDataAccess."""
-        return DefaultRagConfigDataAccess(repository=default_rag_config_repository, cache=cache_instance)
+        return DefaultRagConfigDataAccess(
+            repository=default_rag_config_repository, cache=cache_instance
+        )
 
     @pytest.fixture(scope="function")
     def default_rag_config_service(
@@ -127,7 +128,10 @@ class TestDefaultRagConfigServiceIntegration:
         # Arrange - create initial config
         default_rag_config_service.create_or_update_config(
             rag_type="graph",
-            graph_config={"entity_extraction_algorithm": "initial-extractor", "max_traversal_depth": 1},
+            graph_config={
+                "entity_extraction_algorithm": "initial-extractor",
+                "max_traversal_depth": 1,
+            },
         )
 
         # Act - update some fields
@@ -139,7 +143,9 @@ class TestDefaultRagConfigServiceIntegration:
         # Assert
         assert config is not None
         assert config.rag_type == "graph"
-        assert config.graph_config.entity_extraction_algorithm == "initial-extractor"  # Should be preserved
+        assert (
+            config.graph_config.entity_extraction_algorithm == "initial-extractor"
+        )  # Should be preserved
         assert config.graph_config.max_traversal_depth == 3
         assert config.graph_config.clustering_algorithm == "test-clusterer"
 

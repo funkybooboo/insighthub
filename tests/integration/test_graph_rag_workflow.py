@@ -13,7 +13,6 @@ from testcontainers.neo4j import Neo4jContainer
 
 from src.infrastructure.graph_stores.neo4j_graph_store import Neo4jGraphStore
 from src.infrastructure.llm.llm_provider import LlmProvider
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.steps.general.chunking.sentence_document_chunker import (
     SentenceDocumentChunker,
 )
@@ -44,7 +43,9 @@ class TestGraphRagWorkflowIntegration:
         container.stop()
 
     @pytest.fixture(scope="function")
-    def graph_store(self, neo4j_container_instance: Neo4jContainer) -> Generator[Neo4jGraphStore, None, None]:
+    def graph_store(
+        self, neo4j_container_instance: Neo4jContainer
+    ) -> Generator[Neo4jGraphStore, None, None]:
         """Fixture to create a graph store connected to the test Neo4j container."""
         bolt_url = neo4j_container_instance.get_connection_url()
 
@@ -64,27 +65,39 @@ class TestGraphRagWorkflowIntegration:
 
         # Cleanup
         with store.driver.session() as session:
-            session.run("MATCH (n) DETACH DELETE n") # Clear all nodes and relationships
+            session.run("MATCH (n) DETACH DELETE n")  # Clear all nodes and relationships
         store.close()
 
     @pytest.fixture(scope="function")
     def llm_provider(self) -> LlmProvider:
         """Fixture to create a dummy LlmProvider."""
+
         class DummyLlmProvider(LlmProvider):
             def generate_response(self, prompt: str) -> str:
                 return "dummy LLM response"
-            def chat(self, message: str, conversation_history: Optional[list[dict]]) -> str:
+
+            def chat(
+                self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+            ) -> str:
                 return "dummy LLM response"
-            def chat_stream(self, message: str, conversation_history: Optional[list[dict]]) -> Generator[str, None, None]:
+
+            def chat_stream(
+                self, message: str, conversation_history: Optional[list[dict[str, str]]] = None
+            ) -> Generator[str, None, None]:
                 yield "dummy LLM response chunk"
+
             def health_check(self) -> dict[str, Any]:
                 return {"status": "ok"}
+
             def get_model_name(self) -> str:
                 return "dummy-llm"
+
         return DummyLlmProvider()
 
     @pytest.fixture(scope="function")
-    def add_document_workflow(self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider) -> GraphRagAddDocumentWorkflow:
+    def add_document_workflow(
+        self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider
+    ) -> GraphRagAddDocumentWorkflow:
         """Create an add document workflow for testing."""
         parser = TextDocumentParser()
         chunker = SentenceDocumentChunker(chunk_size=100, overlap=20)
@@ -117,7 +130,9 @@ class TestGraphRagWorkflowIntegration:
         return workflow
 
     @pytest.fixture(scope="function")
-    def query_workflow(self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider) -> GraphRagQueryWorkflow:
+    def query_workflow(
+        self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider
+    ) -> GraphRagQueryWorkflow:
         """Create a query workflow for testing."""
         try:
             entity_extractor = SpacyEntityExtractor(
@@ -142,7 +157,9 @@ class TestGraphRagWorkflowIntegration:
         )
         return workflow
 
-    def test_add_document_workflow_success(self, add_document_workflow: GraphRagAddDocumentWorkflow):
+    def test_add_document_workflow_success(
+        self, add_document_workflow: GraphRagAddDocumentWorkflow
+    ):
         """Test successfully adding a document to the graph."""
         # Arrange
         document_text = """
@@ -168,7 +185,9 @@ class TestGraphRagWorkflowIntegration:
         assert entity_count > 0  # Should have extracted some entities
 
     def test_query_workflow_after_adding_document(
-        self, add_document_workflow: GraphRagAddDocumentWorkflow, query_workflow: GraphRagQueryWorkflow
+        self,
+        add_document_workflow: GraphRagAddDocumentWorkflow,
+        query_workflow: GraphRagQueryWorkflow,
     ):
         """Test querying the graph after adding a document."""
         # Arrange - Add a document first
@@ -199,7 +218,9 @@ class TestGraphRagWorkflowIntegration:
         assert any("Microsoft" in c.text for c in chunks)
         assert any("Bill Gates" in c.text for c in chunks)
 
-    def test_delete_workspace_graph(self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow):
+    def test_delete_workspace_graph(
+        self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow
+    ):
         """Test deleting all graph data for a workspace."""
         # Arrange - Add a document
         document_text = """Amazon was founded by Jeff Bezos in Seattle."""
@@ -226,7 +247,9 @@ class TestGraphRagWorkflowIntegration:
         entities_after = graph_store.find_entities("Amazon", workspace_id, limit=10)
         assert len(entities_after) == 0
 
-    def test_community_detection_integration(self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow):
+    def test_community_detection_integration(
+        self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow
+    ):
         """Test that community detection runs and stores communities."""
         # Arrange - Add a document with multiple connected entities
         document_text = """

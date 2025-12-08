@@ -276,45 +276,65 @@ class Neo4jGraphStore(GraphStore):
         if not entity_ids:
             return GraphSubgraph(entities=[], relationships=[], central_entities=[])
 
-        query = (
+        # Query 1: Get all connected entities
+        entities_query = (
             """
         MATCH (start_node:Entity)
         WHERE start_node.id IN $entity_ids
           AND start_node.workspace_id = $workspace_id
 
-        MATCH path = (start_node)-[r*0..%d]-(connected_node:Entity)
+        OPTIONAL MATCH path = (start_node)-[*0..%d]-(connected_node:Entity)
         WHERE connected_node.workspace_id = $workspace_id
 
-        WITH collect(DISTINCT start_node) AS initial_nodes,
-             collect(DISTINCT connected_node) AS connected_nodes,
-             collect(DISTINCT r) AS all_path_relationships_lists
+        WITH collect(DISTINCT start_node) + collect(DISTINCT connected_node) AS all_nodes
 
-        UNWIND initial_nodes + connected_nodes AS node
-        WITH collect(DISTINCT node) AS unique_nodes, all_path_relationships_lists
+        UNWIND all_nodes AS node
+        RETURN collect(DISTINCT node) AS unique_nodes
+        """
+            % max_depth
+        )
 
-        UNWIND all_path_relationships_lists AS relationships_from_list
-        UNWIND relationships_from_list AS single_rel
-        WITH unique_nodes, collect(DISTINCT {rel: single_rel, source_id: startNode(single_rel).id, target_id: endNode(single_rel).id}) AS unique_rels_data
+        # Query 2: Get all relationships between connected entities
+        relationships_query = (
+            """
+        MATCH (start_node:Entity)
+        WHERE start_node.id IN $entity_ids
+          AND start_node.workspace_id = $workspace_id
 
-        RETURN unique_nodes, unique_rels_data
+        MATCH path = (start_node)-[*1..%d]-(connected_node:Entity)
+        WHERE connected_node.workspace_id = $workspace_id
+
+        UNWIND relationships(path) AS rel
+        WITH collect(DISTINCT rel) AS unique_rels
+
+        RETURN [r IN unique_rels | {rel: r, source_id: startNode(r).id, target_id: endNode(r).id}] AS unique_rels_data
         """
             % max_depth
         )
 
         parameters = {"entity_ids": entity_ids, "workspace_id": workspace_id}
-        results = self._execute_read(query, parameters)
 
-        if not results:
+        # Execute entities query
+        entities_results = self._execute_read(entities_query, parameters)
+        if not entities_results:
             return GraphSubgraph(entities=[], relationships=[], central_entities=entity_ids)
 
-        record = results[0]
-        entities = [self._node_to_entity(node) for node in record["unique_nodes"]]
-        relationships = [
-            self._rel_to_relationship(
-                rel_data["rel"], rel_data["source_id"], rel_data["target_id"]
-            )
-            for rel_data in record["unique_rels_data"]
-        ]
+        entities = [self._node_to_entity(node) for node in entities_results[0]["unique_nodes"]]
+
+        # Execute relationships query
+        relationships = []
+        try:
+            relationships_results = self._execute_read(relationships_query, parameters)
+            if relationships_results and relationships_results[0]["unique_rels_data"]:
+                relationships = [
+                    self._rel_to_relationship(
+                        rel_data["rel"], rel_data["source_id"], rel_data["target_id"]
+                    )
+                    for rel_data in relationships_results[0]["unique_rels_data"]
+                ]
+        except Exception as e:
+            # If there are no relationships, this query might fail - that's okay
+            logger.debug(f"No relationships found or query failed: {e}")
 
         logger.info(
             f"Traversed graph: {len(entities)} entities, {len(relationships)} relationships"
@@ -420,7 +440,10 @@ class Neo4jGraphStore(GraphStore):
             text=node["text"],
             type=EntityType(node["type"]),
             confidence=node["confidence"],
-            metadata={**metadata, "document_ids": node.get("document_ids", [])}, # Embed document_ids from node into metadata
+            metadata={
+                **metadata,
+                "document_ids": node.get("document_ids", []),
+            },  # Embed document_ids from node into metadata
         )
 
     def _rel_to_relationship(

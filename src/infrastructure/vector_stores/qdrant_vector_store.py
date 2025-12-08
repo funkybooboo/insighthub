@@ -98,7 +98,17 @@ class QdrantVectorStore(VectorStore):
             original_metadata = {
                 k: v
                 for k, v in metadata.items()
-                if k not in ("document_id", "text", "workspace_id", "chunk_id", "chunk_index", "start_offset", "end_offset", "sentence_count")
+                if k
+                not in (
+                    "document_id",
+                    "text",
+                    "workspace_id",
+                    "chunk_id",
+                    "chunk_index",
+                    "start_offset",
+                    "end_offset",
+                    "sentence_count",
+                )
             }
 
             # Reconstruct chunk (using types.document.Chunk)

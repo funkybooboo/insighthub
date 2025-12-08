@@ -1,10 +1,8 @@
 """Integration tests for Neo4jGraphStore using testcontainers."""
 
-import json
 from collections.abc import Generator
 
 import pytest
-from neo4j.exceptions import ClientError
 from testcontainers.neo4j import Neo4jContainer
 
 from src.infrastructure.graph_stores.neo4j_graph_store import Neo4jGraphStore
@@ -24,11 +22,13 @@ class TestNeo4jGraphStoreIntegration:
         container.stop()
 
     @pytest.fixture(scope="function")
-    def graph_store(self, neo4j_container_instance: Neo4jContainer) -> Generator[Neo4jGraphStore, None, None]:
+    def graph_store(
+        self, neo4j_container_instance: Neo4jContainer
+    ) -> Generator[Neo4jGraphStore, None, None]:
         """Fixture to create a Neo4jGraphStore instance and ensure clean state."""
         bolt_url = neo4j_container_instance.get_connection_url()
         store = Neo4jGraphStore(uri=bolt_url, username="neo4j", password="testpassword")
-        
+
         # Ensure initial constraints/indexes for basic ops
         store.create_constraint("Entity", "id")
         store.create_index("Entity", ["workspace_id"])
@@ -45,12 +45,14 @@ class TestNeo4jGraphStoreIntegration:
         # Arrange - already created in fixture
         # Test dropping
         graph_store.drop_constraint("Entity", "id")
-        
+
         # Assert - attempt to create duplicate without constraint should succeed (no error)
         # This is a bit indirect, but Neo4j doesn't have a direct "list constraints" API easily consumable
         with graph_store.driver.session() as session:
             session.run("CREATE (e:Entity {id: 'c1', workspace_id: 'ws1'})")
-            session.run("CREATE (e:Entity {id: 'c1', workspace_id: 'ws1'})") # Should not raise error now
+            session.run(
+                "CREATE (e:Entity {id: 'c1', workspace_id: 'ws1'})"
+            )  # Should not raise error now
 
         # Recreate to ensure clean state for other tests
         graph_store.create_constraint("Entity", "id")
@@ -60,13 +62,19 @@ class TestNeo4jGraphStoreIntegration:
         # Arrange - already created in fixture
         # Act - try creating again, should not fail
         graph_store.create_index("Entity", ["workspace_id", "type"])
-        
+
         # Assert - no exception indicates success
 
     def test_upsert_entity_and_get_by_id(self, graph_store: Neo4jGraphStore):
         """Test upserting an entity and retrieving it by ID."""
         # Arrange
-        entity = Entity(id="ent1", text="Person A", type=EntityType.PERSON, confidence=0.9, metadata={"document_id": "doc1"})
+        entity = Entity(
+            id="ent1",
+            text="Person A",
+            type=EntityType.PERSON,
+            confidence=0.9,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
 
         # Act
@@ -84,29 +92,53 @@ class TestNeo4jGraphStoreIntegration:
     def test_upsert_entity_updates_existing(self, graph_store: Neo4jGraphStore):
         """Test that upserting an entity with the same ID updates it."""
         # Arrange
-        entity1 = Entity(id="ent2", text="Initial Text", type=EntityType.ORGANIZATION, confidence=0.5, metadata={"version": 1, "document_id": "doc_a"})
-        entity2 = Entity(id="ent2", text="Updated Text", type=EntityType.ORGANIZATION, confidence=0.8, metadata={"version": 2, "document_id": "doc_b"})
+        entity1 = Entity(
+            id="ent2",
+            text="Initial Text",
+            type=EntityType.ORGANIZATION,
+            confidence=0.5,
+            metadata={"version": 1, "document_id": "doc_a"},
+        )
+        entity2 = Entity(
+            id="ent2",
+            text="Updated Text",
+            type=EntityType.ORGANIZATION,
+            confidence=0.8,
+            metadata={"version": 2, "document_id": "doc_b"},
+        )
         workspace_id = "ws1"
 
         graph_store.upsert_entities([entity1], workspace_id)
-        
+
         # Act
         graph_store.upsert_entities([entity2], workspace_id)
         retrieved_entity = graph_store.get_entity_by_id("ent2", workspace_id)
 
         # Assert
+        assert retrieved_entity is not None
         assert retrieved_entity.text == "Updated Text"
         assert retrieved_entity.confidence == 0.8
-        assert retrieved_entity.metadata["version"] == 2 # Check if metadata is updated
-        assert "doc_a" in retrieved_entity.metadata["document_ids"] # document_ids should be merged
+        assert retrieved_entity.metadata["version"] == 2  # Check if metadata is updated
+        assert "doc_a" in retrieved_entity.metadata["document_ids"]  # document_ids should be merged
         assert "doc_b" in retrieved_entity.metadata["document_ids"]
-
 
     def test_upsert_relationship(self, graph_store: Neo4jGraphStore):
         """Test upserting a relationship between two entities."""
         # Arrange
-        entity1 = Entity(id="e3a", text="Node A", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
-        entity2 = Entity(id="e3b", text="Node B", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
+        entity1 = Entity(
+            id="e3a",
+            text="Node A",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="e3b",
+            text="Node B",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2], workspace_id)
 
@@ -133,8 +165,20 @@ class TestNeo4jGraphStoreIntegration:
     def test_upsert_community(self, graph_store: Neo4jGraphStore):
         """Test upserting a community and linking it to entities."""
         # Arrange
-        entity1 = Entity(id="c_e1", text="Entity 1", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
-        entity2 = Entity(id="c_e2", text="Entity 2", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
+        entity1 = Entity(
+            id="c_e1",
+            text="Entity 1",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="c_e2",
+            text="Entity 2",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2], workspace_id)
 
@@ -153,27 +197,45 @@ class TestNeo4jGraphStoreIntegration:
 
         # Assert (check community node and relationships)
         with graph_store.driver.session() as session:
-            result = session.run(f"""
+            result = session.run(
+                f"""
                 MATCH (c:Community {{id: '{community.id}', workspace_id: '{workspace_id}'}})
                 RETURN c
-            """)
-            retrieved_node = result.single()["c"]
+            """
+            )
+            record = result.single()
+            assert record is not None
+            retrieved_node = record["c"]
             assert retrieved_node is not None
             assert retrieved_node["summary"] == community.summary
 
             # Check links
-            result = session.run(f"""
+            result = session.run(
+                f"""
                 MATCH (e:Entity)-[:BELONGS_TO]->(c:Community {{id: '{community.id}', workspace_id: '{workspace_id}'}})
                 RETURN e.id
-            """)
+            """
+            )
             linked_entity_ids = {r["e.id"] for r in result}
             assert linked_entity_ids == {"c_e1", "c_e2"}
 
     def test_find_entities(self, graph_store: Neo4jGraphStore):
         """Test finding entities by text query."""
         # Arrange
-        entity1 = Entity(id="f_e1", text="Apple Inc.", type=EntityType.ORGANIZATION, confidence=1.0, metadata={"document_id": "doc1"})
-        entity2 = Entity(id="f_e2", text="Orange Corp.", type=EntityType.ORGANIZATION, confidence=1.0, metadata={"document_id": "doc1"})
+        entity1 = Entity(
+            id="f_e1",
+            text="Apple Inc.",
+            type=EntityType.ORGANIZATION,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="f_e2",
+            text="Orange Corp.",
+            type=EntityType.ORGANIZATION,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2], workspace_id)
 
@@ -187,9 +249,27 @@ class TestNeo4jGraphStoreIntegration:
     def test_delete_document_graph(self, graph_store: Neo4jGraphStore):
         """Test deleting graph data associated with a document."""
         # Arrange
-        entity1 = Entity(id="ddg_e1", text="Doc Entity 1", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc_to_delete"})
-        entity2 = Entity(id="ddg_e2", text="Doc Entity 2", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc_to_delete"})
-        entity3 = Entity(id="ddg_e3", text="Other Doc Entity", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "other_doc"})
+        entity1 = Entity(
+            id="ddg_e1",
+            text="Doc Entity 1",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc_to_delete"},
+        )
+        entity2 = Entity(
+            id="ddg_e2",
+            text="Doc Entity 2",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc_to_delete"},
+        )
+        entity3 = Entity(
+            id="ddg_e3",
+            text="Other Doc Entity",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "other_doc"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2, entity3], workspace_id)
 
@@ -204,8 +284,20 @@ class TestNeo4jGraphStoreIntegration:
     def test_export_subgraph(self, graph_store: Neo4jGraphStore):
         """Test exporting all entities and relationships for a workspace."""
         # Arrange
-        entity1 = Entity(id="es_e1", text="Export A", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
-        entity2 = Entity(id="es_e2", text="Export B", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
+        entity1 = Entity(
+            id="es_e1",
+            text="Export A",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="es_e2",
+            text="Export B",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2], workspace_id)
         relationship = Relationship(
@@ -231,15 +323,52 @@ class TestNeo4jGraphStoreIntegration:
     def test_traverse_graph(self, graph_store: Neo4jGraphStore):
         """Test graph traversal functionality."""
         # Arrange
-        entity1 = Entity(id="t_e1", text="Main Node", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
-        entity2 = Entity(id="t_e2", text="Connected Node", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
-        entity3 = Entity(id="t_e3", text="Further Node", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
+        entity1 = Entity(
+            id="t_e1",
+            text="Main Node",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="t_e2",
+            text="Connected Node",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity3 = Entity(
+            id="t_e3",
+            text="Further Node",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws1"
         graph_store.upsert_entities([entity1, entity2, entity3], workspace_id)
-        graph_store.upsert_relationships([
-            Relationship(id="t_rel1", source_entity_id="t_e1", target_entity_id="t_e2", relation_type=RelationType.RELATED_TO, confidence=1.0, context="", metadata={}),
-            Relationship(id="t_rel2", source_entity_id="t_e2", target_entity_id="t_e3", relation_type=RelationType.RELATED_TO, confidence=1.0, context="", metadata={}),
-        ], workspace_id)
+        graph_store.upsert_relationships(
+            [
+                Relationship(
+                    id="t_rel1",
+                    source_entity_id="t_e1",
+                    target_entity_id="t_e2",
+                    relation_type=RelationType.RELATED_TO,
+                    confidence=1.0,
+                    context="",
+                    metadata={},
+                ),
+                Relationship(
+                    id="t_rel2",
+                    source_entity_id="t_e2",
+                    target_entity_id="t_e3",
+                    relation_type=RelationType.RELATED_TO,
+                    confidence=1.0,
+                    context="",
+                    metadata={},
+                ),
+            ],
+            workspace_id,
+        )
 
         # Act
         subgraph = graph_store.traverse_graph(["t_e1"], workspace_id, max_depth=2)
@@ -256,12 +385,26 @@ class TestNeo4jGraphStoreIntegration:
     def test_delete_workspace_graph(self, graph_store: Neo4jGraphStore):
         """Test deleting all entities, relationships, and communities for a workspace."""
         # Arrange
-        entity = Entity(id="dwg_e1", text="Workspace Entity", type=EntityType.PERSON, confidence=1.0, metadata={"document_id": "doc1"})
+        entity = Entity(
+            id="dwg_e1",
+            text="Workspace Entity",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
         workspace_id = "ws2"
         graph_store.upsert_entities([entity], workspace_id)
-        community = Community(id="dwg_comm1", workspace_id=workspace_id, entity_ids=["dwg_e1"], level=1, summary="Test Community", score=1.0, metadata={})
+        community = Community(
+            id="dwg_comm1",
+            workspace_id=workspace_id,
+            entity_ids=["dwg_e1"],
+            level=1,
+            summary="Test Community",
+            score=1.0,
+            metadata={},
+        )
         graph_store.upsert_communities([community], workspace_id)
-        
+
         # Act
         graph_store.delete_workspace_graph(workspace_id)
 

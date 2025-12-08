@@ -93,7 +93,9 @@ class SentenceDocumentChunker(Chunker):
                 current_chunk_length, sentence_length, current_chunk_sentences
             ):
                 chunk_text = " ".join(current_chunk_sentences)
-                chunk = self._create_chunk(document.id, chunk_index, chunk_text, text_offset, document.metadata)
+                chunk = self._create_chunk(
+                    document.id, chunk_index, chunk_text, text_offset, document.metadata
+                )
                 chunks.append(chunk)
 
                 chunk_index += 1
@@ -109,7 +111,9 @@ class SentenceDocumentChunker(Chunker):
 
         if current_chunk_sentences:
             chunk_text = " ".join(current_chunk_sentences)
-            chunk = self._create_chunk(document.id, chunk_index, chunk_text, text_offset, document.metadata)
+            chunk = self._create_chunk(
+                document.id, chunk_index, chunk_text, text_offset, document.metadata
+            )
             chunks.append(chunk)
 
         return chunks
@@ -120,7 +124,9 @@ class SentenceDocumentChunker(Chunker):
         """Check if we should create a chunk."""
         return current_length + sentence_length > self._chunk_size and len(sentences) > 0
 
-    def _create_chunk(self, doc_id: str, chunk_index: int, text: str, text_offset: int, document_metadata: dict) -> Chunk:
+    def _create_chunk(
+        self, doc_id: str, chunk_index: int, text: str, text_offset: int, document_metadata: dict
+    ) -> Chunk:
         """Create a chunk with metadata."""
         # Merge document_metadata with chunk-specific metadata
         chunk_metadata = {
@@ -128,7 +134,7 @@ class SentenceDocumentChunker(Chunker):
             "start_offset": str(text_offset),
             "end_offset": str(text_offset + len(text)),
             "sentence_count": str(len(text.split(". "))),
-            **document_metadata, # Merge document metadata here
+            **document_metadata,  # Merge document metadata here
         }
         return Chunk(
             id=f"{doc_id}_chunk_{chunk_index}",
