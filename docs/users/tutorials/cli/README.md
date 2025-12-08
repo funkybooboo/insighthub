@@ -1,36 +1,70 @@
-# InsightHub Tutorials
+# InsightHub CLI Tutorials
 
-Get started with InsightHub by building real projects.
+## Overview
+
+These tutorials teach you how to use InsightHub's RAG (Retrieval-Augmented Generation) system through the command-line interface.
 
 ## Tutorials
 
-All tutorials use sample data provided inline. No downloads needed.
+### 1. Vector RAG Tutorial
+**File**: `01-vector-rag-tutorial.md`
+**Time**: 20 minutes
 
-### Tutorial 1: Quick Start - Personal Knowledge Base
-Build a searchable knowledge base from your documents.
-Time: 15 minutes | Difficulty: Beginner
-[Start](01-quick-start-personal-knowledge-base.md)
+Learn how to use vector-based semantic search for retrieving information from documents. This tutorial covers:
+- Configuring default vector RAG settings (chunking, embedding, reranking)
+- Creating and managing vector workspaces
+- Uploading and querying documents
+- Understanding how vector similarity search works
 
-### Tutorial 2: Company Docs Assistant
-Create a workspace for company policies and search across them.
-Time: 20 minutes | Difficulty: Beginner
-[Start](02-company-docs-assistant.md)
+**Best for**: General document search, finding semantically similar content, topic-based queries.
 
-### Tutorial 3: Research Papers - Deep Dive
-Upload research papers and see how search finds relevant information.
-Time: 20 minutes | Difficulty: Intermediate
-[Start](03-research-papers-vector-deep-dive.md)
+### 2. Graph RAG Tutorial
+**File**: `02-graph-rag-tutorial.md`
+**Time**: 20 minutes
 
-### Tutorial 4: Organization Structure - Deep Dive
-Map organizational relationships and query hierarchies.
-Time: 20 minutes | Difficulty: Intermediate
-[Start](04-org-structure-graph-deep-dive.md)
+Learn how to use graph-based knowledge retrieval using entity relationships. This tutorial covers:
+- Configuring default graph RAG settings (entity extraction, relationship extraction, clustering)
+- Creating graph workspaces
+- Building knowledge graphs from documents
+- Querying relationships and performing multi-hop reasoning
 
-## Quick Facts
+**Best for**: Organizational structures, entity relationships, multi-hop reasoning, knowledge graphs.
 
-- Total time: 75 minutes for all tutorials
-- Prerequisites: InsightHub running (task up && task health-check)
-- Sample data: Provided inline in each tutorial
-- Each tutorial includes step-by-step commands with expected output
+## Prerequisites
 
-Ready? Start with [Tutorial 1: Quick Start - Personal Knowledge Base](01-quick-start-personal-knowledge-base.md)
+Before starting the tutorials, ensure services are running:
+
+```bash
+task health-check
+```
+
+All services (postgres, ollama, qdrant, neo4j, minio, redis) should report healthy.
+
+## Getting Help
+
+For command help:
+
+```bash
+task cli -- --help
+task cli -- workspace --help
+task cli -- document --help
+task cli -- chat --help
+```
+
+## Key Concepts
+
+- **Workspace**: Container for documents and chat sessions with a specific RAG configuration
+- **Default RAG Config**: System-wide defaults that new workspaces inherit
+- **Document**: Uploaded file that gets processed (chunked/embedded or entity-extracted)
+- **Chat Session**: Conversation thread within a workspace
+- **State**: Currently selected workspace and chat session
+
+## Command Reference
+
+See the tutorials for complete command coverage including:
+- `rag-options` - View available algorithms
+- `default-rag-config` - Configure system defaults
+- `workspace` - Manage workspaces
+- `document` - Handle documents
+- `chat` - Chat operations
+- `state` - View current state
