@@ -68,38 +68,141 @@ The following services will be available:
 - Ollama API: http://localhost:11434
 - Redis: localhost:6379
 
-### Basic Usage
+## CLI Quick Start
+
+InsightHub provides a comprehensive command-line interface following a simple, discoverable pattern.
+
+### CLI Command Structure
+
+All commands follow this consistent pattern:
 
 ```bash
-# Workspace management
-task cli -- workspace new              # Create a workspace (interactive)
+task cli -- <resource> <action> [arguments]
+```
+
+Where:
+- `<resource>` is what you're working with: workspace, document, chat, state, rag-options, default-rag-config
+- `<action>` is what you want to do: list, create, show, select, upload, send, etc.
+- `[arguments]` are specific to each action (like IDs or file paths)
+
+### Getting Help Anytime
+
+The CLI is self-documenting. Use `--help` at any level:
+
+```bash
+# See all available resources
+task cli -- --help
+
+# See what you can do with a resource
+task cli -- workspace --help
+
+# See details for a specific action
+task cli -- workspace create --help
+```
+
+**Pro tip:** Whenever you're stuck or unsure, just add `--help` to discover what's available!
+
+### Essential Commands
+
+**Check your current state:**
+```bash
+task cli -- state show
+```
+Shows your currently selected workspace and chat session.
+
+**Discover available RAG algorithms:**
+```bash
+task cli -- rag-options list
+```
+Lists vector, graph, and hybrid search methods with descriptions.
+
+**Get help on any resource:**
+```bash
+task cli -- <resource> --help
+```
+Replace `<resource>` with workspace, document, chat, etc.
+
+### Common Patterns
+
+**Pattern 1: List → Show → Select**
+```bash
+# List all items
+task cli -- workspace list
+
+# Show details of one
+task cli -- workspace show 1
+
+# Select/activate it
+task cli -- workspace select 1
+```
+
+**Pattern 2: Create → Verify → Use**
+```bash
+# Create (interactive prompts)
+task cli -- workspace create
+
+# Verify it was created
+task cli -- workspace list
+
+# Select it for use
+task cli -- workspace select <id>
+```
+
+**Pattern 3: Check State → Act → Verify**
+```bash
+# Check current context
+task cli -- state show
+
+# Perform action
+task cli -- document upload file.pdf
+
+# Verify the result
+task cli -- document list
+```
+
+### Basic Usage Examples
+
+**Workspace management:**
+```bash
+task cli -- workspace create           # Create a workspace (interactive)
 task cli -- workspace list             # List all workspaces
 task cli -- workspace select 1         # Select active workspace
 task cli -- workspace show 1           # Show workspace details
+```
 
-# Document management
+**Document management:**
+```bash
 task cli -- document upload file.pdf   # Upload a document
 task cli -- document list              # List documents in workspace
 task cli -- document show 1            # Show document details
 task cli -- document remove file.pdf   # Remove a document
+```
 
-# Chat operations
-task cli -- chat new 1                 # Create new chat session
+**Chat operations:**
+```bash
+task cli -- chat create 1              # Create new chat session in workspace
 task cli -- chat list 1                # List sessions in workspace
 task cli -- chat select 1              # Select active session
 task cli -- chat send "Your message"   # Send message to session
 task cli -- chat history               # Show message history
-
-# Configuration
-task cli -- default-rag-config show    # Show default RAG settings
-task cli -- default-rag-config new     # Configure RAG settings (interactive)
-
-# View current state
-task cli -- state show                 # Show selected workspace/session
-
-# View available RAG options
-task cli -- rag-options list           # List all RAG algorithms
 ```
+
+**Configuration and state:**
+```bash
+task cli -- state show                 # Show selected workspace/session
+task cli -- rag-options list           # List all RAG algorithms
+task cli -- default-rag-config show    # Show default RAG settings
+task cli -- default-rag-config create  # Configure RAG settings (interactive)
+```
+
+### Learning More
+
+For comprehensive tutorials and guides, see the [tutorials directory](docs/users/tutorials/):
+- **Tutorial 1:** Getting Started with Your First Workspace
+- **Tutorial 2:** Uploading and Querying Documents
+- **Tutorial 3:** Understanding Search Methods (Vector, Graph, Hybrid)
+
+Each tutorial includes CLI tips, help examples, and best practices.
 
 ## Project Structure
 
@@ -336,15 +439,15 @@ Environment variables and configuration options (see `src/config.py`):
 
 The `docker-compose.yml` defines 7 services:
 
-| Service | Description | Ports |
-|---------|-------------|-------|
-| `postgres` | PostgreSQL 16 with pgvector extension | 5432 |
-| `qdrant` | Vector database for semantic search | 6333, 6334 (UI) |
-| `neo4j` | Graph database for knowledge graphs | 7474 (UI), 7687 |
-| `ollama` | Local LLM service | 11434 |
-| `ollama-setup` | Initializes Ollama models | - |
-| `minio` | S3-compatible object storage | 9000, 9001 (console) |
-| `redis` | Caching layer | 6379 |
+| Service        | Description                           | Ports                |
+|----------------|---------------------------------------|----------------------|
+| `postgres`     | PostgreSQL 16 with pgvector extension | 5432                 |
+| `qdrant`       | Vector database for semantic search   | 6333, 6334 (UI)      |
+| `neo4j`        | Graph database for knowledge graphs   | 7474 (UI), 7687      |
+| `ollama`       | Local LLM service                     | 11434                |
+| `ollama-setup` | Initializes Ollama models             | -                    |
+| `minio`        | S3-compatible object storage          | 9000, 9001 (console) |
+| `redis`        | Caching layer                         | 6379                 |
 
 ## RAG Workflows
 
