@@ -118,6 +118,9 @@ For help on a specific resource, use:
     )
     doc_show = doc_subparsers.add_parser("show", help="Show detailed document information")
     doc_show.add_argument("document_id", type=int, help="Document ID")
+    doc_show.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
     doc_add = doc_subparsers.add_parser("add", help="Add a document")
     doc_add.add_argument("file", help="Path to document file")
     doc_add.add_argument(

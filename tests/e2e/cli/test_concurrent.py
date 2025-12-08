@@ -231,7 +231,7 @@ class TestCLIConcurrency:
 
         # Add all files
         for file_path in test_files:
-            add = self.run_cli("document", "add", str(file_path))
+            upload = self.run_cli("document", "add", str(file_path))
             assert upload.returncode == 0
 
         results = []

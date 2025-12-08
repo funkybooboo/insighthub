@@ -188,5 +188,5 @@ class TestDocumentCLI:
         assert result.returncode == 0
         assert "document" in result.stdout.lower()
         assert "list" in result.stdout.lower()
-        assert "upload" in result.stdout.lower()
+        assert "add" in result.stdout.lower()
         assert "remove" in result.stdout.lower()

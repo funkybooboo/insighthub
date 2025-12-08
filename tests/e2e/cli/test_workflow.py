@@ -58,7 +58,7 @@ class TestCLIWorkflow:
         try:
             # Add all documents
             for doc in docs:
-                add = self.run_cli("document", "add", str(doc))
+                upload = self.run_cli("document", "add", str(doc))
                 assert upload.returncode == 0
                 assert "added" in upload.stdout.lower()
 
@@ -262,7 +262,7 @@ class TestCLIWorkflow:
         try:
             # Add all files
             for file in test_files:
-                add = self.run_cli("document", "add", str(file))
+                upload = self.run_cli("document", "add", str(file))
                 assert upload.returncode == 0
                 assert "added" in upload.stdout.lower()
 
@@ -334,7 +334,7 @@ class TestCLIWorkflow:
 
         try:
             # Add document
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")

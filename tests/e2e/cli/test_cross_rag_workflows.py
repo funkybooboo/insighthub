@@ -105,12 +105,12 @@ class TestCrossRagWorkflows:
         # Add same document to both workspaces
         # Vector first
         self.run_cli("workspace", "select", vector_ws_id)
-        vector_add = self.run_cli("document", "add", comparable_document)
+        vector_upload = self.run_cli("document", "add", comparable_document)
         assert vector_upload.returncode == 0
 
         # Graph second
         self.run_cli("workspace", "select", graph_ws_id)
-        graph_add = self.run_cli("document", "add", comparable_document)
+        graph_upload = self.run_cli("document", "add", comparable_document)
         assert graph_upload.returncode == 0
 
         # Both uploads should succeed

@@ -71,7 +71,7 @@ class TestDocumentCombinations:
 
         try:
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
                 assert "added" in upload.stdout.lower()
 
@@ -108,7 +108,7 @@ class TestDocumentCombinations:
 
         try:
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # List documents
@@ -131,7 +131,7 @@ class TestDocumentCombinations:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             # Should handle gracefully (may succeed or reject)
             assert upload.returncode in [0, 1]
 
@@ -154,7 +154,7 @@ class TestDocumentCombinations:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Show document details
@@ -194,7 +194,7 @@ class TestDocumentCombinations:
 
         try:
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode in [0, 1]
 
         finally:
@@ -215,7 +215,7 @@ class TestDocumentCombinations:
 
         try:
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # List documents
@@ -243,7 +243,7 @@ class TestDocumentCombinations:
         try:
             doc_ids = []
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
                 doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
                 if doc_id:
@@ -288,7 +288,7 @@ class TestDocumentCombinations:
         try:
             # Add all
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # Remove documents one by one
@@ -363,7 +363,7 @@ class TestDocumentCombinations:
 
         try:
             # Upload
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Try to remove but cancel
@@ -405,7 +405,7 @@ class TestDocumentCombinations:
                 test_files.append(test_file)
 
             # Upload
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # List after each upload
@@ -432,7 +432,7 @@ class TestDocumentCombinations:
         try:
             # Add all
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # List after upload
@@ -486,7 +486,7 @@ class TestDocumentCombinations:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Create chat session
@@ -536,7 +536,7 @@ class TestDocumentCombinations:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Verify document is available

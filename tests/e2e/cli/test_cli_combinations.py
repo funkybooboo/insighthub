@@ -62,7 +62,7 @@ class TestCLICombinations:
             doc_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(doc_file))
+            upload = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
 
             # Create chat
@@ -157,7 +157,7 @@ class TestCLICombinations:
 
         try:
             # Upload
-            add = self.run_cli("document", "add", str(doc_file))
+            upload = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
             doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
 
@@ -215,7 +215,7 @@ class TestCLICombinations:
             # Add all documents
             doc_ids = []
             for doc_file in doc_files:
-                add = self.run_cli("document", "add", str(doc_file))
+                upload = self.run_cli("document", "add", str(doc_file))
                 assert upload.returncode == 0
                 doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
                 doc_ids.append(doc_id)
@@ -439,7 +439,7 @@ class TestCLICombinations:
 
         try:
             for doc_file in doc_files:
-                add = self.run_cli("document", "add", str(doc_file))
+                upload = self.run_cli("document", "add", str(doc_file))
                 assert upload.returncode == 0
 
             # Add chat sessions
@@ -544,7 +544,7 @@ class TestCLICombinations:
             doc_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(doc_file))
+            upload = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
 
             # List documents (should succeed)

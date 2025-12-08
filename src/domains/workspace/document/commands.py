@@ -50,16 +50,18 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
     """Show detailed information about a document."""
     try:
-        if not ctx.current_workspace_id:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
             print(
-                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
             )
             sys.exit(1)
 
         # === Create Request DTO ===
-        request = ShowDocumentRequest(
-            document_id=args.document_id, workspace_id=ctx.current_workspace_id
-        )
+        request = ShowDocumentRequest(document_id=args.document_id, workspace_id=workspace_id)
 
         # === Call Orchestrator ===
         result = ctx.document_orchestrator.show_document(request)
@@ -154,9 +156,7 @@ def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
             return
 
         # === Create Request DTO ===
-        request = DeleteDocumentRequest(
-            document_id=doc_to_remove.id, workspace_id=ctx.current_workspace_id
-        )
+        request = DeleteDocumentRequest(document_id=doc_to_remove.id, workspace_id=workspace_id)
 
         # === Call Orchestrator ===
         result = ctx.document_orchestrator.delete_document(request)

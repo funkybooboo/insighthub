@@ -134,7 +134,7 @@ class TestChatMessaging:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Create chat session
@@ -190,7 +190,7 @@ class TestChatMessaging:
         try:
             # Add all documents
             for test_file in test_files:
-                add = self.run_cli("document", "add", str(test_file))
+                upload = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # Create chat session

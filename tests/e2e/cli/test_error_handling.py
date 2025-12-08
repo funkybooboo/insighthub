@@ -203,7 +203,7 @@ class TestCLIErrorHandling:
             test_file = Path(f.name)
 
         try:
-            add = self.run_cli("document", "add", str(test_file))
+            upload = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Try to remove but cancel

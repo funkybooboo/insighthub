@@ -165,7 +165,7 @@ class TestVectorRagComprehensive:
                     continue
 
         if doc_id:
-            show_doc = self.run_cli("document", "show", doc_id)
+            show_doc = self.run_cli("document", "show", doc_id, "--workspace-id", workspace_id)
             assert show_doc.returncode == 0
             # Should show chunks were created
             assert "chunk" in show_doc.stdout.lower()
