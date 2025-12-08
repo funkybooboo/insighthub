@@ -37,18 +37,16 @@ class TextDocumentParser(DocumentParser):
             doc_id = self._generate_document_id(metadata)
             workspace_id = str(metadata.get("workspace_id", "default")) if metadata else "default"
             title = self._get_title(metadata, content) or "Untitled Document"
+            # Extract and merge metadata
+            extracted_metadata = self._extract_text_metadata(content, metadata)
+            
             return Success(
                 Document(
                     id=doc_id,
                     workspace_id=workspace_id,
                     title=title,
                     content=content,
-                    metadata={
-                        "file_type": "text",
-                        "char_count": str(len(content)),
-                        "line_count": str(len(content.splitlines())),
-                        "word_count": str(len(content.split())),
-                    },
+                    metadata=extracted_metadata, # Use the merged metadata
                 )
             )
 

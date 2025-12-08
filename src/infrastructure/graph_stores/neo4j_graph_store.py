@@ -278,20 +278,25 @@ class Neo4jGraphStore(GraphStore):
 
         query = (
             """
-        MATCH path = (start:Entity)-[*0..%d]-(connected:Entity)
-        WHERE start.id IN $entity_ids
-          AND start.workspace_id = $workspace_id
-          AND connected.workspace_id = $workspace_id
-        WITH collect(DISTINCT start) + collect(DISTINCT connected) AS nodes,
-             CASE WHEN size([r IN relationships(path) | r]) > 0
-                  THEN [r IN relationships(path) | r]
-                  ELSE []
-             END AS all_rels
-        UNWIND nodes AS n
-        WITH collect(DISTINCT n) AS unique_nodes, all_rels
-        UNWIND CASE WHEN size(all_rels) = 0 THEN [null] ELSE all_rels END AS r
-        WITH unique_nodes, [rel IN collect(DISTINCT r) WHERE rel IS NOT NULL] AS unique_rels
-        RETURN unique_nodes, unique_rels
+        MATCH (start_node:Entity)
+        WHERE start_node.id IN $entity_ids
+          AND start_node.workspace_id = $workspace_id
+
+        MATCH path = (start_node)-[r*0..%d]-(connected_node:Entity)
+        WHERE connected_node.workspace_id = $workspace_id
+
+        WITH collect(DISTINCT start_node) AS initial_nodes,
+             collect(DISTINCT connected_node) AS connected_nodes,
+             collect(DISTINCT r) AS all_path_relationships_lists
+
+        UNWIND initial_nodes + connected_nodes AS node
+        WITH collect(DISTINCT node) AS unique_nodes, all_path_relationships_lists
+
+        UNWIND all_path_relationships_lists AS relationships_from_list
+        UNWIND relationships_from_list AS single_rel
+        WITH unique_nodes, collect(DISTINCT {rel: single_rel, source_id: startNode(single_rel).id, target_id: endNode(single_rel).id}) AS unique_rels_data
+
+        RETURN unique_nodes, unique_rels_data
         """
             % max_depth
         )
@@ -304,7 +309,12 @@ class Neo4jGraphStore(GraphStore):
 
         record = results[0]
         entities = [self._node_to_entity(node) for node in record["unique_nodes"]]
-        relationships = [self._rel_to_relationship(rel) for rel in record["unique_rels"]]
+        relationships = [
+            self._rel_to_relationship(
+                rel_data["rel"], rel_data["source_id"], rel_data["target_id"]
+            )
+            for rel_data in record["unique_rels_data"]
+        ]
 
         logger.info(
             f"Traversed graph: {len(entities)} entities, {len(relationships)} relationships"
@@ -410,7 +420,7 @@ class Neo4jGraphStore(GraphStore):
             text=node["text"],
             type=EntityType(node["type"]),
             confidence=node["confidence"],
-            metadata=metadata,
+            metadata={**metadata, "document_ids": node.get("document_ids", [])}, # Embed document_ids from node into metadata
         )
 
     def _rel_to_relationship(

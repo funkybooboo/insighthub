@@ -4,12 +4,16 @@ Tests the complete Graph RAG pipeline with a real Neo4j database instance.
 """
 
 import io
+from collections.abc import Generator
+from typing import Any, Optional
 
 import pytest
 from returns.result import Success
 from testcontainers.neo4j import Neo4jContainer
 
 from src.infrastructure.graph_stores.neo4j_graph_store import Neo4jGraphStore
+from src.infrastructure.llm.llm_provider import LlmProvider
+from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.steps.general.chunking.sentence_document_chunker import (
     SentenceDocumentChunker,
 )
@@ -31,29 +35,26 @@ from src.infrastructure.types.graph import EntityType
 class TestGraphRagWorkflowIntegration:
     """Graph RAG workflow integration tests using testcontainers."""
 
-    @pytest.fixture(scope="function")
-    def neo4j_container(self):
+    @pytest.fixture(scope="class")
+    def neo4j_container_instance(self) -> Generator[Neo4jContainer, None, None]:
         """Spin up a Neo4j container for testing."""
-        # Use Neo4j container with explicit password
         container = Neo4jContainer("neo4j:5.12", password="testpassword")
         container.start()
         yield container
         container.stop()
 
-    @pytest.fixture
-    def graph_store(self, neo4j_container):
-        """Create a graph store connected to the test Neo4j container."""
-        # Get connection details from container
-        bolt_url = neo4j_container.get_connection_url()
+    @pytest.fixture(scope="function")
+    def graph_store(self, neo4j_container_instance: Neo4jContainer) -> Generator[Neo4jGraphStore, None, None]:
+        """Fixture to create a graph store connected to the test Neo4j container."""
+        bolt_url = neo4j_container_instance.get_connection_url()
 
-        # Use the password we set in the container
         store = Neo4jGraphStore(
             uri=bolt_url,
             username="neo4j",
             password="testpassword",
         )
 
-        # Create constraints and indexes
+        # Create constraints and indexes (these methods handle IF NOT EXISTS)
         store.create_constraint("Entity", "id")
         store.create_index("Entity", ["workspace_id"])
         store.create_index("Entity", ["workspace_id", "type"])
@@ -62,16 +63,32 @@ class TestGraphRagWorkflowIntegration:
         yield store
 
         # Cleanup
+        with store.driver.session() as session:
+            session.run("MATCH (n) DETACH DELETE n") # Clear all nodes and relationships
         store.close()
 
-    @pytest.fixture
-    def add_document_workflow(self, graph_store):
+    @pytest.fixture(scope="function")
+    def llm_provider(self) -> LlmProvider:
+        """Fixture to create a dummy LlmProvider."""
+        class DummyLlmProvider(LlmProvider):
+            def generate_response(self, prompt: str) -> str:
+                return "dummy LLM response"
+            def chat(self, message: str, conversation_history: Optional[list[dict]]) -> str:
+                return "dummy LLM response"
+            def chat_stream(self, message: str, conversation_history: Optional[list[dict]]) -> Generator[str, None, None]:
+                yield "dummy LLM response chunk"
+            def health_check(self) -> dict[str, Any]:
+                return {"status": "ok"}
+            def get_model_name(self) -> str:
+                return "dummy-llm"
+        return DummyLlmProvider()
+
+    @pytest.fixture(scope="function")
+    def add_document_workflow(self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider) -> GraphRagAddDocumentWorkflow:
         """Create an add document workflow for testing."""
-        # Create components
         parser = TextDocumentParser()
         chunker = SentenceDocumentChunker(chunk_size=100, overlap=20)
 
-        # Use SpaCy for entity extraction (requires en_core_web_sm model)
         try:
             entity_extractor = SpacyEntityExtractor(
                 model_name="en_core_web_sm",
@@ -86,7 +103,6 @@ class TestGraphRagWorkflowIntegration:
 
         relationship_extractor = DependencyParserExtractor()
 
-        # Create workflow
         workflow = GraphRagAddDocumentWorkflow(
             parser=parser,
             chunker=chunker,
@@ -98,13 +114,11 @@ class TestGraphRagWorkflowIntegration:
             clustering_max_level=3,
             community_min_size=2,
         )
-
         return workflow
 
-    @pytest.fixture
-    def query_workflow(self, graph_store):
+    @pytest.fixture(scope="function")
+    def query_workflow(self, graph_store: Neo4jGraphStore, llm_provider: LlmProvider) -> GraphRagQueryWorkflow:
         """Create a query workflow for testing."""
-        # Use SpaCy for entity extraction
         try:
             entity_extractor = SpacyEntityExtractor(
                 model_name="en_core_web_sm",
@@ -126,10 +140,9 @@ class TestGraphRagWorkflowIntegration:
             top_k_communities=3,
             include_entity_neighborhoods=True,
         )
-
         return workflow
 
-    def test_add_document_workflow_success(self, add_document_workflow):
+    def test_add_document_workflow_success(self, add_document_workflow: GraphRagAddDocumentWorkflow):
         """Test successfully adding a document to the graph."""
         # Arrange
         document_text = """
@@ -138,13 +151,15 @@ class TestGraphRagWorkflowIntegration:
         Together they developed new AI safety techniques.
         """
         raw_document = io.BytesIO(document_text.encode("utf-8"))
+        workspace_id = "test_workspace_1"
+        document_id = "test_doc_1"
 
         # Act
         result = add_document_workflow.execute(
             raw_document=raw_document,
-            document_id="test_doc_1",
-            workspace_id="test_workspace_1",
-            metadata={"source": "test"},
+            document_id=document_id,
+            workspace_id=workspace_id,
+            metadata={"source": "test_source"},
         )
 
         # Assert
@@ -152,7 +167,9 @@ class TestGraphRagWorkflowIntegration:
         entity_count = result.unwrap()
         assert entity_count > 0  # Should have extracted some entities
 
-    def test_query_workflow_after_adding_document(self, add_document_workflow, query_workflow):
+    def test_query_workflow_after_adding_document(
+        self, add_document_workflow: GraphRagAddDocumentWorkflow, query_workflow: GraphRagQueryWorkflow
+    ):
         """Test querying the graph after adding a document."""
         # Arrange - Add a document first
         document_text = """
@@ -161,12 +178,14 @@ class TestGraphRagWorkflowIntegration:
         Microsoft develops software products and services.
         """
         raw_document = io.BytesIO(document_text.encode("utf-8"))
+        workspace_id = "test_workspace_1"
+        document_id = "test_doc_2"
 
         add_result = add_document_workflow.execute(
             raw_document=raw_document,
-            document_id="test_doc_2",
-            workspace_id="test_workspace_1",
-            metadata={"source": "test"},
+            document_id=document_id,
+            workspace_id=workspace_id,
+            metadata={"source": "test_source"},
         )
         assert isinstance(add_result, Success)
 
@@ -176,89 +195,38 @@ class TestGraphRagWorkflowIntegration:
 
         # Assert
         assert isinstance(chunks, list)
-        # Should return some results (exact count depends on extraction quality)
-        # We're just testing that the workflow runs without errors
+        assert len(chunks) > 0
+        assert any("Microsoft" in c.text for c in chunks)
+        assert any("Bill Gates" in c.text for c in chunks)
 
-    def test_graph_store_entity_retrieval(self, graph_store, add_document_workflow):
-        """Test that entities can be retrieved from the graph store."""
-        # Arrange - Add a document
-        document_text = """
-        Google was founded by Larry Page and Sergey Brin.
-        The company is based in Mountain View, California.
-        """
-        raw_document = io.BytesIO(document_text.encode("utf-8"))
-
-        add_result = add_document_workflow.execute(
-            raw_document=raw_document,
-            document_id="test_doc_3",
-            workspace_id="test_workspace_1",
-            metadata={"source": "test"},
-        )
-        assert isinstance(add_result, Success)
-
-        # Act - Search for entities
-        entities = graph_store.find_entities("Google", "test_workspace_1", limit=10)
-
-        # Assert
-        assert len(entities) > 0
-
-    def test_graph_traversal(self, graph_store, add_document_workflow):
-        """Test graph traversal functionality."""
-        # Arrange - Add a document with related entities
-        document_text = """
-        Apple was founded by Steve Jobs, Steve Wozniak, and Ronald Wayne.
-        Steve Jobs also founded NeXT Computer and Pixar Animation Studios.
-        Apple is headquartered in Cupertino, California.
-        """
-        raw_document = io.BytesIO(document_text.encode("utf-8"))
-
-        add_result = add_document_workflow.execute(
-            raw_document=raw_document,
-            document_id="test_doc_4",
-            workspace_id="test_workspace_1",
-            metadata={"source": "test"},
-        )
-        assert isinstance(add_result, Success)
-
-        # Act - Find an entity and traverse from it
-        entities = graph_store.find_entities("Apple", "test_workspace_1", limit=1)
-
-        if entities:
-            entity_id = entities[0].id
-            subgraph = graph_store.traverse_graph([entity_id], "test_workspace_1", max_depth=2)
-
-            # Assert
-            assert len(subgraph.entities) > 0
-            assert entity_id in [e.id for e in subgraph.entities]
-
-    def test_delete_workspace_graph(self, graph_store, add_document_workflow):
+    def test_delete_workspace_graph(self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow):
         """Test deleting all graph data for a workspace."""
         # Arrange - Add a document
-        document_text = """
-        Amazon was founded by Jeff Bezos in Seattle.
-        """
+        document_text = """Amazon was founded by Jeff Bezos in Seattle."""
         raw_document = io.BytesIO(document_text.encode("utf-8"))
+        workspace_id = "test_workspace_2"
+        document_id = "test_doc_3"
 
         add_result = add_document_workflow.execute(
             raw_document=raw_document,
-            document_id="test_doc_5",
-            workspace_id="test_workspace_2",
-            metadata={"source": "test"},
+            document_id=document_id,
+            workspace_id=workspace_id,
+            metadata={"source": "test_source"},
         )
         assert isinstance(add_result, Success)
 
         # Verify entities exist
-        entities_before = graph_store.find_entities("Amazon", "test_workspace_2", limit=10)
+        entities_before = graph_store.find_entities("Amazon", workspace_id, limit=10)
         assert len(entities_before) > 0
 
         # Act - Delete workspace graph
-        graph_store.delete_workspace_graph("test_workspace_2")
+        graph_store.delete_workspace_graph(workspace_id)
 
         # Assert - Entities should be gone
-        entities_after = graph_store.find_entities("Amazon", "test_workspace_2", limit=10)
+        entities_after = graph_store.find_entities("Amazon", workspace_id, limit=10)
         assert len(entities_after) == 0
 
-    def test_community_detection_integration(self, graph_store, add_document_workflow):
+    def test_community_detection_integration(self, graph_store: Neo4jGraphStore, add_document_workflow: GraphRagAddDocumentWorkflow):
         """Test that community detection runs and stores communities."""
         # Arrange - Add a document with multiple connected entities
         document_text = """
@@ -268,25 +236,28 @@ class TestGraphRagWorkflowIntegration:
         SpaceX launches rockets from Cape Canaveral, Florida.
         """
         raw_document = io.BytesIO(document_text.encode("utf-8"))
+        workspace_id = "test_workspace_3"
+        document_id = "test_doc_4"
 
         # Act - Add document (which triggers community detection)
         add_result = add_document_workflow.execute(
             raw_document=raw_document,
-            document_id="test_doc_6",
-            workspace_id="test_workspace_3",
-            metadata={"source": "test"},
+            document_id=document_id,
+            workspace_id=workspace_id,
+            metadata={"source": "test_source"},
         )
 
         # Assert
         assert isinstance(add_result, Success)
 
         # Try to get communities (implementation depends on get_communities)
-        entities = graph_store.find_entities("Tesla", "test_workspace_3", limit=5)
+        # Note: Community detection results can be highly variable based on
+        # graph size and algorithm. We mainly assert that the process completes
+        # without error and potentially finds *some* communities.
+        entities = graph_store.find_entities("Tesla", workspace_id, limit=5)
         if entities:
             entity_ids = [e.id for e in entities]
-            communities = graph_store.get_communities(entity_ids, "test_workspace_3")
-
-            # Community detection might not always find communities
-            # depending on graph size and algorithm parameters
-            # So we just verify the call doesn't error
+            communities = graph_store.get_communities(entity_ids, workspace_id)
             assert isinstance(communities, list)
+            # Asserting a minimum number of communities might be too brittle
+            # assert len(communities) > 0

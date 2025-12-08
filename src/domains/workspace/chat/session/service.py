@@ -36,7 +36,10 @@ class ChatSessionService:
         logger.info(f"Creating chat session: workspace_id={workspace_id}, rag_type='{rag_type}'")
 
         # Validate inputs
-        if title and len(title.strip()) > 255:
+        if not title or not title.strip(): # Added check for empty/whitespace title
+            logger.error("Session creation failed: title cannot be empty")
+            return Failure(ValidationError("Session title cannot be empty", field="title"))
+        if len(title.strip()) > 255:
             logger.error("Session creation failed: title too long")
             return Failure(
                 ValidationError("Session title too long (max 255 characters)", field="title")
