@@ -102,20 +102,20 @@ class TestCrossRagWorkflows:
         assert match is not None, "Could not extract workspace ID from output"
         graph_ws_id = match.group(1)
 
-        # Upload same document to both workspaces
+        # Add same document to both workspaces
         # Vector first
         self.run_cli("workspace", "select", vector_ws_id)
-        vector_upload = self.run_cli("document", "upload", comparable_document)
+        vector_add = self.run_cli("document", "add", comparable_document)
         assert vector_upload.returncode == 0
 
         # Graph second
         self.run_cli("workspace", "select", graph_ws_id)
-        graph_upload = self.run_cli("document", "upload", comparable_document)
+        graph_add = self.run_cli("document", "add", comparable_document)
         assert graph_upload.returncode == 0
 
         # Both uploads should succeed
-        assert "uploaded" in vector_upload.stdout.lower()
-        assert "uploaded" in graph_upload.stdout.lower()
+        assert "added" in vector_upload.stdout.lower()
+        assert "added" in graph_upload.stdout.lower()
 
     def test_switch_workspace_selection_between_rag_types(self):
         """Test switching selected workspace between vector and graph types."""
@@ -159,7 +159,7 @@ class TestCrossRagWorkflows:
         vector_ws_id = match.group(1)
 
         self.run_cli("workspace", "select", vector_ws_id)
-        self.run_cli("document", "upload", comparable_document)
+        self.run_cli("document", "add", comparable_document)
 
         # Create vector chat session
         vector_chat = self.run_cli("chat", "create", vector_ws_id, input_text="\n")
@@ -174,7 +174,7 @@ class TestCrossRagWorkflows:
         graph_ws_id = match.group(1)
 
         self.run_cli("workspace", "select", graph_ws_id)
-        self.run_cli("document", "upload", comparable_document)
+        self.run_cli("document", "add", comparable_document)
 
         # Create graph chat session
         graph_chat = self.run_cli("chat", "create", graph_ws_id, input_text="\n")
@@ -267,14 +267,14 @@ class TestCrossRagWorkflows:
         assert match is not None, "Could not extract graph workspace ID from output"
         graph_ws_id = match.group(1)
 
-        # Upload document to vector workspace
+        # Add document to vector workspace
         self.run_cli("workspace", "select", vector_ws_id)
         with tempfile.NamedTemporaryFile(mode="w", suffix="_vector.txt", delete=False) as f:
             f.write("Vector workspace document content.")
             vector_doc = f.name
 
         try:
-            self.run_cli("document", "upload", vector_doc)
+            self.run_cli("document", "add", vector_doc)
 
             # Check vector workspace has document
             vector_list = self.run_cli("document", "list")

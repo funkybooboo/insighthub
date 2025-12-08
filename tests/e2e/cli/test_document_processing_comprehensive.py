@@ -56,9 +56,9 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
             # Verify document is listed
             list_result = self.run_cli("document", "list")
@@ -84,9 +84,9 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
         finally:
             Path(doc_path).unlink(missing_ok=True)
@@ -101,10 +101,10 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             # Should handle large document
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
             # Allow time for processing
             import time
@@ -126,7 +126,7 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             # Should either succeed with warning or fail gracefully
             assert upload_result.returncode in (0, 1)
 
@@ -145,7 +145,7 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             # Should handle or reject gracefully
             assert upload_result.returncode in (0, 1)
 
@@ -163,9 +163,9 @@ class TestDocumentProcessingComprehensive:
                 temp_files.append(f.name)
 
         try:
-            # Upload all three
+            # Add all three
             for doc_path in temp_files:
-                upload_result = self.run_cli("document", "upload", doc_path)
+                upload_result = self.run_cli("document", "add", doc_path)
                 assert upload_result.returncode == 0
 
             # All should be listed as separate documents
@@ -195,7 +195,7 @@ class TestDocumentProcessingComprehensive:
                 doc_path = f.name
 
             try:
-                upload_result = self.run_cli("document", "upload", doc_path)
+                upload_result = self.run_cli("document", "add", doc_path)
                 # Should succeed or fail gracefully
                 assert upload_result.returncode in (0, 1)
             finally:
@@ -210,7 +210,7 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
 
             # Get document ID
@@ -249,7 +249,7 @@ class TestDocumentProcessingComprehensive:
 
         try:
             # Upload
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
 
             # Remove by filename
@@ -279,7 +279,7 @@ class TestDocumentProcessingComprehensive:
 
             try:
                 # Upload
-                upload_result = self.run_cli("document", "upload", doc_path)
+                upload_result = self.run_cli("document", "add", doc_path)
                 assert upload_result.returncode == 0
 
                 # Immediately remove
@@ -311,9 +311,9 @@ class TestDocumentProcessingComprehensive:
                 temp_files.append(f.name)
 
         try:
-            # Upload all
+            # Add all
             for doc_path in temp_files:
-                upload_result = self.run_cli("document", "upload", doc_path)
+                upload_result = self.run_cli("document", "add", doc_path)
                 assert upload_result.returncode == 0
 
             # List should show all
@@ -337,9 +337,9 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
         finally:
             Path(doc_path).unlink(missing_ok=True)
@@ -367,9 +367,9 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
         finally:
             Path(doc_path).unlink(missing_ok=True)
@@ -386,7 +386,7 @@ class TestDocumentProcessingComprehensive:
 
         try:
             # Upload
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
 
             # Try to remove but cancel
@@ -415,7 +415,7 @@ class TestDocumentProcessingComprehensive:
 
         self.run_cli("workspace", "select", workspace_id)
 
-        # Upload entity-rich document
+        # Add entity-rich document
         content = """
         John Smith works at Microsoft in Seattle.
         Jane Doe is employed by Google in Mountain View.
@@ -426,9 +426,9 @@ class TestDocumentProcessingComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
             # Graph processing should complete
             import time

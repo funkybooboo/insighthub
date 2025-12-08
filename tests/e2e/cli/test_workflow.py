@@ -32,7 +32,7 @@ class TestCLIWorkflow:
         return None
 
     def test_complete_workspace_document_workflow(self):
-        """Test complete workflow: create workspace, upload docs, list, remove."""
+        """Test complete workflow: create workspace, add docs, list, remove."""
         # Create workspace
         create_ws = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
@@ -56,11 +56,11 @@ class TestCLIWorkflow:
                 docs.append(Path(f.name))
 
         try:
-            # Upload all documents
+            # Add all documents
             for doc in docs:
-                upload = self.run_cli("document", "upload", str(doc))
+                add = self.run_cli("document", "add", str(doc))
                 assert upload.returncode == 0
-                assert "uploaded" in upload.stdout.lower()
+                assert "added" in upload.stdout.lower()
 
             # List documents - should show all 3
             list_docs = self.run_cli("document", "list")
@@ -260,11 +260,11 @@ class TestCLIWorkflow:
         test_files.append(Path(py_file.name))
 
         try:
-            # Upload all files
+            # Add all files
             for file in test_files:
-                upload = self.run_cli("document", "upload", str(file))
+                add = self.run_cli("document", "add", str(file))
                 assert upload.returncode == 0
-                assert "uploaded" in upload.stdout.lower()
+                assert "added" in upload.stdout.lower()
 
             # List documents - should show all
             list_docs = self.run_cli("document", "list")
@@ -333,11 +333,11 @@ class TestCLIWorkflow:
             test_file = Path(f.name)
 
         try:
-            # Upload document
-            upload = self.run_cli("document", "upload", str(test_file))
+            # Add document
+            add = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
-            doc_id = self.extract_id(upload.stdout, r"Uploaded \[(\d+)\]")
+            doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
             assert doc_id is not None
 
             # Show document details

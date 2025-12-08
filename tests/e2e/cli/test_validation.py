@@ -133,7 +133,7 @@ class TestCLIValidation:
                 test_file = Path(f.name)
 
             try:
-                result = self.run_cli("document", "upload", str(test_file))
+                result = self.run_cli("document", "add", str(test_file))
                 # Should handle gracefully
                 assert result.returncode in [0, 1]
             finally:
@@ -168,7 +168,7 @@ class TestCLIValidation:
         try:
             symlink.symlink_to(real_file)
 
-            result = self.run_cli("document", "upload", str(symlink))
+            result = self.run_cli("document", "add", str(symlink))
             # Should handle symlinks appropriately
             assert result.returncode in [0, 1]
         finally:
@@ -542,7 +542,7 @@ class TestCLIValidation:
         ]
 
         for path in traversal_paths:
-            result = self.run_cli("document", "upload", path)
+            result = self.run_cli("document", "add", path)
             # Should reject or handle safely
             assert result.returncode != 0
             # Make sure no sensitive files were read

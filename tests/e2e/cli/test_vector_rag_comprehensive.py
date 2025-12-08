@@ -108,25 +108,18 @@ class TestVectorRagComprehensive:
 
     def test_vector_workspace_creation(self):
         """Test creating Vector RAG workspace with default config."""
-        # Create workspace with vector RAG (default)
+        # Create workspace with vector RAG (explicitly specify to ensure test independence)
         result = self.run_cli(
-            "workspace", "create", input_text="Vector E2E Test\nVector test workspace\n\n"
+            "workspace", "create", input_text="Vector E2E Test\nVector test workspace\nvector\n"
         )
 
         assert result.returncode == 0
         assert "Vector E2E Test" in result.stdout or "created" in result.stdout.lower()
 
         # Extract workspace ID
-        workspace_id = None
-        for line in result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    workspace_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
-
-        assert workspace_id is not None, "Could not extract workspace ID"
+        match = re.search(r"Created workspace \[(\d+)\]", result.stdout)
+        assert match is not None, "Could not extract workspace ID"
+        workspace_id = match.group(1)
 
         # Verify workspace shows vector config
         show_result = self.run_cli("workspace", "show", workspace_id)
@@ -147,18 +140,19 @@ class TestVectorRagComprehensive:
 
         assert workspace_id is not None
 
-        # Select workspace and upload document
-        self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", long_document)
+        # Add document (using workspace-id parameter)
+        upload_result = self.run_cli(
+            "document", "add", long_document, "--workspace-id", workspace_id
+        )
         assert upload_result.returncode == 0
-        assert "uploaded" in upload_result.stdout.lower()
+        assert "added" in upload_result.stdout.lower()
 
         # Verify document shows chunk count
         import time
 
         time.sleep(2)  # Allow processing
 
-        list_result = self.run_cli("document", "list")
+        list_result = self.run_cli("document", "list", "--workspace-id", workspace_id)
         assert list_result.returncode == 0
 
         doc_id = None
@@ -188,10 +182,11 @@ class TestVectorRagComprehensive:
 
         assert workspace_id is not None
 
-        # Upload all documents
-        self.run_cli("workspace", "select", workspace_id)
+        # Add all documents
         for doc_path in multi_topic_documents:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli(
+                "document", "add", doc_path, "--workspace-id", workspace_id
+            )
             assert upload_result.returncode == 0
 
         # Wait for processing
@@ -227,9 +222,10 @@ class TestVectorRagComprehensive:
 
         assert workspace_id is not None
 
-        # Upload document and create session
-        self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", technical_document)
+        # Add document and create session
+        upload_result = self.run_cli(
+            "document", "add", technical_document, "--workspace-id", workspace_id
+        )
         assert upload_result.returncode == 0
 
         import time
@@ -257,7 +253,7 @@ class TestVectorRagComprehensive:
     def test_multiple_document_upload(self):
         """Test uploading multiple documents sequentially."""
         # Create workspace
-        ws_result = self.run_cli("workspace", "create", input_text="Multi Upload Test\n\n\n")
+        ws_result = self.run_cli("workspace", "create", input_text="Multi Add Test\n\n\n")
         assert ws_result.returncode == 0
 
         match = re.search(r"Created workspace \[(\d+)\]", ws_result.stdout)
@@ -265,10 +261,9 @@ class TestVectorRagComprehensive:
         workspace_id = match.group(1)
 
         assert workspace_id is not None
-        self.run_cli("workspace", "select", workspace_id)
 
-        # Upload 3 documents
-        uploaded_count = 0
+        # Add 3 documents
+        added_count = 0
         for i in range(3):
             content = (
                 f"This is test document number {i}. It contains unique content about topic {i}."
@@ -278,23 +273,25 @@ class TestVectorRagComprehensive:
                 temp_path = f.name
 
             try:
-                upload_result = self.run_cli("document", "upload", temp_path)
+                upload_result = self.run_cli(
+                    "document", "add", temp_path, "--workspace-id", workspace_id
+                )
                 if upload_result.returncode == 0:
-                    uploaded_count += 1
+                    added_count += 1
             finally:
                 Path(temp_path).unlink(missing_ok=True)
 
-        assert uploaded_count == 3, f"Expected 3 uploads, got {uploaded_count}"
+        assert added_count == 3, f"Expected 3 uploads, got {added_count}"
 
         # Verify all documents are listed
-        list_result = self.run_cli("document", "list")
+        list_result = self.run_cli("document", "list", "--workspace-id", workspace_id)
         assert list_result.returncode == 0
         doc_count = list_result.stdout.count("[")
         assert doc_count >= 3, f"Expected at least 3 documents listed, found {doc_count}"
 
     def test_document_removal_updates_vectors(self, technical_document):
         """Test that removing document cleans up vector embeddings."""
-        # Create workspace and upload document
+        # Create workspace and add document
         ws_result = self.run_cli("workspace", "create", input_text="Removal Test\n\n\n")
         assert ws_result.returncode == 0
 
@@ -304,19 +301,22 @@ class TestVectorRagComprehensive:
 
         assert workspace_id is not None
 
-        self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", technical_document)
+        upload_result = self.run_cli(
+            "document", "add", technical_document, "--workspace-id", workspace_id
+        )
         assert upload_result.returncode == 0
 
         # Get document filename
         filename = Path(technical_document).name
 
         # Remove document
-        remove_result = self.run_cli("document", "remove", filename, input_text="yes\n")
+        remove_result = self.run_cli(
+            "document", "remove", filename, "--workspace-id", workspace_id, input_text="yes\n"
+        )
         assert remove_result.returncode == 0 or "deleted" in remove_result.stdout.lower()
 
         # Verify document is gone
-        list_result = self.run_cli("document", "list")
+        list_result = self.run_cli("document", "list", "--workspace-id", workspace_id)
         assert list_result.returncode == 0
         assert "no documents" in list_result.stdout.lower() or filename not in list_result.stdout
 
@@ -413,29 +413,30 @@ class TestVectorRagComprehensive:
         workspace_id = match.group(1)
 
         assert workspace_id is not None
-        self.run_cli("workspace", "select", workspace_id)
 
-        # Create and upload 5 documents rapidly
+        # Create and add 5 documents rapidly
         temp_files = []
         for i in range(5):
-            content = f"Rapid upload test document {i}. Content for testing concurrent processing."
+            content = f"Rapid add test document {i}. Content for testing concurrent processing."
             with tempfile.NamedTemporaryFile(mode="w", suffix=f"_rapid{i}.txt", delete=False) as f:
                 f.write(content)
                 temp_files.append(f.name)
 
         try:
-            # Upload all files
+            # Add all files
             for temp_path in temp_files:
-                upload_result = self.run_cli("document", "upload", temp_path)
+                upload_result = self.run_cli(
+                    "document", "add", temp_path, "--workspace-id", workspace_id
+                )
                 # Should succeed or handle gracefully
                 assert upload_result.returncode in (0, 1)  # May fail if processing is slow
 
-            # Verify documents were uploaded
+            # Verify documents were added
             import time
 
             time.sleep(2)
 
-            list_result = self.run_cli("document", "list")
+            list_result = self.run_cli("document", "list", "--workspace-id", workspace_id)
             assert list_result.returncode == 0
             # At least some documents should be present
             assert "[" in list_result.stdout

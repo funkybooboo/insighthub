@@ -1,8 +1,9 @@
 """E2E tests for Graph RAG CLI workflow.
 
-Tests the complete Graph RAG workflow from document upload to querying.
+Tests the complete Graph RAG workflow from document add to querying.
 """
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -16,13 +17,14 @@ import pytest
 class TestGraphRagCLI:
     """End-to-end tests for Graph RAG CLI workflow."""
 
-    def run_cli(self, *args):
+    def run_cli(self, *args, input_text=None):
         """Helper to run CLI command and return result."""
         cmd = [sys.executable, "-m", "src.cli", *args]
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
+            input=input_text,
         )
         return result
 
@@ -47,49 +49,33 @@ class TestGraphRagCLI:
 
     def test_workspace_create_with_graph_rag(self):
         """Test creating a workspace with Graph RAG configuration."""
-        # Act
+        # Act - Create workspace with interactive input
         result = self.run_cli(
             "workspace",
-            "new",
-            "--name",
-            "graph_rag_test_workspace",
-            "--rag-type",
-            "graph",
+            "create",
+            input_text="graph_rag_test_workspace\nTest workspace for graph RAG\ngraph\n",
         )
 
         # Assert
         assert result.returncode == 0
         output_lower = result.stdout.lower()
-        assert "workspace created" in output_lower or "created successfully" in output_lower
+        assert "created workspace" in output_lower or "graph_rag_test_workspace" in output_lower
 
     def test_document_add_with_graph_rag(self, temp_document):
         """Test adding a document to a Graph RAG workspace."""
-        # Arrange - Create workspace first
+        # Arrange - Create workspace first with interactive input
         create_result = self.run_cli(
             "workspace",
-            "new",
-            "--name",
-            "graph_doc_test",
-            "--rag-type",
-            "graph",
+            "create",
+            input_text="graph_doc_test\nTest workspace for document\ngraph\n",
         )
         assert create_result.returncode == 0
 
-        # Extract workspace ID from output
-        workspace_id = None
-        for line in create_result.stdout.split("\n"):
-            if "workspace id" in line.lower() or "id:" in line.lower():
-                # Try to extract numeric ID
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    try:
-                        workspace_id = parts[-1].strip()
-                        break
-                    except ValueError:
-                        continue
-
-        if not workspace_id:
+        # Extract workspace ID from output - format is "Created workspace [ID] name"
+        match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
+        if not match:
             pytest.skip("Could not extract workspace ID from output")
+        workspace_id = match.group(1)
 
         # Act - Add document
         result = self.run_cli(
@@ -110,31 +96,19 @@ class TestGraphRagCLI:
 
     def test_chat_query_with_graph_rag(self):
         """Test querying a Graph RAG workspace."""
-        # Arrange - Create workspace
+        # Arrange - Create workspace with interactive input
         create_result = self.run_cli(
             "workspace",
-            "new",
-            "--name",
-            "graph_query_test",
-            "--rag-type",
-            "graph",
+            "create",
+            input_text="graph_query_test\nTest workspace for querying\ngraph\n",
         )
         assert create_result.returncode == 0
 
         # Extract workspace ID
-        workspace_id = None
-        for line in create_result.stdout.split("\n"):
-            if "workspace id" in line.lower() or "id:" in line.lower():
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    try:
-                        workspace_id = parts[-1].strip()
-                        break
-                    except ValueError:
-                        continue
-
-        if not workspace_id:
+        match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
+        if not match:
             pytest.skip("Could not extract workspace ID from output")
+        workspace_id = match.group(1)
 
         # Act - Try to send a chat message (even if no documents)
         result = self.run_cli(
@@ -199,14 +173,11 @@ class TestGraphRagCLI:
 
     def test_workspace_list_shows_graph_workspaces(self):
         """Test that workspace list shows Graph RAG workspaces."""
-        # Arrange - Create a graph workspace
+        # Arrange - Create a graph workspace with interactive input
         create_result = self.run_cli(
             "workspace",
-            "new",
-            "--name",
-            "graph_list_test",
-            "--rag-type",
-            "graph",
+            "create",
+            input_text="graph_list_test\nTest workspace for listing\ngraph\n",
         )
 
         if create_result.returncode != 0:
@@ -222,14 +193,11 @@ class TestGraphRagCLI:
 
     def test_graph_rag_end_to_end_workflow(self, temp_document):
         """Test complete Graph RAG workflow: create workspace -> add document -> query."""
-        # Step 1: Create workspace with Graph RAG
+        # Step 1: Create workspace with Graph RAG using interactive input
         create_result = self.run_cli(
             "workspace",
-            "new",
-            "--name",
-            "graph_e2e_test",
-            "--rag-type",
-            "graph",
+            "create",
+            input_text="graph_e2e_test\nE2E test workspace\ngraph\n",
         )
 
         if create_result.returncode != 0:
@@ -238,19 +206,10 @@ class TestGraphRagCLI:
             )
 
         # Extract workspace ID
-        workspace_id = None
-        for line in create_result.stdout.split("\n"):
-            if "workspace id" in line.lower() or "id:" in line.lower():
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    try:
-                        workspace_id = parts[-1].strip()
-                        break
-                    except ValueError:
-                        continue
-
-        if not workspace_id:
+        match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
+        if not match:
             pytest.skip("Could not extract workspace ID")
+        workspace_id = match.group(1)
 
         # Step 2: Add document
         doc_result = self.run_cli(

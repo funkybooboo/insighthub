@@ -191,13 +191,15 @@ class VectorRagConfigProvider(RagConfigProvider):
 class GraphRagConfigProvider(RagConfigProvider):
     """Provider for Graph RAG configuration."""
 
-    def __init__(self, workspace_data_access: WorkspaceDataAccess):
+    def __init__(self, workspace_data_access: WorkspaceDataAccess, llm_provider=None):
         """Initialize graph RAG config provider.
 
         Args:
             workspace_data_access: Workspace data access layer
+            llm_provider: Optional LLM provider for graph RAG operations
         """
         self.workspace_data_access = workspace_data_access
+        self.llm_provider = llm_provider
 
     def get_config_model(self, workspace_id: int) -> Optional[GraphRagConfig]:
         """Get graph RAG config model."""
@@ -266,6 +268,7 @@ class GraphRagConfigProvider(RagConfigProvider):
             "entity_extraction_type": get_default_entity_extraction_algorithm(),
             "entity_extraction_config": {
                 "entity_types": ["PERSON", "ORG", "GPE", "PRODUCT", "EVENT", "CONCEPT"],
+                "llm_provider": self.llm_provider,
             },
             "relationship_extraction_type": get_default_relationship_extraction_algorithm(),
             "relationship_extraction_config": {
@@ -276,6 +279,7 @@ class GraphRagConfigProvider(RagConfigProvider):
                     "PART_OF",
                     "CREATED_BY",
                 ],
+                "llm_provider": self.llm_provider,
             },
             "clustering_algorithm": get_default_clustering_algorithm(),
             "clustering_resolution": 1.0,
@@ -289,10 +293,12 @@ class GraphRagConfigProvider(RagConfigProvider):
                     "entity_extraction_type": graph_config.entity_extraction_algorithm,
                     "entity_extraction_config": {
                         "entity_types": graph_config.entity_types,
+                        "llm_provider": self.llm_provider,
                     },
                     "relationship_extraction_type": graph_config.relationship_extraction_algorithm,
                     "relationship_extraction_config": {
                         "relationship_types": graph_config.relationship_types,
+                        "llm_provider": self.llm_provider,
                     },
                     "clustering_algorithm": graph_config.clustering_algorithm,
                     "clustering_resolution": graph_config.clustering_resolution,

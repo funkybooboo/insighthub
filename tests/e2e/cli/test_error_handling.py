@@ -102,7 +102,7 @@ class TestCLIErrorHandling:
         try:
             # Note: This may fail or succeed depending on if there's a workspace selected
             # from previous tests. The important thing is it doesn't crash.
-            result = self.run_cli("document", "upload", str(test_file))
+            result = self.run_cli("document", "add", str(test_file))
             if result.returncode != 0:
                 assert "no workspace selected" in result.stderr.lower()
         finally:
@@ -131,8 +131,8 @@ class TestCLIErrorHandling:
             test_file = Path(f.name)
 
         try:
-            # Upload empty file - might succeed or fail depending on validation
-            result = self.run_cli("document", "upload", str(test_file))
+            # Add empty file - might succeed or fail depending on validation
+            result = self.run_cli("document", "add", str(test_file))
             # Just verify it doesn't crash
             assert result.returncode in [0, 1]
         finally:
@@ -163,7 +163,7 @@ class TestCLIErrorHandling:
             test_file = Path(f.name)
 
         try:
-            result = self.run_cli("document", "upload", str(test_file))
+            result = self.run_cli("document", "add", str(test_file))
             # Should handle gracefully
             assert result.returncode in [0, 1]
         finally:
@@ -182,7 +182,7 @@ class TestCLIErrorHandling:
 
     def test_document_remove_cancel(self):
         """Test canceling document removal."""
-        # Create workspace and upload document
+        # Create workspace and add document
         create_ws = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
             input="Remove Cancel Test\nTest\nvector\n",
@@ -203,7 +203,7 @@ class TestCLIErrorHandling:
             test_file = Path(f.name)
 
         try:
-            upload = self.run_cli("document", "upload", str(test_file))
+            add = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Try to remove but cancel
@@ -368,8 +368,8 @@ class TestCLIErrorHandling:
         result = self.run_cli("document", "show")
         assert result.returncode != 0
 
-        # document upload requires file path
-        result = self.run_cli("document", "upload")
+        # document add requires file path
+        result = self.run_cli("document", "add")
         assert result.returncode != 0
 
         # chat create requires workspace ID
@@ -402,7 +402,7 @@ class TestCLIErrorHandling:
         # Create workspace first
         create_ws = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
-            input="Dir Upload Test\nTest\nvector\n",
+            input="Dir Add Test\nTest\nvector\n",
             capture_output=True,
             text=True,
         )
@@ -415,10 +415,10 @@ class TestCLIErrorHandling:
         select = self.run_cli("workspace", "select", ws_id)
         assert select.returncode == 0
 
-        # Try to upload a directory
+        # Try to add a directory
         import tempfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = self.run_cli("document", "upload", tmpdir)
+            result = self.run_cli("document", "add", tmpdir)
             # Should fail or handle gracefully
             assert result.returncode != 0

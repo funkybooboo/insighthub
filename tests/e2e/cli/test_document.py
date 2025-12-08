@@ -70,7 +70,7 @@ class TestDocumentCLI:
 
     def test_document_upload_and_list(self):
         """Test uploading a document and listing it."""
-        self.create_workspace_and_select("Upload Test Workspace")
+        self.create_workspace_and_select("Add Test Workspace")
 
         # Create a temporary test file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -78,10 +78,10 @@ class TestDocumentCLI:
             test_file_path = f.name
 
         try:
-            # Upload the document
-            upload_result = self.run_cli("document", "upload", test_file_path)
+            # Add the document
+            upload_result = self.run_cli("document", "add", test_file_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
             # List documents and verify it appears
             list_result = self.run_cli("document", "list")
@@ -96,26 +96,26 @@ class TestDocumentCLI:
         """Test showing document details."""
         self.create_workspace_and_select("Show Doc Workspace")
 
-        # Create and upload a test file
+        # Create and add a test file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test content for show command.\n")
             test_file_path = f.name
 
         try:
-            # Upload the document
-            upload_result = self.run_cli("document", "upload", test_file_path)
+            # Add the document
+            upload_result = self.run_cli("document", "add", test_file_path)
             assert upload_result.returncode == 0
 
             # Extract document ID
             import re
 
             output_lines = upload_result.stdout.strip().split("\n")
-            uploaded_line = [
-                line for line in output_lines if "uploaded" in line.lower() and "[" in line
-            ][0]
-            match = re.search(r"Uploaded \[(\d+)\]", uploaded_line)
+            added_line = [line for line in output_lines if "added" in line.lower() and "[" in line][
+                0
+            ]
+            match = re.search(r"Added \[(\d+)\]", added_line)
             document_id = match.group(1) if match else None
-            assert document_id is not None, f"Could not extract document ID from: {uploaded_line}"
+            assert document_id is not None, f"Could not extract document ID from: {added_line}"
 
             # Show the document
             show_result = self.run_cli("document", "show", document_id)
@@ -130,9 +130,9 @@ class TestDocumentCLI:
 
     def test_document_upload_nonexistent_file(self):
         """Test uploading a file that doesn't exist."""
-        self.create_workspace_and_select("Upload Error Workspace")
+        self.create_workspace_and_select("Add Error Workspace")
 
-        result = self.run_cli("document", "upload", "/nonexistent/file.txt")
+        result = self.run_cli("document", "add", "/nonexistent/file.txt")
         assert result.returncode != 0
         assert "not found" in result.stderr.lower()
 
@@ -140,7 +140,7 @@ class TestDocumentCLI:
         """Test removing a document."""
         self.create_workspace_and_select("Remove Doc Workspace")
 
-        # Create and upload a test file
+        # Create and add a test file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test content for removal.\n")
             test_file_path = f.name
@@ -148,8 +148,8 @@ class TestDocumentCLI:
         filename = Path(test_file_path).name
 
         try:
-            # Upload the document
-            upload_result = self.run_cli("document", "upload", test_file_path)
+            # Add the document
+            upload_result = self.run_cli("document", "add", test_file_path)
             assert upload_result.returncode == 0
 
             # Remove the document (confirm with "yes")

@@ -78,7 +78,7 @@ class TestWorkspaceContext:
         ws1_id = self.create_workspace("WS1 Docs")
         ws2_id = self.create_workspace("WS2 Docs")
 
-        # Select first workspace and upload document
+        # Select first workspace and add document
         select1 = self.run_cli("workspace", "select", ws1_id)
         assert select1.returncode == 0
 
@@ -87,7 +87,7 @@ class TestWorkspaceContext:
             doc1_file = Path(f.name)
 
         try:
-            upload1 = self.run_cli("document", "upload", str(doc1_file))
+            upload1 = self.run_cli("document", "add", str(doc1_file))
             assert upload1.returncode == 0
 
             # List documents in first workspace
@@ -95,7 +95,7 @@ class TestWorkspaceContext:
             assert list1.returncode == 0
             assert doc1_file.name in list1.stdout
 
-            # Select second workspace and upload different document
+            # Select second workspace and add different document
             select2 = self.run_cli("workspace", "select", ws2_id)
             assert select2.returncode == 0
 
@@ -104,7 +104,7 @@ class TestWorkspaceContext:
                 doc2_file = Path(f.name)
 
             try:
-                upload2 = self.run_cli("document", "upload", str(doc2_file))
+                upload2 = self.run_cli("document", "add", str(doc2_file))
                 assert upload2.returncode == 0
 
                 # List documents in second workspace
@@ -142,22 +142,22 @@ class TestWorkspaceContext:
             test_file = Path(f.name)
 
         try:
-            # Upload to first workspace
+            # Add to first workspace
             select1 = self.run_cli("workspace", "select", ws1_id)
             assert select1.returncode == 0
 
-            upload1 = self.run_cli("document", "upload", str(test_file))
+            upload1 = self.run_cli("document", "add", str(test_file))
             assert upload1.returncode == 0
 
             list1 = self.run_cli("document", "list")
             assert list1.returncode == 0
             assert test_file.name in list1.stdout
 
-            # Upload same file to second workspace
+            # Add same file to second workspace
             select2 = self.run_cli("workspace", "select", ws2_id)
             assert select2.returncode == 0
 
-            upload2 = self.run_cli("document", "upload", str(test_file))
+            upload2 = self.run_cli("document", "add", str(test_file))
             assert upload2.returncode == 0
 
             list2 = self.run_cli("document", "list")
@@ -173,7 +173,7 @@ class TestWorkspaceContext:
         # Note: This depends on whether there's a previously selected workspace
         # The test verifies the command handles the case appropriately
 
-        # Try to upload document (may succeed if workspace selected, or fail gracefully)
+        # Try to add document (may succeed if workspace selected, or fail gracefully)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test\n")
             test_file = Path(f.name)
@@ -349,13 +349,13 @@ class TestWorkspaceContext:
         select1 = self.run_cli("workspace", "select", ws1_id)
         assert select1.returncode == 0
 
-        # Upload document to first workspace
+        # Add document to first workspace
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("WS1 document\n")
             doc1 = Path(f.name)
 
         try:
-            upload1 = self.run_cli("document", "upload", str(doc1))
+            upload1 = self.run_cli("document", "add", str(doc1))
             assert upload1.returncode == 0
 
             # Create chat in first workspace
@@ -371,13 +371,13 @@ class TestWorkspaceContext:
             select2 = self.run_cli("workspace", "select", ws2_id)
             assert select2.returncode == 0
 
-            # Upload document to second workspace
+            # Add document to second workspace
             with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
                 f.write("WS2 document\n")
                 doc2 = Path(f.name)
 
             try:
-                upload2 = self.run_cli("document", "upload", str(doc2))
+                upload2 = self.run_cli("document", "add", str(doc2))
                 assert upload2.returncode == 0
 
                 # Verify documents are workspace-specific
@@ -454,13 +454,13 @@ class TestWorkspaceContext:
         )
         assert chat1.returncode == 0
 
-        # Upload document to workspace 1
+        # Add document to workspace 1
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Workspace 1 content\n")
             doc1 = Path(f.name)
 
         try:
-            upload1 = self.run_cli("document", "upload", str(doc1))
+            upload1 = self.run_cli("document", "add", str(doc1))
             assert upload1.returncode == 0
 
             # Switch to workspace 2

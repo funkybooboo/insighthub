@@ -131,8 +131,8 @@ Carol coordinates with the Design Team for product features.
 Upload:
 
 ```bash
-task cli -- document upload team-structure.txt
-task cli -- document upload company-info.txt
+task cli -- document add team-structure.txt
+task cli -- document add company-info.txt
 ```
 
 Output:
@@ -226,7 +226,7 @@ The graph connected Backend Team -> builds -> Platform product.
 - `rag-options list` - View all algorithms
 - `default-rag-config show/create` - Configure graph RAG
 - `workspace create/show/select` - Manage graph workspaces
-- `document upload/list` - Handle documents
+- `document add/list` - Handle documents
 - `chat create/select/send` - Chat operations
 - `state show` - View current state
 

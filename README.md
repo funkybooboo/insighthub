@@ -154,7 +154,7 @@ task cli -- workspace select <id>
 task cli -- state show
 
 # Perform action
-task cli -- document upload file.pdf
+task cli -- document add file.pdf
 
 # Verify the result
 task cli -- document list
@@ -172,7 +172,7 @@ task cli -- workspace show 1           # Show workspace details
 
 **Document management:**
 ```bash
-task cli -- document upload file.pdf   # Upload a document
+task cli -- document add file.pdf   # Add a document
 task cli -- document list              # List documents in workspace
 task cli -- document show 1            # Show document details
 task cli -- document remove file.pdf   # Remove a document

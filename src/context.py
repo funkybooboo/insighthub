@@ -111,12 +111,27 @@ class AppContext:
             cache=cache,
         )
 
-        # RAG Config Providers
+        # LLM Provider (needed by RAG Config Providers)
+        api_key = None
+        if config.llm_provider == "openai":
+            api_key = config.openai_api_key
+        elif config.llm_provider == "claude":
+            api_key = config.anthropic_api_key
+
+        self.llm_provider = create_llm_provider(
+            provider_type=config.llm_provider,
+            base_url=config.ollama_base_url,
+            model_name=config.ollama_llm_model,
+            api_key=api_key,
+        )
+
+        # RAG Config Providers (graph provider needs llm_provider)
         vector_provider = VectorRagConfigProvider(
             workspace_data_access=self.workspace_data_access,
         )
         graph_provider = GraphRagConfigProvider(
             workspace_data_access=self.workspace_data_access,
+            llm_provider=self.llm_provider,
         )
         self.rag_config_provider_factory = RagConfigProviderFactory(
             vector_provider=vector_provider,
@@ -141,20 +156,6 @@ class AppContext:
         )
         self.chat_session_service = ChatSessionService(
             data_access=self.chat_session_data_access,
-        )
-
-        # LLM Provider
-        api_key = None
-        if config.llm_provider == "openai":
-            api_key = config.openai_api_key
-        elif config.llm_provider == "claude":
-            api_key = config.anthropic_api_key
-
-        self.llm_provider = create_llm_provider(
-            provider_type=config.llm_provider,
-            base_url=config.ollama_base_url,
-            model_name=config.ollama_llm_model,
-            api_key=api_key,
         )
 
         # Chat message service (depends on llm_provider)

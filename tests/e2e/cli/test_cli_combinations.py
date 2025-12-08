@@ -56,13 +56,13 @@ class TestCLICombinations:
         select = self.run_cli("workspace", "select", ws_id)
         assert select.returncode == 0
 
-        # Upload document
+        # Add document
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Full workflow test document.\n")
             doc_file = Path(f.name)
 
         try:
-            upload = self.run_cli("document", "upload", str(doc_file))
+            add = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
 
             # Create chat
@@ -136,7 +136,7 @@ class TestCLICombinations:
     # ==================== DOCUMENT OPERATIONS COMBINATIONS ====================
 
     def test_upload_list_show_remove_workflow(self):
-        """Test upload -> list -> show -> remove workflow."""
+        """Test add -> list -> show -> remove workflow."""
         # Create and select workspace
         ws = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
@@ -150,16 +150,16 @@ class TestCLICombinations:
         select = self.run_cli("workspace", "select", ws_id)
         assert select.returncode == 0
 
-        # Create and upload document
+        # Create and add document
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Test document content.\n")
             doc_file = Path(f.name)
 
         try:
             # Upload
-            upload = self.run_cli("document", "upload", str(doc_file))
+            add = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
-            doc_id = self.extract_id(upload.stdout, r"Uploaded \[(\d+)\]")
+            doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
 
             # List
             list_docs = self.run_cli("document", "list")
@@ -212,12 +212,12 @@ class TestCLICombinations:
                 doc_files.append(Path(f.name))
 
         try:
-            # Upload all documents
+            # Add all documents
             doc_ids = []
             for doc_file in doc_files:
-                upload = self.run_cli("document", "upload", str(doc_file))
+                add = self.run_cli("document", "add", str(doc_file))
                 assert upload.returncode == 0
-                doc_id = self.extract_id(upload.stdout, r"Uploaded \[(\d+)\]")
+                doc_id = self.extract_id(upload.stdout, r"Added \[(\d+)\]")
                 doc_ids.append(doc_id)
 
             # List all documents
@@ -439,7 +439,7 @@ class TestCLICombinations:
 
         try:
             for doc_file in doc_files:
-                upload = self.run_cli("document", "upload", str(doc_file))
+                add = self.run_cli("document", "add", str(doc_file))
                 assert upload.returncode == 0
 
             # Add chat sessions
@@ -534,17 +534,17 @@ class TestCLICombinations:
         select = self.run_cli("workspace", "select", ws_id)
         assert select.returncode == 0
 
-        # Try to upload non-existent file (error)
-        upload_error = self.run_cli("document", "upload", "/nonexistent/file.txt")
+        # Try to add non-existent file (error)
+        upload_error = self.run_cli("document", "add", "/nonexistent/file.txt")
         assert upload_error.returncode != 0
 
-        # Upload valid file (should succeed)
+        # Add valid file (should succeed)
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("Error recovery document\n")
             doc_file = Path(f.name)
 
         try:
-            upload = self.run_cli("document", "upload", str(doc_file))
+            add = self.run_cli("document", "add", str(doc_file))
             assert upload.returncode == 0
 
             # List documents (should succeed)

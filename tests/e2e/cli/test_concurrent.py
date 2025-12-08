@@ -65,7 +65,7 @@ class TestCLIConcurrency:
         """Test uploading multiple documents concurrently to same workspace."""
         # Create workspace first
         create_ws = self.run_cli_with_input(
-            ["workspace", "create"], "Concurrent Docs\nConcurrent upload test\nvector\n"
+            ["workspace", "create"], "Concurrent Docs\nConcurrent add test\nvector\n"
         )
         assert create_ws.returncode == 0
 
@@ -92,11 +92,11 @@ class TestCLIConcurrency:
         threads = []
 
         def upload_document(file_path, index):
-            result = self.run_cli("document", "upload", str(file_path))
+            result = self.run_cli("document", "add", str(file_path))
             results.append((index, result))
 
         try:
-            # Upload all files concurrently
+            # Add all files concurrently
             for i, file_path in enumerate(test_files):
                 thread = threading.Thread(target=upload_document, args=(file_path, i))
                 threads.append(thread)
@@ -108,8 +108,8 @@ class TestCLIConcurrency:
 
             # All should succeed
             for index, result in results:
-                assert result.returncode == 0, f"Document {index} upload failed: {result.stderr}"
-                assert "uploaded" in result.stdout.lower()
+                assert result.returncode == 0, f"Document {index} add failed: {result.stderr}"
+                assert "added" in result.stdout.lower()
 
             # Verify all documents are in the list
             list_result = self.run_cli("document", "list")
@@ -207,7 +207,7 @@ class TestCLIConcurrency:
 
     def test_concurrent_document_removal(self):
         """Test removing different documents concurrently."""
-        # Create workspace and upload multiple documents
+        # Create workspace and add multiple documents
         create_ws = self.run_cli_with_input(
             ["workspace", "create"], "Concurrent Remove\nConcurrent removal test\nvector\n"
         )
@@ -220,7 +220,7 @@ class TestCLIConcurrency:
         select = self.run_cli("workspace", "select", ws_id)
         assert select.returncode == 0
 
-        # Create and upload test files
+        # Create and add test files
         test_files = []
         for i in range(5):
             with tempfile.NamedTemporaryFile(
@@ -229,9 +229,9 @@ class TestCLIConcurrency:
                 f.write(f"Document {i} content.\n")
                 test_files.append(Path(f.name))
 
-        # Upload all files
+        # Add all files
         for file_path in test_files:
-            upload = self.run_cli("document", "upload", str(file_path))
+            add = self.run_cli("document", "add", str(file_path))
             assert upload.returncode == 0
 
         results = []
@@ -380,7 +380,7 @@ class TestCLIConcurrency:
         threads = []
 
         def upload_doc(file_path, index):
-            result = self.run_cli("document", "upload", str(file_path))
+            result = self.run_cli("document", "add", str(file_path))
             results.append(("upload", index, result))
 
         def list_docs(index):

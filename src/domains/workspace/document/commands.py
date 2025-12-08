@@ -19,14 +19,18 @@ logger = create_logger(__name__)
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
     """List documents in the current workspace."""
     try:
-        if not ctx.current_workspace_id:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
             print(
-                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
             )
             sys.exit(1)
 
         # === Call Orchestrator ===
-        result = ctx.document_orchestrator.list_documents(ctx.current_workspace_id)
+        result = ctx.document_orchestrator.list_documents(workspace_id)
 
         # === Handle Result (CLI-specific output) ===
         responses = ResultHandler.unwrap_or_exit(result, "list documents")
@@ -78,12 +82,16 @@ def cmd_show(ctx: AppContext, args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
-def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
-    """Upload a document to the current workspace."""
+def cmd_add(ctx: AppContext, args: argparse.Namespace) -> None:
+    """Add a document to the current workspace."""
     try:
-        if not ctx.current_workspace_id:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
             print(
-                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
             )
             sys.exit(1)
 
@@ -91,40 +99,44 @@ def cmd_upload(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # === Create Request DTO ===
         request = UploadDocumentRequest(
-            workspace_id=ctx.current_workspace_id,
+            workspace_id=workspace_id,
             filename=file_path.name,
             file_path=str(file_path),
         )
 
-        print(f"Uploading {file_path.name}...")
+        print(f"Adding {file_path.name}...")
 
         # === Call Orchestrator ===
         result = ctx.document_orchestrator.upload_document(request)
 
         # === Handle Result (CLI-specific output) ===
-        response = ResultHandler.unwrap_or_exit(result, "upload document")
-        print(f"Uploaded [{response.id}] {response.filename}")
+        response = ResultHandler.unwrap_or_exit(result, "add document")
+        print(f"Added [{response.id}] {response.filename}")
 
     except KeyboardInterrupt:
         print("\nCancelled")
         sys.exit(0)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        logger.error(f"Failed to upload document: {e}", exc_info=True)
+        logger.error(f"Failed to add document: {e}", exc_info=True)
         sys.exit(1)
 
 
 def cmd_remove(ctx: AppContext, args: argparse.Namespace) -> None:
     """Remove a document by filename."""
     try:
-        if not ctx.current_workspace_id:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
             print(
-                "Error: No workspace selected. Use 'workspace select <id>' first", file=sys.stderr
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
             )
             sys.exit(1)
 
         # Find document by filename
-        documents = ctx.document_service.list_documents_by_workspace(ctx.current_workspace_id)
+        documents = ctx.document_service.list_documents_by_workspace(workspace_id)
         doc_to_remove = None
         for doc in documents:
             if doc.filename == args.filename:

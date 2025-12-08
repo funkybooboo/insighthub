@@ -108,7 +108,7 @@ class TestChatMessaging:
 
     # ==================== CHAT WITH DOCUMENTS ====================
 
-    def test_chat_with_uploaded_document(self):
+    def test_chat_with_added_document(self):
         """Test chat after uploading a document."""
         import re
 
@@ -127,14 +127,14 @@ class TestChatMessaging:
         select_ws = self.run_cli("workspace", "select", ws_id)
         assert select_ws.returncode == 0
 
-        # Create and upload document
+        # Create and add document
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("The capital of France is Paris.\n")
             f.write("Paris is known for the Eiffel Tower.\n")
             test_file = Path(f.name)
 
         try:
-            upload = self.run_cli("document", "upload", str(test_file))
+            add = self.run_cli("document", "add", str(test_file))
             assert upload.returncode == 0
 
             # Create chat session
@@ -179,7 +179,7 @@ class TestChatMessaging:
         select_ws = self.run_cli("workspace", "select", ws_id)
         assert select_ws.returncode == 0
 
-        # Create and upload multiple documents
+        # Create and add multiple documents
         test_files = []
         for i in range(3):
             with tempfile.NamedTemporaryFile(mode="w", suffix=f"_doc{i}.txt", delete=False) as f:
@@ -188,9 +188,9 @@ class TestChatMessaging:
                 test_files.append(Path(f.name))
 
         try:
-            # Upload all documents
+            # Add all documents
             for test_file in test_files:
-                upload = self.run_cli("document", "upload", str(test_file))
+                add = self.run_cli("document", "add", str(test_file))
                 assert upload.returncode == 0
 
             # Create chat session

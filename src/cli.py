@@ -51,7 +51,7 @@ Examples:
   # Document management
   python -m src.cli document list               List document in current workspace
   python -m src.cli document show 1             Show detailed information about document with ID 1
-  python -m src.cli document upload file.pdf    Upload a document to current workspace
+  python -m src.cli document add file.pdf       Add a document to current workspace
   python -m src.cli document remove file.pdf    Remove a document from current workspace
 
   # Chat operations
@@ -112,13 +112,22 @@ For help on a specific resource, use:
     )
     doc_subparsers = doc_parser.add_subparsers(dest="action", help="Document action")
 
-    doc_subparsers.add_parser("list", help="List document in current workspace")
+    doc_list = doc_subparsers.add_parser("list", help="List document in current workspace")
+    doc_list.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
     doc_show = doc_subparsers.add_parser("show", help="Show detailed document information")
     doc_show.add_argument("document_id", type=int, help="Document ID")
-    doc_upload = doc_subparsers.add_parser("upload", help="Upload a document")
-    doc_upload.add_argument("file", help="Path to document file")
+    doc_add = doc_subparsers.add_parser("add", help="Add a document")
+    doc_add.add_argument("file", help="Path to document file")
+    doc_add.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
     doc_remove = doc_subparsers.add_parser("remove", help="Remove a document")
     doc_remove.add_argument("filename", help="Document filename to remove")
+    doc_remove.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
 
     # ==================== CHAT ====================
     chat_parser = subparsers.add_parser(
@@ -272,8 +281,8 @@ def route_command(
             document_commands.cmd_list(ctx, args)
         elif args.action == "show":
             document_commands.cmd_show(ctx, args)
-        elif args.action == "upload":
-            document_commands.cmd_upload(ctx, args)
+        elif args.action == "add":
+            document_commands.cmd_add(ctx, args)
         elif args.action == "remove":
             document_commands.cmd_remove(ctx, args)
         else:

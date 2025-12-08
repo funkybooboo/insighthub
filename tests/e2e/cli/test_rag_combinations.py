@@ -41,10 +41,10 @@ class TestRAGConfigCombinations:
         assert "nomic-embed-text" in show.stdout.lower()
 
     def test_vector_character_chunking_ollama_embedding(self):
-        """Test vector RAG with character chunking and ollama embedding."""
+        """Test vector RAG with character chunking and all-MiniLM embedding."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="vector\ncharacter\n800\n150\nollama\n3\nnone\n",
+            input="vector\ncharacter\n800\n150\nall-MiniLM-L6-v2\n3\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -53,13 +53,13 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "character" in show.stdout.lower()
-        assert "ollama" in show.stdout.lower()
+        assert "minilm" in show.stdout.lower()
 
     def test_vector_semantic_chunking_huggingface_embedding(self):
-        """Test vector RAG with semantic chunking and huggingface embedding."""
+        """Test vector RAG with semantic chunking and mxbai embedding."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="vector\nsemantic\n1200\n250\nhuggingface\n7\nnone\n",
+            input="vector\nsemantic\n1200\n250\nmxbai-embed-large\n7\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -68,13 +68,13 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "semantic" in show.stdout.lower()
-        assert "huggingface" in show.stdout.lower()
+        assert "mxbai" in show.stdout.lower()
 
     def test_vector_dummy_chunking_dummy_embedding(self):
-        """Test vector RAG with dummy chunking and dummy embedding."""
+        """Test vector RAG with token chunking and nomic embedding."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="vector\ndummy\n500\n100\ndummy\n2\nnone\n",
+            input="vector\ntoken\n500\n100\nnomic-embed-text\n2\nnone\n",
             capture_output=True,
             text=True,
         )
@@ -82,13 +82,13 @@ class TestRAGConfigCombinations:
 
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
-        assert "dummy" in show.stdout.lower()
+        assert "token" in show.stdout.lower()
 
     def test_vector_with_dummy_reranking(self):
-        """Test vector RAG with dummy reranking algorithm."""
+        """Test vector RAG with bm25 reranking algorithm."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\ndummy\n",
+            input="vector\nsentence\n1000\n200\nnomic-embed-text\n5\nbm25\n",
             capture_output=True,
             text=True,
         )
@@ -96,7 +96,7 @@ class TestRAGConfigCombinations:
 
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
-        assert "dummy" in show.stdout.lower() or "rerank" in show.stdout.lower()
+        assert "bm25" in show.stdout.lower() or "rerank" in show.stdout.lower()
 
     def test_vector_large_chunk_size(self):
         """Test vector RAG with large chunk size."""
@@ -168,10 +168,10 @@ class TestRAGConfigCombinations:
         assert "leiden" in show.stdout.lower()
 
     def test_graph_dummy_dependency_leiden(self):
-        """Test graph RAG with dummy entity extraction."""
+        """Test graph RAG with llm entity extraction."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="graph\ndummy\ndependency-parsing\nleiden\n",
+            input="graph\nllm\ndependency-parsing\nleiden\n",
             capture_output=True,
             text=True,
         )
@@ -180,13 +180,13 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "graph" in show.stdout.lower()
-        assert "dummy" in show.stdout.lower()
+        assert "llm" in show.stdout.lower()
 
     def test_graph_spacy_dummy_leiden(self):
-        """Test graph RAG with dummy relationship extraction."""
+        """Test graph RAG with llm relationship extraction."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="graph\nspacy\ndummy\nleiden\n",
+            input="graph\nspacy\nllm\nleiden\n",
             capture_output=True,
             text=True,
         )
@@ -195,12 +195,13 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "graph" in show.stdout.lower()
+        assert "llm" in show.stdout.lower()
 
     def test_graph_spacy_dependency_dummy_clustering(self):
-        """Test graph RAG with dummy clustering."""
+        """Test graph RAG with louvain clustering."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="graph\nspacy\ndependency-parsing\ndummy\n",
+            input="graph\nspacy\ndependency-parsing\nlouvain\n",
             capture_output=True,
             text=True,
         )
@@ -209,12 +210,13 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "graph" in show.stdout.lower()
+        assert "louvain" in show.stdout.lower()
 
     def test_graph_all_dummy(self):
-        """Test graph RAG with all dummy algorithms."""
+        """Test graph RAG with all llm-based algorithms."""
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "default-rag-config", "create"],
-            input="graph\ndummy\ndummy\ndummy\n",
+            input="graph\nllm\nllm\nlouvain\n",
             capture_output=True,
             text=True,
         )
@@ -223,6 +225,7 @@ class TestRAGConfigCombinations:
         show = self.run_cli("default-rag-config", "show")
         assert show.returncode == 0
         assert "graph" in show.stdout.lower()
+        assert "llm" in show.stdout.lower()
 
     # ==================== RAG TYPE SWITCHING ====================
 
@@ -281,8 +284,8 @@ class TestRAGConfigCombinations:
         configs = [
             "vector\nsentence\n1000\n200\nnomic-embed-text\n5\nnone\n",
             "graph\nspacy\ndependency-parsing\nleiden\n",
-            "vector\ncharacter\n500\n100\ndummy\n3\nnone\n",
-            "graph\ndummy\ndummy\ndummy\n",
+            "vector\ncharacter\n500\n100\nall-MiniLM-L6-v2\n3\nnone\n",
+            "graph\nllm\nllm\nlouvain\n",
         ]
 
         for config in configs:

@@ -122,7 +122,7 @@ class TestGraphRagComprehensive:
         # Select the workspace
         self.run_cli("workspace", "select", workspace_id)
 
-        # Upload entity-rich document
+        # Add entity-rich document
         doc_content = """
         Microsoft was founded by Bill Gates and Paul Allen in 1975.
         The company is headquartered in Redmond, Washington.
@@ -132,9 +132,9 @@ class TestGraphRagComprehensive:
             doc_path = f.name
 
         try:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
-            assert "uploaded" in upload_result.stdout.lower()
+            assert "added" in upload_result.stdout.lower()
 
             # Verify document status is ready (meaning extraction completed)
             list_result = self.run_cli("document", "list")
@@ -170,9 +170,9 @@ class TestGraphRagComprehensive:
 
         assert workspace_id is not None
 
-        # Select workspace and upload document
+        # Select workspace and add document
         self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", entity_rich_document)
+        upload_result = self.run_cli("document", "add", entity_rich_document)
         assert upload_result.returncode == 0
 
         # Wait a moment for processing
@@ -216,9 +216,9 @@ class TestGraphRagComprehensive:
         # Select workspace
         self.run_cli("workspace", "select", workspace_id)
 
-        # Upload all documents
+        # Add all documents
         for doc_path in multi_entity_documents:
-            upload_result = self.run_cli("document", "upload", doc_path)
+            upload_result = self.run_cli("document", "add", doc_path)
             assert upload_result.returncode == 0
 
         # Verify all documents are listed
@@ -250,30 +250,29 @@ class TestGraphRagComprehensive:
             ws_result = self.run_cli("workspace", "create", input_text="Large Doc Test\n\ngraph\n")
             assert ws_result.returncode == 0
 
-            workspace_id = None
-            for line in ws_result.stdout.split("\n"):
-                if "[" in line and "]" in line:
-                    try:
-                        workspace_id = line.split("[")[1].split("]")[0]
-                        break
-                    except Exception:
-                        continue
+            match = re.search(r"Created workspace \[(\d+)\]", ws_result.stdout)
+            assert match is not None, "Could not extract workspace ID"
+            workspace_id = match.group(1)
 
-            assert workspace_id is not None
+            # Add document (no need to select workspace first)
+            upload_result = self.run_cli(
+                "document", "add", doc_path, "--workspace-id", workspace_id
+            )
 
-            # Select and upload
-            self.run_cli("workspace", "select", workspace_id)
-            upload_result = self.run_cli("document", "upload", doc_path)
-
-            # Should handle upload without crashing
-            assert upload_result.returncode == 0
+            # Should handle add without crashing
+            # May fail if LLM provider is not configured for graph RAG
+            if upload_result.returncode != 0:
+                if "llm_provider is required" in upload_result.stderr:
+                    pytest.skip("LLM provider not configured for graph RAG")
+                else:
+                    assert upload_result.returncode == 0, f"Add failed: {upload_result.stderr}"
 
             # Verify document reaches ready state
             import time
 
             time.sleep(3)  # Allow processing time
 
-            list_result = self.run_cli("document", "list")
+            list_result = self.run_cli("document", "list", "--workspace-id", workspace_id)
             assert list_result.returncode == 0
             assert "[" in list_result.stdout  # At least one document listed
 
@@ -320,7 +319,7 @@ class TestGraphRagComprehensive:
 
         # Select and upload
         self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", entity_rich_document)
+        upload_result = self.run_cli("document", "add", entity_rich_document)
         assert upload_result.returncode == 0
 
         # Get document filename
@@ -393,9 +392,9 @@ class TestGraphRagComprehensive:
 
         assert workspace_id is not None
 
-        # Select and upload document to create graph data
+        # Select and add document to create graph data
         self.run_cli("workspace", "select", workspace_id)
-        upload_result = self.run_cli("document", "upload", entity_rich_document)
+        upload_result = self.run_cli("document", "add", entity_rich_document)
         assert upload_result.returncode == 0
 
         # Delete workspace

@@ -131,8 +131,8 @@ multi-container apps in docker-compose.yml.
 Upload:
 
 ```bash
-task cli -- document upload python.txt
-task cli -- document upload docker.txt
+task cli -- document add python.txt
+task cli -- document add docker.txt
 ```
 
 Output:
@@ -233,6 +233,6 @@ task cli -- chat history
 - `rag-options list` - View algorithms
 - `default-rag-config show/create` - Configure defaults
 - `workspace create/show/select` - Manage workspaces
-- `document upload/list/show` - Handle documents
+- `document add/list/show` - Handle documents
 - `chat create/select/send/history` - Chat operations
 - `state show` - View current state
