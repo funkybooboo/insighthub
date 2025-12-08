@@ -52,7 +52,7 @@ class TestCrossRagWorkflows:
         # Create vector workspace
         vector_result = self.run_cli(
             "workspace",
-            "new",
+            "create",
             input_text="Vector Workspace\nVector workspace for testing\nvector\n",
         )
         assert vector_result.returncode == 0
@@ -121,24 +121,14 @@ class TestCrossRagWorkflows:
         """Test switching selected workspace between vector and graph types."""
         # Create both workspace types
         vector_result = self.run_cli("workspace", "create", input_text="Vector WS\n\nvector\n")
-        vector_ws_id = None
-        for line in vector_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    vector_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", vector_result.stdout)
+        assert match is not None, "Could not extract vector workspace ID from output"
+        vector_ws_id = match.group(1)
 
         graph_result = self.run_cli("workspace", "create", input_text="Graph WS\n\ngraph\n")
-        graph_ws_id = None
-        for line in graph_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    graph_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", graph_result.stdout)
+        assert match is not None, "Could not extract graph workspace ID from output"
+        graph_ws_id = match.group(1)
 
         assert vector_ws_id is not None and graph_ws_id is not None
 
@@ -230,28 +220,18 @@ class TestCrossRagWorkflows:
         """Test that state is properly maintained when switching between RAG types."""
         # Create vector workspace
         vector_result = self.run_cli("workspace", "create", input_text="State Vector\n\nvector\n")
-        vector_ws_id = None
-        for line in vector_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    vector_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", vector_result.stdout)
+        assert match is not None, "Could not extract vector workspace ID from output"
+        vector_ws_id = match.group(1)
 
         # Select it
         self.run_cli("workspace", "select", vector_ws_id)
 
         # Create chat in vector workspace
         vector_chat = self.run_cli("chat", "create", vector_ws_id, input_text="\n")
-        vector_session_id = None
-        for line in vector_chat.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    vector_session_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created chat session \[(\d+)\]", vector_chat.stdout)
+        assert match is not None, "Could not extract chat session ID from output"
+        vector_session_id = match.group(1)
 
         self.run_cli("chat", "select", vector_session_id)
 
@@ -262,14 +242,9 @@ class TestCrossRagWorkflows:
 
         # Create graph workspace
         graph_result = self.run_cli("workspace", "create", input_text="State Graph\n\ngraph\n")
-        graph_ws_id = None
-        for line in graph_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    graph_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", graph_result.stdout)
+        assert match is not None, "Could not extract graph workspace ID from output"
+        graph_ws_id = match.group(1)
 
         # Select graph workspace
         self.run_cli("workspace", "select", graph_ws_id)
@@ -283,24 +258,14 @@ class TestCrossRagWorkflows:
         """Test that documents in different RAG workspaces are independent."""
         # Create both workspace types
         vector_result = self.run_cli("workspace", "create", input_text="Vector Docs\n\nvector\n")
-        vector_ws_id = None
-        for line in vector_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    vector_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", vector_result.stdout)
+        assert match is not None, "Could not extract vector workspace ID from output"
+        vector_ws_id = match.group(1)
 
         graph_result = self.run_cli("workspace", "create", input_text="Graph Docs\n\ngraph\n")
-        graph_ws_id = None
-        for line in graph_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    graph_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", graph_result.stdout)
+        assert match is not None, "Could not extract graph workspace ID from output"
+        graph_ws_id = match.group(1)
 
         # Upload document to vector workspace
         self.run_cli("workspace", "select", vector_ws_id)
@@ -334,24 +299,14 @@ class TestCrossRagWorkflows:
         """Test that deleting vector workspace doesn't affect graph workspace."""
         # Create both types
         vector_result = self.run_cli("workspace", "create", input_text="Vector Delete\n\nvector\n")
-        vector_ws_id = None
-        for line in vector_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    vector_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", vector_result.stdout)
+        assert match is not None, "Could not extract vector workspace ID from output"
+        vector_ws_id = match.group(1)
 
         graph_result = self.run_cli("workspace", "create", input_text="Graph Preserve\n\ngraph\n")
-        graph_ws_id = None
-        for line in graph_result.stdout.split("\n"):
-            if "[" in line and "]" in line:
-                try:
-                    graph_ws_id = line.split("[")[1].split("]")[0]
-                    break
-                except Exception:
-                    continue
+        match = re.search(r"Created workspace \[(\d+)\]", graph_result.stdout)
+        assert match is not None, "Could not extract graph workspace ID from output"
+        graph_ws_id = match.group(1)
 
         # Delete vector workspace
         delete_result = self.run_cli("workspace", "delete", vector_ws_id, input_text="yes\n")

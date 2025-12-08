@@ -30,3 +30,16 @@ This method is more specialized. It's designed to understand the *relationships*
 **How it works conceptually:**
 1.  **Mapping:** When you add a document, the system actively looks for specific items (like people, places, and companies) and the connections between them. It uses this to build a graph.
 2.  **Answering:** When you ask a question, the system navigates the connections in its knowledge graph to find the answer, allowing it to respond to queries that a simple search couldn't handle.
+
+## Hybrid Search (Hybrid)
+
+This method combines the strengths of both Semantic (Vector) and Knowledge Graph (Graph) Search. It uses both meaning-based retrieval and relationship-based retrieval to provide a more comprehensive and accurate answer.
+
+**When to use it:**
+- You want the best of both worlds: the broad understanding of semantic search and the precise relationship awareness of graph search.
+- Your documents are diverse, containing both free-form text and structured relationships.
+- You need highly accurate and contextually rich answers to complex queries.
+
+**How it works conceptually:**
+1.  **Dual Retrieval:** When you ask a question, the system simultaneously performs a semantic search (vector) and a knowledge graph traversal (graph).
+2.  **Intelligent Combination:** The results from both methods are then intelligently combined and re-ranked to leverage the strengths of each, providing a more complete and nuanced answer.

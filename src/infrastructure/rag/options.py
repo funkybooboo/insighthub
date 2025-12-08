@@ -28,6 +28,11 @@ def get_rag_type_options() -> list[dict[str, str]]:
             "label": "Graph RAG",
             "description": "Knowledge graph-based retrieval with entity relationships",
         },
+        {
+            "value": "hybrid",
+            "label": "Hybrid RAG",
+            "description": "Combines vector and graph retrieval for enhanced results",
+        },
     ]
 
 

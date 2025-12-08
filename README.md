@@ -8,7 +8,7 @@ InsightHub uses a **domain-driven design** architecture with clean separation of
 
 - **CLI Interface**: Task-based command-line interface for all operations
 - **Domain Layer**: Business logic organized by bounded contexts (workspace, document, chat, state, rag_options)
-- **Infrastructure Layer**: Generic utilities, RAG workflows, LLM providers, caching
+- **Infrastructure Layer**: Generic utilities, RAG workflows, LLM providers, caching, and a RAG store manager
 - **Data Layer**: PostgreSQL with pgvector, Qdrant, Neo4j, Redis cache
 
 Each domain contains its own models, repositories, services, orchestrators, validation, and CLI commands, ensuring true domain isolation and maintainability.

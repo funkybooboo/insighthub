@@ -11,7 +11,8 @@ from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.workflows.query import QueryWorkflowFactory
+from src.infrastructure.rag.store_manager import RAGStoreManager
+from src.infrastructure.rag.workflows.query.factory import QueryWorkflowFactory
 from src.infrastructure.types import (
     DatabaseError,
     NotFoundError,
@@ -33,6 +34,7 @@ class ChatMessageService:
         workspace_data_access: WorkspaceDataAccess,
         llm_provider: LlmProvider,
         config_provider_factory: RagConfigProviderFactory,
+        rag_store_manager: RAGStoreManager,
     ):
         """Initialize service with data access layers."""
         self.data_access = data_access
@@ -40,6 +42,7 @@ class ChatMessageService:
         self.workspace_data_access = workspace_data_access
         self.llm_provider = llm_provider
         self.config_provider_factory = config_provider_factory
+        self.rag_store_manager = rag_store_manager
 
     def create_message(
         self,
@@ -241,7 +244,7 @@ class ChatMessageService:
         rag_config = provider.build_query_settings(workspace_id)
 
         # Create and execute query workflow
-        workflow = QueryWorkflowFactory.create(rag_config)
+        workflow = QueryWorkflowFactory.create(rag_config, self.rag_store_manager)
         top_k = rag_config.get("top_k", 5)
         chunks = workflow.execute(
             query_text=query_text,

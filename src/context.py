@@ -36,6 +36,7 @@ from src.domains.workspace.repositories import WorkspaceRepository
 from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.cache.factory import create_cache
 from src.infrastructure.llm.factory import create_llm_provider
+from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import get_sql_database
 from src.infrastructure.storage.factory import create_blob_storage
 
@@ -45,6 +46,8 @@ class AppContext:
 
     def __init__(self):
         """Initialize context with all services."""
+        # RAG Store Manager
+        self.rag_store_manager = RAGStoreManager()
         # Database
         db = get_sql_database()
 
@@ -134,6 +137,7 @@ class AppContext:
             workspace_repository=self.workspace_repo,
             blob_storage=self.blob_storage,
             config_provider_factory=self.rag_config_provider_factory,
+            rag_store_manager=self.rag_store_manager,
         )
         self.chat_session_service = ChatSessionService(
             data_access=self.chat_session_data_access,
@@ -160,6 +164,7 @@ class AppContext:
             workspace_data_access=self.workspace_data_access,
             llm_provider=self.llm_provider,
             config_provider_factory=self.rag_config_provider_factory,
+            rag_store_manager=self.rag_store_manager,
         )
 
         # State service

@@ -83,7 +83,7 @@ InsightHub follows **Domain-Driven Design (DDD)** principles with clean separati
 ┌─────────────────────────────────────────────┐
 │    Infrastructure Layer (infrastructure/)   │
 │  - Generic utilities (cache, validation)    │
-│  - RAG workflows & algorithms               │
+│  - RAG workflows & algorithms & store manager               │
 │  - LLM providers                            │
 │  - Storage adapters                         │
 │  - Database connection                      │

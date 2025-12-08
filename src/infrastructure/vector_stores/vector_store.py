@@ -53,6 +53,22 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
+    def delete(self, filters: FilterDict) -> int:
+        """
+        Delete vectors from the vector store based on metadata filters.
+
+        Args:
+            filters: A dictionary of metadata key-value pairs to match.
+
+        Returns:
+            The number of vectors deleted.
+
+        Raises:
+            VectorStoreError: If deleting vectors fails.
+        """
+        pass
+
+    @abstractmethod
     def clear(self) -> None:
         """
         Clear the vector store.

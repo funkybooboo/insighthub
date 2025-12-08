@@ -15,8 +15,9 @@ from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
 )
-from src.infrastructure.rag.workflows.add_document import AddDocumentWorkflowFactory
-from src.infrastructure.rag.workflows.remove_document import RemoveDocumentWorkflowFactory
+from src.infrastructure.rag.store_manager import RAGStoreManager
+from src.infrastructure.rag.workflows.add_document.factory import AddDocumentWorkflowFactory
+from src.infrastructure.rag.workflows.remove_document.factory import RemoveDocumentWorkflowFactory
 from src.infrastructure.storage import BlobStorage
 from src.infrastructure.types import DatabaseError, NotFoundError, StorageError, WorkflowError
 
@@ -32,19 +33,21 @@ class DocumentService:
         workspace_repository: WorkspaceRepository,
         blob_storage: BlobStorage,
         config_provider_factory: RagConfigProviderFactory,
+        rag_store_manager: RAGStoreManager,
     ):
         """Initialize service with data access, workspace repository, and storage.
-
         Args:
             data_access: Document data access layer (handles cache + repository)
             workspace_repository: Workspace repository (needed for RAG config)
             blob_storage: Blob storage implementation (needed for file operations)
             config_provider_factory: Factory for RAG config providers
+            rag_store_manager: RAG store manager
         """
         self.data_access = data_access
         self.workspace_repository = workspace_repository
         self.blob_storage = blob_storage
         self.config_provider_factory = config_provider_factory
+        self.rag_store_manager = rag_store_manager
 
     def upload_and_process_document(
         self,
@@ -53,12 +56,10 @@ class DocumentService:
         file_content: bytes,
     ) -> Result[Document, NotFoundError | StorageError | WorkflowError | DatabaseError]:
         """Upload and process a document synchronously (CLI system).
-
         Args:
             workspace_id: Workspace ID for the document
             filename: Original filename
             file_content: File content as bytes
-
         Returns:
             Result containing Document with status 'ready' or 'failed', or error
         """
@@ -131,12 +132,10 @@ class DocumentService:
         file_content: bytes,
     ) -> Result[int, WorkflowError]:
         """Process document through RAG workflow with status tracking.
-
         Args:
             workspace: Workspace the document belongs to
             document: Document record
             file_content: File content as bytes
-
         Returns:
             Result containing number of chunks indexed, or error
         """
@@ -152,7 +151,7 @@ class DocumentService:
         # Create and execute workflow
         # Note: The workflow internally does: parse -> chunk -> embed -> index
         # We update status at key milestones
-        workflow = AddDocumentWorkflowFactory.create(rag_config)
+        workflow = AddDocumentWorkflowFactory.create(rag_config, self.rag_store_manager)
 
         # Execute workflow - this does all the heavy lifting
         result = workflow.execute(
@@ -197,10 +196,8 @@ class DocumentService:
 
     def remove_document(self, document_id: int) -> bool:
         """Remove document and its RAG data.
-
         Args:
             document_id: Document ID to remove
-
         Returns:
             bool: True if deleted, False if not found
         """
@@ -236,11 +233,9 @@ class DocumentService:
         self, workspace: Workspace, document: Document
     ) -> Result[None, WorkflowError]:
         """Remove document from RAG index.
-
         Args:
             workspace: Workspace the document belongs to
             document: Document to remove
-
         Returns:
             Result containing None on success, or error
         """
@@ -250,7 +245,7 @@ class DocumentService:
         rag_config = self._build_rag_config(workspace)
 
         # Create and execute removal workflow
-        workflow = RemoveDocumentWorkflowFactory.create(rag_config)
+        workflow = RemoveDocumentWorkflowFactory.create(rag_config, self.rag_store_manager)
         result = workflow.execute(
             document_id=str(document.id),
             workspace_id=str(workspace.id),
@@ -260,7 +255,8 @@ class DocumentService:
             error = result.failure()
             return Failure(
                 WorkflowError(
-                    f"Removal workflow failed: {error.message}", workflow="remove_document_from_rag"
+                    f"Removal workflow failed: {error.message}",
+                    workflow="remove_document_from_rag",
                 )
             )
 
@@ -269,10 +265,8 @@ class DocumentService:
 
     def list_documents_by_workspace(self, workspace_id: int) -> list[Document]:
         """List all documents for a workspace with caching (handled by data access layer).
-
         Args:
             workspace_id: Workspace ID
-
         Returns:
             list[Document]: List of documents
         """
@@ -280,10 +274,8 @@ class DocumentService:
 
     def get_document_by_id(self, document_id: int) -> Optional[Document]:
         """Get document by ID with caching (handled by data access layer).
-
         Args:
             document_id: Document ID
-
         Returns:
             Optional[Document]: Document if found, None otherwise
         """

@@ -4,11 +4,11 @@ from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
 from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
+from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import AddDocumentWorkflow
 from src.infrastructure.rag.workflows.add_document.vector_rag_add_document_workflow import (
     VectorRagAddDocumentWorkflow,
 )
-from src.infrastructure.vector_stores import VectorStoreFactory
 
 logger = create_logger(__name__)
 
@@ -17,9 +17,8 @@ class AddDocumentWorkflowFactory:
     """Factory for creating add document workflows."""
 
     @staticmethod
-    def create(rag_config: dict) -> AddDocumentWorkflow:
+    def create(rag_config: dict, rag_store_manager: RAGStoreManager) -> AddDocumentWorkflow:
         """Create an add document workflow based on configuration.
-
         Args:
             rag_config: RAG configuration dictionary containing:
                 - rag_type: "vector" or "graph"
@@ -30,24 +29,25 @@ class AddDocumentWorkflowFactory:
                 - embedder_config: {base_url, model_name, ...}
                 - vector_store_type: "qdrant", etc.
                 - vector_store_config: {host, port, collection, ...}
-
+            rag_store_manager: RAG store manager
         Returns:
             AddDocumentWorkflow implementation
-
         Raises:
             ValueError: If rag_type is unsupported or config is invalid
         """
         rag_type = rag_config.get("rag_type", "vector")
 
         if rag_type == "vector":
-            return AddDocumentWorkflowFactory._create_vector(rag_config)
+            return AddDocumentWorkflowFactory._create_vector(rag_config, rag_store_manager)
         elif rag_type == "graph":
-            return AddDocumentWorkflowFactory._create_graph(rag_config)
+            return AddDocumentWorkflowFactory._create_graph(rag_config, rag_store_manager)
         else:
             raise ValueError(f"Unsupported RAG type: {rag_type}")
 
     @staticmethod
-    def _create_vector(config: dict) -> VectorRagAddDocumentWorkflow:
+    def _create_vector(
+        config: dict, rag_store_manager: RAGStoreManager
+    ) -> VectorRagAddDocumentWorkflow:
         """Create Vector RAG add document workflow with injected dependencies."""
         logger.info("Creating Vector RAG add document workflow")
 
@@ -68,13 +68,9 @@ class AddDocumentWorkflowFactory:
         embedder = EmbedderFactory.create_embedder(embedder_type, **embedder_config)
         logger.debug(f"Created embedder: {embedder_type} with config {embedder_config}")
 
-        # Create vector store
-        vector_store_type = config.get("vector_store_type", "qdrant")
-        vector_store_config = config.get("vector_store_config", {})
-        vector_store = VectorStoreFactory.create_vector_store(
-            vector_store_type, **vector_store_config
-        )
-        logger.debug(f"Created vector store: {vector_store_type} with config {vector_store_config}")
+        # Get vector store from manager
+        vector_store = rag_store_manager.get_vector_store(config)
+        logger.debug("Retrieved vector store from manager")
 
         # Wire together into workflow
         workflow = VectorRagAddDocumentWorkflow(
@@ -88,11 +84,10 @@ class AddDocumentWorkflowFactory:
         return workflow
 
     @staticmethod
-    def _create_graph(config: dict) -> AddDocumentWorkflow:
+    def _create_graph(config: dict, rag_store_manager: RAGStoreManager) -> AddDocumentWorkflow:
         """Create Graph RAG add document workflow."""
         logger.info("Creating Graph RAG add document workflow")
 
-        from src.infrastructure.graph_stores.factory import GraphStoreFactory
         from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
         from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
         from src.infrastructure.rag.steps.graph_rag.entity_extraction.factory import (
@@ -126,11 +121,9 @@ class AddDocumentWorkflowFactory:
             **config.get("relationship_extraction_config", {}),
         )
 
-        # Create graph store
-        graph_store = GraphStoreFactory.create(
-            config.get("graph_store_type", "neo4j"),
-            **config.get("graph_store_config", {}),
-        )
+        # Get graph store from manager
+        graph_store = rag_store_manager.get_graph_store(config)
+        logger.debug("Retrieved graph store from manager")
 
         # Create workflow with clustering parameters
         workflow = GraphRagAddDocumentWorkflow(

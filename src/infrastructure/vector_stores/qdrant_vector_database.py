@@ -481,6 +481,69 @@ class QdrantVectorDatabase(VectorDatabase):
             "status": str(info.status),
         }
 
+    def delete_by_filter(self, filters: FilterDict) -> int:
+        """
+        Delete all points matching a filter by scrolling and batch deleting.
+
+        Note: This implementation scrolls through all points to get their IDs
+        before deleting. While less efficient than a direct deletion, the direct
+        delete API in Qdrant is asynchronous and doesn't return a count. This
+        approach ensures we can return an accurate count per the interface contract.
+
+        Args:
+            filters: Metadata filters to apply
+
+        Returns:
+            Number of points deleted
+        """
+        if not QDRANT_AVAILABLE:
+            return 0
+
+        qdrant_filter = self._build_filter(filters)
+        if not qdrant_filter:
+            return 0
+
+        try:
+            # Scroll through all points matching the filter to get their IDs
+            point_ids = []
+            offset = None
+            while True:
+                scroll_result, next_offset = self._client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=qdrant_filter,
+                    limit=256,  # Batch size
+                    offset=offset,
+                    with_payload=False,
+                    with_vectors=False,
+                )
+                if not scroll_result:
+                    break
+
+                point_ids.extend([point.id for point in scroll_result])
+
+                if next_offset is None:
+                    break
+                offset = next_offset
+
+            if not point_ids:
+                return 0
+
+            # Delete the collected point IDs in batches
+            self._client.delete(
+                collection_name=self.collection_name,
+                points_selector=qdrant_models.PointIdsList(points=point_ids),
+            )
+
+            deleted_count = len(point_ids)
+            logger.info(f"Deleted {deleted_count} points matching filter.")
+            return deleted_count
+
+        except Exception as e:
+            logger.error(f"Failed to delete by filter: {e}")
+            raise VectorStoreException(
+                str(e), operation="delete_by_filter", original_error=e
+            ) from e
+
     def search_with_score_threshold(
         self,
         vector: list[float],

@@ -131,3 +131,25 @@ class QdrantVectorStore(VectorStore):
         except Exception as e:
             logger.error(f"Failed to clear vector store: {e}")
             raise
+
+    def delete(self, filters: FilterDict) -> int:
+        """
+        Delete vectors from the vector store based on metadata filters.
+
+        Args:
+            filters: A dictionary of metadata key-value pairs to match.
+
+        Returns:
+            The number of vectors deleted.
+
+        Raises:
+            VectorStoreError: If deleting vectors fails.
+        """
+        logger.info(f"Deleting vectors with filter: {filters}")
+        try:
+            deleted_count = self.db.delete_by_filter(filters)
+            logger.info(f"Deleted {deleted_count} vectors")
+            return deleted_count
+        except Exception as e:
+            logger.error(f"Failed to delete vectors by filter: {e}")
+            raise

@@ -110,7 +110,7 @@ class TestDefaultRagConfigCLI:
         assert result.returncode == 0
         assert "default rag" in result.stdout.lower()
         assert "show" in result.stdout.lower()
-        assert "new" in result.stdout.lower()
+        assert "create" in result.stdout.lower()
 
     def test_default_rag_config_auto_create_on_show(self):
         """Test that default config is auto-created if it doesn't exist."""
