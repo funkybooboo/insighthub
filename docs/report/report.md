@@ -386,6 +386,8 @@ Kubernetes Deployment
 
 # References
 
+https://github.com/ALucek/RAG-Overview/blob/main/rag_breakdown.ipynb
+
 @inproceedings{10.1145/3626772.3661370,
     author = {Xu, Zhentao and Cruz, Mark Jerome and Guevara, Matthew and Wang, Tie and Deshpande, Manasi and Wang, Xiaofeng and Li, Zheng},
     title = {Retrieval-Augmented Generation with Knowledge Graphs for Customer Service Question Answering},
