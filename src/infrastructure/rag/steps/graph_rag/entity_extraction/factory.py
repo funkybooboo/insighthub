@@ -8,7 +8,9 @@ from typing import Optional
 
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.entity_extraction.base import EntityExtractor
+from src.infrastructure.rag.steps.graph_rag.entity_extraction.entity_extractor import (
+    EntityExtractor,
+)
 from src.infrastructure.rag.steps.graph_rag.entity_extraction.llm_entity_extractor import (
     LlmEntityExtractor,
 )

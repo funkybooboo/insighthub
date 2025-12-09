@@ -1,7 +1,7 @@
 """Workspace domain orchestrator.
 
 Eliminates duplication between commands.py and routes.py by providing
-a single interface for: Request DTO → Validation → Service → Response DTO
+a single interface for: Request DTO -> Validation -> Service -> Response DTO
 """
 
 from typing import Any, Optional
@@ -31,7 +31,7 @@ from src.infrastructure.types import DatabaseError, NotFoundError, ValidationErr
 
 
 class WorkspaceOrchestrator:
-    """Orchestrates workspace operations: validation → service → response."""
+    """Orchestrates workspace operations: validation -> service -> response."""
 
     def __init__(self, service: WorkspaceService, repository: WorkspaceRepository):
         """Initialize orchestrator with service and repository."""

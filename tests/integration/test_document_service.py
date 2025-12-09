@@ -16,14 +16,14 @@ from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.domains.workspace.document.data_access import DocumentDataAccess
 from src.domains.workspace.document.repositories import DocumentRepository
 from src.domains.workspace.document.service import DocumentService
-from src.domains.workspace.rag_config_provider import (
+from src.domains.workspace.repositories import WorkspaceRepository
+from src.infrastructure.cache.redis_cache import RedisCache
+from src.infrastructure.llm.llm_provider import LlmProvider
+from src.infrastructure.rag.rag_config_provider import (
     GraphRagConfigProvider,
     RagConfigProviderFactory,
     VectorRagConfigProvider,
 )
-from src.domains.workspace.repositories import WorkspaceRepository
-from src.infrastructure.cache.redis_cache import RedisCache
-from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.storage.file_system_storage import FileSystemBlobStorage

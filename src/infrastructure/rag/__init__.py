@@ -25,7 +25,7 @@ from src.infrastructure.rag.workflows.add_document import (
     AddDocumentWorkflowError,
 )
 from src.infrastructure.rag.workflows.query import QueryWorkflow, QueryWorkflowError
-from src.infrastructure.vector_stores import VectorDatabase, VectorStore, VectorStoreFactory
+from src.infrastructure.vector_stores import VectorStore, VectorStoreFactory
 
 __all__ = [
     # Parsing
@@ -39,11 +39,8 @@ __all__ = [
     # Embedding
     "VectorEmbeddingEncoder",
     "EmbedderFactory",
-    # "EmbedderFactory", # Removed as per new structure
-    "get_available_embedders",
     # Vector Stores
     "VectorStore",
-    "VectorDatabase",
     "VectorStoreFactory",
     # Reranking
     "Reranker",

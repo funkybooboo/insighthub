@@ -11,7 +11,9 @@ import spacy
 from spacy.language import Language
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.entity_extraction.base import EntityExtractor
+from src.infrastructure.rag.steps.graph_rag.entity_extraction.entity_extractor import (
+    EntityExtractor,
+)
 from src.infrastructure.types.graph import Entity, EntityMetadata, EntityType
 
 logger = create_logger(__name__)

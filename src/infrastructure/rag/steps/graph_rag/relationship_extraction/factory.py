@@ -8,11 +8,11 @@ from typing import Optional
 
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.relationship_extraction.base import (
-    RelationshipExtractor,
-)
 from src.infrastructure.rag.steps.graph_rag.relationship_extraction.llm_relationship_extractor import (
     LlmRelationshipExtractor,
+)
+from src.infrastructure.rag.steps.graph_rag.relationship_extraction.relationship_extractor import (
+    RelationshipExtractor,
 )
 from src.infrastructure.types.graph import RelationType
 

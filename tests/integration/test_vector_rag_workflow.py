@@ -21,7 +21,6 @@ from src.infrastructure.rag.workflows.add_document.vector_rag_add_document_workf
     VectorRagAddDocumentWorkflow,
 )
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
-from src.infrastructure.vector_stores.qdrant_vector_database import QdrantVectorDatabase
 from src.infrastructure.vector_stores.qdrant_vector_store import QdrantVectorStore
 
 
@@ -38,23 +37,17 @@ class TestVectorRagWorkflowIntegration:
         container.stop()
 
     @pytest.fixture(scope="function")
-    def qdrant_db(
+    def vector_store(
         self, qdrant_container_instance: QdrantContainer
-    ) -> Generator[QdrantVectorDatabase, None, None]:
-        """Fixture to create a QdrantVectorDatabase instance."""
+    ) -> Generator[QdrantVectorStore, None, None]:
+        """Create a vector store connected to the test Qdrant container."""
         host = qdrant_container_instance.get_container_host_ip()
         port = qdrant_container_instance.get_exposed_port(6333)
-        db = QdrantVectorDatabase(
+        store = QdrantVectorStore(
             url=f"http://{host}:{port}", collection_name="test_collection", vector_size=4
         )
-        yield db
-        db.clear()  # Clean up collection after each test
-
-    @pytest.fixture(scope="function")
-    def vector_store(self, qdrant_db: QdrantVectorDatabase) -> QdrantVectorStore:
-        """Create a vector store connected to the test Qdrant container."""
-        store = QdrantVectorStore(vector_database=qdrant_db)
-        return store
+        yield store
+        store.clear()  # Clean up collection after each test
 
     @pytest.fixture(scope="function")
     def embedding_provider(self) -> DummyEmbeddingProvider:

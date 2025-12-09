@@ -1,7 +1,7 @@
 """Default RAG configuration domain orchestrator.
 
 Eliminates duplication between commands.py and routes.py by providing
-a single interface for: Request DTO → Validation → Service → Response DTO
+a single interface for: Request DTO -> Validation -> Service -> Response DTO
 """
 
 from typing import Dict
@@ -19,7 +19,7 @@ from src.infrastructure.types import ValidationError
 
 
 class DefaultRagConfigOrchestrator:
-    """Orchestrates default RAG config operations: validation → service → response."""
+    """Orchestrates default RAG config operations: validation -> service -> response."""
 
     def __init__(self, service: DefaultRagConfigService):
         """Initialize orchestrator with service."""

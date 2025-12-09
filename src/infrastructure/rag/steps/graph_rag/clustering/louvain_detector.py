@@ -18,7 +18,7 @@ except ImportError:
 from src.infrastructure.graph_stores.graph_store import GraphStore
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.clustering.base import CommunityDetector
+from src.infrastructure.rag.steps.graph_rag.clustering.detector import CommunityDetector
 from src.infrastructure.types.graph import Community, CommunityMetadata
 
 logger = create_logger(__name__)

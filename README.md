@@ -124,7 +124,7 @@ Replace `<resource>` with workspace, document, chat, etc.
 
 ### Common Patterns
 
-**Pattern 1: List → Show → Select**
+**Pattern 1: List -> Show -> Select**
 ```bash
 # List all items
 task cli -- workspace list
@@ -136,7 +136,7 @@ task cli -- workspace show 1
 task cli -- workspace select 1
 ```
 
-**Pattern 2: Create → Verify → Use**
+**Pattern 2: Create -> Verify -> Use**
 ```bash
 # Create (interactive prompts)
 task cli -- workspace create
@@ -148,7 +148,7 @@ task cli -- workspace list
 task cli -- workspace select <id>
 ```
 
-**Pattern 3: Check State → Act → Verify**
+**Pattern 3: Check State -> Act -> Verify**
 ```bash
 # Check current context
 task cli -- state show
@@ -208,88 +208,88 @@ Each tutorial includes CLI tips, help examples, and best practices.
 
 ```
 insighthub/
-├── src/
-│   ├── cli.py                          # CLI entry point
-│   ├── config.py                       # Configuration management
-│   ├── context.py                      # DI container
-│   ├── domains/                        # Business domains (DDD)
-│   │   ├── default_rag_config/         # Default RAG configuration
-│   │   │   ├── models.py               # Domain entities
-│   │   │   ├── repositories.py         # Data persistence
-│   │   │   ├── service.py              # Business logic
-│   │   │   ├── orchestrator.py         # Workflow coordination
-│   │   │   ├── validation.py           # Input validation
-│   │   │   ├── mappers.py              # DTO mappings
-│   │   │   ├── dtos.py                 # Request/Response DTOs
-│   │   │   └── commands.py             # CLI commands
-│   │   ├── rag_options/                # RAG algorithm options (read-only)
-│   │   │   ├── service.py              # Query available algorithms
-│   │   │   ├── orchestrator.py         # Orchestration
-│   │   │   ├── dtos.py                 # Response DTOs
-│   │   │   └── commands.py             # CLI commands
-│   │   ├── state/                      # Application state
-│   │   │   ├── models.py               # State model
-│   │   │   ├── repositories.py         # State repository
-│   │   │   ├── service.py              # State queries
-│   │   │   ├── orchestrator.py         # Orchestration
-│   │   │   ├── dtos.py                 # Response DTOs
-│   │   │   └── commands.py             # CLI commands
-│   │   └── workspace/                  # Workspace domain
-│   │       ├── models.py               # Domain entities
-│   │       ├── repositories.py         # Data persistence
-│   │       ├── data_access.py          # Cache + repository coordination
-│   │       ├── service.py              # Business logic
-│   │       ├── orchestrator.py         # Orchestration
-│   │       ├── validation.py           # Input validation
-│   │       ├── mappers.py              # DTO mappings
-│   │       ├── dtos.py                 # DTOs
-│   │       ├── commands.py             # CLI commands
-│   │       ├── chat/                   # Chat subdomain
-│   │       │   ├── message/            # Messages
-│   │       │   │   ├── models.py
-│   │       │   │   ├── repositories.py
-│   │       │   │   ├── service.py
-│   │       │   │   └── ...
-│   │       │   └── session/            # Sessions
-│   │       │       ├── models.py
-│   │       │       ├── repositories.py
-│   │       │       ├── service.py
-│   │       │       └── ...
-│   │       └── document/               # Document subdomain
-│   │           ├── models.py
-│   │           ├── repositories.py
-│   │           ├── data_access.py      # Cache + repo coordination
-│   │           ├── service.py
-│   │           └── ...
-│   └── infrastructure/                 # Infrastructure layer
-│       ├── cache/                      # Caching implementations
-│       │   ├── cache.py                # Abstract cache interface
-│       │   ├── redis_cache.py          # Redis implementation
-│       │   └── in_memory_cache.py      # In-memory implementation
-│       ├── validation/                 # Generic validation utilities
-│       │   └── utils.py                # Reusable validators
-│       ├── mappers/                    # Generic mapper utilities
-│       │   └── utils.py                # Date formatting, etc.
-│       ├── cli_io.py                   # CLI I/O wrappers
-│       ├── rag/                        # RAG implementation
-│       │   ├── options.py              # RAG algorithm registry
-│       │   ├── steps/                  # RAG processing steps
-│       │   │   ├── general/            # Parsing, chunking
-│       │   │   ├── graph_rag/          # Graph RAG
-│       │   │   └── vector_rag/         # Vector RAG, embedding, reranking
-│       │   └── workflows/              # End-to-end workflows
-│       ├── llm/                        # LLM provider abstractions
-│       ├── cache/                      # Caching implementations
-│       ├── storage/                    # Blob storage (FS/S3)
-│       └── sql_database.py             # Database connection
-├── migrations/                         # SQL migration scripts
-├── tests/                              # Test suite
-│   ├── unit/                           # Unit tests
-│   ├── integration/                    # Integration tests
-│   └── e2e/                            # End-to-end tests
-├── Taskfile.yml                        # Task automation
-├── docker-compose.yml                  # Infrastructure services
-└── pyproject.toml                      # Python dependencies
++-- src/
+|   +-- cli.py                          # CLI entry point
+|   +-- config.py                       # Configuration management
+|   +-- context.py                      # DI container
+|   +-- domains/                        # Business domains (DDD)
+|   |   +-- default_rag_config/         # Default RAG configuration
+|   |   |   +-- models.py               # Domain entities
+|   |   |   +-- repositories.py         # Data persistence
+|   |   |   +-- service.py              # Business logic
+|   |   |   +-- orchestrator.py         # Workflow coordination
+|   |   |   +-- validation.py           # Input validation
+|   |   |   +-- mappers.py              # DTO mappings
+|   |   |   +-- dtos.py                 # Request/Response DTOs
+|   |   |   \-- commands.py             # CLI commands
+|   |   +-- rag_options/                # RAG algorithm options (read-only)
+|   |   |   +-- service.py              # Query available algorithms
+|   |   |   +-- orchestrator.py         # Orchestration
+|   |   |   +-- dtos.py                 # Response DTOs
+|   |   |   \-- commands.py             # CLI commands
+|   |   +-- state/                      # Application state
+|   |   |   +-- models.py               # State model
+|   |   |   +-- repositories.py         # State repository
+|   |   |   +-- service.py              # State queries
+|   |   |   +-- orchestrator.py         # Orchestration
+|   |   |   +-- dtos.py                 # Response DTOs
+|   |   |   \-- commands.py             # CLI commands
+|   |   \-- workspace/                  # Workspace domain
+|   |       +-- models.py               # Domain entities
+|   |       +-- repositories.py         # Data persistence
+|   |       +-- data_access.py          # Cache + repository coordination
+|   |       +-- service.py              # Business logic
+|   |       +-- orchestrator.py         # Orchestration
+|   |       +-- validation.py           # Input validation
+|   |       +-- mappers.py              # DTO mappings
+|   |       +-- dtos.py                 # DTOs
+|   |       +-- commands.py             # CLI commands
+|   |       +-- chat/                   # Chat subdomain
+|   |       |   +-- message/            # Messages
+|   |       |   |   +-- models.py
+|   |       |   |   +-- repositories.py
+|   |       |   |   +-- service.py
+|   |       |   |   \-- ...
+|   |       |   \-- session/            # Sessions
+|   |       |       +-- models.py
+|   |       |       +-- repositories.py
+|   |       |       +-- service.py
+|   |       |       \-- ...
+|   |       \-- document/               # Document subdomain
+|   |           +-- models.py
+|   |           +-- repositories.py
+|   |           +-- data_access.py      # Cache + repo coordination
+|   |           +-- service.py
+|   |           \-- ...
+|   \-- infrastructure/                 # Infrastructure layer
+|       +-- cache/                      # Caching implementations
+|       |   +-- cache.py                # Abstract cache interface
+|       |   +-- redis_cache.py          # Redis implementation
+|       |   \-- in_memory_cache.py      # In-memory implementation
+|       +-- validation/                 # Generic validation utilities
+|       |   \-- utils.py                # Reusable validators
+|       +-- mappers/                    # Generic mapper utilities
+|       |   \-- utils.py                # Date formatting, etc.
+|       +-- cli_io.py                   # CLI I/O wrappers
+|       +-- rag/                        # RAG implementation
+|       |   +-- options.py              # RAG algorithm registry
+|       |   +-- steps/                  # RAG processing steps
+|       |   |   +-- general/            # Parsing, chunking
+|       |   |   +-- graph_rag/          # Graph RAG
+|       |   |   \-- vector_rag/         # Vector RAG, embedding, reranking
+|       |   \-- workflows/              # End-to-end workflows
+|       +-- llm/                        # LLM provider abstractions
+|       +-- cache/                      # Caching implementations
+|       +-- storage/                    # Blob storage (FS/S3)
+|       \-- sql_database.py             # Database connection
++-- migrations/                         # SQL migration scripts
++-- tests/                              # Test suite
+|   +-- unit/                           # Unit tests
+|   +-- integration/                    # Integration tests
+|   \-- e2e/                            # End-to-end tests
++-- Taskfile.yml                        # Task automation
++-- docker-compose.yml                  # Infrastructure services
+\-- pyproject.toml                      # Python dependencies
 ```
 
 ## Features

@@ -25,24 +25,19 @@ def test_get_rag_type_options_returns_expected_types():
     options = get_rag_type_options()
 
     assert isinstance(options, list)
-    assert len(options) == 3
+    assert len(options) == 2
 
     vector_rag = next((opt for opt in options if opt["value"] == "vector"), None)
     graph_rag = next((opt for opt in options if opt["value"] == "graph"), None)
-    hybrid_rag = next((opt for opt in options if opt["value"] == "hybrid"), None)
 
     assert vector_rag is not None
     assert graph_rag is not None
-    assert hybrid_rag is not None
 
     assert vector_rag["label"] == "Vector RAG"
     assert vector_rag["description"] == "Traditional vector similarity search with embeddings"
 
     assert graph_rag["label"] == "Graph RAG"
     assert graph_rag["description"] == "Knowledge graph-based retrieval with entity relationships"
-
-    assert hybrid_rag["label"] == "Hybrid RAG"
-    assert hybrid_rag["description"] == "Combines vector and graph retrieval for enhanced results"
 
 
 def test_get_chunking_options_returns_expected_types():
@@ -182,7 +177,6 @@ def test_get_default_clustering_algorithm_returns_expected_default():
     [
         ("vector", True),
         ("graph", True),
-        ("hybrid", True),
         ("invalid", False),
         ("", False),
         (None, False),
@@ -197,8 +191,7 @@ def test_get_valid_rag_types_returns_expected_list():
     assert isinstance(valid_types, list)
     assert "vector" in valid_types
     assert "graph" in valid_types
-    assert "hybrid" in valid_types
-    assert len(valid_types) == 3
+    assert len(valid_types) == 2
 
 
 @pytest.mark.parametrize(

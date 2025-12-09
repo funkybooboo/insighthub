@@ -16,8 +16,10 @@ from src.infrastructure.graph_stores.graph_store import GraphStore
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
 from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
-from src.infrastructure.rag.steps.graph_rag.entity_extraction.base import EntityExtractor
-from src.infrastructure.rag.steps.graph_rag.relationship_extraction.base import (
+from src.infrastructure.rag.steps.graph_rag.entity_extraction.entity_extractor import (
+    EntityExtractor,
+)
+from src.infrastructure.rag.steps.graph_rag.relationship_extraction.relationship_extractor import (
     RelationshipExtractor,
 )
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import (

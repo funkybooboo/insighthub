@@ -1,7 +1,7 @@
 """Chat session domain orchestrator.
 
 Eliminates duplication between commands.py and routes.py by providing
-a single interface for: Request DTO → Validation → Service → Response DTO
+a single interface for: Request DTO -> Validation -> Service -> Response DTO
 """
 
 from typing import Any
@@ -27,7 +27,7 @@ from src.infrastructure.types import NotFoundError, PaginatedResult, Pagination,
 
 
 class SessionOrchestrator:
-    """Orchestrates session operations: validation → service → response."""
+    """Orchestrates session operations: validation -> service -> response."""
 
     def __init__(self, service: ChatSessionService):
         """Initialize orchestrator with service."""

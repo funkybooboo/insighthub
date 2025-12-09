@@ -6,7 +6,6 @@ from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFa
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
 from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.query.graph_rag_query_workflow import GraphRagQueryWorkflow
-from src.infrastructure.rag.workflows.query.hybrid_rag_query_workflow import HybridRagQueryWorkflow
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
 
@@ -41,8 +40,6 @@ class QueryWorkflowFactory:
             return QueryWorkflowFactory._create_vector(rag_config, rag_store_manager)
         elif rag_type == "graph":
             return QueryWorkflowFactory._create_graph(rag_config, rag_store_manager)
-        elif rag_type == "hybrid":
-            return QueryWorkflowFactory._create_hybrid(rag_config, rag_store_manager)
         else:
             raise ValueError(f"Unsupported RAG type: {rag_type}")
 
@@ -76,22 +73,6 @@ class QueryWorkflowFactory:
         )
 
         logger.info("Vector RAG query workflow created successfully")
-        return workflow
-
-    @staticmethod
-    def _create_hybrid(config: dict, rag_store_manager: RAGStoreManager) -> HybridRagQueryWorkflow:
-        """Create Hybrid RAG query workflow."""
-        logger.info("Creating Hybrid RAG query workflow")
-
-        vector_workflow = QueryWorkflowFactory._create_vector(config, rag_store_manager)
-        graph_workflow = QueryWorkflowFactory._create_graph(config, rag_store_manager)
-
-        workflow = HybridRagQueryWorkflow(
-            vector_workflow=vector_workflow,
-            graph_workflow=graph_workflow,
-        )
-
-        logger.info("Hybrid RAG query workflow created successfully")
         return workflow
 
     @staticmethod

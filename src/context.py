@@ -27,15 +27,15 @@ from src.domains.workspace.document.orchestrator import DocumentOrchestrator
 from src.domains.workspace.document.repositories import DocumentRepository
 from src.domains.workspace.document.service import DocumentService
 from src.domains.workspace.orchestrator import WorkspaceOrchestrator
-from src.domains.workspace.rag_config_provider import (
-    GraphRagConfigProvider,
-    RagConfigProviderFactory,
-    VectorRagConfigProvider,
-)
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.domains.workspace.service import WorkspaceService
 from src.infrastructure.cache.factory import create_cache
 from src.infrastructure.llm.factory import create_llm_provider
+from src.infrastructure.rag.rag_config_provider import (
+    GraphRagConfigProvider,
+    RagConfigProviderFactory,
+    VectorRagConfigProvider,
+)
 from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import get_sql_database
 from src.infrastructure.storage.factory import create_blob_storage

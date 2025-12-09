@@ -162,7 +162,9 @@ class TestCrossRagWorkflows:
         self.run_cli("document", "add", comparable_document)
 
         # Create vector chat session
-        vector_chat = self.run_cli("chat", "create", vector_ws_id, input_text="\n")
+        vector_chat = self.run_cli(
+            "chat", "create", vector_ws_id, input_text="Vector Chat Session\n"
+        )
         match = re.search(r"Created chat session \[(\d+)\]", vector_chat.stdout)
         assert match is not None, "Could not extract chat session ID from output"
         vector_session_id = match.group(1)
@@ -177,7 +179,7 @@ class TestCrossRagWorkflows:
         self.run_cli("document", "add", comparable_document)
 
         # Create graph chat session
-        graph_chat = self.run_cli("chat", "create", graph_ws_id, input_text="\n")
+        graph_chat = self.run_cli("chat", "create", graph_ws_id, input_text="Graph Chat Session\n")
         match = re.search(r"Created chat session \[(\d+)\]", graph_chat.stdout)
         assert match is not None, "Could not extract chat session ID from output"
         graph_session_id = match.group(1)
@@ -228,7 +230,9 @@ class TestCrossRagWorkflows:
         self.run_cli("workspace", "select", vector_ws_id)
 
         # Create chat in vector workspace
-        vector_chat = self.run_cli("chat", "create", vector_ws_id, input_text="\n")
+        vector_chat = self.run_cli(
+            "chat", "create", vector_ws_id, input_text="State Test Session\n"
+        )
         match = re.search(r"Created chat session \[(\d+)\]", vector_chat.stdout)
         assert match is not None, "Could not extract chat session ID from output"
         vector_session_id = match.group(1)

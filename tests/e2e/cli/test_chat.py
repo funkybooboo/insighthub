@@ -69,7 +69,7 @@ class TestChatCLI:
 
         result = subprocess.run(
             [sys.executable, "-m", "src.cli", "chat", "create", workspace_id],
-            input="\n",
+            input="Untitled Session\n",
             capture_output=True,
             text=True,
         )

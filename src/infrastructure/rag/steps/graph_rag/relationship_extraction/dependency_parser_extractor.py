@@ -11,7 +11,7 @@ from spacy.language import Language
 from spacy.tokens import Token
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.relationship_extraction.base import (
+from src.infrastructure.rag.steps.graph_rag.relationship_extraction.relationship_extractor import (
     RelationshipExtractor,
 )
 from src.infrastructure.types.graph import Entity, Relationship, RelationshipMetadata, RelationType

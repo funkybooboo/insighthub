@@ -8,9 +8,9 @@ from returns.result import Failure, Result, Success
 from src.domains.workspace.document.data_access import DocumentDataAccess
 from src.domains.workspace.document.models import Document, DocumentStatus
 from src.domains.workspace.models import Workspace
-from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.domains.workspace.repositories import WorkspaceRepository
 from src.infrastructure.logger import create_logger
+from src.infrastructure.rag.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,

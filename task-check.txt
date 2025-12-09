@@ -1,63 +1,56 @@
 Checking Python syntax compilation...
 [OK] All files compile successfully
+Fixing /home/nate/projects/insighthub/src/context.py
+Fixing /home/nate/projects/insighthub/src/domains/workspace/service.py
+Fixing /home/nate/projects/insighthub/src/domains/workspace/chat/message/service.py
+Fixing /home/nate/projects/insighthub/src/domains/workspace/document/service.py
+Fixing /home/nate/projects/insighthub/tests/integration/test_document_service.py
 All checks passed!
 src/infrastructure/rag/store_manager.py:21: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 src/infrastructure/rag/store_manager.py:22: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 src/context.py:207: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 src/context.py:208: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
-Success: no issues found in 251 source files
+Success: no issues found in 244 source files
 ============================= test session starts ==============================
 platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
 cachedir: .pytest_cache
 rootdir: /home/nate/projects/insighthub
 configfile: pyproject.toml
 plugins: anyio-4.11.0, returns-0.26.0, cov-4.1.0
-collecting ... collected 44 items
+collecting ... collected 32 items
 
-tests/unit/infrastructure/rag/test_options.py::test_get_rag_type_options_returns_expected_types PASSED [  2%]
-tests/unit/infrastructure/rag/test_options.py::test_get_chunking_options_returns_expected_types PASSED [  4%]
-tests/unit/infrastructure/rag/test_options.py::test_get_embedding_options_returns_expected_types PASSED [  6%]
-tests/unit/infrastructure/rag/test_options.py::test_get_reranking_options_returns_expected_types PASSED [  9%]
-tests/unit/infrastructure/rag/test_options.py::test_get_graph_entity_extraction_options_returns_expected_types PASSED [ 11%]
-tests/unit/infrastructure/rag/test_options.py::test_get_graph_relationship_extraction_options_returns_expected_types PASSED [ 13%]
-tests/unit/infrastructure/rag/test_options.py::test_get_graph_clustering_options_returns_expected_types PASSED [ 15%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_rag_type_returns_expected_default PASSED [ 18%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_chunking_algorithm_returns_expected_default PASSED [ 20%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_embedding_algorithm_returns_expected_default PASSED [ 22%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_reranking_algorithm_returns_expected_default PASSED [ 25%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_entity_extraction_algorithm_returns_expected_default PASSED [ 27%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_relationship_extraction_algorithm_returns_expected_default PASSED [ 29%]
-tests/unit/infrastructure/rag/test_options.py::test_get_default_clustering_algorithm_returns_expected_default PASSED [ 31%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[vector-True] PASSED [ 34%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[graph-True] PASSED [ 36%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[hybrid-True] PASSED [ 38%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[invalid-False] PASSED [ 40%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[-False] PASSED [ 43%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[None-False] PASSED [ 45%]
-tests/unit/infrastructure/rag/test_options.py::test_get_valid_rag_types_returns_expected_list PASSED [ 47%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[sentence-True] PASSED [ 50%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[token-True] PASSED [ 52%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[markdown-True] PASSED [ 54%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[html-True] PASSED [ 56%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[code-True] PASSED [ 59%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[invalid-False] PASSED [ 61%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[-False] PASSED [ 63%]
-tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[None-False] PASSED [ 65%]
-tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_get_graph_store_caches_by_config PASSED [ 68%]
-tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_get_vector_store_caches_by_config PASSED [ 70%]
-tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_graph_cache_key_generation PASSED [ 72%]
-tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_vector_cache_key_generation PASSED [ 75%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_execute_calls_both_workflows PASSED [ 77%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_execute_limits_to_top_k PASSED [ 79%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_execute_with_filters PASSED [ 81%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_reciprocal_rank_fusion_basic PASSED [ 84%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_reciprocal_rank_fusion_ranking PASSED [ 86%]
-tests/unit/infrastructure/rag/workflows/query/test_hybrid_rag_query_workflow.py::TestHybridRagQueryWorkflow::test_reciprocal_rank_fusion_with_duplicates PASSED [ 88%]
-tests/unit/test_dummy_embedder.py::TestDummyEmbeddingEncoder::test_encode_single_text PASSED [ 90%]
-tests/unit/test_dummy_embedder.py::TestDummyEmbeddingEncoder::test_encode_multiple_texts PASSED [ 93%]
-tests/unit/test_dummy_embedder.py::TestDummyEmbeddingEncoder::test_get_dimension PASSED [ 95%]
-tests/unit/test_dummy_embedder.py::TestDummyEmbeddingEncoder::test_get_model_name PASSED [ 97%]
-tests/unit/test_dummy_embedder.py::TestDummyEmbeddingEncoder::test_default_dimension PASSED [100%]
+tests/unit/infrastructure/rag/test_options.py::test_get_rag_type_options_returns_expected_types PASSED [  3%]
+tests/unit/infrastructure/rag/test_options.py::test_get_chunking_options_returns_expected_types PASSED [  6%]
+tests/unit/infrastructure/rag/test_options.py::test_get_embedding_options_returns_expected_types PASSED [  9%]
+tests/unit/infrastructure/rag/test_options.py::test_get_reranking_options_returns_expected_types PASSED [ 12%]
+tests/unit/infrastructure/rag/test_options.py::test_get_graph_entity_extraction_options_returns_expected_types PASSED [ 15%]
+tests/unit/infrastructure/rag/test_options.py::test_get_graph_relationship_extraction_options_returns_expected_types PASSED [ 18%]
+tests/unit/infrastructure/rag/test_options.py::test_get_graph_clustering_options_returns_expected_types PASSED [ 21%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_rag_type_returns_expected_default PASSED [ 25%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_chunking_algorithm_returns_expected_default PASSED [ 28%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_embedding_algorithm_returns_expected_default PASSED [ 31%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_reranking_algorithm_returns_expected_default PASSED [ 34%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_entity_extraction_algorithm_returns_expected_default PASSED [ 37%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_relationship_extraction_algorithm_returns_expected_default PASSED [ 40%]
+tests/unit/infrastructure/rag/test_options.py::test_get_default_clustering_algorithm_returns_expected_default PASSED [ 43%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[vector-True] PASSED [ 46%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[graph-True] PASSED [ 50%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[invalid-False] PASSED [ 53%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[-False] PASSED [ 56%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_rag_type_returns_correct_boolean[None-False] PASSED [ 59%]
+tests/unit/infrastructure/rag/test_options.py::test_get_valid_rag_types_returns_expected_list PASSED [ 62%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[sentence-True] PASSED [ 65%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[token-True] PASSED [ 68%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[markdown-True] PASSED [ 71%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[html-True] PASSED [ 75%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[code-True] PASSED [ 78%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[invalid-False] PASSED [ 81%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[-False] PASSED [ 84%]
+tests/unit/infrastructure/rag/test_options.py::test_is_valid_chunking_algorithm_returns_correct_boolean[None-False] PASSED [ 87%]
+tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_get_graph_store_caches_by_config PASSED [ 90%]
+tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_get_vector_store_caches_by_config PASSED [ 93%]
+tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_graph_cache_key_generation PASSED [ 96%]
+tests/unit/infrastructure/rag/test_store_manager.py::TestRAGStoreManager::test_vector_cache_key_generation PASSED [100%]
 
 ---------- coverage: platform linux, python 3.13.7-final-0 -----------
 Name                                                                                            Stmts   Miss  Cover
@@ -131,7 +124,6 @@ src/domains/workspace/dtos.py                                                   
 src/domains/workspace/mappers.py                                                                   24     24     0%
 src/domains/workspace/models.py                                                                    82      5    94%
 src/domains/workspace/orchestrator.py                                                              78     78     0%
-src/domains/workspace/rag_config_provider.py                                                       74     74     0%
 src/domains/workspace/repositories.py                                                             143    120    16%
 src/domains/workspace/service.py                                                                  125    125     0%
 src/domains/workspace/validation.py                                                                32     32     0%
@@ -140,7 +132,6 @@ src/infrastructure/cache/__init__.py                                            
 src/infrastructure/cache/cache.py                                                                  12      5    58%
 src/infrastructure/cache/factory.py                                                                10      6    40%
 src/infrastructure/cache/in_memory_cache.py                                                        41     30    27%
-src/infrastructure/cache/mixins.py                                                                 32     32     0%
 src/infrastructure/cache/redis_cache.py                                                            52     42    19%
 src/infrastructure/cli_io.py                                                                       15     15     0%
 src/infrastructure/graph_stores/__init__.py                                                         3      0   100%
@@ -154,7 +145,6 @@ src/infrastructure/llm/huggingface_embedding_provider.py                        
 src/infrastructure/llm/huggingface_llm_provider.py                                                 73     58    21%
 src/infrastructure/llm/llm_provider.py                                                             19      5    74%
 src/infrastructure/llm/ollama_llm_provider.py                                                      71     57    20%
-src/infrastructure/llm/openai_embedding_provider.py                                                24     24     0%
 src/infrastructure/llm/openai_llm_provider.py                                                      61     47    23%
 src/infrastructure/logger.py                                                                      102     38    63%
 src/infrastructure/mappers/__init__.py                                                              2      2     0%
@@ -162,6 +152,7 @@ src/infrastructure/mappers/utils.py                                             
 src/infrastructure/rag/__init__.py                                                                 12      0   100%
 src/infrastructure/rag/embedding_utils.py                                                           3      3     0%
 src/infrastructure/rag/options.py                                                                  63     10    84%
+src/infrastructure/rag/rag_config_provider.py                                                      74     74     0%
 src/infrastructure/rag/steps/__init__.py                                                            0      0   100%
 src/infrastructure/rag/steps/general/__init__.py                                                    0      0   100%
 src/infrastructure/rag/steps/general/chunking/__init__.py                                           5      0   100%
@@ -185,26 +176,26 @@ src/infrastructure/rag/steps/general/parsing/text_document_parser.py            
 src/infrastructure/rag/steps/general/parsing/utils.py                                              18     18     0%
 src/infrastructure/rag/steps/graph_rag/__init__.py                                                  0      0   100%
 src/infrastructure/rag/steps/graph_rag/clustering/__init__.py                                       3      0   100%
-src/infrastructure/rag/steps/graph_rag/clustering/base.py                                          10      2    80%
+src/infrastructure/rag/steps/graph_rag/clustering/detector.py                                      10      2    80%
 src/infrastructure/rag/steps/graph_rag/clustering/factory.py                                       33     22    33%
 src/infrastructure/rag/steps/graph_rag/clustering/leiden_detector.py                              104    104     0%
 src/infrastructure/rag/steps/graph_rag/clustering/louvain_detector.py                              92     92     0%
 src/infrastructure/rag/steps/graph_rag/entity_extraction/__init__.py                                4      0   100%
-src/infrastructure/rag/steps/graph_rag/entity_extraction/base.py                                    9      2    78%
+src/infrastructure/rag/steps/graph_rag/entity_extraction/entity_extractor.py                        9      2    78%
 src/infrastructure/rag/steps/graph_rag/entity_extraction/factory.py                                37     24    35%
 src/infrastructure/rag/steps/graph_rag/entity_extraction/llm_entity_extractor.py                   83     65    22%
 src/infrastructure/rag/steps/graph_rag/entity_extraction/spacy_entity_extractor.py                 75     75     0%
 src/infrastructure/rag/steps/graph_rag/relationship_extraction/__init__.py                          4      0   100%
-src/infrastructure/rag/steps/graph_rag/relationship_extraction/base.py                              9      2    78%
 src/infrastructure/rag/steps/graph_rag/relationship_extraction/dependency_parser_extractor.py      87     87     0%
 src/infrastructure/rag/steps/graph_rag/relationship_extraction/factory.py                          37     24    35%
 src/infrastructure/rag/steps/graph_rag/relationship_extraction/llm_relationship_extractor.py       83     69    17%
+src/infrastructure/rag/steps/graph_rag/relationship_extraction/relationship_extractor.py            9      2    78%
 src/infrastructure/rag/steps/vector_rag/__init__.py                                                 0      0   100%
-src/infrastructure/rag/steps/vector_rag/embedding/__init__.py                                       4      0   100%
-src/infrastructure/rag/steps/vector_rag/embedding/dummy_embedder.py                                14      0   100%
+src/infrastructure/rag/steps/vector_rag/embedding/__init__.py                                       3      0   100%
 src/infrastructure/rag/steps/vector_rag/embedding/dummy_embedding_provider.py                      15     15     0%
 src/infrastructure/rag/steps/vector_rag/embedding/factory.py                                       16      4    75%
 src/infrastructure/rag/steps/vector_rag/embedding/ollama_vector_embedder.py                        64     48    25%
+src/infrastructure/rag/steps/vector_rag/embedding/openai_embedding_provider.py                     24     24     0%
 src/infrastructure/rag/steps/vector_rag/embedding/vector_embedder.py                               25      8    68%
 src/infrastructure/rag/steps/vector_rag/reranking/__init__.py                                       8      0   100%
 src/infrastructure/rag/steps/vector_rag/reranking/bm25_reranker.py                                 33     27    18%
@@ -227,9 +218,8 @@ src/infrastructure/rag/workflows/create_resources/factory.py                    
 src/infrastructure/rag/workflows/create_resources/graph_rag_create_rag_resources_workflow.py       26     26     0%
 src/infrastructure/rag/workflows/create_resources/vector_rag_create_rag_resources_workflow.py      56     40    29%
 src/infrastructure/rag/workflows/query/__init__.py                                                  5      0   100%
-src/infrastructure/rag/workflows/query/factory.py                                                  56     37    34%
+src/infrastructure/rag/workflows/query/factory.py                                                  45     29    36%
 src/infrastructure/rag/workflows/query/graph_rag_query_workflow.py                                 86     75    13%
-src/infrastructure/rag/workflows/query/hybrid_rag_query_workflow.py                                32      0   100%
 src/infrastructure/rag/workflows/query/query_workflow.py                                           13      4    69%
 src/infrastructure/rag/workflows/query/vector_rag_query_workflow.py                                71     55    23%
 src/infrastructure/rag/workflows/remove_document/__init__.py                                        4      0   100%
@@ -258,26 +248,24 @@ src/infrastructure/types/rag.py                                                 
 src/infrastructure/types/retrieval.py                                                               8      0   100%
 src/infrastructure/validation/__init__.py                                                           2      2     0%
 src/infrastructure/validation/utils.py                                                             24     24     0%
-src/infrastructure/vector_stores/__init__.py                                                        6      0   100%
-src/infrastructure/vector_stores/factory.py                                                        42     27    36%
-src/infrastructure/vector_stores/qdrant_vector_database.py                                        199    169    15%
-src/infrastructure/vector_stores/qdrant_vector_store.py                                            50     37    26%
-src/infrastructure/vector_stores/vector_database.py                                                32      9    72%
-src/infrastructure/vector_stores/vector_store.py                                                   17      4    76%
+src/infrastructure/vector_stores/__init__.py                                                        4      0   100%
+src/infrastructure/vector_stores/factory.py                                                        31     17    45%
+src/infrastructure/vector_stores/qdrant_vector_store.py                                           126    106    16%
+src/infrastructure/vector_stores/vector_store.py                                                   23      8    65%
 src/infrastructure/wikipedia/__init__.py                                                            2      2     0%
 src/infrastructure/wikipedia/fetch.py                                                             137    137     0%
 -------------------------------------------------------------------------------------------------------------------
-TOTAL                                                                                            8421   6970    17%
+TOTAL                                                                                            8169   6815    17%
 
 
-============================== 44 passed in 6.91s ==============================
+============================== 32 passed in 8.81s ==============================
 ============================= test session starts ==============================
 platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
 cachedir: .pytest_cache
 rootdir: /home/nate/projects/insighthub
 configfile: pyproject.toml
 plugins: anyio-4.11.0, returns-0.26.0, cov-4.1.0
-collecting ... collected 90 items
+collecting ... collected 88 items
 
 tests/integration/test_chat_session_data_access.py::TestChatSessionDataAccessIntegration::test_create_and_get_session PASSED [  1%]
 tests/integration/test_chat_session_data_access.py::TestChatSessionDataAccessIntegration::test_get_sessions_by_workspace PASSED [  2%]
@@ -286,81 +274,79 @@ tests/integration/test_chat_session_data_access.py::TestChatSessionDataAccessInt
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_create_session_success PASSED [  5%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_create_session_validation_failure PASSED [  6%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_list_sessions_success PASSED [  7%]
-tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_list_sessions_validation_failure PASSED [  8%]
+tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_list_sessions_validation_failure PASSED [  9%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_select_session_success PASSED [ 10%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_select_session_not_found PASSED [ 11%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_delete_session_success PASSED [ 12%]
 tests/integration/test_chat_session_orchestrator.py::TestSessionOrchestratorIntegration::test_delete_session_not_found PASSED [ 13%]
 tests/integration/test_default_rag_config_data_access.py::TestDefaultRagConfigDataAccessIntegration::test_get_default_rag_config_returns_none_when_not_set PASSED [ 14%]
 tests/integration/test_default_rag_config_data_access.py::TestDefaultRagConfigDataAccessIntegration::test_update_and_get_default_rag_config PASSED [ 15%]
-tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_get_config_returns_none_when_not_set PASSED [ 16%]
-tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_initial_vector PASSED [ 17%]
-tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_initial_graph PASSED [ 18%]
+tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_get_config_returns_none_when_not_set PASSED [ 17%]
+tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_initial_vector PASSED [ 18%]
+tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_initial_graph PASSED [ 19%]
 tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_update_vector PASSED [ 20%]
 tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_update_graph PASSED [ 21%]
 tests/integration/test_default_rag_config_service.py::TestDefaultRagConfigServiceIntegration::test_create_or_update_config_switch_rag_type PASSED [ 22%]
 tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_create_and_get_document PASSED [ 23%]
-tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_get_documents_by_workspace PASSED [ 24%]
-tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_update_document PASSED [ 25%]
-tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_delete_document PASSED [ 26%]
-tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_upload_and_process_document_fs_success PASSED [ 27%]
-tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_upload_and_process_document_fs_workspace_not_found PASSED [ 28%]
+tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_get_documents_by_workspace PASSED [ 25%]
+tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_update_document PASSED [ 26%]
+tests/integration/test_document_data_access.py::TestDocumentDataAccessIntegration::test_delete_document PASSED [ 27%]
+tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_upload_and_process_document_fs_success PASSED [ 28%]
+tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_upload_and_process_document_fs_workspace_not_found PASSED [ 29%]
 tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_remove_document_fs_success PASSED [ 30%]
 tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_list_documents_by_workspace PASSED [ 31%]
 tests/integration/test_document_service.py::TestDocumentServiceIntegration::test_get_document_by_id PASSED [ 32%]
-tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_add_document_workflow_success PASSED [ 33%]
-tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_query_workflow_after_adding_document PASSED [ 34%]
-tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_delete_workspace_graph PASSED [ 35%]
-tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_community_detection_integration PASSED [ 36%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_create_and_drop_constraint PASSED [ 37%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_create_index PASSED [ 38%]
+tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_add_document_workflow_success PASSED [ 34%]
+tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_query_workflow_after_adding_document PASSED [ 35%]
+tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_delete_workspace_graph PASSED [ 36%]
+tests/integration/test_graph_rag_workflow.py::TestGraphRagWorkflowIntegration::test_community_detection_integration PASSED [ 37%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_create_and_drop_constraint PASSED [ 38%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_create_index PASSED [ 39%]
 tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_entity_and_get_by_id PASSED [ 40%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_entity_updates_existing PASSED [ 41%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_relationship PASSED [ 42%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_community PASSED [ 43%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_find_entities PASSED [ 44%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_delete_document_graph PASSED [ 45%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_export_subgraph PASSED [ 46%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_traverse_graph PASSED [ 47%]
-tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_delete_workspace_graph PASSED [ 48%]
-tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_container_starts PASSED [ 50%]
-tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_connection PASSED [ 51%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_upsert_and_similarity_search PASSED [ 52%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_upsert_batch_and_count PASSED [ 53%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_delete_and_exists PASSED [ 54%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_delete_batch PASSED [ 55%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_clear_collection PASSED [ 56%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_delete_by_filter PASSED [ 57%]
-tests/integration/test_qdrant_vector_database.py::TestQdrantVectorDatabaseIntegration::test_search_with_score_threshold PASSED [ 58%]
-tests/integration/test_rag_options_integration.py::test_get_all_options_returns_success_with_all_options PASSED [ 60%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_cache_connection PASSED [ 61%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_set_and_get PASSED [ 62%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_get_nonexistent_key PASSED [ 63%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_delete PASSED [ 64%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_exists PASSED [ 65%]
-tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_clear PASSED [ 66%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_entity_updates_existing PASSED [ 42%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_relationship PASSED [ 43%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_upsert_community PASSED [ 44%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_find_entities PASSED [ 45%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_delete_document_graph PASSED [ 46%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_export_subgraph PASSED [ 47%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_traverse_graph PASSED [ 48%]
+tests/integration/test_neo4j_graph_store.py::TestNeo4jGraphStoreIntegration::test_delete_workspace_graph PASSED [ 50%]
+tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_container_starts PASSED [ 51%]
+tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_connection PASSED [ 52%]
+tests/integration/test_qdrant_vector_store.py::TestQdrantVectorStoreIntegration::test_add_and_search PASSED [ 53%]
+tests/integration/test_qdrant_vector_store.py::TestQdrantVectorStoreIntegration::test_add_batch PASSED [ 54%]
+tests/integration/test_qdrant_vector_store.py::TestQdrantVectorStoreIntegration::test_delete_by_filter PASSED [ 55%]
+tests/integration/test_qdrant_vector_store.py::TestQdrantVectorStoreIntegration::test_clear_collection PASSED [ 56%]
+tests/integration/test_qdrant_vector_store.py::TestQdrantVectorStoreIntegration::test_search_with_filters PASSED [ 57%]
+tests/integration/test_rag_options_integration.py::test_get_all_options_returns_success_with_all_options PASSED [ 59%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_cache_connection PASSED [ 60%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_set_and_get PASSED [ 61%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_get_nonexistent_key PASSED [ 62%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_delete PASSED [ 63%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_exists PASSED [ 64%]
+tests/integration/test_redis_cache.py::TestRedisCacheIntegration::test_clear PASSED [ 65%]
 tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_s3_connection PASSED [ 67%]
 tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_upload_and_download PASSED [ 68%]
-tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_download_nonexistent_object PASSED [ 70%]
-tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_delete PASSED [ 71%]
-tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_exists PASSED [ 72%]
-tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_get_url PASSED [ 73%]
-tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_database_connection_and_health_check PASSED [ 74%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_download_nonexistent_object PASSED [ 69%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_delete PASSED [ 70%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_exists PASSED [ 71%]
+tests/integration/test_s3_storage.py::TestS3BlobStorageIntegration::test_get_url PASSED [ 72%]
+tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_database_connection_and_health_check PASSED [ 73%]
 tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_execute_and_fetch_operations PASSED [ 75%]
 tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_execute_with_no_results PASSED [ 76%]
 tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_fetch_one_with_no_results PASSED [ 77%]
 tests/integration/test_sql_database.py::TestSqlDatabaseIntegration::test_fetch_all_with_no_results PASSED [ 78%]
-tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_init_raises_database_exception_on_connection_failure PASSED [ 80%]
-tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_execute_raises_database_exception_on_invalid_query PASSED [ 81%]
-tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_fetch_one_raises_database_exception_on_invalid_query PASSED [ 82%]
-tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_fetch_all_raises_database_exception_on_invalid_query PASSED [ 83%]
+tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_init_raises_database_exception_on_connection_failure PASSED [ 79%]
+tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_execute_raises_database_exception_on_invalid_query PASSED [ 80%]
+tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_fetch_one_raises_database_exception_on_invalid_query PASSED [ 81%]
+tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_fetch_all_raises_database_exception_on_invalid_query PASSED [ 82%]
 tests/integration/test_sql_database_error_handling.py::TestSqlDatabaseErrorHandlingIntegration::test_execute_raises_database_exception_on_constraint_violation PASSED [ 84%]
 tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_get_initial_state PASSED [ 85%]
 tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_set_and_get_workspace PASSED [ 86%]
 tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_set_and_get_session PASSED [ 87%]
 tests/integration/test_state_data_access.py::TestStateDataAccessIntegration::test_cache_invalidation_on_set PASSED [ 88%]
-tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_filesystem PASSED [ 90%]
-tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_s3 PASSED [ 91%]
+tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_filesystem PASSED [ 89%]
+tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_s3 PASSED [ 90%]
 tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_unsupported_type PASSED [ 92%]
 tests/integration/test_storage_factory.py::TestStorageFactoryIntegration::test_create_blob_storage_s3_missing_params PASSED [ 93%]
 tests/integration/test_vector_rag_workflow.py::TestVectorRagWorkflowIntegration::test_add_document_and_query_workflow_success PASSED [ 94%]
@@ -376,7 +362,7 @@ tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_conn
     return QdrantClient(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=================== 90 passed, 1 warning in 60.42s (0:01:00) ===================
+=================== 88 passed, 1 warning in 60.41s (0:01:00) ===================
 ============================= test session starts ==============================
 platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
 cachedir: .pytest_cache
@@ -386,4 +372,4 @@ plugins: anyio-4.11.0, returns-0.26.0, cov-4.1.0
 collecting ... collected 256 items
 
 tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_list_empty PASSED     [  0%]
-tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_with_title 
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_with_title PASSED [  0%]

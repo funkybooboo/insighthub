@@ -12,7 +12,9 @@ from typing import Optional, cast
 
 from src.infrastructure.graph_stores.graph_store import GraphStore
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.entity_extraction.base import EntityExtractor
+from src.infrastructure.rag.steps.graph_rag.entity_extraction.entity_extractor import (
+    EntityExtractor,
+)
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow, QueryWorkflowError
 from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.rag import ChunkData

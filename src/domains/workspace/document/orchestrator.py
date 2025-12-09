@@ -1,7 +1,7 @@
 """Document domain orchestrator.
 
 Eliminates duplication between commands.py and routes.py by providing
-a single interface for: Request DTO → Validation → Service → Response DTO
+a single interface for: Request DTO -> Validation -> Service -> Response DTO
 """
 
 from typing import List
@@ -31,7 +31,7 @@ from src.infrastructure.types import (
 
 
 class DocumentOrchestrator:
-    """Orchestrates document operations: validation → service → response."""
+    """Orchestrates document operations: validation -> service -> response."""
 
     def __init__(self, service: DocumentService):
         """Initialize orchestrator with service."""

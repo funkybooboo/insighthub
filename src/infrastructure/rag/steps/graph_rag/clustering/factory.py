@@ -8,7 +8,7 @@ from typing import Optional
 
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.steps.graph_rag.clustering.base import CommunityDetector
+from src.infrastructure.rag.steps.graph_rag.clustering.detector import CommunityDetector
 
 logger = create_logger(__name__)
 

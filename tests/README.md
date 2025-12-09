@@ -163,8 +163,8 @@ TEST_REAL_APIS=true poetry run pytest tests/ -k "api" -v
 
 ```
 tests/
-├── unit/                    # Unit tests with dummies
-└── integration/             # Integration tests with containers
++-- unit/                    # Unit tests with dummies
+\-- integration/             # Integration tests with containers
 ```
 
 ## Running Tests

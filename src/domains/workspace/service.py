@@ -8,8 +8,8 @@ from src.domains.default_rag_config.models import DefaultRagConfig
 from src.domains.default_rag_config.service import DefaultRagConfigService
 from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.domains.workspace.models import GraphRagConfig, VectorRagConfig, Workspace, WorkspaceStatus
-from src.domains.workspace.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.logger import create_logger
+from src.infrastructure.rag.rag_config_provider import RagConfigProviderFactory
 from src.infrastructure.rag.workflows.create_resources import CreateResourcesWorkflowFactory
 from src.infrastructure.rag.workflows.remove_resources import RemoveResourcesWorkflowFactory
 from src.infrastructure.types import DatabaseError, NotFoundError, WorkflowError

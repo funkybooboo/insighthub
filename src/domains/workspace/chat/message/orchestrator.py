@@ -1,7 +1,7 @@
 """Chat message domain orchestrator.
 
 Eliminates duplication between commands.py and routes.py by providing
-a single interface for: Request DTO → Validation → Service → Response DTO
+a single interface for: Request DTO -> Validation -> Service -> Response DTO
 """
 
 from returns.result import Failure, Result, Success
@@ -21,7 +21,7 @@ from src.infrastructure.types import PaginatedResult, Pagination, ValidationErro
 
 
 class MessageOrchestrator:
-    """Orchestrates message operations: validation → service → response."""
+    """Orchestrates message operations: validation -> service -> response."""
 
     def __init__(self, service: ChatMessageService):
         """Initialize orchestrator with service."""

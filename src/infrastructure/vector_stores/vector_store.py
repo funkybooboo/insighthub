@@ -7,6 +7,16 @@ from src.infrastructure.types.common import FilterDict, MetadataDict
 from src.infrastructure.types.document import Chunk
 
 
+class VectorStoreException(Exception):
+    """Exception raised when vector store operations fail."""
+
+    def __init__(self, message: str, operation: str, original_error: Optional[Exception] = None):
+        self.message = message
+        self.operation = operation
+        self.original_error = original_error
+        super().__init__(f"Vector store operation '{operation}' failed: {message}")
+
+
 class VectorStore(ABC):
     """
     Interface for vector database operations.

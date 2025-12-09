@@ -8,86 +8,86 @@ InsightHub follows **Domain-Driven Design (DDD)** principles with clean separati
 2. **Dependency Injection**: Composition over inheritance, all dependencies injected
 3. **Railway-Oriented Programming**: Using `returns` library for Result types
 4. **Pydantic Validation**: Schema-based validation for all DTOs
-5. **Clear Boundaries**: Commands → Orchestrators → Services → Repositories
+5. **Clear Boundaries**: Commands -> Orchestrators -> Services -> Repositories
 
 ## Architecture Layers
 
 ```
-┌─────────────────────────────────────────────┐
-│             CLI Layer (cli.py)              │
-│         Command routing & parsing           │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│          Domain Layer (domains/)            │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │  Commands (commands.py)              │  │
-│  │  - Parse CLI arguments               │  │
-│  │  - Use IO wrappers for I/O           │  │
-│  │  - Call orchestrators only           │  │
-│  └──────────────────────────────────────┘  │
-│                    ↓                        │
-│  ┌──────────────────────────────────────┐  │
-│  │  Orchestrators (orchestrator.py)     │  │
-│  │  - Coordinate workflow               │  │
-│  │  - validation → service → mapper     │  │
-│  │  - Return Result types               │  │
-│  └──────────────────────────────────────┘  │
-│                    ↓                        │
-│  ┌──────────────────────────────────────┐  │
-│  │  Validation (validation.py)          │  │
-│  │  - Business rule validation          │  │
-│  │  - Use Pydantic for structure        │  │
-│  └──────────────────────────────────────┘  │
-│                    ↓                        │
-│  ┌──────────────────────────────────────┐  │
-│  │  Services (service.py)               │  │
-│  │  - Business logic                    │  │
-│  │  - Orchestrate workflows             │  │
-│  │  - Use data access layer             │  │
-│  └──────────────────────────────────────┘  │
-│                    ↓                        │
-│  ┌──────────────────────────────────────┐  │
-│  │  Data Access (data_access.py)        │  │
-│  │  - Coordinates cache + repository    │  │
-│  │  - Caching logic                     │  │
-│  │  - Cache serialization/deserialize   │  │
-│  └──────────────────────────────────────┘  │
-│                    ↓                        │
-│  ┌──────────────────────────────────────┐  │
-│  │  Repositories (repositories.py)      │  │
-│  │  - Data persistence abstraction      │  │
-│  │  - SQL queries                       │  │
-│  │  - Return domain models              │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │  Models (models/)                    │  │
-│  │  - Domain entities                   │  │
-│  │  - SQLAlchemy models                 │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │  DTOs (dtos.py)                      │  │
-│  │  - Pydantic request/response models  │  │
-│  │  - Validation rules                  │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │  Mappers (mappers.py)                │  │
-│  │  - Model ↔ DTO transformations       │  │
-│  └──────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│    Infrastructure Layer (infrastructure/)   │
-│  - Generic utilities (cache, validation)    │
-│  - RAG workflows & algorithms & store manager               │
-│  - LLM providers                            │
-│  - Storage adapters                         │
-│  - Database connection                      │
-└─────────────────────────────────────────────┘
++---------------------------------------------+
+|             CLI Layer (cli.py)              |
+|         Command routing & parsing           |
+\---------------------------------------------/
+                    |
++---------------------------------------------+
+|          Domain Layer (domains/)            |
+|                                             |
+|  +--------------------------------------+  |
+|  |  Commands (commands.py)              |  |
+|  |  - Parse CLI arguments               |  |
+|  |  - Use IO wrappers for I/O           |  |
+|  |  - Call orchestrators only           |  |
+|  \--------------------------------------/  |
+|                    |                        |
+|  +--------------------------------------+  |
+|  |  Orchestrators (orchestrator.py)     |  |
+|  |  - Coordinate workflow               |  |
+|  |  - validation -> service -> mapper     |  |
+|  |  - Return Result types               |  |
+|  \--------------------------------------/  |
+|                    |                        |
+|  +--------------------------------------+  |
+|  |  Validation (validation.py)          |  |
+|  |  - Business rule validation          |  |
+|  |  - Use Pydantic for structure        |  |
+|  \--------------------------------------/  |
+|                    |                        |
+|  +--------------------------------------+  |
+|  |  Services (service.py)               |  |
+|  |  - Business logic                    |  |
+|  |  - Orchestrate workflows             |  |
+|  |  - Use data access layer             |  |
+|  \--------------------------------------/  |
+|                    |                        |
+|  +--------------------------------------+  |
+|  |  Data Access (data_access.py)        |  |
+|  |  - Coordinates cache + repository    |  |
+|  |  - Caching logic                     |  |
+|  |  - Cache serialization/deserialize   |  |
+|  \--------------------------------------/  |
+|                    |                        |
+|  +--------------------------------------+  |
+|  |  Repositories (repositories.py)      |  |
+|  |  - Data persistence abstraction      |  |
+|  |  - SQL queries                       |  |
+|  |  - Return domain models              |  |
+|  \--------------------------------------/  |
+|                                             |
+|  +--------------------------------------+  |
+|  |  Models (models/)                    |  |
+|  |  - Domain entities                   |  |
+|  |  - SQLAlchemy models                 |  |
+|  \--------------------------------------/  |
+|                                             |
+|  +--------------------------------------+  |
+|  |  DTOs (dtos.py)                      |  |
+|  |  - Pydantic request/response models  |  |
+|  |  - Validation rules                  |  |
+|  \--------------------------------------/  |
+|                                             |
+|  +--------------------------------------+  |
+|  |  Mappers (mappers.py)                |  |
+|  |  - Model <-> DTO transformations       |  |
+|  \--------------------------------------/  |
+\---------------------------------------------/
+                    |
++---------------------------------------------+
+|    Infrastructure Layer (infrastructure/)   |
+|  - Generic utilities (cache, validation)    |
+|  - RAG workflows & algorithms & store manager               |
+|  - LLM providers                            |
+|  - Storage adapters                         |
+|  - Database connection                      |
+\---------------------------------------------/
 ```
 
 ## Domain Structure
@@ -96,15 +96,15 @@ Each domain is self-contained with all its components:
 
 ```
 domains/<domain_name>/
-├── models.py           # Domain entities (SQLAlchemy)
-├── repositories.py     # Data persistence (SQL queries)
-├── data_access.py      # Cache + repository coordination
-├── service.py          # Business logic
-├── orchestrator.py     # Workflow coordination
-├── validation.py       # Business rules (Pydantic)
-├── mappers.py          # DTO transformations
-├── dtos.py             # Pydantic request/response models
-└── commands.py         # CLI command handlers
++-- models.py           # Domain entities (SQLAlchemy)
++-- repositories.py     # Data persistence (SQL queries)
++-- data_access.py      # Cache + repository coordination
++-- service.py          # Business logic
++-- orchestrator.py     # Workflow coordination
++-- validation.py       # Business rules (Pydantic)
++-- mappers.py          # DTO transformations
++-- dtos.py             # Pydantic request/response models
+\-- commands.py         # CLI command handlers
 ```
 
 **Note**: Not all domains have all components. For example:
@@ -228,7 +228,7 @@ class WorkspaceDataAccess:
 
 ```
 1. CLI Command (commands.py)
-   ↓
+   |
    - Parse args
    - Get options from rag_options_orchestrator
    - Display options using IO.print()
@@ -236,20 +236,20 @@ class WorkspaceDataAccess:
    - Create Pydantic DTO (validates automatically)
 
 2. Orchestrator (orchestrator.py)
-   ↓
+   |
    - Call validation layer
    - Call service layer
    - Map result to response DTO
    - Return Result[WorkspaceResponse, Error]
 
 3. Validation (validation.py)
-   ↓
+   |
    - Apply business rules
    - Check defaults
    - Return Result[ValidatedRequest, ValidationError]
 
 4. Service (service.py)
-   ↓
+   |
    - Execute business logic
    - Create RAG resources (domain-specific workflow)
    - Use data_access for persistence
@@ -257,21 +257,21 @@ class WorkspaceDataAccess:
    - Return Result[Workspace, Error]
 
 5. Data Access (data_access.py)
-   ↓
+   |
    - Check cache first
    - Call repository if cache miss
    - Cache result before returning
    - Handle cache invalidation on updates
 
 6. Repository (repositories.py)
-   ↓
+   |
    - Execute SQL queries
    - Map rows to domain models
    - Return domain models
 
 7. Mapper (mappers.py)
-   ↓
-   - Transform Workspace → WorkspaceResponse
+   |
+   - Transform Workspace -> WorkspaceResponse
    - Use generic mapper utils for dates
    - Return response DTO
 ```
@@ -334,19 +334,19 @@ touch src/domains/my_domain/{__init__.py,service.py,orchestrator.py,validation.p
 Each domain's tests mirror its structure:
 ```
 tests/
-├── unit/
-│   └── domains/
-│       └── my_domain/
-│           ├── test_service.py
-│           ├── test_validation.py
-│           └── test_mappers.py
-├── integration/
-│   └── domains/
-│       └── my_domain/
-│           └── test_repository.py
-└── e2e/
-    └── cli/
-        └── test_my_domain_commands.py
++-- unit/
+|   \-- domains/
+|       \-- my_domain/
+|           +-- test_service.py
+|           +-- test_validation.py
+|           \-- test_mappers.py
++-- integration/
+|   \-- domains/
+|       \-- my_domain/
+|           \-- test_repository.py
+\-- e2e/
+    \-- cli/
+        \-- test_my_domain_commands.py
 ```
 
 ## Best Practices
@@ -361,10 +361,10 @@ tests/
 
 ## Anti-Patterns to Avoid
 
-❌ Commands directly accessing repositories
-❌ Services containing validation logic (should be in validation layer)
-❌ DTOs as domain models (separate concerns)
-❌ Infrastructure code in domain services (inject dependencies)
-❌ Domain-specific code in infrastructure utilities
-❌ Skipping orchestrators for "simple" operations
-❌ Using raw dict instead of Pydantic models for DTOs
+1. Commands directly accessing repositories
+2. Services containing validation logic (should be in validation layer)
+3. DTOs as domain models (separate concerns)
+4. Infrastructure code in domain services (inject dependencies)
+5. Domain-specific code in infrastructure utilities
+6. Skipping orchestrators for "simple" operations
+7. Using raw dict instead of Pydantic models for DTOs
