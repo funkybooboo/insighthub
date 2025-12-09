@@ -96,7 +96,9 @@ class TestDefaultRagConfigServiceIntegration:
         assert config.id == 1
         assert config.rag_type == "graph"
         assert config.graph_config.entity_extraction_algorithm == "test-entity-extractor"
-        assert config.vector_config.embedding_algorithm == "ollama"  # Default vector config
+        assert (
+            config.vector_config.embedding_algorithm == "nomic-embed-text"
+        )  # Default vector config
 
     def test_create_or_update_config_update_vector(
         self, default_rag_config_service: DefaultRagConfigService

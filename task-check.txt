@@ -1,10 +1,5 @@
 Checking Python syntax compilation...
 [OK] All files compile successfully
-Fixing /home/nate/projects/insighthub/src/context.py
-Fixing /home/nate/projects/insighthub/src/domains/workspace/service.py
-Fixing /home/nate/projects/insighthub/src/domains/workspace/chat/message/service.py
-Fixing /home/nate/projects/insighthub/src/domains/workspace/document/service.py
-Fixing /home/nate/projects/insighthub/tests/integration/test_document_service.py
 All checks passed!
 src/infrastructure/rag/store_manager.py:21: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 src/infrastructure/rag/store_manager.py:22: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
@@ -258,7 +253,7 @@ src/infrastructure/wikipedia/fetch.py                                           
 TOTAL                                                                                            8169   6815    17%
 
 
-============================== 32 passed in 8.81s ==============================
+============================== 32 passed in 8.96s ==============================
 ============================= test session starts ==============================
 platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
 cachedir: .pytest_cache
@@ -362,7 +357,7 @@ tests/integration/test_qdrant.py::TestQdrantIntegration::test_qdrant_client_conn
     return QdrantClient(
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=================== 88 passed, 1 warning in 60.41s (0:01:00) ===================
+=================== 88 passed, 1 warning in 63.39s (0:01:03) ===================
 ============================= test session starts ==============================
 platform linux -- Python 3.13.7, pytest-8.4.2, pluggy-1.6.0 -- /home/nate/.cache/pypoetry/virtualenvs/insighthub-G9Cf3wlO-py3.13/bin/python
 cachedir: .pytest_cache
@@ -373,3 +368,5 @@ collecting ... collected 256 items
 
 tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_list_empty PASSED     [  0%]
 tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_with_title PASSED [  0%]
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_create_without_title PASSED [  1%]
+tests/e2e/cli/test_chat.py::TestChatCLI::test_chat_list_with_sessions PASSED [  1%]

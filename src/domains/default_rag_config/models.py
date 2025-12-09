@@ -10,7 +10,7 @@ class DefaultVectorRagConfig:
 
     embedding_model_vector_size: int = 768
     distance_metric: str = "cosine"
-    embedding_algorithm: str = "ollama"
+    embedding_algorithm: str = "nomic-embed-text"
     chunking_algorithm: str = "sentence"
     rerank_algorithm: str = "none"
     chunk_size: int = 1000
