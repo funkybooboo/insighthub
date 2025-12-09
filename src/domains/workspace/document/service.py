@@ -15,10 +15,10 @@ from src.infrastructure.rag.steps.general.parsing.utils import (
     calculate_file_hash,
     determine_mime_type,
 )
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.add_document.factory import AddDocumentWorkflowFactory
 from src.infrastructure.rag.workflows.remove_document.factory import RemoveDocumentWorkflowFactory
 from src.infrastructure.storage import BlobStorage
+from src.infrastructure.store_manager import RAGStoreManager
 from src.infrastructure.types import DatabaseError, NotFoundError, StorageError, WorkflowError
 
 logger = create_logger(__name__)

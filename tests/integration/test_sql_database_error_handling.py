@@ -9,10 +9,14 @@ from src.infrastructure.sql_database import DatabaseException, SqlDatabase
 class TestSqlDatabaseErrorHandlingIntegration:
     """PostgreSQL integration tests for SqlDatabase error handling."""
 
-    def test_init_raises_database_exception_on_connection_failure(self):
+    def test_init_raises_database_exception_on_connection_failure(self, postgres_container):
         """Test that SqlDatabase.__init__ raises DatabaseException on connection failure."""
-        # Arrange
-        invalid_db_url = "postgresql://invalid_user:invalid_password@localhost:5432/invalid_db"
+        # Arrange - use the postgres container but with wrong credentials
+        connection_url = postgres_container.get_connection_url().replace("+psycopg2", "")
+        # Replace valid credentials with invalid ones
+        invalid_db_url = connection_url.replace("test", "invalid_user").replace(
+            "test", "invalid_password", 1
+        )
 
         # Act & Assert
         with pytest.raises(DatabaseException) as excinfo:

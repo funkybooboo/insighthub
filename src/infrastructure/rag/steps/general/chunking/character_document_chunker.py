@@ -58,13 +58,12 @@ class CharacterDocumentChunker(Chunker):
 
             chunks.append(chunk)
 
+            if end == len(text):
+                break
+
             # Move start position with overlap
             start = end - self.overlap
             chunk_id += 1
-
-            # Prevent infinite loop
-            if start >= len(text):
-                break
 
         return chunks
 

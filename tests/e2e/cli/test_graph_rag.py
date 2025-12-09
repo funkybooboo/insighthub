@@ -5,7 +5,6 @@ Tests the complete Graph RAG workflow from document add to querying.
 
 import re
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -19,7 +18,7 @@ class TestGraphRagCLI:
 
     def run_cli(self, *args, input_text=None):
         """Helper to run CLI command and return result."""
-        cmd = [sys.executable, "-m", "src.cli", *args]
+        cmd = ["poetry", "run", "python", "-m", "src.cli", *args]
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -73,26 +72,20 @@ class TestGraphRagCLI:
 
         # Extract workspace ID from output - format is "Created workspace [ID] name"
         match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
-        if not match:
-            pytest.skip("Could not extract workspace ID from output")
+        assert (
+            match is not None
+        ), f"Could not extract workspace ID from output: {create_result.stdout}"
         workspace_id = match.group(1)
 
+        # Select the workspace
+        select_result = self.run_cli("workspace", "select", str(workspace_id))
+        assert select_result.returncode == 0
+
         # Act - Add document
-        result = self.run_cli(
-            "document",
-            "add",
-            "--workspace-id",
-            str(workspace_id),
-            "--path",
-            temp_document,
-            "--title",
-            "Test Graph RAG Document",
-        )
+        result = self.run_cli("document", "add", temp_document)
 
         # Assert
-        # Document add might succeed or fail depending on Neo4j availability
-        # We just verify the command runs and doesn't crash
-        assert isinstance(result.returncode, int)
+        assert result.returncode == 0
 
     def test_chat_query_with_graph_rag(self):
         """Test querying a Graph RAG workspace."""
@@ -106,24 +99,34 @@ class TestGraphRagCLI:
 
         # Extract workspace ID
         match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
-        if not match:
-            pytest.skip("Could not extract workspace ID from output")
+        assert (
+            match is not None
+        ), f"Could not extract workspace ID from output: {create_result.stdout}"
         workspace_id = match.group(1)
 
+        # Select the workspace
+        select_result = self.run_cli("workspace", "select", str(workspace_id))
+        assert select_result.returncode == 0
+
+        # Create a chat session
+        chat_result = self.run_cli("chat", "create", str(workspace_id), input_text="Test Chat\n")
+        assert chat_result.returncode == 0
+
+        # Extract session ID and select it
+        session_match = re.search(r"Created chat session \[(\d+)\]", chat_result.stdout)
+        assert (
+            session_match is not None
+        ), f"Could not extract session ID from output: {chat_result.stdout}"
+        session_id = session_match.group(1)
+
+        select_chat_result = self.run_cli("chat", "select", str(session_id))
+        assert select_chat_result.returncode == 0
+
         # Act - Try to send a chat message (even if no documents)
-        result = self.run_cli(
-            "chat",
-            "send",
-            "--workspace-id",
-            str(workspace_id),
-            "--message",
-            "Tell me about AI safety",
-        )
+        result = self.run_cli("chat", "send", "Tell me about AI safety")
 
         # Assert
-        # Chat might work or fail depending on configuration
-        # We just verify the command doesn't crash
-        assert isinstance(result.returncode, int)
+        assert result.returncode == 0
 
     def test_rag_options_shows_graph_algorithms(self):
         """Test that rag-options shows Graph RAG algorithm choices."""
@@ -180,8 +183,9 @@ class TestGraphRagCLI:
             input_text="graph_list_test\nTest workspace for listing\ngraph\n",
         )
 
-        if create_result.returncode != 0:
-            pytest.skip("Could not create test workspace")
+        assert (
+            create_result.returncode == 0
+        ), f"Failed to create test workspace: {create_result.stderr}"
 
         # Act
         result = self.run_cli("workspace", "list")
@@ -200,69 +204,60 @@ class TestGraphRagCLI:
             input_text="graph_e2e_test\nE2E test workspace\ngraph\n",
         )
 
-        if create_result.returncode != 0:
-            pytest.skip(
-                "Could not create workspace - Graph RAG infrastructure may not be available"
-            )
+        assert create_result.returncode == 0, f"Failed to create workspace: {create_result.stderr}"
 
         # Extract workspace ID
         match = re.search(r"Created workspace \[(\d+)\]", create_result.stdout)
-        if not match:
-            pytest.skip("Could not extract workspace ID")
+        assert (
+            match is not None
+        ), f"Could not extract workspace ID from output: {create_result.stdout}"
         workspace_id = match.group(1)
 
+        # Select the workspace
+        select_result = self.run_cli("workspace", "select", str(workspace_id))
+        assert select_result.returncode == 0, f"Failed to select workspace: {select_result.stderr}"
+
         # Step 2: Add document
-        doc_result = self.run_cli(
-            "document",
-            "add",
-            "--workspace-id",
-            str(workspace_id),
-            "--path",
-            temp_document,
-            "--title",
-            "E2E Test Document",
+        doc_result = self.run_cli("document", "add", temp_document)
+
+        assert doc_result.returncode == 0, f"Failed to add document: {doc_result.stderr}"
+
+        # Step 3: Create a chat session
+        chat_create_result = self.run_cli(
+            "chat", "create", str(workspace_id), input_text="E2E Test Chat\n"
         )
+        assert (
+            chat_create_result.returncode == 0
+        ), f"Failed to create chat: {chat_create_result.stderr}"
 
-        # If document add fails (e.g., Neo4j not available), skip
-        if doc_result.returncode != 0:
-            pytest.skip("Could not add document - Neo4j may not be available")
+        # Extract session ID and select it
+        session_match = re.search(r"Created chat session \[(\d+)\]", chat_create_result.stdout)
+        assert (
+            session_match is not None
+        ), f"Could not extract session ID from output: {chat_create_result.stdout}"
+        session_id = session_match.group(1)
 
-        # Step 3: Query the workspace
-        query_result = self.run_cli(
-            "chat",
-            "send",
-            "--workspace-id",
-            str(workspace_id),
-            "--message",
-            "What companies are mentioned?",
-        )
+        select_chat_result = self.run_cli("chat", "select", str(session_id))
+        assert (
+            select_chat_result.returncode == 0
+        ), f"Failed to select chat: {select_chat_result.stderr}"
 
-        # Assert - The query should complete (success or failure is okay)
-        assert isinstance(query_result.returncode, int)
+        # Step 4: Query the workspace
+        query_result = self.run_cli("chat", "send", "What companies are mentioned?")
 
-        # Step 4: List documents
-        list_result = self.run_cli(
-            "document",
-            "list",
-            "--workspace-id",
-            str(workspace_id),
-        )
+        # Assert - The query should complete successfully
+        assert query_result.returncode == 0, f"Failed to query workspace: {query_result.stderr}"
+
+        # Step 5: List documents
+        list_result = self.run_cli("document", "list")
 
         assert list_result.returncode == 0
-        # Should show at least one document
+        # Should show at least one document - check for the filename
+        import os
+
+        filename = os.path.basename(temp_document)
         assert (
-            "e2e test document" in list_result.stdout.lower()
-            or "document" in list_result.stdout.lower()
-        )
+            filename in list_result.stdout
+        ), f"Expected to find {filename} in document list output: {list_result.stdout}"
 
-        # Step 5: Delete workspace (cleanup)
-        delete_result = self.run_cli(
-            "workspace",
-            "delete",
-            "--workspace-id",
-            str(workspace_id),
-            "--confirm",
-        )
-
-        # Cleanup should succeed
-        assert delete_result.returncode == 0
+        # Note: Workspace cleanup is handled automatically by conftest fixture

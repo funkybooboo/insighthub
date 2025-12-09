@@ -11,8 +11,8 @@ from src.domains.workspace.data_access import WorkspaceDataAccess
 from src.infrastructure.llm.llm_provider import LlmProvider
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.rag_config_provider import RagConfigProviderFactory
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.query.factory import QueryWorkflowFactory
+from src.infrastructure.store_manager import RAGStoreManager
 from src.infrastructure.types import (
     DatabaseError,
     NotFoundError,

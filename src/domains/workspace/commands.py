@@ -72,12 +72,101 @@ def cmd_create(ctx: AppContext, args: argparse.Namespace) -> None:
         IO.print("")
 
         rag_type_input = IO.input(f"RAG type [{default_rag_type}]: ").strip() or None
+        rag_type = rag_type_input if rag_type_input else default_rag_type
+
+        # Initialize RAG config fields
+        chunking_algorithm = None
+        chunk_size = None
+        chunk_overlap = None
+        embedding_algorithm = None
+        top_k = None
+        rerank_algorithm = None
+        entity_extraction = None
+        relationship_extraction = None
+        clustering = None
+
+        # Collect vector config if needed
+        if rag_type == "vector":
+            # Show available options
+            IO.print("\nAvailable chunking algorithms:")
+            for opt in options.chunking_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+
+            IO.print("\nAvailable embedding algorithms:")
+            for opt in options.embedding_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+
+            IO.print("\nAvailable reranking algorithms:")
+            for opt in options.rerank_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+            IO.print("")
+
+            # Prompt for vector RAG configuration with defaults from default config
+            default_chunking = default_config.vector_config.chunking_algorithm
+            chunking_algorithm = IO.input(f"Chunking algorithm [{default_chunking}]: ").strip() or None
+
+            default_chunk_size = default_config.vector_config.chunk_size
+            chunk_size_str = IO.input(f"Chunk size [{default_chunk_size}]: ").strip()
+            chunk_size = int(chunk_size_str) if chunk_size_str else None
+
+            default_chunk_overlap = default_config.vector_config.chunk_overlap
+            chunk_overlap_str = IO.input(f"Chunk overlap [{default_chunk_overlap}]: ").strip()
+            chunk_overlap = int(chunk_overlap_str) if chunk_overlap_str else None
+
+            default_embedding = default_config.vector_config.embedding_algorithm
+            embedding_algorithm = IO.input(f"Embedding algorithm [{default_embedding}]: ").strip() or None
+
+            default_top_k = default_config.vector_config.top_k
+            top_k_str = IO.input(f"Top K [{default_top_k}]: ").strip()
+            top_k = int(top_k_str) if top_k_str else None
+
+            default_reranking = default_config.vector_config.rerank_algorithm
+            rerank_algorithm = IO.input(f"Rerank algorithm [{default_reranking}]: ").strip() or None
+
+        else:  # graph
+            # Show available options
+            IO.print("\nAvailable entity extraction algorithms:")
+            for opt in options.entity_extraction_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+
+            IO.print("\nAvailable relationship extraction algorithms:")
+            for opt in options.relationship_extraction_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+
+            IO.print("\nAvailable clustering algorithms:")
+            for opt in options.clustering_algorithms:
+                IO.print(f"  - {opt.value}: {opt.description}")
+            IO.print("")
+
+            # Prompt for graph RAG configuration with defaults from default config
+            default_entity = default_config.graph_config.entity_extraction_algorithm
+            entity_extraction = (
+                IO.input(f"Entity extraction algorithm [{default_entity}]: ").strip() or None
+            )
+
+            default_relationship = default_config.graph_config.relationship_extraction_algorithm
+            relationship_extraction = (
+                IO.input(f"Relationship extraction algorithm [{default_relationship}]: ").strip()
+                or None
+            )
+
+            default_clustering = default_config.graph_config.clustering_algorithm
+            clustering = IO.input(f"Clustering algorithm [{default_clustering}]: ").strip() or None
 
         # Create request DTO (Pydantic validates)
         request = CreateWorkspaceRequest(
             name=name,
             description=description,
             rag_type=rag_type_input,
+            chunking_algorithm=chunking_algorithm,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            embedding_algorithm=embedding_algorithm,
+            top_k=top_k,
+            rerank_algorithm=rerank_algorithm,
+            entity_extraction_algorithm=entity_extraction,
+            relationship_extraction_algorithm=relationship_extraction,
+            clustering_algorithm=clustering,
         )
 
         # Call orchestrator

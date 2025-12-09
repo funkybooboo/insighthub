@@ -4,11 +4,13 @@ Tests the complete Graph RAG pipeline with a real Neo4j database instance.
 """
 
 import io
+import re
 from collections.abc import Generator
 from typing import Any, Optional
 
 import pytest
 from returns.result import Success
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 from testcontainers.neo4j import Neo4jContainer
 
 from src.infrastructure.graph_stores.neo4j_graph_store import Neo4jGraphStore
@@ -38,6 +40,10 @@ class TestGraphRagWorkflowIntegration:
     def neo4j_container_instance(self) -> Generator[Neo4jContainer, None, None]:
         """Spin up a Neo4j container for testing."""
         container = Neo4jContainer("neo4j:5.12", password="testpassword")
+        # Use structured wait strategy instead of deprecated @wait_container_is_ready
+        container = container.waiting_for(
+            LogMessageWaitStrategy(re.compile(r".*Remote interface available at.*"))
+        )
         container.start()
         yield container
         container.stop()

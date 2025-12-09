@@ -7,8 +7,10 @@ from typing import Any, Optional
 import pytest
 from returns.result import Failure, Success  # Import Failure
 from testcontainers.minio import MinioContainer
+from testcontainers.ollama import OllamaContainer
 from testcontainers.redis import RedisContainer
 
+from src.config import config
 from src.domains.default_rag_config.data_access import DefaultRagConfigDataAccess
 from src.domains.default_rag_config.repositories import DefaultRagConfigRepository
 from src.domains.default_rag_config.service import DefaultRagConfigService
@@ -24,15 +26,21 @@ from src.infrastructure.rag.rag_config_provider import (
     RagConfigProviderFactory,
     VectorRagConfigProvider,
 )
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import SqlDatabase
 from src.infrastructure.storage.file_system_storage import FileSystemBlobStorage
 from src.infrastructure.storage.s3_storage import S3BlobStorage
+from src.infrastructure.store_manager import RAGStoreManager
 
 
 @pytest.mark.integration
 class TestDocumentServiceIntegration:
     """Integration tests for the DocumentService component."""
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_ollama_config(self, ollama_container: OllamaContainer, monkeypatch):
+        """Configure Ollama base URL to use the test container."""
+        ollama_base_url = ollama_container.get_endpoint()
+        monkeypatch.setattr(config.llm, "ollama_base_url", ollama_base_url)
 
     @pytest.fixture(scope="function")
     def workspace_repository(self, db_session: SqlDatabase) -> WorkspaceRepository:
@@ -137,6 +145,15 @@ class TestDocumentServiceIntegration:
                 return "dummy-model"
 
         return DummyLlmProvider()
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_qdrant_config(self, qdrant_container, setup_workspace, monkeypatch):
+        """Configure Qdrant to use the test container."""
+        host = qdrant_container.get_container_host_ip()
+        port = qdrant_container.get_exposed_port(6333)
+        # Patch the config to use the qdrant container
+        monkeypatch.setattr("src.config.config.vector_store.qdrant_host", host)
+        monkeypatch.setattr("src.config.config.vector_store.qdrant_port", int(port))
 
     @pytest.fixture(scope="function")
     def rag_store_manager(self) -> RAGStoreManager:

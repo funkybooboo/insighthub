@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from src.infrastructure.rag.store_manager import RAGStoreManager
+from src.infrastructure.store_manager import RAGStoreManager
 
 
 class TestRAGStoreManager(unittest.TestCase):

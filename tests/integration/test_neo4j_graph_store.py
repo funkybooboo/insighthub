@@ -1,8 +1,10 @@
 """Integration tests for Neo4jGraphStore using testcontainers."""
 
+import re
 from collections.abc import Generator
 
 import pytest
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 from testcontainers.neo4j import Neo4jContainer
 
 from src.infrastructure.graph_stores.neo4j_graph_store import Neo4jGraphStore
@@ -17,6 +19,10 @@ class TestNeo4jGraphStoreIntegration:
     def neo4j_container_instance(self) -> Generator[Neo4jContainer, None, None]:
         """Spin up a Neo4j container for testing."""
         container = Neo4jContainer("neo4j:5.12", password="testpassword")
+        # Use structured wait strategy instead of deprecated @wait_container_is_ready
+        container = container.waiting_for(
+            LogMessageWaitStrategy(re.compile(r".*Remote interface available at.*"))
+        )
         container.start()
         yield container
         container.stop()
@@ -413,3 +419,60 @@ class TestNeo4jGraphStoreIntegration:
         with graph_store.driver.session() as session:
             result = session.run(f"MATCH (c:Community {{workspace_id: '{workspace_id}'}}) RETURN c")
             assert result.single() is None
+
+    def test_get_communities(self, graph_store: Neo4jGraphStore):
+        """Test retrieving communities linked to entities."""
+        # Arrange
+        entity1 = Entity(
+            id="gc_e1",
+            text="Community Entity 1",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        entity2 = Entity(
+            id="gc_e2",
+            text="Community Entity 2",
+            type=EntityType.PERSON,
+            confidence=1.0,
+            metadata={"document_id": "doc1"},
+        )
+        workspace_id = "ws1"
+        graph_store.upsert_entities([entity1, entity2], workspace_id)
+
+        community1 = Community(
+            id="gc_comm1",
+            workspace_id=workspace_id,
+            entity_ids=["gc_e1"],
+            level=1,
+            summary="Community 1",
+            score=0.9,
+            metadata={},
+        )
+        community2 = Community(
+            id="gc_comm2",
+            workspace_id=workspace_id,
+            entity_ids=["gc_e1", "gc_e2"],
+            level=2,
+            summary="Community 2",
+            score=0.8,
+            metadata={},
+        )
+        graph_store.upsert_communities([community1, community2], workspace_id)
+
+        # Act
+        found_communities = graph_store.get_communities(["gc_e1"], workspace_id)
+
+        # Assert
+        assert len(found_communities) == 2
+        assert any(c.id == "gc_comm1" for c in found_communities)
+        assert any(c.id == "gc_comm2" for c in found_communities)
+
+    def test_traverse_graph_with_empty_ids(self, graph_store: Neo4jGraphStore):
+        """Test that traversing with empty entity IDs returns an empty subgraph."""
+        # Act
+        subgraph = graph_store.traverse_graph([], "ws1", max_depth=2)
+
+        # Assert
+        assert len(subgraph.entities) == 0
+        assert len(subgraph.relationships) == 0

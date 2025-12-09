@@ -36,15 +36,15 @@ from src.infrastructure.rag.rag_config_provider import (
     RagConfigProviderFactory,
     VectorRagConfigProvider,
 )
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.sql_database import get_sql_database
 from src.infrastructure.storage.factory import create_blob_storage
+from src.infrastructure.store_manager import RAGStoreManager
 
 
 class AppContext:
     """Application context containing all services and repositories."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize context with all services."""
         # RAG Store Manager
         self.rag_store_manager = RAGStoreManager()

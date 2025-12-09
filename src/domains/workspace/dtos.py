@@ -18,6 +18,21 @@ class CreateWorkspaceRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=1000, description="Workspace description")
     rag_type: Optional[str] = Field(None, description="RAG type (vector, graph, hybrid)")
 
+    # Vector RAG configuration
+    chunking_algorithm: Optional[str] = Field(None, description="Chunking algorithm")
+    chunk_size: Optional[int] = Field(None, ge=1, description="Chunk size")
+    chunk_overlap: Optional[int] = Field(None, ge=0, description="Chunk overlap")
+    embedding_algorithm: Optional[str] = Field(None, description="Embedding algorithm")
+    top_k: Optional[int] = Field(None, ge=1, description="Top K results")
+    rerank_algorithm: Optional[str] = Field(None, description="Reranking algorithm")
+
+    # Graph RAG configuration
+    entity_extraction_algorithm: Optional[str] = Field(None, description="Entity extraction algorithm")
+    relationship_extraction_algorithm: Optional[str] = Field(
+        None, description="Relationship extraction algorithm"
+    )
+    clustering_algorithm: Optional[str] = Field(None, description="Clustering algorithm")
+
     @field_validator("name")
     @classmethod
     def validate_name(cls, v: str) -> str:

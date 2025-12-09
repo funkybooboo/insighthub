@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+from .dummy_embedding_provider import DummyEmbeddingProvider
 from .ollama_vector_embedder import OllamaVectorEmbeddingEncoder
 from .vector_embedder import VectorEmbeddingEncoder
 
@@ -10,6 +11,7 @@ class EmbeddingEncoderType(Enum):
     """Enum for embedding encoder implementation types."""
 
     OLLAMA = "ollama"
+    DUMMY = "dummy"
 
 
 class EmbedderFactory:
@@ -68,14 +70,18 @@ def create_embedder_from_config(
     Create an embedding encoder instance based on algorithm configuration.
 
     Args:
-        embedding_algorithm: Algorithm/model type ("nomic-embed-text", "all-MiniLM-L6-v2", etc.)
+        embedding_algorithm: Algorithm/model type ("nomic-embed-text", "all-MiniLM-L6-v2", "dummy", etc.)
         base_url: Ollama server URL
         timeout: Request timeout in seconds (default 30)
 
     Returns:
         VectorEmbeddingEncoder instance
     """
-    # All embedding algorithms currently use Ollama infrastructure
+    # Check if a dummy embedder is requested for testing
+    if embedding_algorithm == "dummy":
+        return DummyEmbeddingProvider(dimension=384)
+
+    # All other embedding algorithms currently use Ollama infrastructure
     return OllamaVectorEmbeddingEncoder(
         model=embedding_algorithm,
         base_url=base_url,

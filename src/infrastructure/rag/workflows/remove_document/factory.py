@@ -1,7 +1,6 @@
 """Factory for creating remove document workflows."""
 
 from src.infrastructure.logger import create_logger
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.remove_document.graph_rag_remove_document_workflow import (
     GraphRagRemoveDocumentWorkflow,
 )
@@ -11,6 +10,7 @@ from src.infrastructure.rag.workflows.remove_document.remove_document_workflow i
 from src.infrastructure.rag.workflows.remove_document.vector_rag_remove_document_workflow import (
     VectorRagRemoveDocumentWorkflow,
 )
+from src.infrastructure.store_manager import RAGStoreManager
 
 logger = create_logger(__name__)
 

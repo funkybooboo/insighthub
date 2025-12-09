@@ -16,7 +16,7 @@ class RAGStoreManager:
     (e.g., different collections or databases) to support multi-workspace scenarios.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the RAG store manager."""
         self._vector_stores: Dict[str, VectorStore] = {}
         self._graph_stores: Dict[str, GraphStore] = {}

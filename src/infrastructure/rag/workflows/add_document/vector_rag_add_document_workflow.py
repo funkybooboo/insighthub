@@ -13,7 +13,7 @@ from returns.result import Failure, Result, Success
 
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
-from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
+from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.vector_embedder import VectorEmbeddingEncoder
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import (
     AddDocumentWorkflow,
@@ -35,7 +35,7 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
 
     def __init__(
         self,
-        parser: DocumentParser,
+        parser_factory: ParserFactory,
         chunker: Chunker,
         embedder: VectorEmbeddingEncoder,
         vector_store: VectorStore,
@@ -44,12 +44,12 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
         Initialize the consume workflow.
 
         Args:
-            parser: Document parser implementation
+            parser_factory: Parser factory for automatic parser selection based on file type
             chunker: Document chunker implementation
             embedder: Vector embedding encoder
             vector_store: Vector store for indexing
         """
-        self.parser = parser
+        self.parser_factory = parser_factory
         self.chunker = chunker
         self.embedder = embedder
         self.vector_store = vector_store
@@ -75,7 +75,10 @@ class VectorRagAddDocumentWorkflow(AddDocumentWorkflow):
         """
         # Step 1: Parse document
         logger.info(f"[ConsumeWorkflow] Parsing document {document_id}")
-        parse_result = self.parser.parse(raw_document, metadata)
+
+        # Get filename from metadata to select appropriate parser
+        filename = metadata.get("filename", "unknown.txt") if metadata else "unknown.txt"
+        parse_result = self.parser_factory.parse_document(raw_document, filename, metadata)
 
         if isinstance(parse_result, Failure):
             return Failure(

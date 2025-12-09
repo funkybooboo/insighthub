@@ -4,11 +4,11 @@ from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.factory import ChunkerFactory
 from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.add_document.add_document_workflow import AddDocumentWorkflow
 from src.infrastructure.rag.workflows.add_document.vector_rag_add_document_workflow import (
     VectorRagAddDocumentWorkflow,
 )
+from src.infrastructure.store_manager import RAGStoreManager
 
 logger = create_logger(__name__)
 
@@ -51,10 +51,9 @@ class AddDocumentWorkflowFactory:
         """Create Vector RAG add document workflow with injected dependencies."""
         logger.info("Creating Vector RAG add document workflow")
 
-        # Create parser
-        parser_type = config.get("parser_type", "text")
-        parser = ParserFactory.create_parser(parser_type)
-        logger.debug(f"Created parser: {parser_type}")
+        # Create parser factory (automatically selects parser based on file extension)
+        parser_factory = ParserFactory()
+        logger.debug("Created parser factory for automatic parser selection")
 
         # Create chunker
         chunker_type = config.get("chunker_type", "sentence")
@@ -63,7 +62,7 @@ class AddDocumentWorkflowFactory:
         logger.debug(f"Created chunker: {chunker_type} with config {chunker_config}")
 
         # Create embedder
-        embedder_type = config.get("embedder_type", "ollama")
+        embedder_type = config.get("embedder_type", "nomic-embed-text")
         embedder_config = config.get("embedder_config", {})
         embedder = EmbedderFactory.create_embedder(embedder_type, **embedder_config)
         logger.debug(f"Created embedder: {embedder_type} with config {embedder_config}")
@@ -74,7 +73,7 @@ class AddDocumentWorkflowFactory:
 
         # Wire together into workflow
         workflow = VectorRagAddDocumentWorkflow(
-            parser=parser,
+            parser_factory=parser_factory,
             chunker=chunker,
             embedder=embedder,
             vector_store=vector_store,
@@ -100,8 +99,9 @@ class AddDocumentWorkflowFactory:
             GraphRagAddDocumentWorkflow,
         )
 
-        # Create parser
-        parser = ParserFactory.create_parser(config.get("parser_type", "text"))
+        # Create parser factory (automatically selects parser based on file extension)
+        parser_factory = ParserFactory()
+        logger.debug("Created parser factory for automatic parser selection")
 
         # Create chunker
         chunker = ChunkerFactory.create_chunker(
@@ -127,7 +127,7 @@ class AddDocumentWorkflowFactory:
 
         # Create workflow with clustering parameters
         workflow = GraphRagAddDocumentWorkflow(
-            parser=parser,
+            parser_factory=parser_factory,
             chunker=chunker,
             entity_extractor=entity_extractor,
             relationship_extractor=relationship_extractor,

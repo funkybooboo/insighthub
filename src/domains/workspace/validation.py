@@ -33,11 +33,22 @@ def validate_create_workspace(
     try:
         # Apply default rag_type if not provided (business logic)
         if request.rag_type is None:
-            # Create new request with default applied
+            # Create new request with default applied, preserving RAG config parameters
             request = CreateWorkspaceRequest(
                 name=request.name,
                 description=request.description,
                 rag_type=default_rag_type,
+                # Vector RAG config
+                chunking_algorithm=request.chunking_algorithm,
+                chunk_size=request.chunk_size,
+                chunk_overlap=request.chunk_overlap,
+                embedding_algorithm=request.embedding_algorithm,
+                top_k=request.top_k,
+                rerank_algorithm=request.rerank_algorithm,
+                # Graph RAG config
+                entity_extraction_algorithm=request.entity_extraction_algorithm,
+                relationship_extraction_algorithm=request.relationship_extraction_algorithm,
+                clustering_algorithm=request.clustering_algorithm,
             )
 
         # Pydantic has already validated structure and types

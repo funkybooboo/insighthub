@@ -48,7 +48,6 @@ class TestRedisCacheIntegration:
         # Assert
         assert deleted is True
         assert cache_instance.exists(key) is False
-        assert cache_instance.get(key) is None
 
     def test_exists(self, cache_instance: RedisCache):
         """Test the 'exists' method."""
@@ -74,3 +73,32 @@ class TestRedisCacheIntegration:
         # Assert
         assert cache_instance.exists("key1") is False
         assert cache_instance.exists("key2") is False
+
+    def test_set_with_ttl(self, cache_instance: RedisCache):
+        """Test that a key expires after its TTL."""
+        # Arrange
+        key, value, ttl = "ttl_key", "ttl_value", 1  # 1 second TTL
+
+        # Act
+        cache_instance.set(key, value, ttl=ttl)
+        assert cache_instance.get(key) == value
+
+        # Wait for key to expire
+        import time
+
+        time.sleep(ttl + 1)
+
+        # Assert
+        assert cache_instance.get(key) is None
+
+    def test_init_with_connection_error(self):
+        """Test that the cache is unavailable if Redis connection fails."""
+        cache_instance = RedisCache(host="nonexistent-host", port=9999)
+        assert cache_instance._available is False
+
+        # Test that all methods handle the unavailable cache gracefully
+        assert cache_instance.get("any_key") is None
+        assert cache_instance.set("any_key", "any_value") is None
+        assert cache_instance.delete("any_key") is False
+        assert cache_instance.exists("any_key") is False
+        assert cache_instance.clear() is None

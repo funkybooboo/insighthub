@@ -46,6 +46,17 @@ class WorkspaceService:
         name: str,
         description: Optional[str],
         rag_type: str,
+        # Vector RAG config (optional overrides)
+        chunking_algorithm: Optional[str] = None,
+        chunk_size: Optional[int] = None,
+        chunk_overlap: Optional[int] = None,
+        embedding_algorithm: Optional[str] = None,
+        top_k: Optional[int] = None,
+        rerank_algorithm: Optional[str] = None,
+        # Graph RAG config (optional overrides)
+        entity_extraction_algorithm: Optional[str] = None,
+        relationship_extraction_algorithm: Optional[str] = None,
+        clustering_algorithm: Optional[str] = None,
     ) -> Result[Workspace, WorkflowError | DatabaseError]:
         """Create a new workspace.
 
@@ -53,6 +64,15 @@ class WorkspaceService:
             name: Workspace name (validated)
             description: Optional description (validated)
             rag_type: RAG type (validated)
+            chunking_algorithm: Optional override for chunking algorithm
+            chunk_size: Optional override for chunk size
+            chunk_overlap: Optional override for chunk overlap
+            embedding_algorithm: Optional override for embedding algorithm
+            top_k: Optional override for top K
+            rerank_algorithm: Optional override for rerank algorithm
+            entity_extraction_algorithm: Optional override for entity extraction
+            relationship_extraction_algorithm: Optional override for relationship extraction
+            clustering_algorithm: Optional override for clustering algorithm
 
         Returns:
             Result with Workspace model or error
@@ -78,18 +98,20 @@ class WorkspaceService:
         self.data_access.update(workspace.id, status=WorkspaceStatus.INITIALIZING_CONFIG.value)
         logger.info(f"Workspace {workspace.id}: initializing configuration")
 
-        # Snapshot the default config for this specific workspace
+        # Create config using custom values or defaults
         if workspace.rag_type == "vector":
             new_vector_config = VectorRagConfig(
                 workspace_id=workspace.id,
                 embedding_model_vector_size=default_config.vector_config.embedding_model_vector_size,
                 distance_metric=default_config.vector_config.distance_metric,
-                embedding_algorithm=default_config.vector_config.embedding_algorithm,
-                chunking_algorithm=default_config.vector_config.chunking_algorithm,
-                rerank_algorithm=default_config.vector_config.rerank_algorithm,
-                chunk_size=default_config.vector_config.chunk_size,
-                chunk_overlap=default_config.vector_config.chunk_overlap,
-                top_k=default_config.vector_config.top_k,
+                embedding_algorithm=embedding_algorithm
+                or default_config.vector_config.embedding_algorithm,
+                chunking_algorithm=chunking_algorithm
+                or default_config.vector_config.chunking_algorithm,
+                rerank_algorithm=rerank_algorithm or default_config.vector_config.rerank_algorithm,
+                chunk_size=chunk_size or default_config.vector_config.chunk_size,
+                chunk_overlap=chunk_overlap or default_config.vector_config.chunk_overlap,
+                top_k=top_k or default_config.vector_config.top_k,
             )
             vector_config_result = self.data_access.repository.create_vector_rag_config(
                 new_vector_config
@@ -105,9 +127,12 @@ class WorkspaceService:
         elif workspace.rag_type == "graph":
             new_graph_config = GraphRagConfig(
                 workspace_id=workspace.id,
-                entity_extraction_algorithm=default_config.graph_config.entity_extraction_algorithm,
-                relationship_extraction_algorithm=default_config.graph_config.relationship_extraction_algorithm,
-                clustering_algorithm=default_config.graph_config.clustering_algorithm,
+                entity_extraction_algorithm=entity_extraction_algorithm
+                or default_config.graph_config.entity_extraction_algorithm,
+                relationship_extraction_algorithm=relationship_extraction_algorithm
+                or default_config.graph_config.relationship_extraction_algorithm,
+                clustering_algorithm=clustering_algorithm
+                or default_config.graph_config.clustering_algorithm,
                 entity_types=default_config.graph_config.entity_types.copy(),
                 relationship_types=default_config.graph_config.relationship_types.copy(),
                 max_traversal_depth=default_config.graph_config.max_traversal_depth,

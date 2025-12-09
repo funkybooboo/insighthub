@@ -1,11 +1,15 @@
 """Pytest configuration and fixtures."""
 
 import glob
+import re
 from collections.abc import Generator
 
 import pytest
 from returns.result import Success
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
+from testcontainers.ollama import OllamaContainer
 from testcontainers.postgres import PostgresContainer
+from testcontainers.qdrant import QdrantContainer
 from testcontainers.redis import RedisContainer
 
 from src.domains.workspace.repositories import WorkspaceRepository
@@ -25,14 +29,49 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def postgres_container():
     """Fixture to spin up a PostgreSQL container for testing."""
-    with PostgresContainer("pgvector/pgvector:pg16") as container:
+    container = PostgresContainer("pgvector/pgvector:pg16")
+    container = container.with_env("POSTGRES_INITDB_ARGS", "-c log_statement=all")
+    # Use structured wait strategy instead of deprecated @wait_container_is_ready
+    container = container.waiting_for(
+        LogMessageWaitStrategy(re.compile(r".*database system is ready to accept connections.*"))
+    )
+    with container:
         yield container
 
 
 @pytest.fixture(scope="session")
 def redis_container():
     """Fixture to spin up a Redis container for testing."""
-    with RedisContainer("redis:7-alpine") as container:
+    container = RedisContainer("redis:7-alpine")
+    # Use structured wait strategy instead of deprecated @wait_container_is_ready
+    container = container.waiting_for(
+        LogMessageWaitStrategy(re.compile(r".*Ready to accept connections.*"))
+    )
+    with container:
+        yield container
+
+
+@pytest.fixture(scope="session")
+def ollama_container():
+    """Fixture to spin up an Ollama container for testing."""
+    container = OllamaContainer()
+    # Use structured wait strategy instead of deprecated @wait_container_is_ready
+    container = container.waiting_for(LogMessageWaitStrategy(re.compile(r".*Listening on.*")))
+    with container:
+        # Pull the default embedding model needed for tests
+        container.exec("ollama pull nomic-embed-text").exit_code
+        yield container
+
+
+@pytest.fixture(scope="session")
+def qdrant_container():
+    """Fixture to spin up a Qdrant container for testing."""
+    container = QdrantContainer("qdrant/qdrant:v1.16.1")
+    # Use structured wait strategy instead of deprecated @wait_container_is_ready
+    container = container.waiting_for(
+        LogMessageWaitStrategy(re.compile(r".*Actix runtime found; starting in Actix runtime.*"))
+    )
+    with container:
         yield container
 
 

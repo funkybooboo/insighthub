@@ -55,16 +55,16 @@ Examples:
   python -m src.cli document remove file.pdf    Remove a document from current workspace
 
   # Chat operations
-  python -m src.cli chat list                   List chat session in current workspace
+  python -m src.cli chat list                   List chat sessions in current workspace
   python -m src.cli chat create                 Create a new chat session in current workspace
-  python -m src.cli chat select 1               Select chat session with ID 1 in current workspace
+  python -m src.cli chat select 1               Select chat session with ID 1
   python -m src.cli chat send "Hello"           Send a message to current session
   python -m src.cli chat history                Show message history for current session
-  python -m src.cli chat delete 1               Delete a chat session in current workspace
+  python -m src.cli chat delete 1               Delete a chat session
 
   # Configuration
   python -m src.cli default-rag-config show     Show default RAG configuration
-  python -m src.cli default-rag-config create   Create/update default RAG config
+  python -m src.cli default-rag-config create   Create/update default RAG config (interactive)
 
   # State
   python -m src.cli state show                  Show current state (selected workspace/session)
@@ -140,10 +140,14 @@ For help on a specific resource, use:
     )
     chat_subparsers = chat_parser.add_subparsers(dest="action", help="Chat action")
 
-    chat_list = chat_subparsers.add_parser("list", help="List chat session in workspace")
-    chat_list.add_argument("workspace_id", type=int, help="Workspace ID")
-    chat_create = chat_subparsers.add_parser("create", help="Create new chat session (interactive)")
-    chat_create.add_argument("workspace_id", type=int, help="Workspace ID")
+    chat_list = chat_subparsers.add_parser("list", help="List chat session in current workspace")
+    chat_list.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
+    chat_create = chat_subparsers.add_parser("create", help="Create new chat session in current workspace (interactive)")
+    chat_create.add_argument(
+        "--workspace-id", type=int, help="Workspace ID (overrides selected workspace)"
+    )
     chat_select = chat_subparsers.add_parser("select", help="Select a chat session")
     chat_select.add_argument("session_id", type=int, help="Chat session ID")
     chat_delete = chat_subparsers.add_parser("delete", help="Delete a chat session")

@@ -16,7 +16,9 @@ class TestS3BlobStorageIntegration:
     @pytest.fixture(scope="class")
     def minio_container(self):
         """Fixture to spin up a Minio container for testing."""
-        with MinioContainer("minio/minio:latest") as container:
+        container = MinioContainer("minio/minio:latest")
+        # MinioContainer has built-in wait strategy, no need to override
+        with container:
             yield container
 
     @pytest.fixture(scope="function")

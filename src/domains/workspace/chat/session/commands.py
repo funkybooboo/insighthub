@@ -17,16 +17,26 @@ logger = create_logger(__name__)
 
 
 def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
-    """List chat sessions in the specified workspace."""
+    """List chat sessions in the current workspace."""
     try:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
         # Check workspace exists
-        workspace = ctx.workspace_repo.get_by_id(args.workspace_id)
+        workspace = ctx.workspace_repo.get_by_id(workspace_id)
         if not workspace:
-            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
+            print(f"Error: Workspace {workspace_id} not found", file=sys.stderr)
             sys.exit(1)
 
         # === Create Request DTO ===
-        request = ListSessionsRequest(workspace_id=args.workspace_id, skip=0, limit=50)
+        request = ListSessionsRequest(workspace_id=workspace_id, skip=0, limit=50)
 
         # === Call Orchestrator ===
         result = ctx.session_orchestrator.list_sessions(request)
@@ -39,7 +49,8 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 
         for response in paginated.items:
             title = response.title or "(No title)"
-            print(f"[{response.id}] {title}")
+            selected = " (SELECTED)" if response.id == ctx.current_session_id else ""
+            print(f"[{response.id}] {title}{selected}")
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -48,12 +59,22 @@ def cmd_list(ctx: AppContext, args: argparse.Namespace) -> None:
 
 
 def cmd_create(ctx: AppContext, args: argparse.Namespace) -> None:
-    """Create a new chat session (interactive)."""
+    """Create a new chat session in the current workspace (interactive)."""
     try:
+        # Use workspace_id from args if provided, otherwise use current workspace
+        workspace_id = getattr(args, "workspace_id", None) or ctx.current_workspace_id
+
+        if not workspace_id:
+            print(
+                "Error: No workspace selected. Use 'workspace select <id>' first or provide --workspace-id",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
         # Check workspace exists
-        workspace = ctx.workspace_repo.get_by_id(args.workspace_id)
+        workspace = ctx.workspace_repo.get_by_id(workspace_id)
         if not workspace:
-            print(f"Error: Workspace {args.workspace_id} not found", file=sys.stderr)
+            print(f"Error: Workspace {workspace_id} not found", file=sys.stderr)
             sys.exit(1)
 
         # === CLI Interface: Gather user input ===
@@ -61,7 +82,7 @@ def cmd_create(ctx: AppContext, args: argparse.Namespace) -> None:
 
         # === Create Request DTO ===
         request = CreateSessionRequest(
-            workspace_id=args.workspace_id,
+            workspace_id=workspace_id,
             title=title,
             rag_type=workspace.rag_type,
         )

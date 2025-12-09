@@ -373,10 +373,12 @@ class TestChatMessaging:
         """Test sending messages after switching workspaces."""
         import re
 
+        from tests.e2e.conftest import get_workspace_create_input
+
         # Create first workspace and chat
         ws1 = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
-            input="Workspace 1\nFirst workspace\nvector\n",
+            input=get_workspace_create_input("Workspace 1", "First workspace", "vector"),
             capture_output=True,
             text=True,
         )
@@ -397,7 +399,7 @@ class TestChatMessaging:
         # Create second workspace and chat
         ws2 = subprocess.run(
             [sys.executable, "-m", "src.cli", "workspace", "create"],
-            input="Workspace 2\nSecond workspace\nvector\n",
+            input=get_workspace_create_input("Workspace 2", "Second workspace", "vector"),
             capture_output=True,
             text=True,
         )

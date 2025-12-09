@@ -1,8 +1,10 @@
 """Integration tests for QdrantVectorStore using testcontainers."""
 
+import re
 from collections.abc import Generator
 
 import pytest
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 from testcontainers.qdrant import QdrantContainer
 
 from src.infrastructure.types.common import MetadataDict
@@ -16,7 +18,13 @@ class TestQdrantVectorStoreIntegration:
     @pytest.fixture(scope="function")
     def qdrant_container_instance(self) -> QdrantContainer:
         """Spin up a Qdrant container for testing."""
-        container = QdrantContainer("qdrant/qdrant:latest")
+        container = QdrantContainer("qdrant/qdrant:v1.16.1")
+        # Use structured wait strategy instead of deprecated @wait_container_is_ready
+        container = container.waiting_for(
+            LogMessageWaitStrategy(
+                re.compile(r".*Actix runtime found; starting in Actix runtime.*")
+            )
+        )
         container.start()
         yield container
         container.stop()

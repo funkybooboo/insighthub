@@ -79,6 +79,17 @@ class WorkspaceOrchestrator:
             name=validated_request.name,
             description=validated_request.description,
             rag_type=validated_request.rag_type,
+            # Vector RAG config
+            chunking_algorithm=validated_request.chunking_algorithm,
+            chunk_size=validated_request.chunk_size,
+            chunk_overlap=validated_request.chunk_overlap,
+            embedding_algorithm=validated_request.embedding_algorithm,
+            top_k=validated_request.top_k,
+            rerank_algorithm=validated_request.rerank_algorithm,
+            # Graph RAG config
+            entity_extraction_algorithm=validated_request.entity_extraction_algorithm,
+            relationship_extraction_algorithm=validated_request.relationship_extraction_algorithm,
+            clustering_algorithm=validated_request.clustering_algorithm,
         )
 
         if isinstance(service_result, Failure):

@@ -15,7 +15,7 @@ from returns.result import Failure, Result, Success
 from src.infrastructure.graph_stores.graph_store import GraphStore
 from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.general.chunking.document_chunker import Chunker
-from src.infrastructure.rag.steps.general.parsing.document_parser import DocumentParser
+from src.infrastructure.rag.steps.general.parsing.factory import ParserFactory
 from src.infrastructure.rag.steps.graph_rag.entity_extraction.entity_extractor import (
     EntityExtractor,
 )
@@ -40,7 +40,7 @@ class GraphRagAddDocumentWorkflow(AddDocumentWorkflow):
 
     def __init__(
         self,
-        parser: DocumentParser,
+        parser_factory: ParserFactory,
         chunker: Chunker,
         entity_extractor: EntityExtractor,
         relationship_extractor: RelationshipExtractor,
@@ -54,7 +54,7 @@ class GraphRagAddDocumentWorkflow(AddDocumentWorkflow):
         Initialize the Graph RAG add document workflow.
 
         Args:
-            parser: Document parser implementation
+            parser_factory: Parser factory for automatic parser selection based on file type
             chunker: Document chunker implementation
             entity_extractor: Entity extraction implementation
             relationship_extractor: Relationship extraction implementation
@@ -64,7 +64,7 @@ class GraphRagAddDocumentWorkflow(AddDocumentWorkflow):
             clustering_max_level: Maximum hierarchy level for clustering
             community_min_size: Minimum size for valid communities
         """
-        self.parser = parser
+        self.parser_factory = parser_factory
         self.chunker = chunker
         self.entity_extractor = entity_extractor
         self.relationship_extractor = relationship_extractor
@@ -95,7 +95,10 @@ class GraphRagAddDocumentWorkflow(AddDocumentWorkflow):
         """
         # Step 1: Parse document
         logger.info(f"[GraphRagAddDocumentWorkflow] Parsing document {document_id}")
-        parse_result = self.parser.parse(raw_document, metadata)
+
+        # Get filename from metadata to select appropriate parser
+        filename = metadata.get("filename", "unknown.txt") if metadata else "unknown.txt"
+        parse_result = self.parser_factory.parse_document(raw_document, filename, metadata)
 
         if isinstance(parse_result, Failure):
             return Failure(

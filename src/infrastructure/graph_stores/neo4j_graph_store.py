@@ -348,9 +348,12 @@ class Neo4jGraphStore(GraphStore):
     def get_communities(self, entity_ids: list[str], workspace_id: str) -> list[Community]:
         """Get communities associated with the given entities."""
         query = """
-        MATCH (c:Community {workspace_id: $workspace_id})
-        WHERE ANY(entity_id IN $entity_ids WHERE entity_id IN c.entity_ids)
-        RETURN c
+        MATCH (e:Entity {workspace_id: $workspace_id})
+        WHERE e.id IN $entity_ids
+        MATCH (e)-[:BELONGS_TO]->(c:Community {workspace_id: $workspace_id})
+        WITH c
+        MATCH (member:Entity)-[:BELONGS_TO]->(c)
+        RETURN c, collect(member.id) AS member_entity_ids
         ORDER BY c.score DESC
         """
         parameters = {"entity_ids": entity_ids, "workspace_id": workspace_id}
@@ -358,7 +361,7 @@ class Neo4jGraphStore(GraphStore):
 
         communities = []
         for record in results:
-            communities.append(self._node_to_community(record["c"]))
+            communities.append(self._node_to_community(record["c"], record["member_entity_ids"]))
 
         logger.info(f"Found {len(communities)} communities for {len(entity_ids)} entities")
         return communities
@@ -475,7 +478,7 @@ class Neo4jGraphStore(GraphStore):
             metadata=metadata,
         )
 
-    def _node_to_community(self, node) -> Community:
+    def _node_to_community(self, node, entity_ids: list[str]) -> Community:
         """Convert a Neo4j node to a Community object."""
         # Deserialize metadata from JSON string
         metadata_str = node.get("metadata", "{}")
@@ -485,7 +488,7 @@ class Neo4jGraphStore(GraphStore):
         return Community(
             id=node["id"],
             workspace_id=node["workspace_id"],
-            entity_ids=node["entity_ids"],
+            entity_ids=entity_ids,
             level=node["level"],
             summary=node.get("summary", ""),
             score=node.get("score", 0.0),

@@ -3,7 +3,10 @@
 Tests basic Qdrant functionality with a real database instance.
 """
 
+import re
+
 import pytest
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 from testcontainers.qdrant import QdrantContainer
 
 
@@ -14,7 +17,13 @@ class TestQdrantIntegration:
     @pytest.fixture(scope="function")
     def qdrant_container(self):
         """Spin up a Qdrant container for testing."""
-        container = QdrantContainer("qdrant/qdrant:v1.9.1")
+        container = QdrantContainer("qdrant/qdrant:v1.16.1")
+        # Use structured wait strategy instead of deprecated @wait_container_is_ready
+        container = container.waiting_for(
+            LogMessageWaitStrategy(
+                re.compile(r".*Actix runtime found; starting in Actix runtime.*")
+            )
+        )
         container.start()
         yield container
         container.stop()

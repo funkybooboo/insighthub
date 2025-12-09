@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS ix_chat_messages_chat_session_id ON chat_messages(cha
 -- Default RAG configurations table (single-user system, only one row allowed)
 CREATE TABLE IF NOT EXISTS default_rag_configs (
     id SERIAL PRIMARY KEY,
-    vector_embedding_algorithm VARCHAR(50) NOT NULL DEFAULT 'ollama',
+    vector_embedding_algorithm VARCHAR(50) NOT NULL DEFAULT 'nomic-embed-text',
     vector_chunking_algorithm VARCHAR(50) NOT NULL DEFAULT 'sentence',
     vector_rerank_algorithm VARCHAR(50) NOT NULL DEFAULT 'none',
     vector_chunk_size INTEGER NOT NULL DEFAULT 1000,

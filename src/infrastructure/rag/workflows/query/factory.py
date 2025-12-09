@@ -4,10 +4,10 @@ from src.infrastructure.logger import create_logger
 from src.infrastructure.rag.steps.graph_rag.entity_extraction.factory import EntityExtractorFactory
 from src.infrastructure.rag.steps.vector_rag.embedding.factory import EmbedderFactory
 from src.infrastructure.rag.steps.vector_rag.reranking.factory import RerankerFactory
-from src.infrastructure.rag.store_manager import RAGStoreManager
 from src.infrastructure.rag.workflows.query.graph_rag_query_workflow import GraphRagQueryWorkflow
 from src.infrastructure.rag.workflows.query.query_workflow import QueryWorkflow
 from src.infrastructure.rag.workflows.query.vector_rag_query_workflow import VectorRagQueryWorkflow
+from src.infrastructure.store_manager import RAGStoreManager
 
 logger = create_logger(__name__)
 
@@ -49,7 +49,7 @@ class QueryWorkflowFactory:
         logger.info("Creating Vector RAG query workflow")
 
         # Create embedder
-        embedder_type = config.get("embedder_type", "ollama")
+        embedder_type = config.get("embedder_type", "nomic-embed-text")
         embedder_config = config.get("embedder_config", {})
         embedder = EmbedderFactory.create_embedder(embedder_type, **embedder_config)
 

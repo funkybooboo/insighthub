@@ -173,68 +173,40 @@ def cleanup_resources():
 
     from src.config import config
 
-    # Get database connection
+    # Get database connection and record existing resources
+    # Use a single query to fetch all resource IDs at once to reduce round trips
     conn = psycopg2.connect(config.database_url)
     cursor = conn.cursor()
 
-    # Record existing resource IDs before test
-    cursor.execute("SELECT id FROM workspaces")
-    existing_workspaces = {row[0] for row in cursor.fetchall()}
+    # Record existing resource IDs before test (single query for efficiency)
+    cursor.execute(
+        """
+        SELECT 'workspace' as type, id FROM workspaces
+        UNION ALL
+        SELECT 'document' as type, id FROM documents
+        UNION ALL
+        SELECT 'session' as type, id FROM chat_sessions
+    """
+    )
+    results = cursor.fetchall()
+    existing_workspaces = {row[1] for row in results if row[0] == "workspace"}
+    existing_documents = {row[1] for row in results if row[0] == "document"}
+    existing_sessions = {row[1] for row in results if row[0] == "session"}
 
-    cursor.execute("SELECT id FROM documents")
-    existing_documents = {row[0] for row in cursor.fetchall()}
-
-    cursor.execute("SELECT id FROM chat_sessions")
-    existing_sessions = {row[0] for row in cursor.fetchall()}
-
-    # Get Qdrant collections before test
-    try:
-        from qdrant_client import QdrantClient
-
-        qdrant_client = QdrantClient(host=config.qdrant_host, port=config.qdrant_port)
-        existing_collections = {col.name for col in qdrant_client.get_collections().collections}
-    except Exception:
-        existing_collections = set()
-        qdrant_client = None
-
-    # Get MinIO objects before test
-    try:
-        import boto3
-
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url=config.s3_endpoint_url,
-            aws_access_key_id=config.s3_access_key,
-            aws_secret_access_key=config.s3_secret_key,
-        )
-        # List all objects in the bucket
-        try:
-            response = s3_client.list_objects_v2(Bucket=config.s3_bucket_name)
-            existing_objects = {obj["Key"] for obj in response.get("Contents", [])}
-        except Exception:
-            existing_objects = set()
-    except Exception:
-        s3_client = None
-        existing_objects = set()
-
-    # Get Neo4j node count before test
-    try:
-        from neo4j import GraphDatabase
-
-        if config.neo4j_url and config.neo4j_user and config.neo4j_password:
-            neo4j_driver = GraphDatabase.driver(
-                config.neo4j_url,
-                auth=(config.neo4j_user, config.neo4j_password),
-            )
-            with neo4j_driver.session() as session:
-                result = session.run("MATCH (n) RETURN count(n) as count")
-                existing_node_count = result.single()["count"]
-        else:
-            neo4j_driver = None
-            existing_node_count = 0
-    except Exception:
-        neo4j_driver = None
-        existing_node_count = 0
+    # Store config info needed for lazy cleanup (don't connect to services yet)
+    # This reduces memory usage by only connecting when actually needed
+    qdrant_config = {"host": config.qdrant_host, "port": config.qdrant_port}
+    s3_config = {
+        "endpoint_url": config.s3_endpoint_url,
+        "aws_access_key_id": config.s3_access_key,
+        "aws_secret_access_key": config.s3_secret_key,
+        "bucket_name": config.s3_bucket_name,
+    }
+    neo4j_config = {
+        "url": config.neo4j_url,
+        "user": config.neo4j_user,
+        "password": config.neo4j_password,
+    }
 
     cursor.close()
     conn.close()
@@ -245,24 +217,34 @@ def cleanup_resources():
     # === CLEANUP PHASE ===
     # Clean up resources in the correct order to respect dependencies
 
-    # 1. Find new resources in database
+    # 1. Find new resources in database (single query for efficiency)
     conn = psycopg2.connect(config.database_url)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id FROM chat_sessions")
-    current_sessions = {row[0] for row in cursor.fetchall()}
+    cursor.execute(
+        """
+        SELECT 'workspace' as type, id FROM workspaces
+        UNION ALL
+        SELECT 'document' as type, id FROM documents
+        UNION ALL
+        SELECT 'session' as type, id FROM chat_sessions
+    """
+    )
+    current_results = cursor.fetchall()
+    current_workspaces = {row[1] for row in current_results if row[0] == "workspace"}
+    current_documents = {row[1] for row in current_results if row[0] == "document"}
+    current_sessions = {row[1] for row in current_results if row[0] == "session"}
+
     new_sessions = current_sessions - existing_sessions
-
-    cursor.execute("SELECT id FROM documents")
-    current_documents = {row[0] for row in cursor.fetchall()}
     new_documents = current_documents - existing_documents
-
-    cursor.execute("SELECT id FROM workspaces")
-    current_workspaces = {row[0] for row in cursor.fetchall()}
     new_workspaces = current_workspaces - existing_workspaces
 
     cursor.close()
     conn.close()
+
+    # Early exit if no new resources were created (saves memory and time)
+    if not (new_sessions or new_documents or new_workspaces):
+        return
 
     # 2. Delete database resources using CLI (also triggers cascade cleanup)
     # Order: sessions -> documents -> workspaces
@@ -303,41 +285,71 @@ def cleanup_resources():
         except Exception:
             pass  # Best effort cleanup
 
-    # 3. Clean up Qdrant collections
-    if qdrant_client:
+    # 3. Clean up Qdrant collections (only connect if needed)
+    if new_workspaces:
         try:
-            current_collections = {col.name for col in qdrant_client.get_collections().collections}
-            new_collections = current_collections - existing_collections
-            for collection_name in new_collections:
-                try:
-                    qdrant_client.delete_collection(collection_name)
-                except Exception:
-                    pass
+            from qdrant_client import QdrantClient
+
+            qdrant_client = QdrantClient(host=qdrant_config["host"], port=qdrant_config["port"])
+            try:
+                # Get collections and delete workspace-specific ones
+                collections = qdrant_client.get_collections().collections
+                for collection in collections:
+                    # Check if collection name contains workspace ID
+                    for workspace_id in new_workspaces:
+                        if str(workspace_id) in collection.name:
+                            try:
+                                qdrant_client.delete_collection(collection.name)
+                            except Exception:
+                                pass
+            finally:
+                # Ensure client is closed to free memory
+                del qdrant_client
         except Exception:
             pass
 
-    # 4. Clean up MinIO objects
-    if s3_client:
+    # 4. Clean up MinIO objects (only connect if needed)
+    if new_documents or new_workspaces:
         try:
-            response = s3_client.list_objects_v2(Bucket=config.s3_bucket_name)
-            current_objects = {obj["Key"] for obj in response.get("Contents", [])}
-            new_objects = current_objects - existing_objects
-            for object_key in new_objects:
-                try:
-                    s3_client.delete_object(Bucket=config.s3_bucket_name, Key=object_key)
-                except Exception:
-                    pass
+            import boto3
+
+            s3_client = boto3.client(
+                "s3",
+                endpoint_url=s3_config["endpoint_url"],
+                aws_access_key_id=s3_config["aws_access_key_id"],
+                aws_secret_access_key=s3_config["aws_secret_access_key"],
+            )
+            try:
+                response = s3_client.list_objects_v2(Bucket=s3_config["bucket_name"])
+                if "Contents" in response:
+                    for obj in response["Contents"]:
+                        # Delete objects related to new workspaces
+                        for workspace_id in new_workspaces:
+                            if str(workspace_id) in obj["Key"]:
+                                try:
+                                    s3_client.delete_object(
+                                        Bucket=s3_config["bucket_name"], Key=obj["Key"]
+                                    )
+                                except Exception:
+                                    pass
+            finally:
+                # Close S3 client to free resources
+                s3_client.close()
         except Exception:
             pass
 
-    # 5. Clean up Neo4j nodes (delete only new nodes)
-    if neo4j_driver:
+    # 5. Clean up Neo4j nodes (only connect if needed)
+    if new_workspaces and neo4j_config["url"]:
         try:
-            with neo4j_driver.session() as session:
-                result = session.run("MATCH (n) RETURN count(n) as count")
-                current_node_count = result.single()["count"]
-                # If nodes were added, delete all workspace-related nodes
-                if current_node_count > existing_node_count:
+            from neo4j import GraphDatabase
+
+            neo4j_driver = GraphDatabase.driver(
+                neo4j_config["url"],
+                auth=(neo4j_config["user"], neo4j_config["password"]),
+            )
+            try:
+                # Delete all nodes related to new workspaces
+                with neo4j_driver.session() as session:
                     for workspace_id in new_workspaces:
                         try:
                             session.run(
@@ -346,7 +358,9 @@ def cleanup_resources():
                             )
                         except Exception:
                             pass
-            neo4j_driver.close()
+            finally:
+                # Explicitly close driver to free memory
+                neo4j_driver.close()
         except Exception:
             pass
 
@@ -401,3 +415,65 @@ def cleanup_resources():
             conn.close()
         except Exception:
             pass
+
+
+def get_workspace_create_input(
+    name: str,
+    description: str = "",
+    rag_type: str = "vector",
+    # Vector RAG defaults (empty string means use default)
+    chunking_algorithm: str = "",
+    chunk_size: str = "",
+    chunk_overlap: str = "",
+    embedding_algorithm: str = "",
+    top_k: str = "",
+    rerank_algorithm: str = "",
+    # Graph RAG defaults (empty string means use default)
+    entity_extraction_algorithm: str = "",
+    relationship_extraction_algorithm: str = "",
+    clustering_algorithm: str = "",
+) -> str:
+    """Generate input string for workspace create command with all RAG config prompts.
+
+    Args:
+        name: Workspace name
+        description: Workspace description (optional)
+        rag_type: RAG type (vector or graph)
+        chunking_algorithm: Chunking algorithm (empty = default)
+        chunk_size: Chunk size (empty = default)
+        chunk_overlap: Chunk overlap (empty = default)
+        embedding_algorithm: Embedding algorithm (empty = default)
+        top_k: Top K (empty = default)
+        rerank_algorithm: Rerank algorithm (empty = default)
+        entity_extraction_algorithm: Entity extraction algorithm (empty = default)
+        relationship_extraction_algorithm: Relationship extraction algorithm (empty = default)
+        clustering_algorithm: Clustering algorithm (empty = default)
+
+    Returns:
+        Input string with newlines for all prompts
+    """
+    # Start with common prompts
+    input_lines = [name, description, rag_type]
+
+    # Add RAG type-specific prompts
+    if rag_type == "vector":
+        input_lines.extend(
+            [
+                chunking_algorithm,
+                chunk_size,
+                chunk_overlap,
+                embedding_algorithm,
+                top_k,
+                rerank_algorithm,
+            ]
+        )
+    elif rag_type == "graph":
+        input_lines.extend(
+            [
+                entity_extraction_algorithm,
+                relationship_extraction_algorithm,
+                clustering_algorithm,
+            ]
+        )
+
+    return "\n".join(input_lines) + "\n"

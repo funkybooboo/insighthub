@@ -2,40 +2,6 @@
 
 A Python-based CLI application for intelligent document retrieval using advanced RAG (Retrieval-Augmented Generation) techniques with support for both vector and graph-based search.
 
-## Architecture
-
-InsightHub uses a **domain-driven design** architecture with clean separation of concerns:
-
-- **CLI Interface**: Task-based command-line interface for all operations
-- **Domain Layer**: Business logic organized by bounded contexts (workspace, document, chat, state, rag_options)
-- **Infrastructure Layer**: Generic utilities, RAG workflows, LLM providers, caching, and a RAG store manager
-- **Data Layer**: PostgreSQL with pgvector, Qdrant, Neo4j, Redis cache
-
-Each domain contains its own models, repositories, services, orchestrators, validation, and CLI commands, ensuring true domain isolation and maintainability.
-
-### Technology Stack
-
-**Core:**
-- Python 3.11+ with Poetry
-- SQLAlchemy ORM + PostgreSQL (pgvector)
-- Pydantic for configuration and validation
-- Domain-driven design pattern
-
-**RAG Components:**
-- **Vector RAG**: Qdrant vector database, Sentence Transformers embeddings, reranking
-- **Graph RAG**: Neo4j graph database, knowledge graph construction
-- Dual retrieval strategies for enhanced accuracy
-
-**LLM Providers:**
-- Ollama (local, default) - llama3.2:1b + nomic-embed-text
-- OpenAI GPT models
-- Anthropic Claude models
-
-**Infrastructure:**
-- Redis for caching (optional, defaults to in-memory)
-- MinIO (S3-compatible) for document storage
-- Task runner for automation
-
 ## Quick Start
 
 ### Prerequisites
@@ -198,11 +164,19 @@ task cli -- default-rag-config create  # Configure RAG settings (interactive)
 ### Learning More
 
 For comprehensive tutorials and guides, see the [tutorials directory](docs/users/tutorials/):
-- **Tutorial 1:** Getting Started with Your First Workspace
-- **Tutorial 2:** Uploading and Querying Documents
-- **Tutorial 3:** Understanding Search Methods (Vector, Graph, Hybrid)
 
 Each tutorial includes CLI tips, help examples, and best practices.
+
+## Architecture
+
+InsightHub uses a **domain-driven design** architecture with clean separation of concerns:
+
+- **CLI Interface**: Task-based command-line interface for all operations
+- **Domain Layer**: Business logic organized by bounded contexts (workspace, document, chat, state, rag_options)
+- **Infrastructure Layer**: Generic utilities, RAG workflows, LLM providers, caching, and a RAG store manager
+- **Data Layer**: PostgreSQL with pgvector, Qdrant, Neo4j, Redis cache
+
+Each domain contains its own models, repositories, services, orchestrators, validation, and CLI commands, ensuring true domain isolation and maintainability.
 
 ## Project Structure
 
